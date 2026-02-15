@@ -202,18 +202,29 @@ Or simply copy all `.agent.md` and `.prompt.md` files into your workspace root.
 
 ### Usage
 
-**Via the prompt file:**
-Use the `Feature Workflow` prompt in Copilot Chat and provide your feature description. The orchestrator takes it from there.
+**Quick Start — Feature Workflow Prompt:**
 
-**Via direct agent invocation:**
-Invoke the `orchestrator` agent and describe the feature you want built.
+In Copilot Chat, type:
+
+```
+/feature-workflow Build a two-factor authentication system for user login
+```
+
+The format is `/feature-workflow` followed by your feature description. Copilot will invoke the Feature Workflow prompt, which delegates to the orchestrator agent to run the full pipeline.
+
+**Direct Agent Invocation:**
+
+Alternatively, invoke the `orchestrator` agent directly and describe the feature you want built.
+
+**What Happens Next:**
 
 The orchestrator will:
 
 1. Capture your request in `initial-request.md`
-2. Dispatch parallel research agents
+2. Dispatch parallel research agents to investigate the codebase
 3. Walk through specification → design → critical review → planning → implementation → verification → review
 4. Produce all artifacts under `docs/feature/<feature-slug>/`
+5. Return a summary of what was built and where to find the detailed artifacts
 
 ---
 
