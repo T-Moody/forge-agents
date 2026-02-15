@@ -6,21 +6,23 @@ This document identifies specific strengths from [Gem Team](https://github.com/m
 
 ## Priority Legend
 
-| Priority | Meaning |
-|---|---|
+| Priority          | Meaning                                                       |
+| ----------------- | ------------------------------------------------------------- |
 | **P0 — Critical** | Directly impacts output quality of every run; implement first |
-| **P1 — High** | Significant improvement for most projects; implement second |
-| **P2 — Medium** | Valuable for specific project types; implement when needed |
-| **P3 — Low** | Nice-to-have; defer unless building out the full platform |
+| **P1 — High**     | Significant improvement for most projects; implement second   |
+| **P2 — Medium**   | Valuable for specific project types; implement when needed    |
+| **P3 — Low**      | Nice-to-have; defer unless building out the full platform     |
 
 ---
 
 ## 1. Pre-Mortem Analysis in the Planner (P0)
 
 ### What Gem Team Does
+
 The `gem-planner` runs a pre-mortem analysis before finalizing the plan. For each high/medium priority task, it identifies potential failure scenarios with likelihood, impact, and mitigation strategies. This is embedded in the `plan.yaml` under `pre_mortem` and per-task `failure_modes`.
 
 ### Why Forge Needs This
+
 Forge currently moves from planning directly to implementation with no structured risk assessment. The critical-thinker reviews the design, but no one reviews the plan for execution risks — misestimated dependencies, tasks that might conflict at the integration level, or risky technology choices in specific tasks.
 
 ### How to Implement
@@ -29,7 +31,7 @@ Forge currently moves from planning directly to implementation with no structure
 
 Add a "Pre-Mortem Analysis" section to the planner's workflow:
 
-```markdown
+````markdown
 ## Pre-Mortem Analysis
 
 After creating the task index and execution waves, the planner MUST perform a pre-mortem analysis:
@@ -50,16 +52,20 @@ After creating the task index and execution waves, the planner MUST perform a pr
 Overall Risk Level: medium
 
 ### Assumptions
+
 - The existing auth middleware supports token refresh (if not, task 03 will need redesign)
 - The database schema allows nullable columns for backwards compatibility
 
 ### Task Risk Assessment
-| Task | Scenario | Likelihood | Impact | Mitigation |
-|---|---|---|---|---|
-| 01-create-api | Rate limiting middleware conflicts with existing CORS setup | medium | high | Test middleware ordering in isolation first |
-| 03-update-auth | Token refresh endpoint may not exist in current implementation | low | critical | Research agent should verify in architecture analysis |
+
+| Task           | Scenario                                                       | Likelihood | Impact   | Mitigation                                            |
+| -------------- | -------------------------------------------------------------- | ---------- | -------- | ----------------------------------------------------- |
+| 01-create-api  | Rate limiting middleware conflicts with existing CORS setup    | medium     | high     | Test middleware ordering in isolation first           |
+| 03-update-auth | Token refresh endpoint may not exist in current implementation | low        | critical | Research agent should verify in architecture analysis |
 ```
-```
+````
+
+````
 
 **Modify `orchestrator.agent.md`:**
 
@@ -113,7 +119,7 @@ Replace the current workflow with a TDD-aware workflow:
 - Focus on writing correct, minimal code that passes the tests
 - Run `get_errors` after EVERY edit — do not batch error checking
 - If tests fail after implementation, debug and fix before returning
-```
+````
 
 **Modify `orchestrator.agent.md`:**
 
@@ -139,13 +145,16 @@ The verifier performs **integration-level verification** after implementation wa
 ## 3. Task Size Limits in the Planner (P1)
 
 ### What Gem Team Does
+
 The `gem-planner` enforces hard limits on task scope:
+
 - `max_files: 3` — no task touches more than 3 files
 - `max_dependencies: 2` — no task depends on more than 2 others
 - `max_lines_to_change: 500` — no task changes more than 500 lines
 - `max_estimated_effort: medium` — large tasks must be broken down
 
 ### Why Forge Needs This
+
 Without guardrails, the planner can create tasks that are too large for a single implementer invocation. Large tasks increase the risk of failure, make verification harder, and reduce parallelism opportunities.
 
 ### How to Implement
@@ -157,12 +166,12 @@ Without guardrails, the planner can create tasks that are too large for a single
 
 Each task MUST stay within these bounds:
 
-| Limit | Maximum |
-|---|---|
-| Files touched | 3 |
-| Dependencies | 2 other tasks |
-| Lines changed | 500 |
-| Estimated effort | medium |
+| Limit            | Maximum       |
+| ---------------- | ------------- |
+| Files touched    | 3             |
+| Dependencies     | 2 other tasks |
+| Lines changed    | 500           |
+| Estimated effort | medium        |
 
 If a task exceeds any limit, break it into smaller subtasks. Prefer more small tasks over fewer large tasks — this maximizes parallelism and minimizes blast radius on failure.
 ```
@@ -172,9 +181,11 @@ If a task exceeds any limit, break it into smaller subtasks. Prefer more small t
 ## 4. Concurrency Cap (P1)
 
 ### What Gem Team Does
+
 The orchestrator enforces a maximum of 4 concurrent agent invocations to prevent resource exhaustion and maintain system stability.
 
 ### Why Forge Needs This
+
 Forge dispatches all tasks in a wave concurrently with no limit. For large features with waves containing 8+ tasks, this could overwhelm the system.
 
 ### How to Implement
@@ -192,13 +203,16 @@ Add to Global Rules:
 ## 5. Security-Focused Review (P1)
 
 ### What Gem Team Does
+
 The `gem-reviewer` acts as a security gatekeeper with:
+
 - OWASP Top 10 scanning
 - Secrets/PII detection via regex scanning
 - Compliance verification
 - Tiered review depth (Full → Standard → Lightweight) based on task priority
 
 ### Why Forge Needs This
+
 Forge's reviewer performs a general peer code review but does not explicitly scan for security vulnerabilities, hardcoded secrets, or compliance issues. Security issues in generated code are a real risk.
 
 ### How to Implement
@@ -213,21 +227,24 @@ Add a security review section:
 In addition to code quality review, perform the following security checks:
 
 ### For all reviews:
+
 - Scan for hardcoded secrets, API keys, tokens, and passwords
 - Check for PII exposure in logs, error messages, and responses
 - Verify input validation on all user-facing inputs
 
 ### For security-sensitive changes (auth, data, payments, admin):
+
 - OWASP Top 10 scan: injection, broken auth, sensitive data exposure, XXE, broken access control, misconfig, XSS, insecure deserialization, known vulnerabilities, insufficient logging
 - Verify authentication and authorization checks on new endpoints
 - Check for SQL injection, XSS, and CSRF vulnerabilities
 
 ### Review Depth
-| Task Priority/Type | Review Depth |
-|---|---|
-| High priority, security-sensitive, auth, PII, production | Full security scan |
-| Medium priority, feature additions | Standard (secrets + basic OWASP) |
-| Low priority, bug fixes, minor refactors | Lightweight (secrets scan only) |
+
+| Task Priority/Type                                       | Review Depth                     |
+| -------------------------------------------------------- | -------------------------------- |
+| High priority, security-sensitive, auth, PII, production | Full security scan               |
+| Medium priority, feature additions                       | Standard (secrets + basic OWASP) |
+| Low priority, bug fixes, minor refactors                 | Lightweight (secrets scan only)  |
 ```
 
 ---
@@ -235,9 +252,11 @@ In addition to code quality review, perform the following security checks:
 ## 6. Per-Task Agent Routing in the Planner (P2)
 
 ### What Gem Team Does
+
 Each task in `plan.yaml` has an `agent` field that specifies which agent should execute it — `gem-implementer`, `gem-chrome-tester`, `gem-devops`, `gem-reviewer`, or `gem-documentation-writer`. The orchestrator reads this field to dispatch tasks to the right agent.
 
 ### Why Forge Needs This
+
 Forge routes all implementation tasks to the `implementer` agent. If Forge eventually adds specialized agents (browser testing, documentation, etc.), the planner should support routing tasks to specific agents.
 
 ### How to Implement (Future-Proofing)
@@ -273,13 +292,16 @@ Update Step 5.2:
 ## 7. Cross-Agent Memory (P2)
 
 ### What Gem Team Does
+
 Agents share knowledge through a memory system:
+
 - Researcher reads memories for project context before exploring
 - Planner stores architectural decisions and design patterns
 - Orchestrator stores project-level decisions and product vision
 - Citations (file:line) are verified before using stored memories
 
 ### Why Forge Needs This
+
 Forge relies entirely on file artifacts for inter-agent communication. This works well for a single feature implementation but doesn't carry forward to subsequent features. There's no mechanism for the system to "remember" decisions from previous runs.
 
 ### How to Implement
@@ -302,12 +324,15 @@ Create a convention for a `docs/decisions.md` file that accumulates architectura
 ## 8. Human Approval Gates (P2)
 
 ### What Gem Team Does
+
 Three mandatory pause points:
+
 1. **Findings Review** — after research, before planning
 2. **Plan Approval** — after plan creation, before execution
 3. **Batch Confirmation** — after each implementation wave, before proceeding
 
 ### Why Forge Needs This
+
 Forge is fully autonomous, which is faster but riskier for high-stakes projects. There's no way for a developer to course-correct before code is written.
 
 ### How to Implement
@@ -320,11 +345,13 @@ Forge is fully autonomous, which is faster but riskier for high-stakes projects.
 ## Optional: Approval Gates
 
 If `{{APPROVAL_MODE}}` is set to `true`:
+
 - Pause after research synthesis (step 1.2) and present `analysis.md` summary for user review.
 - Pause after planning (step 4) and present `plan.md` for user approval.
 - Continue implementation only after user confirms.
 
 If `{{APPROVAL_MODE}}` is not set or is `false`:
+
 - Run fully autonomously (current behavior).
 ```
 
@@ -333,13 +360,16 @@ If `{{APPROVAL_MODE}}` is not set or is `false`:
 ## 9. Hybrid Retrieval Strategy in the Researcher (P1)
 
 ### What Gem Team Does
+
 The researcher uses a defined hybrid retrieval strategy:
+
 1. `semantic_search` first for conceptual discovery
 2. `grep_search` for exact pattern matching
 3. Merge and deduplicate results
 4. `read_file` for detailed examination
 
 ### Why Forge Needs This
+
 Forge's researcher has no prescribed retrieval methodology. Different invocations may use different strategies, leading to inconsistent research quality.
 
 ### How to Implement
@@ -367,12 +397,15 @@ This ensures broad conceptual coverage (semantic) combined with precise pattern 
 ## 10. Self-Reflection Step for Agents (P3)
 
 ### What Gem Team Does
+
 Medium and high-priority tasks trigger a self-reflection step in the implementer, reviewer, and chrome-tester:
+
 - Implementer: self-reviews for security, performance, naming
 - Reviewer: self-reviews for completeness and bias
 - Chrome tester: self-reviews against acceptance criteria and SLAs
 
 ### Why Forge Needs This
+
 Forge agents return results without a structured self-check. A brief reflection step could catch obvious mistakes before the result reaches the orchestrator.
 
 ### How to Implement
@@ -383,6 +416,7 @@ Add a reflection instruction to `implementer.agent.md` and `reviewer.agent.md`:
 ## Self-Reflection (before returning)
 
 Before returning DONE or ERROR, briefly verify:
+
 - Does the output fully address what was asked?
 - Are there any obvious omissions or errors?
 - Would a senior engineer approve this output?
@@ -395,21 +429,25 @@ If reflection identifies issues, fix them before returning.
 ## Implementation Roadmap
 
 ### Phase 1 — Immediate (P0)
+
 1. Add pre-mortem analysis to `planner.agent.md`
 2. Add TDD enforcement to `implementer.agent.md`
 
 ### Phase 2 — Next (P1)
+
 3. Add task size limits to `planner.agent.md`
 4. Add concurrency cap to `orchestrator.agent.md`
 5. Add security review section to `reviewer.agent.md`
 6. Add hybrid retrieval strategy to `researcher.agent.md`
 
 ### Phase 3 — When Needed (P2)
+
 7. Add per-task agent routing (when adding new specialized agents)
 8. Add project decision log convention
 9. Add optional human approval gates
 
 ### Phase 4 — Polish (P3)
+
 10. Add self-reflection steps to implementer and reviewer
 
 ---
@@ -418,9 +456,9 @@ If reflection identifies issues, fix them before returning.
 
 Some Gem Team features are **not recommended** for Forge:
 
-| Feature | Why Skip It |
-|---|---|
-| **YAML state file (`plan.yaml`)** | Markdown artifacts are more human-readable and easier to diff/review. YAML adds complexity without clear benefit for Forge's fixed pipeline. |
-| **`disable-model-invocation: true`** | This is a Gem Team-specific mechanism. Forge achieves the same outcome through explicit agent instructions ("never write code"). |
-| **Mandatory human pauses** | Forge's value proposition is autonomous execution. Make pauses optional (see item 8) but don't make them mandatory. |
-| **Chrome Tester / DevOps / Doc Writer agents** | These are specialized agents for specific project types. Add them as separate optional agents if needed, not as part of the core pipeline. |
+| Feature                                        | Why Skip It                                                                                                                                  |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **YAML state file (`plan.yaml`)**              | Markdown artifacts are more human-readable and easier to diff/review. YAML adds complexity without clear benefit for Forge's fixed pipeline. |
+| **`disable-model-invocation: true`**           | This is a Gem Team-specific mechanism. Forge achieves the same outcome through explicit agent instructions ("never write code").             |
+| **Mandatory human pauses**                     | Forge's value proposition is autonomous execution. Make pauses optional (see item 8) but don't make them mandatory.                          |
+| **Chrome Tester / DevOps / Doc Writer agents** | These are specialized agents for specific project types. Add them as separate optional agents if needed, not as part of the core pipeline.   |
