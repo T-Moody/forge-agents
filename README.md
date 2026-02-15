@@ -10,30 +10,30 @@ Forge coordinates 9 specialized agents through a structured, repeatable workflow
 
 Traditional AI coding assistants operate as a single agent trying to hold everything in context. This fails at scale:
 
-| Problem | How Forge Solves It |
-|---|---|
-| **Context overload** | Each agent receives only the inputs it needs — never the full project state |
-| **No separation of concerns** | 9 specialized agents, each with a single responsibility and strict I/O contract |
-| **Sequential bottlenecks** | Parallel research (3 concurrent agents) and wave-based parallel implementation |
-| **No quality gates** | Critical-thinking design review, automated verification, and peer code review built into the pipeline |
-| **No audit trail** | Every stage produces a markdown artifact under `docs/feature/<feature-slug>/` |
-| **Ad-hoc workflows** | A deterministic, ordered pipeline with retry logic and error recovery |
+| Problem                       | How Forge Solves It                                                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Context overload**          | Each agent receives only the inputs it needs — never the full project state                           |
+| **No separation of concerns** | 9 specialized agents, each with a single responsibility and strict I/O contract                       |
+| **Sequential bottlenecks**    | Parallel research (3 concurrent agents) and wave-based parallel implementation                        |
+| **No quality gates**          | Critical-thinking design review, automated verification, and peer code review built into the pipeline |
+| **No audit trail**            | Every stage produces a markdown artifact under `docs/feature/<feature-slug>/`                         |
+| **Ad-hoc workflows**          | A deterministic, ordered pipeline with retry logic and error recovery                                 |
 
 ---
 
 ## Agent Roster
 
-| Agent | File | Role |
-|---|---|---|
-| `orchestrator` | [orchestrator.agent.md](orchestrator.agent.md) | Coordinates the end-to-end workflow. Delegates all work via `runSubagent`. Never writes code or docs directly. |
-| `researcher` | [researcher.agent.md](researcher.agent.md) | Investigates the existing codebase — architecture, impact areas, and dependencies. Runs in parallel across focus areas, then synthesizes findings. |
-| `spec` | [spec.agent.md](spec.agent.md) | Produces a formal feature specification with functional/non-functional requirements, constraints, and acceptance criteria. |
-| `designer` | [designer.agent.md](designer.agent.md) | Creates a technical design document — architecture, data models, APIs, tradeoffs, and testing strategy. |
-| `critical-thinker` | [critical-thinker.agent.md](critical-thinker.agent.md) | Challenges assumptions in the design by asking probing questions. Forces reconsideration of risky decisions before implementation begins. |
-| `planner` | [planner.agent.md](planner.agent.md) | Builds a dependency-aware implementation plan with execution waves for parallel dispatch. Produces `plan.md` and individual task files. |
-| `implementer` | [implementer.agent.md](implementer.agent.md) | Implements exactly one task per invocation. Writes code and tests but never builds or runs them. |
-| `verifier` | [verifier.agent.md](verifier.agent.md) | Sole owner of build and test execution. Builds the project, runs the test suite, and produces a per-task verification report. |
-| `reviewer` | [reviewer.agent.md](reviewer.agent.md) | Performs a peer-style review of the git diff — maintainability, naming, test quality, architectural alignment. |
+| Agent              | File                                                   | Role                                                                                                                                               |
+| ------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orchestrator`     | [orchestrator.agent.md](orchestrator.agent.md)         | Coordinates the end-to-end workflow. Delegates all work via `runSubagent`. Never writes code or docs directly.                                     |
+| `researcher`       | [researcher.agent.md](researcher.agent.md)             | Investigates the existing codebase — architecture, impact areas, and dependencies. Runs in parallel across focus areas, then synthesizes findings. |
+| `spec`             | [spec.agent.md](spec.agent.md)                         | Produces a formal feature specification with functional/non-functional requirements, constraints, and acceptance criteria.                         |
+| `designer`         | [designer.agent.md](designer.agent.md)                 | Creates a technical design document — architecture, data models, APIs, tradeoffs, and testing strategy.                                            |
+| `critical-thinker` | [critical-thinker.agent.md](critical-thinker.agent.md) | Challenges assumptions in the design by asking probing questions. Forces reconsideration of risky decisions before implementation begins.          |
+| `planner`          | [planner.agent.md](planner.agent.md)                   | Builds a dependency-aware implementation plan with execution waves for parallel dispatch. Produces `plan.md` and individual task files.            |
+| `implementer`      | [implementer.agent.md](implementer.agent.md)           | Implements exactly one task per invocation. Writes code and tests but never builds or runs them.                                                   |
+| `verifier`         | [verifier.agent.md](verifier.agent.md)                 | Sole owner of build and test execution. Builds the project, runs the test suite, and produces a per-task verification report.                      |
+| `reviewer`         | [reviewer.agent.md](reviewer.agent.md)                 | Performs a peer-style review of the git diff — maintainability, naming, test quality, architectural alignment.                                     |
 
 ---
 
@@ -103,17 +103,17 @@ The orchestrator drives the following deterministic pipeline:
 
 ### Stages at a Glance
 
-| # | Stage | Agent(s) | Parallelism | Output |
-|---|---|---|---|---|
-| 0 | Setup | orchestrator | — | `initial-request.md` |
-| 1 | Research | researcher ×3 + synthesis | 3 concurrent | `research/*.md` → `analysis.md` |
-| 2 | Specification | spec | — | `feature.md` |
-| 3 | Design | designer | — | `design.md` |
-| 3b | Design Review | critical-thinker | — | `design_critical_review.md` |
-| 4 | Planning | planner | — | `plan.md` + `tasks/*.md` |
-| 5 | Implementation | implementer ×N | Per-wave parallel | Code + tests |
-| 6 | Verification | verifier | — | `verifier.md` |
-| 7 | Review | reviewer | — | `review.md` |
+| #   | Stage          | Agent(s)                  | Parallelism       | Output                          |
+| --- | -------------- | ------------------------- | ----------------- | ------------------------------- |
+| 0   | Setup          | orchestrator              | —                 | `initial-request.md`            |
+| 1   | Research       | researcher ×3 + synthesis | 3 concurrent      | `research/*.md` → `analysis.md` |
+| 2   | Specification  | spec                      | —                 | `feature.md`                    |
+| 3   | Design         | designer                  | —                 | `design.md`                     |
+| 3b  | Design Review  | critical-thinker          | —                 | `design_critical_review.md`     |
+| 4   | Planning       | planner                   | —                 | `plan.md` + `tasks/*.md`        |
+| 5   | Implementation | implementer ×N            | Per-wave parallel | Code + tests                    |
+| 6   | Verification   | verifier                  | —                 | `verifier.md`                   |
+| 7   | Review         | reviewer                  | —                 | `review.md`                     |
 
 ---
 
@@ -146,24 +146,31 @@ docs/feature/<feature-slug>/
 ## Key Design Decisions
 
 ### Deterministic Pipeline
+
 Every feature follows the same ordered stages. The orchestrator does not improvise — it executes a fixed workflow with defined inputs and outputs at each step.
 
 ### Strict Agent Isolation
+
 Agents receive only the files they need. The implementer never sees `plan.md`. The verifier never modifies code. The orchestrator never writes code or documentation.
 
 ### Documentation as First-Class Output
+
 Every stage produces a markdown artifact. These artifacts serve as both the communication channel between agents and a full audit trail for humans.
 
 ### Critical Thinking Gate
+
 Before planning begins, the critical-thinker agent challenges the design for assumptions, gaps, and risky decisions. This catches architectural issues before any code is written.
 
 ### Wave-Based Parallel Execution
+
 The planner produces a dependency graph. The orchestrator groups independent tasks into waves and dispatches all tasks within a wave concurrently. Waves execute sequentially; tasks within a wave execute in parallel.
 
 ### Verification Ownership
+
 Implementers write code and tests but never execute them. The verifier is the sole agent that builds the project and runs tests, ensuring a single consistent verification environment.
 
 ### Error Recovery Loops
+
 - If verification fails, only the failing tasks are re-planned and re-implemented (up to 3 retries).
 - If the final review finds blocking concerns, the orchestrator loops back to planning.
 - If a parallel research agent fails, it is retried once before the step is marked failed.
@@ -202,6 +209,7 @@ Use the `Feature Workflow` prompt in Copilot Chat and provide your feature descr
 Invoke the `orchestrator` agent and describe the feature you want built.
 
 The orchestrator will:
+
 1. Capture your request in `initial-request.md`
 2. Dispatch parallel research agents
 3. Walk through specification → design → critical review → planning → implementation → verification → review

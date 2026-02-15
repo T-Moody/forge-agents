@@ -68,11 +68,11 @@ Research is split into **parallel focus areas** to divide work across multiple a
 
 Invoke **three** `researcher` instances concurrently, each with a different focus area:
 
-| Agent           | Focus Area     | Output                                                 |
-| --------------- | -------------- | ------------------------------------------------------ |
-| researcher (1)  | `architecture` | `docs/feature/<feature-slug>/research/architecture.md` |
-| researcher (2)  | `impact`       | `docs/feature/<feature-slug>/research/impact.md`       |
-| researcher (3)  | `dependencies` | `docs/feature/<feature-slug>/research/dependencies.md` |
+| Agent          | Focus Area     | Output                                                 |
+| -------------- | -------------- | ------------------------------------------------------ |
+| researcher (1) | `architecture` | `docs/feature/<feature-slug>/research/architecture.md` |
+| researcher (2) | `impact`       | `docs/feature/<feature-slug>/research/impact.md`       |
+| researcher (3) | `dependencies` | `docs/feature/<feature-slug>/research/dependencies.md` |
 
 - All three are dispatched **concurrently** (do not wait for one before starting the next).
 - Each agent receives:
