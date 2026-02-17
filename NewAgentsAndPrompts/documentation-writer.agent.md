@@ -64,9 +64,7 @@ The documentation writer MUST NOT modify source code, test files, or configurati
 4. Analyze relevant source code using `semantic_search`, `grep_search`, and `read_file` (read-only).
 5. Generate documentation as specified in the task.
 6. **Verify accuracy (delta-only):** Use `get_changed_files` (or equivalent) to identify recently changed source files. Cross-reference generated documentation against **only the changed code**, not the entire codebase. This ensures parity verification is proportional to the delta, not the full project size.
-7. Update `memory.md`: append to the appropriate sections:
-   - **Artifact Index:** Add path and key sections of the documentation produced.
-   - **Recent Updates:** Summary of documentation output (≤2 sentences).
+7. Do NOT write to `memory.md`. The orchestrator handles memory updates for documentation outputs between waves.
 8. Update the task file:
    - Check off acceptance criteria
    - Mark implementation as completed

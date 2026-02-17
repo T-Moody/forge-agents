@@ -2,7 +2,7 @@
 
 **A deterministic, documentation-driven agent pipeline for GitHub Copilot that takes raw feature requests and forges them into production-ready, verified implementations.**
 
-Forge coordinates 10 specialized agents through a structured, repeatable workflow — parallel research, specification, design with critical review, dependency-aware planning, TDD-driven wave-based implementation, integration verification, and security-aware peer review — producing a full audit trail of artifacts at every stage.
+Forge coordinates 22 specialized agents through a structured, repeatable workflow — parallel research, specification, design with cluster-based critical review, dependency-aware planning, TDD-driven wave-based implementation, cluster-based integration verification, and security-aware peer review — producing a full audit trail of artifacts at every stage.
 
 ---
 
@@ -13,8 +13,8 @@ Traditional AI coding assistants operate as a single agent trying to hold everyt
 | Problem                       | How Forge Solves It                                                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | **Context overload**          | Each agent receives only the inputs it needs — never the full project state                                         |
-| **No separation of concerns** | 10 specialized agents, each with a single responsibility and strict I/O contract                                    |
-| **Sequential bottlenecks**    | Parallel research (3 concurrent agents) and wave-based parallel implementation (max 4 concurrent)                   |
+| **No separation of concerns** | 22 specialized agents organized into clusters, each with a single responsibility and strict I/O contract            |
+| **Sequential bottlenecks**    | Parallel research (4 concurrent agents) and wave-based parallel implementation (max 4 concurrent)                   |
 | **No quality gates**          | TDD enforcement, critical-thinking design review, integration verification, and security-aware peer review          |
 | **No audit trail**            | Every stage produces a markdown artifact under `docs/feature/<feature-slug>/`                                       |
 | **Ad-hoc workflows**          | A deterministic, ordered pipeline with three-state completion contracts, retry logic, and structured error recovery |
@@ -25,18 +25,53 @@ Traditional AI coding assistants operate as a single agent trying to hold everyt
 
 ## Agent Roster
 
+### Core Pipeline Agents
+
 | Agent                  | File                                                           | Role                                                                                                                                             |
 | ---------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `orchestrator`         | [orchestrator.agent.md](orchestrator.agent.md)                 | Coordinates the end-to-end workflow. Delegates all work via `runSubagent`. Never writes code or docs directly. Enforces concurrency cap (max 4). |
-| `researcher`           | [researcher.agent.md](researcher.agent.md)                     | Investigates the codebase using hybrid retrieval (semantic search → grep → read). Runs in parallel across focus areas, then synthesizes.         |
+| `researcher`           | [researcher.agent.md](researcher.agent.md)                     | Investigates the codebase using hybrid retrieval (semantic search → grep → read). Runs ×4 in parallel across focus areas, then synthesizes.      |
 | `spec`                 | [spec.agent.md](spec.agent.md)                                 | Produces a formal feature specification with structured edge cases, acceptance criteria, and self-verification.                                  |
 | `designer`             | [designer.agent.md](designer.agent.md)                         | Creates a technical design document — architecture, data models, APIs, security considerations, failure & recovery analysis.                     |
-| `critical-thinker`     | [critical-thinker.agent.md](critical-thinker.agent.md)         | Performs adversarial design review — probes for risks, assumptions, and weaknesses across structured risk categories before planning.            |
 | `planner`              | [planner.agent.md](planner.agent.md)                           | Builds dependency-aware plans with pre-mortem analysis, task size limits (max 3 files/500 lines), and per-task agent routing.                    |
 | `implementer`          | [implementer.agent.md](implementer.agent.md)                   | Implements exactly one task using TDD — writes failing tests first, then minimal code, running `get_errors` after every edit.                    |
-| `verifier`             | [verifier.agent.md](verifier.agent.md)                         | Integration-level verification — builds the project, runs the full test suite, and cross-references all task acceptance criteria.                |
-| `reviewer`             | [reviewer.agent.md](reviewer.agent.md)                         | Security-aware peer review — OWASP scanning, secrets/PII detection, tiered depth (Full/Standard/Lightweight), maintains decision log.            |
 | `documentation-writer` | [documentation-writer.agent.md](documentation-writer.agent.md) | _(Optional)_ Generates API docs, architectural diagrams (Mermaid), and maintains code-documentation parity. Invoked via task routing.            |
+
+### CT Cluster (Critical Thinking — Step 3b)
+
+| Agent                | File                                                       | Role                                                                                   |
+| -------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `ct-security`        | [ct-security.agent.md](ct-security.agent.md)               | Probes for security vulnerabilities and data exposure risks (parallel).                |
+| `ct-scalability`     | [ct-scalability.agent.md](ct-scalability.agent.md)         | Probes for scalability bottlenecks and resource exhaustion risks (parallel).           |
+| `ct-maintainability` | [ct-maintainability.agent.md](ct-maintainability.agent.md) | Probes for tight coupling, complexity, and integration risks (parallel).               |
+| `ct-strategy`        | [ct-strategy.agent.md](ct-strategy.agent.md)               | Probes for strategic risks, scope risks, and fundamental approach validity (parallel). |
+| `ct-aggregator`      | [ct-aggregator.agent.md](ct-aggregator.agent.md)           | Aggregates CT sub-agent findings into `design_critical_review.md`.                     |
+
+### V Cluster (Verification — Step 6)
+
+| Agent          | File                                           | Role                                                                  |
+| -------------- | ---------------------------------------------- | --------------------------------------------------------------------- |
+| `v-build`      | [v-build.agent.md](v-build.agent.md)           | Sequential gate: build system detection and compilation verification. |
+| `v-tests`      | [v-tests.agent.md](v-tests.agent.md)           | Full test suite execution and analysis (parallel).                    |
+| `v-tasks`      | [v-tasks.agent.md](v-tasks.agent.md)           | Per-task acceptance criteria verification (parallel).                 |
+| `v-feature`    | [v-feature.agent.md](v-feature.agent.md)       | Feature-level acceptance criteria verification (parallel).            |
+| `v-aggregator` | [v-aggregator.agent.md](v-aggregator.agent.md) | Aggregates V sub-agent outputs into `verifier.md`.                    |
+
+### R Cluster (Review — Step 7)
+
+| Agent          | File                                           | Role                                                                                 |
+| -------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `r-quality`    | [r-quality.agent.md](r-quality.agent.md)       | Code quality, readability, and maintainability review (parallel).                    |
+| `r-security`   | [r-security.agent.md](r-security.agent.md)     | Security review — OWASP scanning, secrets/PII detection (parallel).                  |
+| `r-testing`    | [r-testing.agent.md](r-testing.agent.md)       | Test quality and coverage adequacy review (parallel).                                |
+| `r-knowledge`  | [r-knowledge.agent.md](r-knowledge.agent.md)   | Knowledge evolution — captures reusable patterns, maintains decision log (parallel). |
+| `r-aggregator` | [r-aggregator.agent.md](r-aggregator.agent.md) | Aggregates R sub-agent findings into `review.md`.                                    |
+
+### Deprecated
+
+| Agent              | File                                                   | Role                                                                                                                      |
+| ------------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `critical-thinker` | [critical-thinker.agent.md](critical-thinker.agent.md) | _(Deprecated)_ Replaced by the CT cluster (ct-security, ct-scalability, ct-maintainability, ct-strategy + ct-aggregator). |
 
 ---
 
@@ -54,11 +89,11 @@ The orchestrator drives the following deterministic pipeline:
                     │  initial-request.md  │
                     └──────────┬───────────┘
                                ▼
- ┌────────────────┬────────────────────────┬────────────────────┐
- │  researcher    │     researcher         │    researcher      │
- │  (architecture)│     (impact)           │    (dependencies)  │
- └───────┬────────┘────────┬───────────────┘────────┬───────────┘
-         └────────────────┬┘────────────────────────┘
+ ┌──────────────┬──────────────┬──────────────┬─────────────────┐
+ │  researcher  │  researcher  │  researcher  │   researcher    │
+ │ (architecture│  (impact)    │(dependencies)│   (patterns)    │
+ └──────┬───────┘──────┬───────┘──────┬───────┘───────┬─────────┘
+        └─────────────┬┘──────────────┘───────────────┘
                           ▼
               ┌───────────────────────┐
               │  researcher (synth)   │
@@ -75,9 +110,15 @@ The orchestrator drives the following deterministic pipeline:
               │  designer → design.md │
               └───────────┬───────────┘
                           ▼
+ ┌──────────────┬──────────────┬──────────────┬─────────────────┐
+ │  ct-security │ct-scalability│ct-maintain.  │  ct-strategy    │
+ └──────┬───────┘──────┬───────┘──────┬───────┘───────┬─────────┘
+        └─────────────┬┘──────────────┘───────────────┘
+                      ▼
               ┌───────────────────────┐
-              │  3b. CRITICAL REVIEW  │
-              │  critical-thinker     │
+              │  3b. CT AGGREGATOR    │
+              │  → design_critical_   │
+              │    review.md          │
               └───────────┬───────────┘
                           ▼  (loop back to design if issues found)
               ┌───────────────────────┐
@@ -93,31 +134,43 @@ The orchestrator drives the following deterministic pipeline:
          └───────────────┬┘───────────────────┘
                          ▼        (max 4 concurrent per sub-wave)
               ┌───────────────────────┐
-              │  6. VERIFICATION      │
-              │  verifier (integration│
-              │  build + test suite)  │
+              │  6. V-BUILD (gate)    │
+              └───────────┬───────────┘
+                          ▼
+     ┌────────────┬───────────────┬──────────────┐
+     │  v-tests   │   v-tasks     │  v-feature   │
+     └──────┬─────┘───────┬───────┘──────┬───────┘
+            └────────────┬┘──────────────┘
+                         ▼
+              ┌───────────────────────┐
+              │  V-AGGREGATOR         │
+              │  → verifier.md        │
               └───────────┬───────────┘
                           ▼  (retry loop on failure, max 3)
+ ┌──────────────┬──────────────┬──────────────┬─────────────────┐
+ │  r-quality   │  r-security  │  r-testing   │  r-knowledge    │
+ └──────┬───────┘──────┬───────┘──────┬───────┘───────┬─────────┘
+        └─────────────┬┘──────────────┘───────────────┘
+                      ▼
               ┌───────────────────────┐
-              │  7. FINAL REVIEW      │
-              │  reviewer (security + │
-              │  code quality)        │
+              │  7. R-AGGREGATOR      │
+              │  → review.md          │
               └───────────────────────┘
 ```
 
 ### Stages at a Glance
 
-| #   | Stage          | Agent(s)                  | Parallelism                | Output                          |
-| --- | -------------- | ------------------------- | -------------------------- | ------------------------------- |
-| 0   | Setup          | orchestrator              | —                          | `initial-request.md`            |
-| 1   | Research       | researcher ×3 + synthesis | 3 concurrent               | `research/*.md` → `analysis.md` |
-| 2   | Specification  | spec                      | —                          | `feature.md`                    |
-| 3   | Design         | designer                  | —                          | `design.md`                     |
-| 3b  | Design Review  | critical-thinker          | —                          | `design_critical_review.md`     |
-| 4   | Planning       | planner                   | —                          | `plan.md` + `tasks/*.md`        |
-| 5   | Implementation | implementer/doc-writer ×N | Per-wave, max 4 concurrent | Code + tests                    |
-| 6   | Verification   | verifier                  | —                          | `verifier.md`                   |
-| 7   | Review         | reviewer                  | —                          | `review.md`                     |
+| #   | Stage          | Agent(s)                    | Parallelism                | Output                          |
+| --- | -------------- | --------------------------- | -------------------------- | ------------------------------- |
+| 0   | Setup          | orchestrator                | —                          | `initial-request.md`            |
+| 1   | Research       | researcher ×4 + synthesis   | 4 concurrent               | `research/*.md` → `analysis.md` |
+| 2   | Specification  | spec                        | —                          | `feature.md`                    |
+| 3   | Design         | designer                    | —                          | `design.md`                     |
+| 3b  | Design Review  | CT cluster ×4 + aggregator  | 4 concurrent (Pattern A)   | `design_critical_review.md`     |
+| 4   | Planning       | planner                     | —                          | `plan.md` + `tasks/*.md`        |
+| 5   | Implementation | implementer/doc-writer ×N   | Per-wave, max 4 concurrent | Code + tests                    |
+| 6   | Verification   | V cluster (gate + ×3 + agg) | Pattern B + C              | `verifier.md`                   |
+| 7   | Review         | R cluster ×4 + aggregator   | 4 concurrent (Pattern A)   | `review.md`                     |
 
 ---
 
@@ -308,15 +361,33 @@ The orchestrator will:
 ```
 forge-agents/
 ├── orchestrator.agent.md          # Workflow coordinator (concurrency cap, agent routing, approval gates)
-├── researcher.agent.md            # Codebase investigation (hybrid retrieval, confidence metadata)
+├── researcher.agent.md            # Codebase investigation (hybrid retrieval, ×4 parallel + synthesis)
 ├── spec.agent.md                  # Feature specification (structured edge cases, self-verification)
 ├── designer.agent.md              # Technical design (security considerations, failure analysis)
-├── critical-thinker.agent.md      # Adversarial design review (structured risk categories)
 ├── planner.agent.md               # Task planning (pre-mortem, size limits, agent routing, mode detection)
 ├── implementer.agent.md           # TDD code implementation (red-green-refactor, security rules)
-├── verifier.agent.md              # Integration verification (technology-agnostic, full build + test)
-├── reviewer.agent.md              # Security-aware peer review (OWASP, tiered depth, decision log)
 ├── documentation-writer.agent.md  # Optional: API docs, diagrams, parity enforcement
+├── critical-thinker.agent.md      # (Deprecated — replaced by CT cluster)
+│
+├── ct-security.agent.md           # CT cluster: security risk analysis
+├── ct-scalability.agent.md        # CT cluster: scalability analysis
+├── ct-maintainability.agent.md    # CT cluster: maintainability analysis
+├── ct-strategy.agent.md           # CT cluster: strategic risk analysis
+├── ct-aggregator.agent.md         # CT cluster: aggregates sub-agent outputs
+│
+├── v-build.agent.md               # V cluster: build gate (sequential)
+├── v-tests.agent.md               # V cluster: test suite verification
+├── v-tasks.agent.md               # V cluster: per-task acceptance criteria
+├── v-feature.agent.md             # V cluster: feature-level requirements
+├── v-aggregator.agent.md          # V cluster: aggregates sub-agent outputs
+│
+├── r-quality.agent.md             # R cluster: code quality review
+├── r-security.agent.md            # R cluster: security review (OWASP)
+├── r-testing.agent.md             # R cluster: test coverage review
+├── r-knowledge.agent.md           # R cluster: knowledge evolution
+├── r-aggregator.agent.md          # R cluster: aggregates sub-agent outputs
+│
+├── dispatch-patterns.md           # Reference: cluster dispatch patterns (A, B)
 ├── feature-workflow.prompt.md     # Entry-point prompt
 └── README.md
 ```
