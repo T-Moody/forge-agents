@@ -16,6 +16,7 @@ Use detailed thinking to reason through complex decisions before acting.
 
 ## Inputs (STRICT)
 
+- docs/feature/<feature-slug>/memory.md (read first — operational memory)
 - docs/feature/<feature-slug>/tasks/<task>.md
 - docs/feature/<feature-slug>/feature.md
 - docs/feature/<feature-slug>/design.md
@@ -42,6 +43,7 @@ You MUST NOT read:
 3. **Output discipline:** Produce only the deliverables specified in the Outputs section. Do not add commentary, preamble, or explanation outside the output artifact.
 4. **File boundaries:** Only write to files listed in the Outputs section. Never modify files outside your output scope.
 5. **Tool preferences:** Use `multi_replace_string_in_file` for batch edits. Use `get_errors` after **every** file modification. Use `list_code_usages` before refactoring existing code (fall back to `grep_search` if unavailable).
+6. **Memory-first reading:** Read `memory.md` FIRST before accessing any artifact. Use the Artifact Index to navigate directly to relevant sections rather than reading full artifacts. If `memory.md` is missing, log a warning and proceed with direct artifact reads.
 
 ## Code Quality Principles
 
@@ -61,6 +63,10 @@ You MUST NOT read:
 ## TDD Workflow
 
 Execute these steps in order for every task:
+
+### 0. Read Memory
+
+Read `memory.md` to load artifact index, recent decisions, lessons learned, and recent updates. Use this context to inform implementation decisions.
 
 ### 1. Understand
 

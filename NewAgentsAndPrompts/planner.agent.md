@@ -14,6 +14,7 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 
 ## Inputs
 
+- docs/feature/<feature-slug>/memory.md (read first — operational memory)
 - docs/feature/<feature-slug>/initial-request.md
 - docs/feature/<feature-slug>/analysis.md
 - docs/feature/<feature-slug>/feature.md
@@ -38,6 +39,10 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 3. **Output discipline:** Produce only the deliverables specified in the Outputs section. Do not add commentary, preamble, or explanation outside the output artifact.
 4. **File boundaries:** Only write to files listed in the Outputs section. Never modify files outside your output scope.
 5. **Tool preferences:** Use `semantic_search` and `grep_search` for targeted research. Use `read_file` for targeted examination.
+6. **Memory-first reading:** Read `memory.md` FIRST before accessing any artifact.
+   Use the Artifact Index to navigate directly to relevant sections rather than
+   reading full artifacts. If `memory.md` is missing, log a warning and proceed
+   with direct artifact reads.
 
 ## Planning Principles
 
@@ -58,17 +63,23 @@ State the detected mode at the top of your output.
 
 ## Workflow
 
-1. Detect planning mode (see Mode Detection above).
-2. Read `initial-request.md` to ground planning decisions and priorities.
-3. Read `analysis.md`, `feature.md`, and `design.md` thoroughly.
-4. In replan mode, read `verifier.md` to identify failures. In extension mode, read existing `plan.md` to understand completed work.
-5. Do additional targeted research as needed.
-6. Decompose the work into tasks following Planning Principles and Task Size Limits.
-7. Organize tasks into execution waves with dependency annotations.
-8. Run Plan Validation (circular dependency check, task size validation, dependency existence check).
-9. Perform Pre-Mortem Analysis and append to plan.md.
-10. Create `plan.md` with all required sections.
-11. Create one task file per task under `tasks/`, prefixed numerically for order.
+1. Read `memory.md` to load artifact index, recent decisions, lessons learned,
+   and recent updates. Use this to orient before reading source artifacts.
+2. Detect planning mode (see Mode Detection above).
+3. Read `initial-request.md` to ground planning decisions and priorities.
+4. Read `analysis.md`, `feature.md`, and `design.md` thoroughly.
+5. In replan mode, read `verifier.md` to identify failures. In extension mode, read existing `plan.md` to understand completed work.
+6. Do additional targeted research as needed.
+7. Decompose the work into tasks following Planning Principles and Task Size Limits.
+8. Organize tasks into execution waves with dependency annotations.
+9. Run Plan Validation (circular dependency check, task size validation, dependency existence check).
+10. Perform Pre-Mortem Analysis and append to plan.md.
+11. Update `memory.md`: append to the appropriate sections:
+    - **Artifact Index:** Add path and key sections of `plan.md` and task files.
+    - **Recent Decisions:** Planning decisions made (task decomposition rationale, wave structure) — ≤2 sentences each.
+    - **Recent Updates:** Summary of planning output produced (≤2 sentences).
+12. Create `plan.md` with all required sections.
+13. Create one task file per task under `tasks/`, prefixed numerically for order.
 
 ## Task Size Limits
 

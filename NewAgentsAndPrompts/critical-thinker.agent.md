@@ -1,6 +1,13 @@
+> **⚠️ DEPRECATED:** This agent has been superseded by the Critical Thinker (CT) cluster.
+> Replacement agents: `ct-security.agent.md`, `ct-scalability.agent.md`, `ct-maintainability.agent.md`, `ct-strategy.agent.md`, `ct-aggregator.agent.md`.
+> This file is retained for reference during migration validation.
+> See `docs/feature/forge-architecture-upgrade/design.md` for details.
+
 ---
+
 name: critical-thinker
 description: "Devil's advocate that relentlessly challenges assumptions, probes weaknesses, and stress-tests designs to ensure the best possible outcome."
+
 ---
 
 # Critical Thinker

@@ -18,12 +18,14 @@ Use detailed thinking to reason through complex decisions before acting.
 
 ### Focused Mode Inputs
 
+- `docs/feature/<feature-slug>/memory.md` (read first — operational memory)
 - Existing codebase
 - `docs/feature/<feature-slug>/initial-request.md`
 - **Research focus area** (provided by orchestrator in the prompt)
 
 ### Synthesis Mode Inputs
 
+- `docs/feature/<feature-slug>/memory.md` (read first — operational memory)
 - `docs/feature/<feature-slug>/initial-request.md`
 - All partial research files: `docs/feature/<feature-slug>/research/*.md`
 
@@ -49,6 +51,7 @@ Use detailed thinking to reason through complex decisions before acting.
 3. **Output discipline:** Produce only the deliverables specified in the Outputs section. Do not add commentary, preamble, or explanation outside the output artifact.
 4. **File boundaries:** Only write to files listed in the Outputs section. Never modify files outside your output scope.
 5. **Tool preferences:** Use `semantic_search` for conceptual discovery, `grep_search` for exact patterns, `file_search` for existence checks, `read_file` for targeted examination.
+6. **Memory-first reading:** Read `memory.md` FIRST before accessing any artifact. Use the Artifact Index to navigate directly to relevant sections rather than reading full artifacts. If `memory.md` is missing, log a warning and proceed with direct artifact reads.
 
 ## Mode 1: Focused Research
 
@@ -56,23 +59,25 @@ Use detailed thinking to reason through complex decisions before acting.
 
 The orchestrator will assign one of these focus areas per agent instance:
 
-| Focus Area       | Scope                                                                                                                            |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **architecture** | Repository structure, project layout, architecture patterns, layers, .github instructions, coding/folder/contributor conventions |
-| **impact**       | Affected files, modules, and components; what needs to change and where; existing code that will be modified or extended         |
-| **dependencies** | Module interactions, data flow, API/interface contracts, external dependencies, integration points between affected areas        |
+| Focus Area       | Scope                                                                                                                                        |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **architecture** | Repository structure, project layout, architecture patterns, layers, .github instructions, coding/folder/contributor conventions             |
+| **impact**       | Affected files, modules, and components; what needs to change and where; existing code that will be modified or extended                     |
+| **dependencies** | Module interactions, data flow, API/interface contracts, external dependencies, integration points between affected areas                    |
+| **patterns**     | Testing strategy, code conventions, developer experience patterns, error handling patterns, operational concerns, existing reusable patterns |
 
 ### Retrieval Strategy
 
 Follow this methodology for all codebase investigation:
 
-1. **Conceptual discovery:** Use `semantic_search` to find code relevant to the focus area by meaning (e.g., search for concepts, not exact identifiers).
-2. **Exact pattern matching:** Use `grep_search` for specific identifiers, strings, configuration keys, and known patterns.
-3. **Merge and deduplicate:** Combine results from steps 1-2. Remove duplicate file references. Prioritize files that appear in both search types.
-4. **Targeted examination:** Use `read_file` with specific line ranges to examine identified files in detail. Limit to ~200 lines per call.
-5. **Existence verification:** Use `file_search` to confirm expected files/patterns exist (e.g., test directories, configuration files, documentation).
+1. **Read `memory.md`** to load artifact index, recent decisions, lessons learned, and recent updates. Use this to orient before reading source artifacts.
+2. **Conceptual discovery:** Use `semantic_search` to find code relevant to the focus area by meaning (e.g., search for concepts, not exact identifiers).
+3. **Exact pattern matching:** Use `grep_search` for specific identifiers, strings, configuration keys, and known patterns.
+4. **Merge and deduplicate:** Combine results from steps 2-3. Remove duplicate file references. Prioritize files that appear in both search types.
+5. **Targeted examination:** Use `read_file` with specific line ranges to examine identified files in detail. Limit to ~200 lines per call.
+6. **Existence verification:** Use `file_search` to confirm expected files/patterns exist (e.g., test directories, configuration files, documentation).
 
-Do not skip steps 1-2 and jump directly to reading files. Discovery-first ensures comprehensive coverage.
+Do not skip steps 2-3 and jump directly to reading files. Discovery-first ensures comprehensive coverage.
 
 ### Focused Research Rules
 
@@ -98,13 +103,15 @@ Do not skip steps 1-2 and jump directly to reading files. Discovery-first ensure
 
 ## Mode 2: Synthesis
 
-### Synthesis Rules
+### Synthesis Workflow
 
-- Read ALL partial research files from the `research/` directory.
-- Merge, deduplicate, and organize findings into a single cohesive analysis.
-- Resolve any contradictions between partial analyses (note unresolved conflicts in Open Questions).
-- Do NOT add new research — only synthesize what the focused agents produced.
-- Preserve specific file paths, code references, and line numbers from the partials.
+1. Read `memory.md` to load artifact index, recent decisions, lessons learned, and recent updates. Use this to orient before reading partial research files.
+2. Read ALL partial research files from the `research/` directory.
+3. Merge, deduplicate, and organize findings into a single cohesive analysis.
+4. Resolve any contradictions between partial analyses (note unresolved conflicts in Open Questions).
+5. Do NOT add new research — only synthesize what the focused agents produced.
+6. Preserve specific file paths, code references, and line numbers from the partials.
+7. Update `memory.md`: append to Artifact Index (path and key sections of `analysis.md`) and Recent Updates (summary of synthesis output). Each entry ≤2 sentences.
 
 ### Analysis.md Contents
 

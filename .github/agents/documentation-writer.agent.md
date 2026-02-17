@@ -16,7 +16,6 @@ Use detailed thinking to reason through complex decisions before acting.
 
 ## Inputs (STRICT)
 
-- docs/feature/<feature-slug>/memory.md (read first — operational memory)
 - docs/feature/<feature-slug>/tasks/<task>.md (the assigned documentation task)
 - docs/feature/<feature-slug>/feature.md
 - docs/feature/<feature-slug>/design.md
@@ -39,7 +38,6 @@ Use detailed thinking to reason through complex decisions before acting.
 3. **Output discipline:** Produce only the deliverables specified in the Outputs section. Do not add commentary, preamble, or explanation outside the output artifact.
 4. **File boundaries:** Only write to files listed in the Outputs section. Never modify files outside your output scope.
 5. **Tool preferences:** Use `semantic_search` and `grep_search` for code discovery. Use `read_file` for targeted examination. Never use tools that modify source code.
-6. **Memory-first reading:** Read `memory.md` FIRST before accessing any artifact. Use the Artifact Index to navigate directly to relevant sections rather than reading full artifacts. If `memory.md` is missing, log a warning and proceed with direct artifact reads.
 
 ## Read-Only Enforcement
 
@@ -58,16 +56,12 @@ The documentation writer MUST NOT modify source code, test files, or configurati
 
 ## Workflow
 
-1. Read `memory.md` to load artifact index, recent decisions, lessons learned, and recent updates. Use this to orient before reading source artifacts.
-2. Read the assigned task file to understand the documentation requirements.
-3. Read `feature.md` and `design.md` for feature context.
-4. Analyze relevant source code using `semantic_search`, `grep_search`, and `read_file` (read-only).
-5. Generate documentation as specified in the task.
-6. **Verify accuracy (delta-only):** Use `get_changed_files` (or equivalent) to identify recently changed source files. Cross-reference generated documentation against **only the changed code**, not the entire codebase. This ensures parity verification is proportional to the delta, not the full project size.
-7. Update `memory.md`: append to the appropriate sections:
-   - **Artifact Index:** Add path and key sections of the documentation produced.
-   - **Recent Updates:** Summary of documentation output (≤2 sentences).
-8. Update the task file:
+1. Read the assigned task file to understand the documentation requirements.
+2. Read `feature.md` and `design.md` for feature context.
+3. Analyze relevant source code using `semantic_search`, `grep_search`, and `read_file` (read-only).
+4. Generate documentation as specified in the task.
+5. **Verify accuracy (delta-only):** Use `get_changed_files` (or equivalent) to identify recently changed source files. Cross-reference generated documentation against **only the changed code**, not the entire codebase. This ensures parity verification is proportional to the delta, not the full project size.
+6. Update the task file:
    - Check off acceptance criteria
    - Mark implementation as completed
    - Note any documentation gaps discovered (for future tasks)

@@ -14,6 +14,7 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 
 ## Inputs
 
+- docs/feature/<feature-slug>/memory.md (read first — operational memory)
 - docs/feature/<feature-slug>/initial-request.md
 - docs/feature/<feature-slug>/analysis.md
 - docs/feature/<feature-slug>/feature.md
@@ -35,24 +36,34 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 3. **Output discipline:** Produce only the deliverables specified in the Outputs section. Do not add commentary, preamble, or explanation outside the output artifact.
 4. **File boundaries:** Only write to files listed in the Outputs section. Never modify files outside your output scope.
 5. **Tool preferences:** Use `semantic_search` and `grep_search` for targeted research. Use `read_file` for targeted examination.
+6. **Memory-first reading:** Read `memory.md` FIRST before accessing any artifact.
+   Use the Artifact Index to navigate directly to relevant sections rather than
+   reading full artifacts. If `memory.md` is missing, log a warning and proceed
+   with direct artifact reads.
 
 ## Workflow
 
-1. Read `initial-request.md` to ensure the design aligns with the original request and constraints.
-2. Read `analysis.md` and `feature.md` thoroughly.
-3. Perform additional targeted research on architecture, patterns, and conventions relevant to the design.
-4. Define architecture and component responsibilities.
-5. Specify data structures and APIs.
-6. Document security considerations (authentication, authorization, data protection, input validation).
-7. Analyze failure modes and recovery strategies.
-8. Document tradeoffs and rationale for key decisions.
-9. Ensure testability and maintainability.
-10. **Self-verification step:** Before returning, verify:
+1. Read `memory.md` to load artifact index, recent decisions, lessons learned,
+   and recent updates. Use this to orient before reading source artifacts.
+2. Read `initial-request.md` to ensure the design aligns with the original request and constraints.
+3. Read `analysis.md` and `feature.md` thoroughly.
+4. Perform additional targeted research on architecture, patterns, and conventions relevant to the design.
+5. Define architecture and component responsibilities.
+6. Specify data structures and APIs.
+7. Document security considerations (authentication, authorization, data protection, input validation).
+8. Analyze failure modes and recovery strategies.
+9. Document tradeoffs and rationale for key decisions.
+10. Ensure testability and maintainability.
+11. **Self-verification step:** Before returning, verify:
     - The design addresses all functional and non-functional requirements from `feature.md`
     - Every acceptance criterion from `feature.md` has a clear implementation path in the design
     - Security considerations are addressed (even if the conclusion is "no security implications" with justification)
     - Failure modes are identified and recovery strategies are defined
       Fix any gaps found before returning.
+12. Update `memory.md`: append to the appropriate sections:
+    - **Artifact Index:** Add path and key sections of the output artifact.
+    - **Recent Decisions:** If design decisions were made (≤2 sentences each).
+    - **Recent Updates:** Summary of output produced (≤2 sentences).
 
 ## design.md Contents
 

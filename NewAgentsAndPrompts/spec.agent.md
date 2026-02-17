@@ -16,6 +16,7 @@ Use detailed thinking to reason through complex decisions before acting.
 
 ## Inputs
 
+- docs/feature/<feature-slug>/memory.md (read first — operational memory)
 - docs/feature/<feature-slug>/initial-request.md
 - docs/feature/<feature-slug>/analysis.md
 
@@ -35,25 +36,36 @@ Use detailed thinking to reason through complex decisions before acting.
 3. **Output discipline:** Produce only the deliverables specified in the Outputs section. Do not add commentary, preamble, or explanation outside the output artifact.
 4. **File boundaries:** Only write to files listed in the Outputs section. Never modify files outside your output scope.
 5. **Tool preferences:** Use `semantic_search` and `grep_search` for minimal additional research. Use `read_file` for targeted examination.
+6. **Memory-first reading:** Read `memory.md` FIRST before accessing any artifact.
+   Use the Artifact Index to navigate directly to relevant sections rather than
+   reading full artifacts. If `memory.md` is missing, log a warning and proceed
+   with direct artifact reads.
 
 ## Workflow
 
-1. Read `initial-request.md` to ground the specification in the original user/developer request.
-2. Review `analysis.md` thoroughly.
-3. Perform minimal additional research if gaps are identified in the analysis.
-4. Define:
+1. Read `memory.md` to load artifact index, recent decisions, lessons learned,
+   and recent updates. Use this to orient before reading source artifacts.
+2. Read `initial-request.md` to ground the specification in the original user/developer request.
+3. Review `analysis.md` thoroughly.
+4. Perform minimal additional research if gaps are identified in the analysis.
+5. Define:
    - Functional requirements (detailed, user-facing and system behaviors)
    - Non-functional requirements (performance, security, accessibility, offline behavior)
    - Constraints and assumptions
    - Feature-level acceptance criteria (each must be testable — see rule below)
    - Edge cases with structured format (see feature.md Contents)
-5. **Self-verification step:** Before returning, verify:
+6. **Self-verification step:** Before returning, verify:
    - All acceptance criteria are testable — each has a clear pass/fail definition that the verifier agent can check
    - All functional requirements have at least one corresponding acceptance criterion
    - Edge cases cover failure modes, not just happy paths
    - No requirement contradicts another
 
    Fix any issues found before returning.
+
+7. Update `memory.md`: append to the appropriate sections:
+   - **Artifact Index:** Add path and key sections of the output artifact.
+   - **Recent Decisions:** If spec decisions were made (≤2 sentences each).
+   - **Recent Updates:** Summary of output produced (≤2 sentences).
 
 ## feature.md Contents
 
