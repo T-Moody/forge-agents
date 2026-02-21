@@ -1,0 +1,24 @@
+# Researcher Memory: Architecture
+
+- **Status:** DONE
+- **Key Findings:**
+  - Forge is a pure agent-definition repo with 19 active agent files (7 core + 4 CT + 4 V + 4 R) plus 1 deprecated and 1 reference doc, all in `.github/agents/` using `.agent.md` format with YAML frontmatter (`name`, `description`)
+  - The orchestrator (486 lines) drives a fixed 8-step pipeline with 3 cluster dispatch patterns (A=parallel, B=gate+parallel, C=replan loop), max 4 concurrent agents, and evaluates cluster results directly via isolated memory files (no aggregator agents exist despite README references)
+  - Dual-layer memory system: agent-isolated (`memory/<agent>.mem.md`) + shared (`memory.md`, orchestrator sole writer) with a 7-phase lifecycle (init → merge → prune → extract lessons → invalidate → clean → validate); memory failure is non-blocking
+  - All agents share 6 standardized operating rules and follow consistent patterns: memory-first reading, strict file boundaries, output discipline, completion contracts (DONE:/NEEDS_REVISION:/ERROR:), and anti-drift anchors
+  - README is partially stale: references 3 non-existent aggregator agents, outdated artifact names (analysis.md, design_critical_review.md, verifier.md, review.md), and incomplete research artifact listing (missing patterns.md)
+- **Highest Severity:** N/A
+- **Decisions Made:** none
+- **Artifact Index:**
+  - [research/architecture.md](../research/architecture.md)
+    - §Repository Structure — full directory tree and file inventory
+    - §Agent Definition Format — YAML frontmatter, standard sections, operating rules
+    - §Pipeline Architecture — 8-step pipeline, agent roster (19 active), cluster patterns
+    - §Memory System — dual-layer design, lifecycle table, non-blocking failure
+    - §Completion Contract Pattern — three-state contracts, per-agent state usage
+    - §Orchestrator Coordination Model — global rules, cluster decision logic, NEEDS_REVISION routing
+    - §Prompt System — entry-point prompt format, template variables
+    - §Documentation Structure Convention — per-feature artifact tree, subdirectory ownership
+    - §Agent Naming Conventions — kebab-case, cluster prefixes, task ID suffixes
+    - §Tool Usage Patterns — per-agent-type tool matrix, read-only enforcement
+    - §README vs. Codebase Divergences — stale README references vs. actual codebase state

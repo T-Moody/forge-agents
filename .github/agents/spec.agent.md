@@ -26,11 +26,13 @@ Use detailed thinking to reason through complex decisions before acting.
 - docs/feature/<feature-slug>/research/impact.md (selective — read only sections referenced by researcher memory artifact indexes)
 - docs/feature/<feature-slug>/research/dependencies.md (selective — read only sections referenced by researcher memory artifact indexes)
 - docs/feature/<feature-slug>/research/patterns.md (selective — read only sections referenced by researcher memory artifact indexes)
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 
 ## Outputs
 
 - docs/feature/<feature-slug>/feature.md
 - docs/feature/<feature-slug>/memory/spec.mem.md (isolated memory)
+- docs/feature/<feature-slug>/artifact-evaluations/spec.md (artifact evaluation — secondary, non-blocking)
 
 ## Operating Rules
 
@@ -70,7 +72,22 @@ Use detailed thinking to reason through complex decisions before acting.
 
    Fix any issues found before returning.
 
-7. **Write Isolated Memory:** Write key findings to `memory/spec.mem.md`:
+7. **Evaluate Upstream Artifacts:** After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed.
+
+   For each source artifact listed below, produce one `artifact_evaluation` YAML block following the schema defined in `.github/agents/evaluation-schema.md`. Write all blocks to: `docs/feature/<feature-slug>/artifact-evaluations/spec.md`.
+
+   Source artifacts to evaluate:
+   - research/architecture.md
+   - research/impact.md
+   - research/dependencies.md
+   - research/patterns.md
+
+   **Rules:**
+   - Follow all rules specified in the evaluation schema reference document
+   - If evaluation generation fails, write an `evaluation_error` block instead (see `.github/agents/evaluation-schema.md` Rule 4) and proceed — evaluation failure MUST NOT cause your completion status to be ERROR
+   - Evaluation is secondary to your primary output
+
+8. **Write Isolated Memory:** Write key findings to `memory/spec.mem.md`:
    - **Status:** completion status (DONE/ERROR)
    - **Key Findings:** ≤5 bullet points summarizing primary findings
    - **Highest Severity:** N/A (spec does not produce severity ratings)

@@ -20,11 +20,13 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 - docs/feature/<feature-slug>/verification/v-build.md
 - docs/feature/<feature-slug>/feature.md
 - docs/feature/<feature-slug>/design.md
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 - Entire codebase
 
 ## Outputs
 
 - docs/feature/<feature-slug>/verification/v-feature.md
+- docs/feature/<feature-slug>/artifact-evaluations/v-feature.md (artifact evaluation — secondary, non-blocking)
 - docs/feature/<feature-slug>/memory/v-feature.mem.md (isolated memory)
 
 ## Role
@@ -96,7 +98,24 @@ Read `memory.md` to load artifact index, recent decisions, lessons learned, and 
 
 Write `docs/feature/<feature-slug>/verification/v-feature.md` with the verification results.
 
-### 7. Write Isolated Memory
+### 7. Evaluate Upstream Artifacts
+
+After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed.
+
+For each source artifact, produce one `artifact_evaluation` YAML block following the schema defined in `.github/agents/evaluation-schema.md`. Write all blocks to: `docs/feature/<feature-slug>/artifact-evaluations/v-feature.md`.
+
+**Source artifacts to evaluate:**
+
+- `verification/v-build.md`
+- `feature.md`
+
+**Rules:**
+
+- Follow all rules specified in the evaluation schema reference document
+- If evaluation generation fails, write an `evaluation_error` block instead (see `.github/agents/evaluation-schema.md` Rule 4) and proceed — evaluation failure MUST NOT cause your completion status to be ERROR
+- Evaluation is secondary to your primary output
+
+### 8. Write Isolated Memory
 
 Write key findings to `memory/v-feature.mem.md`:
 

@@ -20,6 +20,7 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 - docs/feature/<feature-slug>/memory/designer.mem.md (primary — design decisions and architecture context)
 - docs/feature/<feature-slug>/initial-request.md
 - docs/feature/<feature-slug>/design.md
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 - Git diff
 - Entire codebase
 
@@ -27,6 +28,7 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 
 - docs/feature/<feature-slug>/review/r-quality.md
 - docs/feature/<feature-slug>/memory/r-quality.mem.md (isolated memory)
+- docs/feature/<feature-slug>/artifact-evaluations/r-quality.md (artifact evaluation — secondary, non-blocking)
 
 ## Operating Rules
 
@@ -112,7 +114,23 @@ Call out questionable decisions with specific rationale. Every finding must refe
 
 Write `review/r-quality.md` using the output format below.
 
-### 8. Write Isolated Memory
+### 8. Evaluate Upstream Artifacts
+
+After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed.
+
+For each source artifact, produce one `artifact_evaluation` YAML block following the schema defined in `.github/agents/evaluation-schema.md`. Write all blocks to: `docs/feature/<feature-slug>/artifact-evaluations/r-quality.md`.
+
+**Source artifacts to evaluate:**
+
+- `design.md`
+
+**Rules:**
+
+- Follow all rules specified in the evaluation schema reference document
+- If evaluation generation fails, write an `evaluation_error` block and proceed — evaluation failure MUST NOT cause your completion status to be ERROR
+- Evaluation is secondary to your primary output
+
+### 9. Write Isolated Memory
 
 Write key findings to `memory/r-quality.mem.md`:
 
@@ -145,7 +163,7 @@ Write key findings to `memory/r-quality.mem.md`:
 - review/r-quality.md — §<Section> (brief relevance note), §<Section> (brief relevance note)
 ```
 
-### 9. Self-Reflection
+### 10. Self-Reflection
 
 Before returning, verify:
 

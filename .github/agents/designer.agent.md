@@ -34,11 +34,13 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 - docs/feature/<feature-slug>/ct-review/ct-scalability.md (selective, revision mode — read only sections referenced by CT memory artifact indexes)
 - docs/feature/<feature-slug>/ct-review/ct-maintainability.md (selective, revision mode — read only sections referenced by CT memory artifact indexes)
 - docs/feature/<feature-slug>/ct-review/ct-strategy.md (selective, revision mode — read only sections referenced by CT memory artifact indexes)
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 
 ## Outputs
 
 - docs/feature/<feature-slug>/design.md
 - docs/feature/<feature-slug>/memory/designer.mem.md (isolated memory)
+- docs/feature/<feature-slug>/artifact-evaluations/designer.md (artifact evaluation — secondary, non-blocking)
 
 ## Operating Rules
 
@@ -77,7 +79,19 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
     - Security considerations are addressed (even if the conclusion is "no security implications" with justification)
     - Failure modes are identified and recovery strategies are defined
       Fix any gaps found before returning.
-13. **Write Isolated Memory:** Write key findings to `memory/designer.mem.md`:
+13. **Evaluate Upstream Artifacts:** After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed.
+
+    For each source artifact listed below, produce one `artifact_evaluation` YAML block following the schema defined in `.github/agents/evaluation-schema.md`. Write all blocks to: `docs/feature/<feature-slug>/artifact-evaluations/designer.md`.
+
+    Source artifacts to evaluate:
+    - feature.md
+
+    **Rules:**
+    - Follow all rules specified in the evaluation schema reference document
+    - If evaluation generation fails, write an `evaluation_error` block instead (see `.github/agents/evaluation-schema.md` Rule 4) and proceed — evaluation failure MUST NOT cause your completion status to be ERROR
+    - Evaluation is secondary to your primary output
+
+14. **Write Isolated Memory:** Write key findings to `memory/designer.mem.md`:
     - **Status:** completion status (DONE/ERROR)
     - **Key Findings:** ≤5 bullet points summarizing primary findings
     - **Highest Severity:** N/A (designer does not produce severity ratings)

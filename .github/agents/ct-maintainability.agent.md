@@ -21,11 +21,13 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 - docs/feature/<feature-slug>/initial-request.md
 - docs/feature/<feature-slug>/design.md
 - docs/feature/<feature-slug>/feature.md
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 
 ## Outputs
 
 - docs/feature/<feature-slug>/ct-review/ct-maintainability.md
 - docs/feature/<feature-slug>/memory/ct-maintainability.mem.md (isolated memory)
+- docs/feature/<feature-slug>/artifact-evaluations/ct-maintainability.md (artifact evaluation — secondary, non-blocking)
 
 ## Operating Rules
 
@@ -98,8 +100,14 @@ For each identified risk, state:
 7. **Identify cross-cutting observations** — note any issues that fall outside your primary scope but are relevant to other sub-agents (security, scalability, strategy). Reference which sub-agent's scope they belong in.
 8. Verify requirement coverage: for requirements relevant to your focus area, does the design address them without introducing disproportionate complexity?
 9. Write `ct-review/ct-maintainability.md` with structured findings using the standardized output format.
-10. **Self-verification:** Before returning, re-read your review. For each finding, confirm it is grounded in specific technical details. Strengthen any findings that are too vague by adding concrete references — but do NOT delete findings just because they feel broad. A legitimate maintainability concern is valuable even if it applies to multiple projects.
-11. **Write Isolated Memory.** Write key findings to `memory/ct-maintainability.mem.md`:
+10. **Evaluate Upstream Artifacts.** After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed.
+    - **Artifacts to evaluate:** `design.md`, `feature.md`
+    - For each source artifact, produce one `artifact_evaluation` YAML block following the schema in `.github/agents/evaluation-schema.md`
+    - Write all evaluation blocks to `docs/feature/<feature-slug>/artifact-evaluations/ct-maintainability.md`
+    - If evaluation generation fails for any artifact, write an `evaluation_error` block instead (see schema document) — evaluation failure MUST NOT cause your completion status to be ERROR
+    - Evaluation is secondary to your primary output
+11. **Self-verification:** Before returning, re-read your review. For each finding, confirm it is grounded in specific technical details. Strengthen any findings that are too vague by adding concrete references — but do NOT delete findings just because they feel broad. A legitimate maintainability concern is valuable even if it applies to multiple projects.
+12. **Write Isolated Memory.** Write key findings to `memory/ct-maintainability.mem.md`:
     - Status: DONE/ERROR with one-line summary
     - Key Findings: ≤5 bullet points summarizing primary findings
     - Highest Severity: Critical/High/Medium/Low (highest severity finding)

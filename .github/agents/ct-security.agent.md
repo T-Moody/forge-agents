@@ -23,11 +23,13 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 - docs/feature/<feature-slug>/initial-request.md
 - docs/feature/<feature-slug>/design.md
 - docs/feature/<feature-slug>/feature.md
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 
 ## Outputs
 
 - docs/feature/<feature-slug>/ct-review/ct-security.md
 - docs/feature/<feature-slug>/memory/ct-security.mem.md (isolated memory)
+- docs/feature/<feature-slug>/artifact-evaluations/ct-security.md (artifact evaluation — secondary, non-blocking)
 
 ## Operating Rules
 
@@ -91,8 +93,14 @@ Your primary focus areas. Probe deeply within these categories — they are your
    - What breaks for existing users if this ships as-is?
 7. **Probe the risk categories** above as a structured sweep — but don't stop there. If you find security or compatibility risks that don't fit any category, include them anyway. The categories are a floor, not a ceiling.
 8. Write findings to `ct-review/ct-security.md` using the standardized output format below.
-9. **Self-verification:** Before returning, re-read your review. For each finding, confirm it is grounded in specific technical details. Strengthen any findings that are too vague by adding concrete references — but do NOT delete findings just because they feel broad. A legitimate security concern is valuable even if it applies to multiple projects.
-10. **Write Isolated Memory.** Write key findings to `memory/ct-security.mem.md`:
+9. **Evaluate Upstream Artifacts.** After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed.
+   - **Artifacts to evaluate:** `design.md`, `feature.md`
+   - For each source artifact, produce one `artifact_evaluation` YAML block following the schema in `.github/agents/evaluation-schema.md`
+   - Write all evaluation blocks to `docs/feature/<feature-slug>/artifact-evaluations/ct-security.md`
+   - If evaluation generation fails for any artifact, write an `evaluation_error` block instead (see schema document) — evaluation failure MUST NOT cause your completion status to be ERROR
+   - Evaluation is secondary to your primary output
+10. **Self-verification:** Before returning, re-read your review. For each finding, confirm it is grounded in specific technical details. Strengthen any findings that are too vague by adding concrete references — but do NOT delete findings just because they feel broad. A legitimate security concern is valuable even if it applies to multiple projects.
+11. **Write Isolated Memory.** Write key findings to `memory/ct-security.mem.md`:
     - Status: DONE/ERROR with one-line summary
     - Key Findings: ≤5 bullet points summarizing primary findings
     - Highest Severity: Critical/High/Medium/Low (highest severity finding)

@@ -1,0 +1,24 @@
+# Researcher Memory: Architecture
+
+- **Status:** DONE
+- **Key Findings:**
+  - The orchestrator's 9 current tools are listed only in Operating Rule 5 (L92) as prose — no agent in the repo uses YAML `tools:` frontmatter; adding it would be a new convention
+  - Only 3 locations in `orchestrator.agent.md` reference the 4 tools being removed (Global Rule 1 L33, Operating Rule 1 L83, Operating Rule 5 L92); all other orchestrator reads target deterministic known paths via `read_file`
+  - The `memory` tool is conflated in the prompt — used conceptually for both VS Code cross-session memory AND pipeline `memory.md` file writes; this ambiguity is central to the memory architecture redesign
+  - `memory.md` is explicitly non-blocking (Global Rule 6: "Memory failure is non-blocking...Agents fall back to direct artifact reads") — it's a convenience aggregation layer with ~15 write points per pipeline run, not a critical path requirement
+  - Cluster decision flows (CT/V/R) only need `read_file` on known paths and the ability to log self-verification results — they do not use `grep_search`, `semantic_search`, `file_search`, or `get_errors`
+- **Highest Severity:** N/A
+- **Decisions Made:** none
+- **Artifact Index:**
+  - [research/architecture.md](../research/architecture.md)
+    - §1.1 YAML Frontmatter — current structure, no `tools:` field
+    - §1.2 Current Tool References — Operating Rule 5, explicit allowed list
+    - §1.3 All Sections That Reference Removed Tools — 3 locations requiring change
+    - §1.4 All Sections That Reference Reading Files Directly — 14+ `read_file` usage points (all known paths)
+    - §1.5 All Sections That Reference Writing to memory.md — ~15 write operations across pipeline
+    - §1.6 The memory Tool Ambiguity — conflated VS Code memory vs. pipeline memory.md
+    - §2 Cluster Decision Flows — tool requirements analysis
+    - §3 Agent File Format Patterns — no `tools:` in any agent; consistent frontmatter
+    - §4 Feature Workflow Prompt — 2 sections referencing memory, no explicit tool mentions
+    - §5 Memory Architecture — structure, lifecycle, essentiality analysis, write problem
+    - §6 Anti-Drift Anchor — must be updated for restricted tools

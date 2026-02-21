@@ -21,11 +21,13 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 - docs/feature/<feature-slug>/initial-request.md
 - docs/feature/<feature-slug>/plan.md
 - docs/feature/<feature-slug>/tasks/\*.md
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 - Entire codebase
 
 ## Outputs
 
 - docs/feature/<feature-slug>/verification/v-tasks.md
+- docs/feature/<feature-slug>/artifact-evaluations/v-tasks.md (artifact evaluation — secondary, non-blocking)
 - docs/feature/<feature-slug>/memory/v-tasks.mem.md (isolated memory)
 
 ## Role
@@ -92,7 +94,25 @@ For each task file in `docs/feature/<feature-slug>/tasks/*.md`:
 
 Write `docs/feature/<feature-slug>/verification/v-tasks.md` with the verification results.
 
-### 6. Write Isolated Memory
+### 6. Evaluate Upstream Artifacts
+
+After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed.
+
+For each source artifact, produce one `artifact_evaluation` YAML block following the schema defined in `.github/agents/evaluation-schema.md`. Write all blocks to: `docs/feature/<feature-slug>/artifact-evaluations/v-tasks.md`.
+
+**Source artifacts to evaluate:**
+
+- `verification/v-build.md`
+- `plan.md`
+- `tasks/*.md`
+
+**Rules:**
+
+- Follow all rules specified in the evaluation schema reference document
+- If evaluation generation fails, write an `evaluation_error` block instead (see `.github/agents/evaluation-schema.md` Rule 4) and proceed — evaluation failure MUST NOT cause your completion status to be ERROR
+- Evaluation is secondary to your primary output
+
+### 7. Write Isolated Memory
 
 Write key findings to `memory/v-tasks.mem.md`:
 

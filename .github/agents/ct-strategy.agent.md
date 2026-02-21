@@ -21,11 +21,13 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 - docs/feature/<feature-slug>/feature.md
 - docs/feature/<feature-slug>/memory/designer.mem.md (primary — read for orientation and artifact index)
 - docs/feature/<feature-slug>/memory/spec.mem.md (primary — read for orientation and artifact index)
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 
 ## Outputs
 
 - docs/feature/<feature-slug>/ct-review/ct-strategy.md
 - docs/feature/<feature-slug>/memory/ct-strategy.mem.md (isolated memory)
+- docs/feature/<feature-slug>/artifact-evaluations/ct-strategy.md (artifact evaluation — secondary, non-blocking)
 
 ## Operating Rules
 
@@ -110,7 +112,20 @@ For each identified risk, state:
 9. Verify requirement coverage: does the design fully address every requirement from `feature.md`? Flag gaps, partial coverage, silent scope reductions, and scope expansions.
 10. Write `ct-review/ct-strategy.md` with structured findings using the standardized output format.
 11. **Self-verification:** Before returning, re-read your review. For each finding, confirm it is grounded in specific technical details. Strengthen any findings that are too vague by adding concrete references — but do NOT delete findings just because they feel broad. A legitimate strategic concern is valuable even if it applies to multiple projects.
-12. **Write Isolated Memory:** Write key findings to `memory/ct-strategy.mem.md`:
+12. **Evaluate Upstream Artifacts:** After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed during this review.
+
+    For each of the following source artifacts, produce one `artifact_evaluation` YAML block following the schema defined in `.github/agents/evaluation-schema.md`:
+    - `design.md`
+    - `feature.md`
+
+    Write all blocks to: `docs/feature/<feature-slug>/artifact-evaluations/ct-strategy.md`.
+
+    **Rules:**
+    - Follow all rules specified in the evaluation schema reference document
+    - If evaluation generation fails, write an `evaluation_error` block (see schema) and proceed — evaluation failure MUST NOT cause your completion status to be ERROR
+    - Evaluation is secondary to your primary output
+
+13. **Write Isolated Memory:** Write key findings to `memory/ct-strategy.mem.md`:
     - **Status:** completion status (DONE/ERROR) with one-line summary
     - **Key Findings:** ≤5 bullet points summarizing primary findings
     - **Highest Severity:** Critical/High/Medium/Low (highest severity finding)

@@ -26,6 +26,9 @@ Run the entire custom agent workflow end-to-end without stopping.
 - **Research focus areas:** Research runs 4 parallel sub-agents: architecture, dependencies, impact, and patterns. Each produces its own artifact and isolated memory file.
 - **Knowledge evolution:** The review cluster produces `knowledge-suggestions.md` with improvement proposals for human review.
 - **Decision log:** `decisions.md` captures architectural decisions made during the pipeline.
+- **Post-mortem:** After the R cluster completes (Step 7), the orchestrator dispatches a PostMortem agent (Step 8) that is non-blocking.
+- **Artifact evaluations:** Agents that consume upstream pipeline artifacts produce structured evaluations in `artifact-evaluations/` following the schema in `.github/agents/evaluation-schema.md`.
+- **Orchestrator tool restriction:** The orchestrator uses only `read_file` and `list_dir` for reading (no `grep_search`, `semantic_search`, `file_search`, or `get_errors`). All orchestrator reads target known deterministic paths.
 
 ## Key Artifacts
 
@@ -37,6 +40,9 @@ In addition to the standard feature documentation (`feature.md`, `design.md`, `p
 | `memory.md`                | Shared pipeline memory maintained by orchestrator      |
 | `decisions.md`             | Architectural decision log                             |
 | `knowledge-suggestions.md` | Knowledge evolution proposals (produced during review) |
+| `artifact-evaluations/`    | Structured artifact evaluations from consuming agents  |
+| `agent-metrics/`           | Pipeline execution telemetry (run logs)                |
+| `post-mortems/`            | Post-mortem quantitative analysis reports              |
 
 ## Variables
 

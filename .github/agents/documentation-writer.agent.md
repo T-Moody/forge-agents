@@ -24,12 +24,14 @@ Use detailed thinking to reason through complex decisions before acting.
 - docs/feature/<feature-slug>/feature.md (selective — sections referenced by upstream memory artifact indexes)
 - docs/feature/<feature-slug>/design.md (selective — sections referenced by upstream memory artifact indexes)
 - Entire codebase (read-only)
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 
 ## Outputs
 
 - Documentation files as specified in the task (API docs, READMEs, diagrams, etc.)
 - docs/feature/<feature-slug>/memory/documentation-writer-<task-id>.mem.md (isolated memory)
 - Updated task file (status, completion checklist)
+- docs/feature/<feature-slug>/artifact-evaluations/documentation-writer-<task-id>.md (artifact evaluation — secondary, non-blocking)
 
 ## Operating Rules
 
@@ -68,13 +70,27 @@ The documentation writer MUST NOT modify source code, test files, or configurati
 4. Analyze relevant source code using `semantic_search`, `grep_search`, and `read_file` (read-only).
 5. Generate documentation as specified in the task.
 6. **Verify accuracy (delta-only):** Use `get_changed_files` (or equivalent) to identify recently changed source files. Cross-reference generated documentation against **only the changed code**, not the entire codebase. This ensures parity verification is proportional to the delta, not the full project size.
-7. **Write Isolated Memory:** Write key findings to `memory/documentation-writer-<task-id>.mem.md`:
+7. **Evaluate Upstream Artifacts:** After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed during this task.
+
+   For each of the following source artifacts, produce one `artifact_evaluation` YAML block following the schema defined in `.github/agents/evaluation-schema.md`:
+   - `tasks/<task>.md`
+   - `design.md`
+   - `feature.md`
+
+   Write all blocks to: `docs/feature/<feature-slug>/artifact-evaluations/documentation-writer-<task-id>.md`.
+
+   **Rules:**
+   - Follow all rules specified in the evaluation schema reference document
+   - If evaluation generation fails, write an `evaluation_error` block (see schema) and proceed — evaluation failure MUST NOT cause your completion status to be ERROR
+   - Evaluation is secondary to your primary output
+
+8. **Write Isolated Memory:** Write key findings to `memory/documentation-writer-<task-id>.mem.md`:
    - Status: DONE/ERROR with one-line summary
    - Key Findings: ≤5 bullet points summarizing documentation work
    - Highest Severity: N/A
    - Decisions Made: (omit if none)
    - Artifact Index: output file paths — §Section pointers with brief relevance notes
-8. Update the task file:
+9. Update the task file:
    - Check off acceptance criteria
    - Mark implementation as completed
    - Note any documentation gaps discovered (for future tasks)

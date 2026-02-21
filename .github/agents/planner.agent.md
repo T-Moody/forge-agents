@@ -39,12 +39,14 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 
 - docs/feature/<feature-slug>/initial-request.md
 - (Extension mode) docs/feature/<feature-slug>/plan.md (existing)
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 
 ## Outputs
 
 - docs/feature/<feature-slug>/plan.md
 - docs/feature/<feature-slug>/tasks/\*.md
 - docs/feature/<feature-slug>/memory/planner.mem.md (isolated memory)
+- docs/feature/<feature-slug>/artifact-evaluations/planner.md (artifact evaluation — secondary, non-blocking)
 
 ## Operating Rules
 
@@ -102,7 +104,20 @@ State the detected mode at the top of your output.
 10. Perform Pre-Mortem Analysis and append to plan.md.
 11. Create `plan.md` with all required sections.
 12. Create one task file per task under `tasks/`, prefixed numerically for order.
-13. **Write Isolated Memory:** Write key findings to `memory/planner.mem.md`:
+13. **Evaluate Upstream Artifacts:** After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed.
+
+    For each source artifact listed below, produce one `artifact_evaluation` YAML block following the schema defined in `.github/agents/evaluation-schema.md`. Write all blocks to: `docs/feature/<feature-slug>/artifact-evaluations/planner.md`.
+
+    Source artifacts to evaluate:
+    - design.md
+    - feature.md
+
+    **Rules:**
+    - Follow all rules specified in the evaluation schema reference document
+    - If evaluation generation fails, write an `evaluation_error` block instead (see `.github/agents/evaluation-schema.md` Rule 4) and proceed — evaluation failure MUST NOT cause your completion status to be ERROR
+    - Evaluation is secondary to your primary output
+
+14. **Write Isolated Memory:** Write key findings to `memory/planner.mem.md`:
     - Status: completion status (DONE/ERROR)
     - Key Findings: ≤5 bullet points summarizing planning decisions
     - Highest Severity: N/A

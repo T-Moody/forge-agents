@@ -18,6 +18,7 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 - docs/feature/<feature-slug>/memory/planner.mem.md (upstream — planner memory for task structure)
 - docs/feature/<feature-slug>/initial-request.md
 - docs/feature/<feature-slug>/feature.md
+- .github/agents/evaluation-schema.md (reference — artifact evaluation schema)
 - Git diff
 - Entire codebase
 
@@ -25,6 +26,7 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 
 - docs/feature/<feature-slug>/review/r-testing.md
 - docs/feature/<feature-slug>/memory/r-testing.mem.md (isolated memory)
+- docs/feature/<feature-slug>/artifact-evaluations/r-testing.md (artifact evaluation — secondary, non-blocking)
 
 ## Operating Rules
 
@@ -150,7 +152,24 @@ Write `docs/feature/<feature-slug>/review/r-testing.md` with the following conte
 <!-- Issue counts by severity -->
 ```
 
-### 9. Write Isolated Memory
+### 9. Evaluate Upstream Artifacts
+
+After completing your primary work, evaluate each upstream pipeline-produced artifact you consumed.
+
+For each source artifact, produce one `artifact_evaluation` YAML block following the schema defined in `.github/agents/evaluation-schema.md`. Write all blocks to: `docs/feature/<feature-slug>/artifact-evaluations/r-testing.md`.
+
+**Source artifacts to evaluate:**
+
+- `design.md`
+- `feature.md`
+
+**Rules:**
+
+- Follow all rules specified in the evaluation schema reference document
+- If evaluation generation fails, write an `evaluation_error` block and proceed — evaluation failure MUST NOT cause your completion status to be ERROR
+- Evaluation is secondary to your primary output
+
+### 10. Write Isolated Memory
 
 Write key findings to `memory/r-testing.mem.md`:
 
