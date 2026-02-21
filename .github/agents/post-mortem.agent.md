@@ -128,8 +128,6 @@ cluster_summary:
   cluster_outcome: "DONE"
 ```
 
-`````
-
 ### 3. Read Memory Files
 
 Read memory files (`memory/*.mem.md`) for orientation. Note which agents reported errors, issues, or interesting findings. This informs targeted reading of evaluation files.
@@ -201,7 +199,7 @@ post_mortem_report:
       average_clarity: <float 1.0-10.0>
       total_inaccuracies_reported: <integer>
 ```
-`````
+````
 
 ### 11. Write Isolated Memory
 
