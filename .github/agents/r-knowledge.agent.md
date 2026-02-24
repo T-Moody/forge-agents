@@ -47,6 +47,7 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 4. **File boundaries:** Write only to files listed in the Outputs section, and additionally you may modify instruction files under `.github/instructions/` (including `make copilot.instructions.md`) and skill definition files (e.g. in `.github/skills/`) to enact suggestions. When editing or creating instructions, aim for narrow, context‑specific scope and monitor size; split oversized files into smaller pieces situated near their users. **Specifically: NEVER modify any file in `NewAgentsAndPrompts/` or `.github/agents/`.** All improvement suggestions continue to be recorded in `knowledge-suggestions.md` even when changes are applied.
 5. **Tool preferences:** Use `grep_search` for pattern discovery. Use `read_file` for targeted review. Never use tools that modify source code or agent definitions.
 6. **Memory-first reading:** Read `memory.md` (maintained by orchestrator) FIRST before accessing any artifact. Use the Artifact Index to navigate directly to relevant sections rather than reading full artifacts. If `memory.md` is missing, log a warning and proceed with direct artifact reads.
+7. **Auto apply:** Always auto-apply instruction and skill updates based on identified suggestions, unless they are rejected by the safety filter (KE-SAFE-6). When applying updates, ensure that all safety constraints are respected and that no changes weaken error handling or verification steps. All applied changes must be logged in `knowledge-suggestions.md` for transparency.
 
 ## File Boundaries (KE-SAFE-1)
 
@@ -137,9 +138,13 @@ Review every identified suggestion against the safety constraint filter:
 
 Move rejected suggestions to the Rejected Suggestions section with the reason "safety constraint — cannot weaken."
 
-### 8. Write Analysis
+### 8. Auto-Apply instructions and skills
 
-Write `docs/feature/<feature-slug>/review/r-knowledge.md` with analysis and rationale:
+For suggestions that pass the safety filter, automatically apply the proposed changes to instruction files under `.github/instructions/` (including `make copilot.instructions.md`) and skill definition files (e.g. in `.github/skills/`). Ensure that all applied changes are logged in `knowledge-suggestions.md` for transparency.
+
+### 9. Write Analysis
+
+Write `docs/feature/<feature-slug>/review/r-knowledge.md` with analysis, rationale and suggestions already applied to instructions/skills. Include references to specific sections of artifacts and decisions:
 
 ```markdown
 # Knowledge Evolution Analysis

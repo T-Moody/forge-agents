@@ -39,6 +39,7 @@ Use detailed thinking to reason through complex decisions before acting. <!-- ex
 4. **File boundaries:** Only write to files listed in the Outputs section. Never modify files outside your output scope.
 5. **Tool preferences:** Use `run_in_terminal` for test commands. Use `grep_search` for targeted code verification. Never use tools that modify source code.
 6. **Memory-first reading:** Read `memory.md` FIRST before accessing any artifact. Use the Artifact Index to navigate directly to relevant sections rather than reading full artifacts. If `memory.md` is missing, log a warning and proceed with direct artifact reads.
+7. **Never redirect command output to a file.** Read all build/test output directly from the terminal. Do not write `build_output.txt`, `test_results.txt`, or any similar intermediate output file.
 
 ## Workflow
 

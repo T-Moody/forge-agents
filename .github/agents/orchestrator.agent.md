@@ -1,7 +1,6 @@
 ---
 name: orchestrator
 description: Deterministic workflow orchestrator that coordinates all subagents, manages agent-isolated memory and memory merging, dispatches agent clusters, and enforces documentation structure.
-tools: [agent, agent/runSubagent, memory, read_file, list_dir]
 ---
 
 # Orchestrator Agent Workflow
@@ -131,9 +130,9 @@ After all CT sub-agents complete (Step 3b), evaluate:
 
 1. Read `memory/ct-security.mem.md`, `memory/ct-scalability.mem.md`, `memory/ct-maintainability.mem.md`, `memory/ct-strategy.mem.md`.
 2. Count available memories (file exists AND agent did not return ERROR). If **<2 available → cluster ERROR**. Halt and report.
-3. Read `Highest Severity` from each available memory (expected values: Critical / High / Medium / Low).
-4. If ANY severity is **Critical** or **High** → **NEEDS_REVISION**. Route to designer with individual CT artifact paths (`ct-review/ct-security.md`, `ct-review/ct-scalability.md`, `ct-review/ct-maintainability.md`, `ct-review/ct-strategy.md`).
-5. If all severities are **Medium** or **Low** → **DONE**. Proceed to Step 4 (Planning).
+3. Read `Highest Severity` AND `Medium Severity` from each available memory (expected values: Critical / High / Medium / Low).
+4. If ANY severity is **Critical** or **High** or **Medium** → **NEEDS_REVISION**. Route to designer with individual CT artifact paths (`ct-review/ct-security.md`, `ct-review/ct-scalability.md`, `ct-review/ct-maintainability.md`, `ct-review/ct-strategy.md`).
+5. If all severities are **Low** → **DONE**. Proceed to Step 4 (Planning).
 6. **Self-verification:** Log in `memory.md` Recent Updates: `[orchestrator, step-3b] CT cluster decision: severity values [<list>], result: <DONE|NEEDS_REVISION|ERROR>.`
 
 ### V Cluster Decision Flow
@@ -289,7 +288,7 @@ No subagent invocation. The orchestrator evaluates the CT cluster result directl
 #### 3b.3 Handle CT Result
 
 - **DONE:** Proceed to Step 4.
-- **NEEDS_REVISION:** Invalidate stale CT memory entries. Route to designer for revision — designer reads CT memories (`memory/ct-*.mem.md`) first, then consults Artifact Index for targeted reads of individual `ct-review/ct-security.md`, `ct-review/ct-scalability.md`, `ct-review/ct-maintainability.md`, `ct-review/ct-strategy.md` sections. Re-run full CT cluster (max 1 loop). If still NEEDS_REVISION: proceed with warning; forward all High/Critical findings from individual CT artifacts as planning constraints to Step 4.
+- **NEEDS_REVISION:** Invalidate stale CT memory entries. Route to designer for revision — designer reads CT memories (`memory/ct-*.mem.md`) first, then consults Artifact Index for targeted reads of individual `ct-review/ct-security.md`, `ct-review/ct-scalability.md`, `ct-review/ct-maintainability.md`, `ct-review/ct-strategy.md` sections. Re-run full CT cluster (max 1 loop). If still NEEDS_REVISION: proceed with warning; forward all High/Critical/Medium findings from individual CT artifacts as planning constraints to Step 4.
 - **ERROR:** Retry once (re-read memories, re-evaluate). If persistent, halt pipeline.
 
 ### 4. Planning
@@ -297,7 +296,7 @@ No subagent invocation. The orchestrator evaluates the CT cluster result directl
 - **Invoke subagent:** `planner`
 - Input (primary — memory-first): `memory/designer.mem.md`, `memory/spec.mem.md`, `memory.md`
 - Input (selective): `design.md`, `feature.md`, `research/*.md` — planner reads upstream memories first, consults Artifact Index for targeted section reads
-- Input (selective, if CT found issues): `memory/ct-*.mem.md` → targeted reads of `ct-review/ct-*.md` sections (High/Critical findings as planning constraints)
+- Input (selective, if CT found issues): `memory/ct-*.mem.md` → targeted reads of `ct-review/ct-*.md` sections (High/Critical/medium findings as planning constraints)
 - When replanning: orchestrator passes `MODE: REPLAN` and V memory file paths (`memory/v-build.mem.md`, `memory/v-tests.mem.md`, `memory/v-tasks.mem.md`, `memory/v-feature.mem.md`)
 - Outputs: `plan.md`, `tasks/*.md` + `memory/planner.mem.md`
 - Wait for `DONE:` or `ERROR:`.
@@ -401,13 +400,13 @@ No subagent invocation. The orchestrator evaluates the R cluster result directly
 
 #### 7.4 Handle R Result
 
-- **DONE:** Workflow complete. Preserve `knowledge-suggestions.md` and `decisions.md` for human review.
+- **DONE:** Workflow complete. Preserve `knowledge-suggestions.md` and `decisions.md`.
 - **NEEDS_REVISION:** Orchestrator determines from R memories which tasks need revision. Route relevant R artifact findings to affected implementer(s) (pass `review/r-quality.md`, `review/r-testing.md` file paths with specific findings) for lightweight fix pass (max 1 loop). Each implementer receives its task file + relevant review findings from individual R artifacts. If still NEEDS_REVISION after fix: escalate to planner for full replan.
 - **ERROR (R-Security override):** R-Security critical findings block pipeline. Retry R-Security once. If persistent: escalate to planner for full replan. Pipeline does not proceed past security ERROR.
 
 #### 7.5 Knowledge Evolution Preservation
 
-After R cluster completes: `knowledge-suggestions.md` persists for human review (NEVER auto-applied). `decisions.md` persists across runs (R-Knowledge writes append-only).
+After R cluster completes: `knowledge-suggestions.md` and `decisions.md` persists across runs (R-Knowledge writes append-only).
 
 ### 8. Post-Mortem (Non-Blocking)
 
@@ -460,13 +459,13 @@ Log result in `memory.md` Recent Updates: `[orchestrator, step-8] PostMortem dis
 
 ## NEEDS_REVISION Routing Table
 
-| Source Evaluation                                | Routes To                                                                                                     | Max Loops | Escalation                                                                                                                |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Orchestrator (CT cluster evaluation)             | Designer (with individual `ct-review/ct-*.md` artifact paths) → full CT re-run                                | 1         | Proceed to planning with warning; forward all High/Critical findings from individual CT artifacts as planning constraints |
-| Orchestrator (V cluster evaluation)              | Planner (`MODE: REPLAN` with V memory file paths: `memory/v-*.mem.md`) → Implementers → full V cluster re-run | 3         | Proceed with findings documented in V artifacts (`verification/v-*.md`)                                                   |
-| Orchestrator (R cluster evaluation)              | Implementer(s) for affected tasks (with `review/r-quality.md`, `review/r-testing.md` findings)                | 1         | Escalate to planner for full replan                                                                                       |
-| R-Security (via orchestrator R evaluation ERROR) | Retry R-Security once → Planner if persistent                                                                 | 1         | Halt pipeline                                                                                                             |
-| All other agents (spec, designer, planner, etc.) | N/A — these return DONE or ERROR only                                                                         | —         | —                                                                                                                         |
+| Source Evaluation                                | Routes To                                                                                                     | Max Loops | Escalation                                                                                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Orchestrator (CT cluster evaluation)             | Designer (with individual `ct-review/ct-*.md` artifact paths) → full CT re-run                                | 1         | Proceed to planning with warning; forward all High/Critical/Medium findings from individual CT artifacts as planning constraints |
+| Orchestrator (V cluster evaluation)              | Planner (`MODE: REPLAN` with V memory file paths: `memory/v-*.mem.md`) → Implementers → full V cluster re-run | 3         | Proceed with findings documented in V artifacts (`verification/v-*.md`)                                                          |
+| Orchestrator (R cluster evaluation)              | Implementer(s) for affected tasks (with `review/r-quality.md`, `review/r-testing.md` findings)                | 1         | Escalate to planner for full replan                                                                                              |
+| R-Security (via orchestrator R evaluation ERROR) | Retry R-Security once → Planner if persistent                                                                 | 1         | Halt pipeline                                                                                                                    |
+| All other agents (spec, designer, planner, etc.) | N/A — these return DONE or ERROR only                                                                         | —         | —                                                                                                                                |
 
 ---
 
@@ -499,7 +498,7 @@ Log result in `memory.md` Recent Updates: `[orchestrator, step-8] PostMortem dis
 
 | Action                 | When                                               | What                                                                                                                                                            |
 | ---------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Initialize             | Step 0                                             | Delegate to a setup subagent to create `memory.md` with empty template. Directories created lazily by first writing agent.                             |
+| Initialize             | Step 0                                             | Delegate to a setup subagent to create `memory.md` with empty template. Directories created lazily by first writing agent.                                      |
 | Merge                  | After each agent completes (or after each cluster) | Orchestrator reads `memory/<agent>.mem.md`, merges Key Findings, Decisions, and Artifact Index into `memory.md`.                                                |
 | Prune                  | After Steps 1.1m, 2m, 4m                           | Remove entries from Recent Decisions and Recent Updates older than 2 completed phases. Preserve Artifact Index and Lessons Learned (never pruned).              |
 | Extract Lessons        | Between implementation waves                       | Read implementer/documentation-writer memory files (`memory/implementer-<task-id>.mem.md`) for issue/resolution entries; append to `memory.md` Lessons Learned. |
