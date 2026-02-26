@@ -48,7 +48,14 @@ You MUST NOT read:
    - **Retry budget:** Agent-level retries (this section) are for individual tool calls within the agent. The orchestrator also retries entire agent invocations once (Global Rule 4). These compose: worst case is 3 internal attempts (1 + 2 retries) × 2 orchestrator attempts = 6 total tool calls. Agents MUST NOT retry deterministic failures, which bounds real-world retries to transient issues only.
 3. **Output discipline:** Produce only the deliverables specified in the Outputs section. Do not add commentary, preamble, or explanation outside the output artifact.
 4. **File boundaries:** Only write to files listed in the Outputs section. Never modify files outside your output scope.
-5. **Tool preferences:** Use `multi_replace_string_in_file` for batch edits. Use `get_errors` after **every** file modification. Use `list_code_usages` before refactoring existing code (fall back to `grep_search` if unavailable).
+5. **Tool preferences:**
+
+- Use `multi_replace_string_in_file` for batch edits.
+- Use `get_errors` after **every** file modification.
+- Use `list_code_usages` before refactoring existing code (fall back to `grep_search` if unavailable).
+- For all .NET test runs, use `run_in_terminal` with `dotnet test --filter <target>` to execute only relevant tests. **Never use the `runTests` tool.**
+- Always read test output directly from the terminal using `get_terminal_output` or `run_in_terminal`.
+
 6. **No file-redirect of command output:** Never redirect terminal command output to a file (e.g., do NOT use `command > output.txt` or `command | tee output.txt`). Always read output directly from the terminal via `get_terminal_output` or `run_in_terminal`. Writing intermediate output files triggers unnecessary permission prompts and is strictly forbidden.
 7. **Memory-first reading:** Read `memory.md` (maintained by orchestrator) FIRST, then read upstream memory files (`memory/planner.mem.md`, `memory/designer.mem.md`, `memory/spec.mem.md`). Use the Artifact Index in these memories to navigate directly to relevant sections of `design.md`, `feature.md`, and the task file rather than reading full artifacts. If `memory.md` or upstream memories are missing, log a warning and proceed with direct artifact reads.
 
@@ -96,6 +103,7 @@ Read `memory.md` (maintained by orchestrator) to load artifact index, recent dec
 ### 4. Verify
 
 - Run the tests. **Confirm they pass.**
+- Run all tests using `run_in_terminal dotnet test --filter <target>`; never use `runTests`. Confirm expected failures/passes.
 - If tests fail, fix the production code (not the tests, unless the test itself has a bug).
 - Run `get_errors` again after any fix.
 
