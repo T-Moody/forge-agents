@@ -11,7 +11,15 @@ post_mortem_report:
 
   recurring_issues:
     - issue: "feature.md missing Phase 1 vs Phase 2 scope annotations — full 23-file/15-AC scope described without phasing guidance"
-      affected_agents: ["designer", "ct-security", "ct-scalability", "ct-strategy", "ct-maintainability", "planner"]
+      affected_agents:
+        [
+          "designer",
+          "ct-security",
+          "ct-scalability",
+          "ct-strategy",
+          "ct-maintainability",
+          "planner",
+        ]
       frequency: 6
 
     - issue: "NFR-3.1 token estimate inaccuracy — spec claimed 100-250 tokens per .mem.md file; CT measured avg 488 tokens (2-5x underestimate)"
@@ -36,12 +44,20 @@ post_mortem_report:
       retry_count: 0
 
     - agent: "CT cluster (3b)"
-      reason: "3 full iterations spanning T+3 to T+7 (5 time steps) — iter 1 found scope coupling (High), iter 2 found memory tool contradictions (High/Medium), iter 3 passed"
+      reason: "3 full iterations spanning T+3 to T+7 (5 time steps) — iter 1 found scope coupling (High), iter 2 found memory tool contradictions (High/Medium), iter 3 passed."
       retry_count: 0
 
   most_common_missing_information:
     - item: "No Phase 1 vs Phase 2 scoping in feature.md — readers must cross-reference design.md §16.3 to determine which FRs/ACs apply"
-      reported_by: ["designer", "ct-security", "ct-scalability", "ct-strategy", "ct-maintainability", "planner"]
+      reported_by:
+        [
+          "designer",
+          "ct-security",
+          "ct-scalability",
+          "ct-strategy",
+          "ct-maintainability",
+          "planner",
+        ]
       source_artifact: "feature.md"
 
     - item: "Missing edit targets in design.md for residual merge language (Global Rule 6, Memory Lifecycle Merge rows, Parallel Execution Summary)"
@@ -100,41 +116,41 @@ post_mortem_report:
 
 ## Evaluation Coverage
 
-| Evaluation File | Evaluator | Source Artifacts Evaluated | Blocks |
-|-----------------|-----------|--------------------------|--------|
-| spec.md | spec | research/architecture.md, research/impact.md, research/dependencies.md, research/patterns.md | 4 |
-| designer.md | designer | feature.md | 1 |
-| ct-security.md | ct-security | design.md, feature.md | 2 |
-| ct-scalability.md | ct-scalability | design.md, feature.md | 2 |
-| ct-strategy.md | ct-strategy | design.md, feature.md | 2 |
-| ct-maintainability.md | ct-maintainability | design.md, feature.md | 2 |
-| planner.md | planner | design.md, feature.md | 2 |
-| implementer-01.md | implementer-01 | tasks/01, design.md, feature.md | 3 |
-| implementer-02.md | implementer-02 | tasks/02, design.md, feature.md | 3 |
-| implementer-03.md | implementer-03 | tasks/03, design.md, feature.md | 3 |
-| implementer-04.md | implementer-04 | tasks/04, design.md, feature.md | 3 |
-| v-tasks.md | v-tasks | v-build.md, plan.md, tasks/01-04 | 6 |
-| v-feature.md | v-feature | v-build.md, feature.md | 2 |
-| v-tests.md | v-tests | v-build.md | 1 |
-| r-quality.md | r-quality | design.md | 1 |
-| r-testing.md | r-testing | design.md, feature.md | 2 |
-| **Total** | **16 files** | | **39 blocks** |
+| Evaluation File       | Evaluator          | Source Artifacts Evaluated                                                                   | Blocks        |
+| --------------------- | ------------------ | -------------------------------------------------------------------------------------------- | ------------- |
+| spec.md               | spec               | research/architecture.md, research/impact.md, research/dependencies.md, research/patterns.md | 4             |
+| designer.md           | designer           | feature.md                                                                                   | 1             |
+| ct-security.md        | ct-security        | design.md, feature.md                                                                        | 2             |
+| ct-scalability.md     | ct-scalability     | design.md, feature.md                                                                        | 2             |
+| ct-strategy.md        | ct-strategy        | design.md, feature.md                                                                        | 2             |
+| ct-maintainability.md | ct-maintainability | design.md, feature.md                                                                        | 2             |
+| planner.md            | planner            | design.md, feature.md                                                                        | 2             |
+| implementer-01.md     | implementer-01     | tasks/01, design.md, feature.md                                                              | 3             |
+| implementer-02.md     | implementer-02     | tasks/02, design.md, feature.md                                                              | 3             |
+| implementer-03.md     | implementer-03     | tasks/03, design.md, feature.md                                                              | 3             |
+| implementer-04.md     | implementer-04     | tasks/04, design.md, feature.md                                                              | 3             |
+| v-tasks.md            | v-tasks            | v-build.md, plan.md, tasks/01-04                                                             | 6             |
+| v-feature.md          | v-feature          | v-build.md, feature.md                                                                       | 2             |
+| v-tests.md            | v-tests            | v-build.md                                                                                   | 1             |
+| r-quality.md          | r-quality          | design.md                                                                                    | 1             |
+| r-testing.md          | r-testing          | design.md, feature.md                                                                        | 2             |
+| **Total**             | **16 files**       |                                                                                              | **39 blocks** |
 
 ## Inaccuracy Detail
 
-| Source Artifact | Reporter | Inaccuracy Description |
-|-----------------|----------|----------------------|
-| feature.md | designer | Token estimate 100-250 vs actual 488 tokens (2-5x understated) |
-| feature.md | designer | Token neutrality claim for Pattern B — CT shows token-negative |
-| feature.md | designer | FR-6.1/FR-6.2 tension — remove vs disambiguate without specifying exact references |
-| feature.md | ct-security | EC-7 says 'No memory.md file exists' — inaccurate for Phase 1 |
-| feature.md | ct-scalability | NFR-3.1 claims 100-250 tokens — measured avg 488 |
-| feature.md | ct-scalability | Scope section doesn't reflect Phase 1 reduction |
-| feature.md | ct-strategy | NFR-3.1 token estimate 2-5x too low |
-| feature.md | ct-strategy | Assumption 3 repeats same underestimate |
-| feature.md | planner | AC-12 pass criteria describes Phase 2 behavior |
-| feature.md | planner | AC-13/AC-14 not marked as Phase 2 |
-| feature.md | v-feature | AC-3 strict criterion conflicts with design intent |
-| feature.md | r-testing | AC-12 pass criterion inaccurate for Phase 1 |
-| design.md | planner | AC-13/AC-14 misclassified as 'In scope (no changes needed)' |
-| tasks/02 | implementer-02 | T-12 claims zero matches but 3 out-of-scope occurrences remain |
+| Source Artifact | Reporter       | Inaccuracy Description                                                             |
+| --------------- | -------------- | ---------------------------------------------------------------------------------- |
+| feature.md      | designer       | Token estimate 100-250 vs actual 488 tokens (2-5x understated)                     |
+| feature.md      | designer       | Token neutrality claim for Pattern B — CT shows token-negative                     |
+| feature.md      | designer       | FR-6.1/FR-6.2 tension — remove vs disambiguate without specifying exact references |
+| feature.md      | ct-security    | EC-7 says 'No memory.md file exists' — inaccurate for Phase 1                      |
+| feature.md      | ct-scalability | NFR-3.1 claims 100-250 tokens — measured avg 488                                   |
+| feature.md      | ct-scalability | Scope section doesn't reflect Phase 1 reduction                                    |
+| feature.md      | ct-strategy    | NFR-3.1 token estimate 2-5x too low                                                |
+| feature.md      | ct-strategy    | Assumption 3 repeats same underestimate                                            |
+| feature.md      | planner        | AC-12 pass criteria describes Phase 2 behavior                                     |
+| feature.md      | planner        | AC-13/AC-14 not marked as Phase 2                                                  |
+| feature.md      | v-feature      | AC-3 strict criterion conflicts with design intent                                 |
+| feature.md      | r-testing      | AC-12 pass criterion inaccurate for Phase 1                                        |
+| design.md       | planner        | AC-13/AC-14 misclassified as 'In scope (no changes needed)'                        |
+| tasks/02        | implementer-02 | T-12 claims zero matches but 3 out-of-scope occurrences remain                     |
