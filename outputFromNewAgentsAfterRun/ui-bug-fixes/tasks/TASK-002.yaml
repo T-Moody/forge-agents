@@ -1,0 +1,107 @@
+task:
+  id: "TASK-002"
+  title: "Make skill rating optional on CreatePlayerPage (nullable int? pattern)"
+  description: >
+    Align CreatePlayerPage skill rating to the established nullable int? pattern from
+    CreateRosterPlayerPage. Change field type from int to int?, add Value/ValueChanged
+    binding on MudNumericField, FormFieldState deferred validation, HelperText, and
+    null→DefaultSkillRating coercion at the submit boundary. No changes to CreatePlayerCommand,
+    CreatePlayerValidator, or CreatePlayerHandler (UI-only change).
+  agent: "implementer"
+  bug_ids: ["BUG-005"]
+  size: "Standard"
+  risk: "🟢"
+  depends_on: []
+  wave: 1
+  verification_tier: "Standard"
+  estimated_lines_changed: 40
+
+  acceptance_criteria:
+    - "AC-005-1: Skill rating field renders empty (no pre-filled value) on page load"
+    - "AC-005-2: User can leave field empty and submit form successfully"
+    - "AC-005-3: Null skill rating coerces to DefaultSkillRating (50) on submit"
+    - "AC-005-4: Explicit value (e.g., 75) is preserved on submit"
+    - "AC-005-5: Deferred validation shows error for out-of-range values only after interaction"
+    - "AC-005-6: HelperText is displayed indicating rating is optional"
+    - "AC-005-7: CreatePlayerCommand, CreatePlayerValidator, CreatePlayerHandler are NOT modified"
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-5']"
+    spec_requirements:
+      - "spec-output.yaml#payload.requirements[id='BUG-005']"
+    files_to_modify:
+      - path: "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor.cs"
+        risk: "🟡"
+        read_lines: "45-90, 125-140"
+        changes:
+          - description: "Change field declaration from int to int? (line 58)"
+            before: "private int _skillRating = ValidationConstants.DefaultSkillRating;"
+            after: "private int? _skillRating;"
+          - description: "Add OnSkillRatingChanged handler method (after OnDisplayNameChanged ~line 83)"
+            new_method: |
+              private void OnSkillRatingChanged(int? value)
+              {
+                  _skillRating = value;
+                  _fieldState.MarkTouched(nameof(_skillRating));
+              }
+          - description: "Add ValidateSkillRating deferred validation method"
+            new_method: |
+              private string? ValidateSkillRating(int? value)
+              {
+                  if (!_fieldState.IsTouched(nameof(_skillRating)))
+                  {
+                      return null;
+                  }
+                  return RosterValidators.ValidateSkillRating(value, Loc);
+              }
+          - description: "Coerce null→DefaultSkillRating at submit boundary (~line 130)"
+            before: "_skillRating"
+            after: "_skillRating ?? ValidationConstants.DefaultSkillRating"
+      - path: "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor"
+        risk: "🟡"
+        read_lines: "28-40"
+        changes:
+          - description: "Change MudNumericField from int/@bind-Value to int?/Value/ValueChanged with validation and HelperText"
+            before: |
+              <MudNumericField T="int"
+                               @bind-Value="_skillRating"
+                               Label="@Loc["Player_SkillRating"]"
+                               Min="@ValidationConstants.RosterSkillRatingMin"
+                               Max="@ValidationConstants.RosterSkillRatingMax"
+                               Class="mb-4" Variant="Variant.Outlined" />
+            after: |
+              <MudNumericField T="int?"
+                               Value="_skillRating"
+                               ValueChanged="@((int? v) => OnSkillRatingChanged(v))"
+                               Label="@Loc["Player_SkillRating"]"
+                               Validation="@(new Func<int?, string?>(ValidateSkillRating))"
+                               Min="@ValidationConstants.RosterSkillRatingMin"
+                               Max="@ValidationConstants.RosterSkillRatingMax"
+                               Class="mb-4" Variant="Variant.Outlined"
+                               HelperText="@Loc["Players_SkillRatingHelper"]" />
+    files_to_read:
+      - path: "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor.cs"
+        read_lines: "40-80"
+        reason: "Reference working pattern: nullable int? skill rating with FormFieldState, deferred validation, submit coercion"
+      - path: "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor"
+        read_lines: "30-50"
+        reason: "Reference working pattern: MudNumericField<int?> with Value/ValueChanged binding"
+      - path: "src/TourneyPal.UI/Common/Validation/RosterValidators.cs"
+        read_lines: "115-131"
+        reason: "ValidateSkillRating static method to reuse from CreatePlayerPage"
+      - path: "src/TourneyPal.Common/Common/ValidationConstants.cs"
+        read_lines: "25-35"
+        reason: "DefaultSkillRating, RosterSkillRatingMin, RosterSkillRatingMax constants"
+      - path: "tests/TourneyPal.Tests/Features/Players/CreatePlayer/CreatePlayerPageTests.cs"
+        read_lines: "1-80"
+        reason: "Existing tests to update: Render_ShowsSkillRatingField (empty initial), Submit_PassesSkillRatingToService (null coercion)"
+
+  testing_notes: >
+    Update existing tests in CreatePlayerPageTests.cs:
+    - Test that skill rating field renders empty (not pre-filled with 50)
+    - Test that submit with null rating passes DefaultSkillRating to service
+    Add new tests:
+    - Submit with explicit value passes that value
+    - Deferred validation: no error until field interaction, then validates range
+    Estimated: 2-4 test updates, 1-2 new tests.

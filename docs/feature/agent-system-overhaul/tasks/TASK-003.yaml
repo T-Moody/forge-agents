@@ -1,0 +1,78 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-003"
+    task_type: "documentation"
+    title: "Create Tool Access Matrix Reference Doc"
+    description: |
+      Create NewAgents/.github/agents/tool-access-matrix.md — the consolidated tool access
+      reference document for all 9 agents. Extracts per-agent tool tables that currently
+      consume ~20-30 lines each in agent files.
+
+      Content outline (~110 lines):
+      - §1 Matrix Overview: 9 agents × 12 tools. Allowed/Restricted/Scoped per cell.
+      - §2 Orchestrator Tools: 7 allowed, 6 restricted. run_in_terminal scoped to SQL+git.
+      - §3 Researcher Tools: 6 allowed. create_file scoped to research/*.yaml.
+      - §4 Spec Tools: 8 allowed. ask_questions in interactive mode only.
+      - §5 Designer Tools: 7 allowed. No run_in_terminal.
+      - §6 Planner Tools: 7 allowed. No run_in_terminal.
+      - §7 Implementer Tools: 12 allowed (maximum). Full tool access.
+      - §8 Verifier Tools: 9 allowed. create_file scoped to verification-reports/*.yaml.
+      - §9 Adversarial Reviewer Tools: 7 allowed. run_in_terminal scoped to git diff + SQL.
+      - §10 Knowledge Agent Tools: 9 allowed. run_in_terminal scoped to SELECT on all tables
+            + INSERT on instruction_updates only. MUST NOT: UPDATE, DELETE, DROP, ALTER, CREATE,
+            PRAGMA (except busy_timeout), ATTACH.
+      - §11 Scope Restriction Definitions: Detailed allowed operations per scoped tool.
+
+      CRITICAL CONSTRAINT (SEC-3): §10 Knowledge Agent scope MUST be "SELECT on all tables
+      + INSERT on instruction_updates only" — NOT "SELECT-only". All occurrences must be
+      consistent. Include explicit DML prohibition list.
+
+      CRITICAL CONSTRAINT (FR-11): §8 Verifier MUST explicitly grant create_file with scope
+      restriction to verification-reports/*.yaml. §3 Researcher MUST explicitly grant
+      create_file with scope restriction to research/*.yaml.
+
+      Acknowledge prompt-only enforcement limitation (ARCH-7/SEC-4) in §11 with a note:
+      "Scope restrictions are enforced via agent instructions. VS Code runtime does not
+      provide parameterized tool access. Compliance verified via self-verification checklists."
+    risk_classification: "🟡"
+    wave: 1
+    dependencies: []
+    estimated_lines_changed: 110
+    affected_files:
+      - path: "NewAgents/.github/agents/tool-access-matrix.md"
+        action: "create"
+    addresses_frs: ["FR-10", "FR-11"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/tool-access-matrix.md']",
+            "payload.shared_documents[path='NewAgents/.github/agents/tool-access-matrix.md']",
+          ]
+        reason: "File description and §1-§11 content outline"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.architecture.tool_access_matrix"]
+        reason: "Key tool access changes summary (verifier create_file, researcher scope, KA run_in_terminal)"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-11']"]
+        reason: "AC-11.1 (verifier create_file), AC-11.2 (researcher create_file), AC-11.3 (no contradictions)"
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-security.yaml"
+        sections: ["findings[id='SEC-3']", "findings[id='SEC-4']"]
+        reason: "SEC-3: KA scope contradiction fix. SEC-4: Prompt-only enforcement acknowledgment."
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-architecture.yaml"
+        sections: ["findings[id='ARCH-7']"]
+        reason: "ARCH-7: Tool scope restrictions are prompt-only — must acknowledge in §11"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[*].tool_access_changes"]
+        reason: "Per-agent tool access change summaries for all 9 agents"
+    acceptance_criteria:
+      - "tool-access-matrix.md exists with 11 sections covering all 9 agents"
+      - "§10 Knowledge Agent scope is 'SELECT on all tables + INSERT on instruction_updates only' with explicit DML prohibition list (SEC-3)"
+      - "§8 Verifier explicitly grants create_file with scope verification-reports/*.yaml (FR-11)"
+      - "§3 Researcher explicitly grants create_file with scope research/*.yaml (FR-11)"
+      - "§11 acknowledges prompt-only enforcement with self-verification compliance note (SEC-4/ARCH-7)"
+      - "File is ≤110 lines"
+      - "No tool access table content remains inline in any agent file after all agent tasks complete"
+    verification_tier: "Standard"

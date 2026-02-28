@@ -1,0 +1,87 @@
+task:
+  id: "TASK-005"
+  title: "Show TemplatePickerDialog when creating game template from settings"
+  description: >
+    In CreateGamePage.OnInitializedAsync(), extend the IsTemplate (else) branch to invoke
+    OpenTemplatePickerDialog() when templates exist (built-in or custom). When no templates
+    exist, skip directly to blank form. This reuses the existing TemplatePickerDialog
+    component without modification. Depends on TASK-004 because the dialog cancel path
+    must show blank form (not navigate away).
+  agent: "implementer"
+  bug_ids: ["BUG-002"]
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["TASK-004"]
+  wave: 2
+  verification_tier: "Standard"
+  estimated_lines_changed: 15
+
+  acceptance_criteria:
+    - "AC-002-1: Navigating to /settings/game-templates/create shows TemplatePickerDialog"
+    - "AC-002-2: Selecting a template pre-fills the creation form"
+    - "AC-002-3: Choosing 'Create Custom Game' shows blank form"
+    - "AC-002-4: Canceling template picker shows blank form (does NOT navigate away)"
+    - "AC-002-5: Event-context game creation (/events/{id}/games/add) behavior is unchanged"
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-2']"
+    spec_requirements:
+      - "spec-output.yaml#payload.requirements[id='BUG-002']"
+    files_to_modify:
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+        risk: "🟡"
+        read_lines: "118-165"
+        changes:
+          - description: "Extend OnInitializedAsync else branch to show template picker (lines 148-162)"
+            before: |
+              else
+              {
+                  // Template context: skip to form directly
+                  _flowStep = FlowStep.Form;
+              }
+            after: |
+              else
+              {
+                  // Template context: offer template picker if templates exist
+                  if (_builtInTemplates.Any() || _customTemplates.Any())
+                  {
+                      _flowStep = FlowStep.Form;
+                      await OpenTemplatePickerDialog();
+                  }
+                  else
+                  {
+                      _flowStep = FlowStep.Form;
+                  }
+              }
+    files_to_read:
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor.cs"
+        read_lines: "1-65"
+        reason: "Understand dialog interface, parameters, and result handling"
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor"
+        read_lines: "1-95"
+        reason: "Dialog UI structure and template listing"
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+        read_lines: "230-270"
+        reason: "Existing OpenTemplatePickerDialog method — understand result handling, apply template, create custom paths"
+      - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGamePageTemplateSelectionTests.cs"
+        read_lines: "1-100"
+        reason: "Existing test patterns for template selection; add tests for template context"
+
+  testing_notes: >
+    New tests needed in CreateGamePageTemplateSelectionTests.cs:
+    - TemplateContext_ShowsTemplatePicker_WhenTemplatesExist
+    - TemplateContext_ShowsBlankForm_WhenNoTemplatesExist
+    - TemplateContext_PickerCancel_ShowsBlankForm (depends on TASK-004 fix)
+    Existing event-context tests must still pass (AC-002-5).
+    Estimated: 1-2 test updates, 2-3 new tests.
+
+  edge_cases:
+    - id: "EC-1"
+      condition: "No templates exist (neither built-in nor custom)"
+      expected: "Skip picker, go directly to blank form"
+      guard: "_builtInTemplates.Any() || _customTemplates.Any() check"
+    - id: "EC-8"
+      condition: "User selects template, modifies name, then submits"
+      expected: "Modified name used for new template (not original name)"
+      guard: "Existing form submission logic handles this — no extra work needed"

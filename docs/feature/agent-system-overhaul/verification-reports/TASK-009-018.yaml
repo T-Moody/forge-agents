@@ -1,0 +1,279 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-009-018-batch"
+  step: "step-6"
+  started_at: "2026-02-27T12:00:00Z"
+  completed_at: "2026-02-27T12:10:00Z"
+  schema_version: "1.0"
+  payload:
+    task_ids:
+      - "TASK-009"
+      - "TASK-015"
+      - "TASK-016"
+      - "TASK-017"
+      - "TASK-018"
+    run_id: "2026-02-27T10:00:00Z"
+    batch_mode: true
+    all_tasks_risk: "🟢"
+    all_tasks_size: "Standard"
+
+    # ── Per-Task Results ──────────────────────────────────────────────
+
+    task_results:
+      - task_id: "TASK-009"
+        title: "Add Frontmatter to severity-taxonomy.md"
+        file: "NewAgents/.github/agents/severity-taxonomy.md"
+        evidence_gate:
+          total_checks: 2
+          passed: 2
+          failed: 0
+          gate_status: "passed"
+        findings:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            command: null
+            exit_code: null
+            passed: true
+            output_snippet: "0 errors, 0 warnings. Baseline: 0 errors, 0 warnings. No new errors."
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            command: "YAML frontmatter validation"
+            exit_code: null
+            passed: true
+            output_snippet: "Valid YAML frontmatter: name=severity-taxonomy, description present. 172 lines, valid markdown structure."
+        acceptance_criteria_check:
+          frontmatter_present: true
+          name_field: "severity-taxonomy"
+          description_field: "Severity classification reference for all pipeline agents"
+        regressions: []
+        baseline_cross_check:
+          method: "git show pipeline-baseline-2026-02-27T10-00-00Z:NewAgents/.github/agents/severity-taxonomy.md"
+          discrepancies_found: false
+          note: "Baseline had no frontmatter. Current has frontmatter. Consistent with implementer claim."
+
+      - task_id: "TASK-015"
+        title: "Restructure Planner Agent"
+        file: "NewAgents/.github/agents/planner.agent.md"
+        evidence_gate:
+          total_checks: 2
+          passed: 2
+          failed: 0
+          gate_status: "passed"
+        findings:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            command: null
+            exit_code: null
+            passed: true
+            output_snippet: "0 errors, 0 warnings. Baseline: 0 errors, 0 warnings. No new errors."
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            command: "Structure and line count validation"
+            exit_code: null
+            passed: true
+            output_snippet: "337 lines (<=350 target met). Valid frontmatter: name=planner. Tool access ref: tool-access-matrix.md §6. Error handling ref: global-operating-rules.md §1-§2, §6. Anti-drift anchor present."
+        acceptance_criteria_check:
+          line_count: 337
+          line_limit: 350
+          within_limit: true
+          frontmatter_present: true
+          tool_access_extracted: true
+          tool_access_ref: "tool-access-matrix.md §6"
+          error_handling_extracted: true
+          error_handling_ref: "global-operating-rules.md §1–§2"
+          anti_drift_anchor: true
+        regressions: []
+        baseline_cross_check:
+          method: "git show pipeline-baseline-2026-02-27T10-00-00Z:NewAgents/.github/agents/planner.agent.md"
+          discrepancies_found: false
+          note: "Baseline had frontmatter already. Shared doc references added. Structure consistent with extraction claims."
+
+      - task_id: "TASK-016"
+        title: "Restructure Spec Agent"
+        file: "NewAgents/.github/agents/spec.agent.md"
+        evidence_gate:
+          total_checks: 2
+          passed: 2
+          failed: 0
+          gate_status: "passed"
+        findings:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            command: null
+            exit_code: null
+            passed: true
+            output_snippet: "2 errors (broken anchor links: #featuremd-contents, #self-verification). Baseline: 2 errors (same). No NEW errors introduced."
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            command: "Structure and line count validation"
+            exit_code: null
+            passed: true
+            output_snippet: "303 lines (<=350 target met). Valid frontmatter: name=spec. Tool access ref: tool-access-matrix.md §4. Pushback system preserved. Anti-drift anchor present."
+        acceptance_criteria_check:
+          line_count: 303
+          line_limit: 350
+          within_limit: true
+          frontmatter_present: true
+          tool_access_extracted: true
+          tool_access_ref: "tool-access-matrix.md §4"
+          error_handling_extracted: true
+          error_handling_ref: "global-operating-rules.md §1–§2"
+          pushback_system_preserved: true
+          anti_drift_anchor: true
+        regressions: []
+        baseline_cross_check:
+          method: "git show pipeline-baseline-2026-02-27T10-00-00Z:NewAgents/.github/agents/spec.agent.md"
+          discrepancies_found: false
+          note: "Baseline had no frontmatter. Current has frontmatter + shared doc refs. Consistent with implementer claim."
+
+      - task_id: "TASK-017"
+        title: "Restructure Designer Agent"
+        file: "NewAgents/.github/agents/designer.agent.md"
+        evidence_gate:
+          total_checks: 2
+          passed: 2
+          failed: 0
+          gate_status: "passed"
+        findings:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            command: null
+            exit_code: null
+            passed: true
+            output_snippet: "0 errors, 0 warnings. Baseline: 1 error (broken anchor). Pre-existing error RESOLVED by implementation. No new errors."
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            command: "Structure and line count validation"
+            exit_code: null
+            passed: true
+            output_snippet: "266 lines (<=350 target met). Valid frontmatter: name=designer. Tool access ref: tool-access-matrix.md §5. Revision mode with glob-based verdict discovery preserved. Anti-drift anchor present."
+        acceptance_criteria_check:
+          line_count: 266
+          line_limit: 350
+          within_limit: true
+          frontmatter_present: true
+          tool_access_extracted: true
+          tool_access_ref: "tool-access-matrix.md §5"
+          revision_mode_preserved: true
+          revision_mode_detail: "Glob-based per-perspective discovery via list_dir on review-verdicts/design-*.yaml"
+          anti_drift_anchor: true
+        regressions: []
+        baseline_cross_check:
+          method: "git show pipeline-baseline-2026-02-27T10-00-00Z:NewAgents/.github/agents/designer.agent.md"
+          discrepancies_found: false
+          note: "Baseline description updated. Shared doc references added. Glob-based verdict reading replaces single-file input. Consistent with claims."
+
+      - task_id: "TASK-018"
+        title: "Restructure Researcher Agent"
+        file: "NewAgents/.github/agents/researcher.agent.md"
+        evidence_gate:
+          total_checks: 2
+          passed: 2
+          failed: 0
+          gate_status: "passed"
+        findings:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            command: null
+            exit_code: null
+            passed: true
+            output_snippet: "3 errors (broken anchor links: schemas.md#schema-2-research-output x2, #self-verification). Baseline: 3 errors (same). No NEW errors introduced."
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            command: "Structure and line count validation"
+            exit_code: null
+            passed: true
+            output_snippet: "212 lines (<=350 target met). Valid frontmatter: name=researcher. Tool access ref: tool-access-matrix.md §3. Context7 integration ref present. 4 focus areas preserved. Anti-drift anchor present."
+        acceptance_criteria_check:
+          line_count: 212
+          line_limit: 350
+          within_limit: true
+          frontmatter_present: true
+          tool_access_extracted: true
+          tool_access_ref: "tool-access-matrix.md §3"
+          context7_integration: true
+          context7_ref: "context7-integration.md"
+          four_focus_areas_preserved: true
+          focus_areas: ["architecture", "impact", "dependencies", "patterns"]
+          anti_drift_anchor: true
+        regressions: []
+        baseline_cross_check:
+          method: "git show pipeline-baseline-2026-02-27T10-00-00Z:NewAgents/.github/agents/researcher.agent.md"
+          discrepancies_found: false
+          note: "Baseline had no frontmatter, no Context7 ref. Current has both. YAML-only output note present. Consistent with claims."
+
+    # ── Aggregate Evidence Gate ───────────────────────────────────────
+
+    evidence_gate:
+      total_checks: 10
+      passed: 10
+      failed: 0
+      gate_status: "passed"
+
+    # ── Tier 2 Note ──────────────────────────────────────────────────
+
+    tier2_note: >
+      No Tier 2 tooling present in workspace. No package.json, Cargo.toml,
+      pyproject.toml, Makefile, .markdownlint*, or other build/lint/test config
+      detected. All verified files are Markdown agent definitions — no
+      compiled/interpreted code. Tier 2 checks are not applicable for this
+      file type. Minimum 2 Standard checks met via Tier 1 (ide-diagnostics +
+      syntax-check) for each task.
+
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "TASK-009: 0 err; TASK-015: 0 err; TASK-016: 2 err (pre-existing); TASK-017: 0 err (baseline err resolved); TASK-018: 3 err (pre-existing). No NEW errors across any task."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: "YAML frontmatter + structure validation"
+        exit_code: null
+        passed: true
+        output_snippet: "All 5 files have valid YAML frontmatter. Line counts: 172, 337, 303, 266, 212 — all within limits. All acceptance criteria verified."
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-02-27T10-00-00Z:<path>"
+      discrepancies_found: false
+
+completion:
+  status: "DONE"
+  summary: "Batch verified TASK-009/015/016/017/018: 10 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-overhaul/verification-reports/TASK-009-018.yaml"
+  evidence_summary:
+    total_checks: 10
+    passed: 10
+    failed: 0
+    security_blockers: 0

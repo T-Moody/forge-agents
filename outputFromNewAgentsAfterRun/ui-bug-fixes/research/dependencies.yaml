@@ -1,0 +1,466 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-dependencies"
+  step: "step-1"
+  started_at: "2026-02-26T14:30:00Z"
+  completed_at: "2026-02-26T15:05:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "dependencies"
+    findings:
+      # =========================================================================
+      # Bug 1: Swipe delete icon too small — Dependency Chain
+      # =========================================================================
+      - id: "F-1"
+        title: "Swipe delete icon rendering chain: JS innerHTML → CSS class → MudBlazor icon size"
+        category: "dependency"
+        detail: |
+          The swipe delete icon is rendered via a three-layer dependency chain:
+
+          1. **JS (source of icon HTML):** `list-swipe-bridge.js` line 161 — `showDeleteIndicator()` creates
+             a `<div class="swipe-delete-indicator">` and sets innerHTML to:
+             `<span class="mud-icon-root"><svg viewBox="0 0 24 24" class="mud-svg-icon mud-icon-size-medium">...</svg></span>`
+             The SVG path is the Material Design delete (trash) icon inlined directly.
+
+          2. **CSS (layout + sizing):** `list-swipe.css` lines 68–93:
+             - `.swipe-delete-indicator`: `width: 80px; display: flex; align-items: center; justify-content: center`
+             - `.swipe-delete-indicator .mud-svg-icon`: only sets `fill` color, NO width/height override
+             - `.swipe-delete-indicator .delete-icon`: dead CSS (font-size: 1.25rem) — JS uses `.mud-svg-icon`, not `.delete-icon`
+
+          3. **MudBlazor icon system (implicit sizing):** The class `mud-icon-size-medium` is defined in
+             MudBlazor's CSS, which sets the SVG to 24×24px. The icon appears small because:
+             - The previous UX overhaul (task-06) removed the "Delete" text label
+             - The 80px container is unchanged, and 24×24px icon is small in that space
+             - No CSS override increases the SVG dimensions
+
+          **No Blazor/.NET dependency** — this is purely JS + CSS. No component, handler, or service is involved.
+        evidence:
+          - "src/Tornimate.Mobile/wwwroot/js/list-swipe-bridge.js lines 155–170 (showDeleteIndicator function)"
+          - "src/TourneyPal.UI/wwwroot/css/list-swipe.css lines 68–93 (.swipe-delete-indicator rules)"
+          - "MudBlazor mud-icon-size-medium class = 24×24px SVG"
+        relevance: "Fix involves either changing the CSS class in JS innerHTML (e.g., mud-icon-size-large) or adding a CSS width/height override for .swipe-delete-indicator .mud-svg-icon. No .NET code changes needed."
+
+      - id: "F-2"
+        title: "Swipe delete propagation: single JS+CSS change affects all 5 list pages"
+        category: "dependency"
+        detail: |
+          The `list-swipe-bridge.js` is loaded once globally by MAUI. All 5 pages that implement
+          `[JSInvokable] OnSwipeDeleteAsync` share the same icon rendering:
+          - EventsPage
+          - RosterPage
+          - GamesPage (settings)
+          - ParticipantsTabContent (event tab)
+          - GamesTabContent (event tab)
+
+          Each page initializes the bridge with `window.listSwipeBridge.create(options)` in
+          `OnAfterRenderAsync`. The `showDeleteIndicator()` function is internal to the factory
+          closure — not configurable per-page. Therefore, fixing the icon size propagates to all pages.
+        evidence:
+          - "src/Tornimate.Mobile/wwwroot/js/list-swipe-bridge.js — factory pattern, shared showDeleteIndicator()"
+          - "src/TourneyPal.UI/wwwroot/css/list-swipe.css — single stylesheet, shared across all pages"
+        relevance: "No per-page work needed. One CSS/JS change fixes all 5 pages. Low coupling risk."
+
+      # =========================================================================
+      # Bug 2: Game template creation — Dependency Chain
+      # =========================================================================
+      - id: "F-3"
+        title: "Game template creation full dependency chain: Page → DataService → MediatR → Handler → Service → Repository"
+        category: "dependency"
+        detail: |
+          The complete chain for game template creation:
+
+          1. **Entry point:** GamesPage (`/settings/game-templates`) — `OpenCreateGamePage()` navigates to
+             `/settings/game-templates/create`
+
+          2. **UI Page:** CreateGamePage.razor.cs (lines 117–162)
+             - Dual routes: `/events/{EventId:guid}/games/add` and `/settings/game-templates/create`
+             - `IsTemplate` property: `EventId is null` → true for template creation
+             - When `IsTemplate == true`: `OnInitializedAsync()` sets `_flowStep = FlowStep.Form` directly
+               (line 157) — **no template picker, no action sheet**
+
+          3. **Submit flow:** CreateGamePage.Submit() (lines 370–450)
+             - Calls `GameDataService.CreateGameAsync()` with `EventId = null`
+
+          4. **Data Service:** MediatorGameDataService.CreateGameAsync() (lines 32–68)
+             - Constructs `CreateGameCommand(name, desc, ..., eventId: null, ...)`
+             - Sends via `mediator.Send(command)`
+
+          5. **Validation:** CreateGameValidator (FluentValidation)
+             - Validates Name (required, max 100), Description (max 500), MaxPlayersPerMatch (2–100)
+             - No template-specific validation rules exist
+             - No `EventId` validation — EventId is optional (null for templates is correct)
+
+          6. **Handler:** CreateGameHandler (lines 22–57)
+             - Validates ScheduledDate against event range — **skipped when EventId is null** (template path)
+             - Delegates to `gameCreationService.CreateAsync()`
+
+          7. **Domain Service:** GameCreationService.CreateAsync() (lines 17–88)
+             - When EventId is null: `nextSortOrder = 0` (skips count query)
+             - Creates `Game` entity with `EventId = null`
+             - If `SaveAsTemplate` and `EventId.HasValue`: creates library copy — **skipped for templates**
+             - Calls `repository.AddAsync()`
+
+          8. **Repository → DbContext:** GameRepository → GameDbContext (EF Core + SQLite)
+
+          **Bug analysis:** The chain has no visible validation failure for templates.
+          The "creation throws error" may be a runtime issue (EF Core, concurrency) or a UI-side
+          error in form validation before Submit() is reached.
+        evidence:
+          - "src/TourneyPal.UI/Features/Games/GamesPage.razor.cs lines 274–282 (navigation)"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs lines 117–162 (OnInitializedAsync)"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs lines 370–450 (Submit)"
+          - "src/TourneyPal.Core/Features/Games/MediatorGameDataService.cs lines 32–68 (CreateGameAsync)"
+          - "src/TourneyPal.Common/Features/Games/CreateGame/CreateGameValidator.cs (full file)"
+          - "src/TourneyPal.Core/Features/Games/CreateGame/CreateGameHandler.cs (full file)"
+          - "src/TourneyPal.Core/Features/Games/GameCreationService.cs lines 17–88 (CreateAsync)"
+        relevance: "Two bugs: (1) Missing template picker requires extending OnInitializedAsync to show TemplatePickerDialog when IsTemplate is true. (2) Creation error needs runtime debugging — static analysis shows no blocking validation."
+
+      - id: "F-4"
+        title: "Template picker missing in template context — FlowStep logic gap"
+        category: "dependency"
+        detail: |
+          The CreateGamePage.OnInitializedAsync() (lines 117–162) has two branches:
+
+          **Event context (EventId.HasValue == true):**
+          ```
+          1. Load built-in templates + custom templates
+          2. If custom templates exist → open TemplatePickerDialog immediately
+          3. If no custom templates → show ListActionSheet ("Use Template" / "Create Custom")
+          ```
+
+          **Template context (IsTemplate == true, EventId is null):**
+          ```
+          1. Load built-in templates + custom templates (same as above)
+          2. _flowStep = FlowStep.Form → skip directly to blank form
+          ```
+
+          The TemplatePickerDialog component exists and works correctly (supports both built-in and
+          custom templates). It accepts `BuiltInTemplates` and `CustomTemplates` as parameters.
+          The dependency exists — it just isn't invoked in the template context.
+
+          **Fix dependency:** To show the picker in template context, the code needs:
+          - Call `OpenTemplatePickerDialog()` when IsTemplate is true (like the event path does)
+          - Or add a "Build from existing" dropdown/button on the form itself
+          - The TemplatePickerDialog requires no changes — it's already reusable
+        evidence:
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs lines 148–162 (branching logic)"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor.cs (reusable dialog)"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor (UI, full file)"
+        relevance: "No new dependencies needed. TemplatePickerDialog is reusable. Fix is purely a logic change in OnInitializedAsync."
+
+      # =========================================================================
+      # Bug 3: Games tab in events — Dependency Chain
+      # =========================================================================
+      - id: "F-5"
+        title: "Black screen dependency: ListActionSheet overlay → CSS → CreateGamePage cancel flow"
+        category: "dependency"
+        detail: |
+          The "black screen" when adding a game from events is the ListActionSheet overlay:
+
+          **Component chain:**
+          1. GamesTabContent → "Add Game" button → navigates to `/events/{EventId}/games/add`
+          2. CreateGamePage.OnInitializedAsync() → if no custom templates → `ShowDecisionSheet()`
+          3. `ShowDecisionSheet()` sets `_actionSheetVisible = true`
+          4. CreateGamePage.razor line 18: `<ListActionSheet IsVisible="_actionSheetVisible" ...>`
+          5. ListActionSheet.razor: renders `.list-action-sheet-overlay` div + `.list-action-sheet` div
+
+          **CSS dependency:**
+          - `.list-action-sheet-overlay` (list-swipe.css line 199): `position: fixed; inset: 0;
+            background: rgba(0, 0, 0, 0.4); z-index: 1400`
+          - `.list-action-sheet` (line 214): `position: fixed; bottom: 0; z-index: 1401`
+          - Overlay `@onclick="HandleCancel"` → calls parent's `OnCancel` callback
+
+          **The real bug — Cancel conflation:**
+          - ListActionSheet.HandleCancel() → invokes `OnCancel` EventCallback
+          - CreateGamePage binds: `OnCancel="OnActionSheetCancel"`
+          - `OnActionSheetCancel()` (line 219): calls `_actionSheetVisible = false;` then `Cancel()`
+          - `Cancel()` (line 356): navigates to `/events/{EventId}` — **leaves the page entirely**
+
+          This means tapping the overlay backdrop (which should just dismiss the sheet) actually
+          navigates back. The user sees: arrive at page → black overlay appears immediately →
+          tap anywhere outside sheet → navigate back. It looks like selecting template "navigates
+          back instead of creating game" because both backdrop tap and cancel button trigger full
+          navigation away.
+        evidence:
+          - "src/TourneyPal.UI/Common/Components/ListActionSheet.razor line 6 (@onclick=HandleCancel on overlay)"
+          - "src/TourneyPal.UI/Common/Components/ListActionSheet.razor.cs lines 48–51 (HandleCancel)"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs line 219 (OnActionSheetCancel)"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs lines 356–365 (Cancel)"
+          - "src/TourneyPal.UI/wwwroot/css/list-swipe.css lines 199–207 (.list-action-sheet-overlay)"
+        relevance: "Fix: OnActionSheetCancel should NOT call Cancel(). It should hide the sheet and show the blank form (FlowStep.Form). The ListActionSheet component itself is correct — the bug is in CreateGamePage's OnActionSheetCancel handler."
+
+      - id: "F-6"
+        title: "Participants tab uses same ListActionSheet without cancel-navigation — working reference"
+        category: "pattern"
+        detail: |
+          The ParticipantsTabContent uses ListActionSheet for long-press context menus. When the
+          user dismisses the action sheet (backdrop tap or cancel), it simply hides the sheet —
+          it does NOT navigate away from the page. This is the correct behavior.
+
+          In ParticipantsTabContent, the OnCancel handler just sets visibility to false:
+          ```
+          _actionSheetVisible = false;
+          ```
+
+          In CreateGamePage, the OnCancel handler navigates away:
+          ```
+          _actionSheetVisible = false;
+          Cancel(); // navigates to /events/{EventId}
+          ```
+
+          The ListActionSheet component is reused across 6+ locations. In all other locations,
+          cancel simply dismisses. CreateGamePage is the only place where cancel navigates.
+        evidence:
+          - "src/TourneyPal.UI/Features/Events/ParticipantsTabContent — uses ListActionSheet, cancel just hides"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs line 219 — cancel navigates away"
+        relevance: "ParticipantsTabContent is the correct reference pattern. CreateGamePage should mirror it."
+
+      # =========================================================================
+      # Bug 4: Skill rating should be optional — Dependency Chain
+      # =========================================================================
+      - id: "F-7"
+        title: "Skill rating dependency chain: UI field → DataService → Command → Validator → Handler → Entity"
+        category: "dependency"
+        detail: |
+          **Current state in CreatePlayerPage (event context — the bug):**
+
+          1. **UI Field:** `CreatePlayerPage.razor.cs` line 58:
+             `private int _skillRating = ValidationConstants.DefaultSkillRating;` → always pre-filled with 50
+
+          2. **Razor template:** `CreatePlayerPage.razor` lines 28–32:
+             `<MudNumericField T="int" @bind-Value="_skillRating" ...>` — uses `int`, not `int?`
+             Field always shows "50" — user cannot clear it to empty
+
+          3. **Submit:** `CreatePlayerPage.razor.cs` line 130:
+             `_skillRating` passed directly to `PlayerDataService.CreatePlayerAsync()`
+
+          4. **Interface:** `IPlayerDataService.cs` line 19:
+             `int skillRating = ValidationConstants.DefaultSkillRating` — has default parameter
+
+          5. **MediatorPlayerDataService:** line 31:
+             Passes `SkillRating: skillRating` directly to `CreatePlayerCommand`
+
+          6. **Command:** `CreatePlayerCommand.cs` line 14:
+             `int SkillRating = ValidationConstants.DefaultSkillRating` — non-nullable with default
+
+          7. **Validator:** `CreatePlayerValidator.cs` lines 25–27:
+             `RuleFor(x => x.SkillRating).InclusiveBetween(1, 100)` — validates range, accepts default
+
+          8. **Entity:** Player entity stores `int SkillRating` (non-nullable in database)
+
+          **Working reference — CreateRosterPlayerPage (settings roster):**
+
+          1. **UI Field:** `CreateRosterPlayerPage.razor.cs` line 44:
+             `private int? _skillRating;` → nullable, initially empty
+
+          2. **Razor template:** `CreateRosterPlayerPage.razor` lines 33–36:
+             `<MudNumericField Value="_skillRating" ValueChanged="@((int? v) => OnSkillRatingChanged(v))" ...>`
+             Field starts empty, user can clear it
+
+          3. **Submit:** line 142:
+             `_skillRating` passed directly (nullable) to `RosterDataService.CreateRosterPlayerAsync()`
+
+          4. **IRosterDataService:** `int? skillRating` parameter — accepts nullable
+
+          The fix pattern is established: change `int _skillRating` to `int? _skillRating`,
+          use nullable `MudNumericField<int?>`, coerce null→default at submission boundary.
+        evidence:
+          - "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor.cs line 58 (int _skillRating = DefaultSkillRating)"
+          - "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor lines 28–32 (MudNumericField T=int)"
+          - "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor.cs line 44 (int? _skillRating)"
+          - "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor lines 33–36 (MudNumericField int?)"
+          - "src/TourneyPal.Common/Features/Players/CreatePlayer/CreatePlayerCommand.cs line 14"
+          - "src/TourneyPal.Common/Features/Players/IPlayerDataService.cs line 19"
+          - "src/TourneyPal.Common/Features/Players/CreatePlayer/CreatePlayerValidator.cs lines 25–27"
+          - "src/TourneyPal.Common/Common/ValidationConstants.cs line 31 (DefaultSkillRating = 50)"
+        relevance: "Fix is UI-only: change field to int?, use nullable MudNumericField, coerce null→DefaultSkillRating at Submit. Command/Handler/Validator/Entity remain unchanged — they already accept the default."
+
+      - id: "F-8"
+        title: "Downstream skill rating consumers are not affected by making UI field optional"
+        category: "dependency"
+        detail: |
+          The `IPlayerDataService.CreatePlayerAsync` already has a default parameter:
+          `int skillRating = ValidationConstants.DefaultSkillRating`. The command also defaults:
+          `int SkillRating = ValidationConstants.DefaultSkillRating`.
+
+          If the UI passes `_skillRating ?? ValidationConstants.DefaultSkillRating`, the downstream
+          chain sees the exact same value it sees today (50 for unset). There is zero impact on:
+          - CreatePlayerHandler
+          - Player entity
+          - Team generation (uses SkillRating from Player entity)
+          - PlayerSkillRatingEditor (reads from PlayerDto.SkillRating)
+
+          The existing tests in CreatePlayerValidatorTests (Validate_WithDefaultSkillRating_ShouldPass)
+          will continue passing since the command value stays the same.
+        evidence:
+          - "src/TourneyPal.Common/Features/Players/IPlayerDataService.cs line 19 (default parameter)"
+          - "src/TourneyPal.Common/Features/Players/CreatePlayer/CreatePlayerCommand.cs line 14 (default parameter)"
+          - "tests/TourneyPal.Tests/Features/Players/CreatePlayer/CreatePlayerValidatorTests.cs"
+        relevance: "Pure UI change. No downstream breakage. Command, handler, validator, entity, tests all unaffected."
+
+      # =========================================================================
+      # Bug 5: Settings → Appearance colors — Dependency Chain
+      # =========================================================================
+      - id: "F-9"
+        title: "Theme color dependency chain: ThemeRegistry → ThemeDefinition → MudTheme → MudThemeProvider → all UI"
+        category: "dependency"
+        detail: |
+          The appearance color system has this dependency chain:
+
+          1. **ThemeRegistry** (static, immutable): `src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs`
+             - 8 themes: professional, cyber-future, classic-sports, stadium-night, retro-arcade,
+               minimal-soft, nature-fresh, high-contrast
+             - Each theme builds a `ThemeDefinition` with a full `MudTheme` (PaletteLight + PaletteDark)
+             - Colors are hex strings set on MudBlazor palette properties:
+               Primary, Secondary, Tertiary, Background, Surface, Error, Warning, Info, Success, etc.
+
+          2. **ThemeDefinition** (`ThemeDefinition.cs`): Immutable record with Id, NameKey, DescriptionKey,
+             Theme (MudTheme), PreviewSwatches (color circles shown on cards)
+
+          3. **IAppearanceService** (`IAppearanceService.cs`): Interface exposing:
+             - `CurrentMudTheme` → resolved from ThemeRegistry
+             - `SelectedThemeId`, `IsDarkMode`
+             - `AvailableThemes` → all ThemeDefinition list
+             - Two implementations:
+               - `AppearanceService` (Blazor Server/WASM): uses localStorage via IJSRuntime
+               - `MauiAppearanceService` (MAUI): uses MAUI Preferences API, synchronous constructor load
+
+          4. **MainLayout** (MAUI): `src/Tornimate.Mobile/Components/Layout/MainLayout.razor`
+             - `<MudThemeProvider Theme="@Theme" IsDarkMode="IsDarkMode" />`
+             - `Theme => AppearanceService.CurrentMudTheme`
+             - `IsDarkMode => AppearanceService.IsDarkMode`
+
+          5. **AppearancePage** (`/settings/appearance`):
+             - Renders dark/light toggle (MudSwitch)
+             - Lists all themes as ThemePreviewCard components
+             - Each card shows color swatches from ThemeDefinition.PreviewSwatches
+             - On selection: `AppearanceService.SetThemeAsync(themeId)` → fires AppearanceChanged
+             - MainLayout subscribes → re-renders MudThemeProvider with new theme
+
+          **Apple-like standards concern:**
+          The user says "Colors should follow Apple-like standards." The current themes use
+          custom hex values. To follow Apple HIG, the palette colors would need to be adjusted
+          to match iOS system colors (system blue #007AFF, system red #FF3B30, etc.) or have
+          an Apple-inspired theme option. This is a ThemeRegistry color value change, not an
+          architectural change.
+        evidence:
+          - "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs (708 lines, 8 themes)"
+          - "src/TourneyPal.UI/Common/Theme/ThemeDefinition.cs (immutable record)"
+          - "src/TourneyPal.UI/Common/Theme/IAppearanceService.cs (interface, 56 lines)"
+          - "src/TourneyPal.UI/Common/Theme/AppearanceService.cs (168 lines, localStorage)"
+          - "src/Tornimate.Mobile/Services/MauiAppearanceService.cs (109 lines, Preferences)"
+          - "src/Tornimate.Mobile/Components/Layout/MainLayout.razor line 6 (MudThemeProvider binding)"
+          - "src/Tornimate.Mobile/Components/Layout/MainLayout.razor.cs line 45 (Theme property)"
+          - "src/TourneyPal.UI/Features/Settings/AppearancePage.razor (theme selection UI)"
+          - "src/TourneyPal.UI/Features/Settings/ThemePreviewCard.razor (swatch display)"
+        relevance: "Fix is purely in ThemeRegistry color values (PaletteLight/PaletteDark hex codes). No structural changes needed. All downstream consumers auto-update via MudThemeProvider when theme changes."
+
+      - id: "F-10"
+        title: "No custom CSS color overrides — all colors flow through MudTheme palette"
+        category: "dependency"
+        detail: |
+          A grep for hardcoded color values in Razor/CSS shows the app consistently uses
+          MudBlazor's `Color` enum (`Color.Primary`, `Color.Error`, etc.) in components, and
+          CSS variables (`var(--mud-palette-primary)`, `var(--mud-palette-error)`, etc.) in stylesheets.
+
+          The only color overrides are:
+          - `.swipe-delete-indicator`: uses `var(--mud-palette-error)` background
+          - `.list-action-sheet-overlay`: uses `rgba(0, 0, 0, 0.4)` — hardcoded black opacity
+          - ThemeRegistry: all hex values in PaletteLight/PaletteDark
+
+          There are no rogue `style="color: #xxx"` or `style="background: #xxx"` that would
+          resist theme changes. Changing ThemeRegistry palette values propagates everywhere.
+
+          The PreviewSwatches on ThemePreviewCard also need updating to match any new palette values.
+        evidence:
+          - "src/TourneyPal.UI/wwwroot/css/list-swipe.css — uses var(--mud-palette-*) variables"
+          - "Razor files use Color.Primary, Color.Error, Color.Secondary enum values"
+          - "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs — hex values in palettes"
+        relevance: "Clean architecture — updating ThemeRegistry hex values is sufficient. No CSS overrides to hunt down."
+
+      - id: "F-11"
+        title: "Professional theme (default) palette values vs Apple HIG system colors"
+        category: "dependency"
+        detail: |
+          The default "professional" theme PaletteLight has:
+          - Primary: #594AE2 (purple) — Apple system blue is #007AFF
+          - Secondary: #ff4081 (pink) — Apple system pink is #FF2D55
+          - Tertiary: #1ec8a5 (teal) — Apple system teal is #5AC8FA
+          - Error: #ff3f5f — Apple system red is #FF3B30
+          - Success: #3dcb6c — Apple system green is #34C759
+          - Warning: #ffb545 — Apple system orange is #FF9500
+          - Info: #4a86ff — Apple system blue is #007AFF
+          - Background: #FAFAFC — Apple system background is #F2F2F7
+          - Surface: #F2F2F6 — close to Apple's #F2F2F7
+
+          For dark mode:
+          - Current Primary: #7e6fff — Apple uses #0A84FF
+          - Background: #1a1a27 — Apple uses #000000
+          - Surface: #1e1e2d — Apple uses #1C1C1E
+
+          The professional theme's Surface/Background are already close to Apple values.
+          Primary/Secondary colors diverge significantly from Apple's system color palette.
+        evidence:
+          - "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs lines 69–100 (professional PaletteLight)"
+          - "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs lines 108–136 (professional PaletteDark)"
+          - "Apple HIG: developer.apple.com/design/human-interface-guidelines/color"
+        relevance: "To 'follow Apple-like standards', update the professional theme hex values or add a new Apple-inspired theme to ThemeRegistry. PreviewSwatches must match."
+
+    summary: |
+      Dependency analysis for 5 UI bugs:
+      1. **Swipe delete icon:** Pure JS+CSS chain (list-swipe-bridge.js → list-swipe.css → MudBlazor icon classes). No .NET dependencies. Single change propagates to all 5 list pages.
+      2. **Game template creation:** Full CQRS chain (CreateGamePage → IGameDataService → MediatR → CreateGameHandler → GameCreationService → Repository). Missing template picker is a FlowStep logic gap. Creation error needs runtime investigation.
+      3. **Games tab black screen:** ListActionSheet → CSS overlay → CreateGamePage.OnActionSheetCancel() incorrectly calls Cancel() which navigates away. ListActionSheet component is correct; bug is in page-level cancel handler.
+      4. **Skill rating optional:** UI-only fix. CreatePlayerPage uses non-nullable int (pre-filled 50). CreateRosterPlayerPage uses nullable int? (empty). Fix: mirror roster pattern. Downstream chain (Command/Handler/Validator/Entity) unaffected — accepts default.
+      5. **Appearance colors:** ThemeRegistry → ThemeDefinition → MudTheme → MudThemeProvider chain. All colors flow through MudBlazor palette system. No custom CSS overrides. Fix is updating hex values in ThemeRegistry to match Apple HIG system colors.
+
+    source_files_examined:
+      - "src/Tornimate.Mobile/wwwroot/js/list-swipe-bridge.js"
+      - "src/TourneyPal.UI/wwwroot/css/list-swipe.css"
+      - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor"
+      - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+      - "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor"
+      - "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor.cs"
+      - "src/TourneyPal.UI/Features/Games/GamesPage.razor"
+      - "src/TourneyPal.UI/Common/Components/ListActionSheet.razor"
+      - "src/TourneyPal.UI/Common/Components/ListActionSheet.razor.cs"
+      - "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor"
+      - "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor.cs"
+      - "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor"
+      - "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor.cs"
+      - "src/TourneyPal.UI/Features/Settings/AppearancePage.razor"
+      - "src/TourneyPal.UI/Features/Settings/AppearancePage.razor.cs"
+      - "src/TourneyPal.UI/Features/Settings/ThemePreviewCard.razor"
+      - "src/TourneyPal.UI/Features/Settings/ThemePreviewCard.razor.cs"
+      - "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs"
+      - "src/TourneyPal.UI/Common/Theme/ThemeDefinition.cs"
+      - "src/TourneyPal.UI/Common/Theme/IAppearanceService.cs"
+      - "src/TourneyPal.UI/Common/Theme/AppearanceService.cs"
+      - "src/Tornimate.Mobile/Services/MauiAppearanceService.cs"
+      - "src/Tornimate.Mobile/Components/Layout/MainLayout.razor"
+      - "src/Tornimate.Mobile/Components/Layout/MainLayout.razor.cs"
+      - "src/TourneyPal.Common/Features/Games/IGameDataService.cs"
+      - "src/TourneyPal.Common/Features/Games/CreateGame/CreateGameCommand.cs"
+      - "src/TourneyPal.Common/Features/Games/CreateGame/CreateGameValidator.cs"
+      - "src/TourneyPal.Core/Features/Games/CreateGame/CreateGameHandler.cs"
+      - "src/TourneyPal.Core/Features/Games/GameCreationService.cs"
+      - "src/TourneyPal.Core/Features/Games/MediatorGameDataService.cs"
+      - "src/TourneyPal.Common/Features/Players/IPlayerDataService.cs"
+      - "src/TourneyPal.Common/Features/Players/CreatePlayer/CreatePlayerCommand.cs"
+      - "src/TourneyPal.Common/Features/Players/CreatePlayer/CreatePlayerValidator.cs"
+      - "src/TourneyPal.Core/Features/Players/MediatorPlayerDataService.cs"
+      - "src/TourneyPal.Common/Common/ValidationConstants.cs"
+
+completion:
+  status: "DONE"
+  agent: "researcher"
+  instance: "researcher-dependencies"
+  focus: "dependencies"
+  timestamp: "2026-02-26T15:05:00Z"
+  summary: "Traced full dependency chains for all 5 bugs: swipe icon is JS+CSS only, template creation has FlowStep logic gap + runtime error, games tab cancel handler incorrectly navigates, skill rating fix is UI-only (mirror roster pattern), appearance colors route through ThemeRegistry → MudThemeProvider pipeline."
+  severity: null
+  findings_count: 11
+  risk_level: null
+  output_paths:
+    - "research/dependencies.yaml"
+    - "research/dependencies.md"

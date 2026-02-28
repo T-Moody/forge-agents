@@ -1,0 +1,94 @@
+reviewer_model: "claude-opus-4.6"
+review_perspective: "security-auditor"
+review_focus: "security"
+scope: "design"
+run_id: "2026-02-27T10:00:00Z"
+round: 1
+task_id: "agent-system-overhaul-design-review"
+verdict: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 2
+  major: 4
+  minor: 2
+summary: "2 Critical (SQL injection + command injection via unparameterized templates), 4 Major (Knowledge Agent scope contradiction, instructional-only enforcement, underspecified safety filter, unvalidated file paths), 2 Minor. No blockers."
+findings:
+  - id: "SEC-1"
+    severity: "critical"
+    category: "security"
+    title: "SQL Injection via Unparameterized String-Interpolated Templates"
+    description: "All SQL INSERT templates use direct string interpolation for free-text fields (output_snippet, notes, missing_information, inaccuracies, impact_on_work, change_summary) without mandatory sanitization. Design acknowledges the sqlite3 CLI limitation but only recommends sanitization — templates show raw '{field}' placeholders."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md#Section-5.3"
+      - "docs/feature/agent-system-overhaul/design.md#Section-11.2"
+    recommendation: "Define mandatory sql_escape() wrapper in sql-templates.md; update ALL INSERT templates to use it; add self-verification checklist item for SQL-writing agents."
+
+  - id: "SEC-2"
+    severity: "critical"
+    category: "security"
+    title: "Command Injection Through Shell-Interpreted SQL Commands"
+    description: "SQL commands are passed to run_in_terminal which routes through system shell. Agent-generated values containing shell metacharacters ($(), backticks, pipes, semicolons) are interpreted by the shell before reaching sqlite3. Design documents no shell-level escaping requirements."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md#Section-5.3"
+      - "docs/feature/agent-system-overhaul/design.md#Section-11.2"
+    recommendation: "Add Shell Injection Prevention section; define escaping order (SQL-escape then shell-escape); consider stdin piping to sqlite3 to avoid shell interpretation of values."
+
+  - id: "SEC-3"
+    severity: "major"
+    category: "security"
+    title: "Knowledge Agent Scope Contradiction — SELECT-Only vs INSERT Requirement"
+    description: "Knowledge Agent run_in_terminal declared SELECT-only in 14 locations but design requires INSERT INTO instruction_updates. Contradiction undermines tool scope restriction trust model."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md#L828"
+      - "docs/feature/agent-system-overhaul/design.md#L869"
+      - "docs/feature/agent-system-overhaul/design-output.yaml#L422"
+    recommendation: "Correct scope to 'SELECT + INSERT on instruction_updates only'; update all 14 occurrences; add explicit DML prohibition list."
+
+  - id: "SEC-4"
+    severity: "major"
+    category: "security"
+    title: "Tool Scope Restrictions Are Instructional-Only with No Enforcement"
+    description: "All tool scope restrictions rely on LLM instruction-following. No technical enforcement validates create_file paths or run_in_terminal commands against allowed patterns before execution."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md#Section-10"
+      - "docs/feature/agent-system-overhaul/design.md#Section-11.3"
+    recommendation: "Document as accepted risk; add regex patterns for allowed commands per agent; add self-verification checks before each scoped tool call."
+
+  - id: "SEC-5"
+    severity: "major"
+    category: "security"
+    title: "Underspecified Safety Constraint Filter for Instruction Updates"
+    description: "Knowledge Agent can modify global copilot-instructions.md affecting all agents. Safety Constraint Filter referenced but never formally defined — no protected rules list, no matching algorithm, evaluator is also the actor (confused deputy)."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md#Section-11.1"
+      - "docs/feature/agent-system-overhaul/design-output.yaml#global-operating-rules-section-9"
+    recommendation: "Define filter formally: enumerate immutable rules, pattern-matching criteria, protected phrases; separate evaluator (orchestrator) from actor (Knowledge Agent)."
+
+  - id: "SEC-6"
+    severity: "major"
+    category: "security"
+    title: "File Path Fields in SQL Tables Lack Validation or Sandboxing"
+    description: "instruction_updates.file_path and artifact_evaluations.artifact_path accept arbitrary text with no CHECK constraints. file_path directly determines Knowledge Agent modification targets — could be used to modify agent definition files violating CR-8."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md#Section-8.3"
+      - "docs/feature/agent-system-overhaul/design.md#Section-8.2"
+    recommendation: "Add CHECK constraint to instruction_updates.file_path limiting to approved paths; add path traversal prevention CHECK to artifact_evaluations.artifact_path."
+
+  - id: "SEC-7"
+    severity: "minor"
+    category: "security"
+    title: "No Run ID Uniqueness Enforcement or Data Retention Policy"
+    description: "run_id has no UNIQUE constraint — collisions cause mixed cross-run data. No cleanup/retention policy — historical data accumulates indefinitely. run_id format is predictable."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md#Section-11.4"
+    recommendation: "Add runs table with PRIMARY KEY on run_id; document retention policy; consider random suffix for unpredictability."
+
+  - id: "SEC-8"
+    severity: "minor"
+    category: "security"
+    title: "Unbounded Free-Text SQL Fields Enable Resource Exhaustion"
+    description: "Only output_snippet has a LENGTH CHECK constraint. All other free-text fields (notes, missing_information, inaccuracies, impact_on_work, change_summary, command) have no size limits."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md#Section-8.2"
+      - "docs/feature/agent-system-overhaul/design.md#Section-8.3"
+    recommendation: "Add CHECK (LENGTH(field) <= N) constraints to all free-text fields with appropriate limits."

@@ -1,0 +1,62 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-016"
+    task_type: "code"
+    title: "Restructure Spec Agent"
+    description: |
+      Modify NewAgents/.github/agents/spec.agent.md to apply shared doc extraction and
+      standardize frontmatter. Target: 337→320 lines. Minimal changes — primarily extraction
+      and input section update.
+
+      Extractions (remove inline, add reference pointers):
+      - Tool access table → "See tool-access-matrix.md §4"
+      - Error handling boilerplate → "See global-operating-rules.md §1-§2"
+
+      Additions:
+      - YAML frontmatter: name: "spec", description: "..."
+      - References to shared docs in appropriate sections
+
+      Updates:
+      - Input section: reads research/*.yaml only (no .md per DP-2 rationalization)
+
+      Retained:
+      - feature.md companion output (human-facing per DP-2)
+      - Role-specific workflow (requirement elicitation, direction analysis, FR/NFR generation)
+      - Pushback log section
+      - Anti-drift anchor
+    risk_classification: "🟢"
+    wave: 3
+    dependencies: ["TASK-002", "TASK-003"]
+    estimated_lines_changed: 60
+    affected_files:
+      - path: "NewAgents/.github/agents/spec.agent.md"
+        action: "modify"
+    addresses_frs: ["FR-4", "FR-10", "FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[agent='spec']"]
+        reason: "Spec design: extracted content, new content, key changes"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/spec.agent.md']",
+          ]
+        reason: "File description with target line count (320) and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-4']"]
+        reason: "AC-4.4 (no downstream agent references removed MD files in input section)"
+      - file: "NewAgents/.github/agents/spec.agent.md"
+        sections:
+          ["tool access table", "error handling section", "input section"]
+        reason: "Current content to identify extraction targets and input section to update"
+    acceptance_criteria:
+      - "spec.agent.md has YAML frontmatter with name and description (FR-16)"
+      - "Tool access table replaced with reference to tool-access-matrix.md §4 (FR-10)"
+      - "Error handling replaced with reference to global-operating-rules.md §1-§2 (FR-10)"
+      - "Input section reads research/*.yaml only (no research/*.md reference) (FR-4)"
+      - "feature.md companion output retained (DP-2)"
+      - "File is ≤320 lines"
+      - "Anti-drift anchor retained at end of file"
+    verification_tier: "Standard"

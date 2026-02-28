@@ -1,0 +1,92 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-012"
+  step: "step-5"
+  started_at: "2026-02-27T21:00:00Z"
+  completed_at: "2026-02-27T21:45:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-012"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 3
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/knowledge-agent.agent.md"
+        action: "modified"
+        description: >
+          Major restructure 513→332 lines. Added: YAML frontmatter update, responsibility
+          inventory table (ARCH-1, 9 responsibilities), run_in_terminal grant with explicit
+          scope (SELECT all tables + INSERT instruction_updates only, SEC-3), explicit DML
+          prohibition list (UPDATE/DELETE/DROP/ALTER/CREATE/ATTACH/PRAGMA), 8-step workflow
+          (telemetry queries, evaluation consumption, post-mortem generation, instruction
+          improvement tracking, evidence bundle assembly), SQL access rules section with
+          allowed/prohibited operations and command pattern, enhanced YAML output structure
+          with pipeline_telemetry_summary and evaluation_summary fields, agent-metrics and
+          post-mortems output files, reference to evaluation-schema.md for scoring rubric,
+          reference to global-operating-rules.md §9 for Safety Constraint Filter (SEC-5
+          evaluator separation), evidence bundle expanded to 8 components (a-h including
+          telemetry and evaluation summaries). Extracted: tool access table to
+          tool-access-matrix.md §10, error handling to global-operating-rules.md §1-§2,
+          self-verification common items to global-operating-rules.md §6, governed update
+          details to global-operating-rules.md §9. Retained: anti-drift anchor (updated),
+          completion contract, self-verification (agent-specific items).
+      - path: "docs/feature/agent-system-overhaul/implementation-reports/TASK-012.yaml"
+        action: "created"
+        description: "Implementation report for TASK-012"
+    self_check:
+      ide_diagnostics:
+        errors: 3
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: false
+      - check_name: "post-ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: false
+    notes:
+      - "TDD skipped: agent instruction file (.agent.md), not executable code — no test framework applicable"
+      - "All 3 IDE errors are pre-existing broken links to schemas.md#schema-10-knowledge-output — identical in baseline and post-implementation"
+      - "No build system or test framework exists for .agent.md files — build_exit_code and test_summary are null"
+      - "File reduced from 513 to 332 lines (target was ≤345)"
+    acceptance_criteria_status:
+      - criterion: "YAML frontmatter with name and description (FR-16)"
+        met: true
+      - criterion: "run_in_terminal granted with explicit scope: SELECT + INSERT on instruction_updates only (SEC-3)"
+        met: true
+      - criterion: "Explicit DML prohibition list: MUST NOT UPDATE, DELETE, DROP, ALTER, CREATE, PRAGMA (except busy_timeout), ATTACH"
+        met: true
+      - criterion: "Responsibility inventory table with all 9 responsibilities and justifications (ARCH-1)"
+        met: true
+      - criterion: "Pipeline telemetry summary section with SQL queries reference (AC-6.3)"
+        met: true
+      - criterion: "Post-mortem identifies top 3 bottleneck steps and agents requiring retries (AC-6.4)"
+        met: true
+      - criterion: "Artifact evaluation consumption via SQL aggregation (AC-5.3)"
+        met: true
+      - criterion: "instruction_updates INSERT for governed update tracking (AC-15.4)"
+        met: true
+      - criterion: "Safety Constraint Filter references global-operating-rules.md §9 (SEC-5)"
+        met: true
+      - criterion: "File is ≤345 lines"
+        met: true
+      - criterion: "Anti-drift anchor retained"
+        met: true
+completion:
+  status: "DONE"
+  summary: "TASK-012 — Knowledge Agent restructured 513→332 lines with 9 responsibilities, SQL access, post-mortem, evaluations, evidence bundle"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "implementation-reports/TASK-012.yaml"

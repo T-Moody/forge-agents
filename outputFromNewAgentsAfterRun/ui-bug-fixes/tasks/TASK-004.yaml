@@ -1,0 +1,110 @@
+task:
+  id: "TASK-004"
+  title: "Fix CreateGamePage bottom sheet cancel to show form instead of navigating away (P0)"
+  description: >
+    Decouple action sheet/dialog dismiss from page navigation in CreateGamePage.
+    Change OnActionSheetCancel() to set _flowStep = FlowStep.Form and clear
+    _sourceTemplateName instead of calling Cancel(). Change OpenTemplatePickerDialog()
+    cancel path to always show blank form instead of conditionally calling Cancel()
+    when no custom templates remain. Cancel() method remains unchanged — it's only
+    called by the TaskPage back/cancel button.
+  agent: "implementer"
+  bug_ids: ["BUG-004"]
+  size: "Standard"
+  risk: "🟡"
+  depends_on: []
+  wave: 2
+  verification_tier: "Standard"
+  estimated_lines_changed: 20
+  priority: "P0 — workflow blocker preventing game creation"
+
+  acceptance_criteria:
+    - "AC-004-1: Tapping the ListActionSheet overlay closes the sheet and shows game creation form"
+    - "AC-004-2: Tapping the ListActionSheet cancel button closes the sheet and shows game creation form"
+    - "AC-004-3: After dismissing the action sheet, user can fill out and submit the form"
+    - "AC-004-4: Canceling the TemplatePickerDialog shows blank form (not navigate away)"
+    - "AC-004-5: Page-level back/cancel navigation still correctly navigates to /events/{EventId}"
+    - "AC-004-6: Selecting a template from action sheet or picker still populates the form"
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-4']"
+    spec_requirements:
+      - "spec-output.yaml#payload.requirements[id='BUG-004']"
+    files_to_modify:
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+        risk: "🟡"
+        read_lines: "215-270, 350-370"
+        changes:
+          - description: "Fix OnActionSheetCancel — show form instead of navigating (lines 219-222)"
+            before: |
+              private void OnActionSheetCancel()
+              {
+                  _actionSheetVisible = false;
+                  Cancel();
+              }
+            after: |
+              private void OnActionSheetCancel()
+              {
+                  _actionSheetVisible = false;
+                  _flowStep = FlowStep.Form;
+                  _sourceTemplateName = null;
+                  StateHasChanged();
+              }
+          - description: "Fix OpenTemplatePickerDialog cancel path — always show blank form (lines 249-258)"
+            before: |
+              if (result is null || result.Canceled)
+              {
+                  if (!_customTemplates.Any())
+                  {
+                      Cancel();
+                      return;
+                  }
+
+                  _flowStep = FlowStep.Form;
+                  _sourceTemplateName = null;
+                  StateHasChanged();
+                  return;
+              }
+            after: |
+              if (result is null || result.Canceled)
+              {
+                  _flowStep = FlowStep.Form;
+                  _sourceTemplateName = null;
+                  StateHasChanged();
+                  return;
+              }
+    files_to_read:
+      - path: "src/TourneyPal.UI/Features/Events/ParticipantsTabContent.razor.cs"
+        read_lines: "370-405"
+        reason: "Reference working pattern: CloseAddActionSheet() — dismiss sheet without navigation"
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor"
+        read_lines: "15-25"
+        reason: "Verify ListActionSheet OnCancel binding and FlowStep rendering switch"
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+        read_lines: "350-370"
+        reason: "Cancel() method implementation — verify it's NOT modified (only called by TaskPage)"
+      - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGamePageTemplateSelectionTests.cs"
+        read_lines: "1-80"
+        reason: "Existing test structure and patterns for cancel behavior tests"
+
+  testing_notes: >
+    Update existing tests in CreateGamePageTemplateSelectionTests.cs for new cancel behavior.
+    New tests needed:
+    - ActionSheetCancel_ShowsBlankForm_DoesNotNavigate
+    - TemplatePickerDialogCancel_ShowsBlankForm_DoesNotNavigate
+    - ActionSheetCancel_BackButtonStillNavigates (verify Cancel() still works via TaskPage)
+    Existing template selection tests should still pass (selecting a template still populates form).
+    Estimated: 2-3 test updates, 2-3 new tests.
+
+  side_by_side_reference:
+    working_pattern:
+      component: "ParticipantsTabContent"
+      file: "src/TourneyPal.UI/Features/Events/ParticipantsTabContent.razor.cs"
+      method: "CloseAddActionSheet()"
+      behavior: "Sets _addActionSheetVisible=false, clears actions, calls StateHasChanged(). No navigation."
+    broken_pattern:
+      component: "CreateGamePage"
+      file: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+      method: "OnActionSheetCancel()"
+      behavior: "Sets _actionSheetVisible=false, then calls Cancel() which navigates away."

@@ -1,0 +1,124 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-011"
+  step: "step-5"
+  started_at: "2026-02-27T00:00:00Z"
+  completed_at: "2026-02-27T00:45:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-011"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 3
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        action: "modified"
+        description: >
+          Restructured adversarial-reviewer agent from 373 to 325 lines.
+          Key changes: (1) Added YAML frontmatter with name/description.
+          (2) Replaced review_focus + model parameters with single review_perspective parameter
+          (security-sentinel, architecture-guardian, pragmatic-verifier).
+          (3) Restructured workflow for all-category coverage — each reviewer now analyzes all 3
+          categories (security, architecture, correctness) through their perspective lens, not just one.
+          (4) Updated output paths from <scope>-<model> to <scope>-<perspective>.
+          (5) Updated YAML verdict structure with per-category sub-verdicts.
+          (6) Changed from 1 SQL INSERT to 3 per reviewer (one per category with scope-qualified check_names).
+          (7) Added artifact evaluation INSERT step (Step 6) referencing evaluation-schema.md.
+          (8) Extracted tool access table to tool-access-matrix.md §9 reference.
+          (9) Extracted Review Focus Areas details to review-perspectives.md reference.
+          (10) Extracted SQL INSERT template to sql-templates.md §2 reference.
+          (11) Added error handling reference to global-operating-rules.md §1-§2.
+          (12) Added self-verification common check reference to global-operating-rules.md §6.
+          (13) Removed model parameter (VS Code ignores it per DP-1).
+          (14) Removed review_focus parameter (replaced by review_perspective).
+          (15) Retained anti-drift anchor (updated for new paradigm).
+          (16) Retained completion contract, disagreement resolution, review cycling sections.
+      - path: "docs/feature/agent-system-overhaul/implementation-reports/TASK-011.yaml"
+        action: "created"
+        description: "Implementation report for TASK-011"
+    self_check:
+      ide_diagnostics:
+        errors: 1
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: false
+        notes: >
+          3 pre-existing errors: broken links to schemas.md (schemas.md#schema-9-review-findings,
+          schemas.md#sql-insert-convention-for-review-records, #self-verification internal anchor).
+          Post-implementation: 1 error remaining (#self-verification anchor — false positive
+          markdown internal link). Net improvement: 2 broken links resolved by removing schemas.md references.
+      - check_name: "acceptance-frontmatter"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "YAML frontmatter present with name: adversarial-reviewer, description field"
+      - check_name: "acceptance-review-perspective"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "review_perspective parameter replaces review_focus + model. Values: security-sentinel, architecture-guardian, pragmatic-verifier"
+      - check_name: "acceptance-all-category-coverage"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "Workflow Step 3 has 3a/3b/3c for Security/Architecture/Correctness. Markdown template has all 3 sections. YAML has per-category sub-verdicts."
+      - check_name: "acceptance-verdict-path"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "Verdict path: review-verdicts/<scope>-<perspective>.yaml (D-7)"
+      - check_name: "acceptance-findings-path"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "Findings path: review-findings/<scope>-<perspective>.md"
+      - check_name: "acceptance-3-sql-inserts"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "3 SQL INSERTs per review with check_names: review-{scope}-security, review-{scope}-architecture, review-{scope}-correctness (D-8)"
+      - check_name: "acceptance-artifact-evaluation"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "Step 6 Evaluate Upstream Artifact present, references evaluation-schema.md and sql-templates.md §4"
+      - check_name: "acceptance-tool-access-extracted"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "Tool access section references tool-access-matrix.md §9 instead of inline table"
+      - check_name: "acceptance-perspectives-extracted"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "Review Focus Areas section removed; references review-perspectives.md throughout"
+      - check_name: "acceptance-line-count"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+        notes: "325 lines (target: ≤335)"
+      - check_name: "acceptance-anti-drift"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "Anti-drift anchor retained and updated for perspective-based multi-category paradigm"
+
+completion:
+  status: "DONE"
+  summary: "TASK-011 — Restructured adversarial-reviewer.agent.md: multi-perspective (replaces multi-model), all-category coverage, 3 SQL INSERTs per reviewer, extracted shared content, 373→325 lines"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-overhaul/implementation-reports/TASK-011.yaml"

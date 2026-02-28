@@ -1,0 +1,454 @@
+agent_output:
+  agent: "planner"
+  instance: "planner"
+  step: "step-4"
+  started_at: "2026-02-26T14:30:00Z"
+  completed_at: "2026-02-26T18:30:00Z"
+  schema_version: "1.0"
+  payload:
+    feature_slug: "ui-bug-fixes"
+    planning_mode: "initial"
+    overall_risk_summary: "🟡"
+    risk_breakdown:
+      green: 3
+      yellow: 5
+      red: 0
+    total_tasks: 8
+    waves:
+      - id: "wave-1"
+        name: "Independent low-risk fixes"
+        tasks: ["TASK-001", "TASK-002", "TASK-003"]
+        max_concurrent: 3
+        rationale: >
+          Three independent fixes in separate files with zero overlap. BUG-001+BUG-008
+          (CSS), BUG-005 (CreatePlayerPage), BUG-007 (EmptyState/LoadingState). Can be
+          implemented in parallel.
+
+      - id: "wave-2"
+        name: "P0 blocker and coupled CreateGamePage fixes"
+        tasks: ["TASK-004", "TASK-005", "TASK-006"]
+        max_concurrent: 1
+        rationale: >
+          All three tasks modify CreateGamePage.razor.cs and must be sequential.
+          TASK-004 (P0 cancel fix) → TASK-005 (template picker) → TASK-006 (error investigation).
+          BUG-004 changes cancel semantics that BUG-002 depends on. BUG-003 may be resolved
+          by the BUG-002/004 changes.
+
+      - id: "wave-3"
+        name: "Theme palette redesign"
+        tasks: ["TASK-007", "TASK-008"]
+        max_concurrent: 1
+        rationale: >
+          TASK-007 updates Professional theme + Razor fixes (3 files). TASK-008 updates
+          remaining 6 themes (1 file). Sequential to allow test verification between steps.
+          Isolated from Waves 1-2 by file boundaries.
+
+    tasks:
+      # ===================================================================
+      # TASK-001: Swipe icon sizing + dead CSS cleanup (BUG-001 + BUG-008)
+      # ===================================================================
+      - id: "TASK-001"
+        bug_ids: ["BUG-001", "BUG-008"]
+        title: "Fix swipe delete icon sizing and remove dead .delete-icon CSS rule"
+        description: >
+          Add explicit width: 36px and height: 36px to .swipe-delete-indicator .mud-svg-icon
+          CSS rule. Remove dead .swipe-delete-indicator .delete-icon rule that is never matched
+          (JS uses .mud-svg-icon class, not .delete-icon). Single CSS file change propagates
+          to all 5 list pages.
+        agent: "implementer"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: []
+        acceptance_criteria:
+          - "AC-001-1: SVG icon renders at ≥32px width and height (36px specified)"
+          - "AC-001-2: Icon is visually centered within 80px container"
+          - "AC-001-3: Fix propagates to all 5 list pages via shared CSS"
+          - "AC-001-4: Dead .delete-icon CSS rule removed"
+          - "AC-008-1: .swipe-delete-indicator .delete-icon no longer exists"
+          - "AC-008-2: .swipe-delete-indicator .mud-svg-icon rule has explicit width/height"
+        verification_tier: "Standard"
+        estimated_lines_changed: 10
+        relevant_context:
+          design_sections:
+            - "design-output.yaml#payload.decisions[id='D-1']"
+          spec_requirements:
+            - "spec-output.yaml#payload.requirements[id='BUG-001']"
+            - "spec-output.yaml#payload.requirements[id='BUG-008']"
+          files_to_modify:
+            - path: "src/TourneyPal.UI/wwwroot/css/list-swipe.css"
+              risk: "🟢"
+              read_lines: "68-100"
+              description: "Modify .mud-svg-icon rule and remove dead .delete-icon rule"
+          files_to_read:
+            - path: "src/Tornimate.Mobile/wwwroot/js/list-swipe-bridge.js"
+              read_lines: "155-170"
+              reason: "Verify JS creates .mud-svg-icon class (not .delete-icon)"
+
+      # ===================================================================
+      # TASK-002: Optional skill rating (BUG-005)
+      # ===================================================================
+      - id: "TASK-002"
+        bug_ids: ["BUG-005"]
+        title: "Make skill rating optional on CreatePlayerPage (nullable int? pattern)"
+        description: >
+          Align CreatePlayerPage skill rating to the established nullable int? pattern from
+          CreateRosterPlayerPage. Change field type from int to int?, add Value/ValueChanged
+          binding, FormFieldState deferred validation, HelperText, and null→DefaultSkillRating
+          coercion at submit boundary. No changes to Command/Handler/Validator.
+        agent: "implementer"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: []
+        acceptance_criteria:
+          - "AC-005-1: Skill rating field renders empty on page load"
+          - "AC-005-2: User can leave field empty and submit successfully"
+          - "AC-005-3: Null skill rating coerces to DefaultSkillRating (50) on submit"
+          - "AC-005-4: Explicit value (e.g., 75) is preserved on submit"
+          - "AC-005-5: Deferred validation shows error only after interaction"
+          - "AC-005-6: HelperText indicates rating is optional"
+          - "AC-005-7: Command/Handler/Validator NOT modified (UI-only)"
+        verification_tier: "Standard"
+        estimated_lines_changed: 40
+        relevant_context:
+          design_sections:
+            - "design-output.yaml#payload.decisions[id='D-5']"
+          spec_requirements:
+            - "spec-output.yaml#payload.requirements[id='BUG-005']"
+          files_to_modify:
+            - path: "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor.cs"
+              risk: "🟡"
+              read_lines: "45-90, 125-140"
+              description: "Change int→int?, add OnSkillRatingChanged, ValidateSkillRating, null coercion in Submit"
+            - path: "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor"
+              risk: "🟡"
+              read_lines: "28-40"
+              description: "Change MudNumericField binding from @bind-Value to Value/ValueChanged with nullable int"
+          files_to_read:
+            - path: "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor.cs"
+              read_lines: "40-80"
+              reason: "Reference pattern: nullable int? skill rating implementation"
+            - path: "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor"
+              read_lines: "30-50"
+              reason: "Reference pattern: MudNumericField<int?> binding"
+            - path: "src/TourneyPal.UI/Common/Validation/RosterValidators.cs"
+              read_lines: "115-131"
+              reason: "ValidateSkillRating method to reuse"
+            - path: "src/TourneyPal.Common/Common/ValidationConstants.cs"
+              read_lines: "25-35"
+              reason: "DefaultSkillRating, RosterSkillRatingMin/Max constants"
+            - path: "tests/TourneyPal.Tests/Features/Players/CreatePlayer/CreatePlayerPageTests.cs"
+              read_lines: "1-50"
+              reason: "Existing tests to update for nullable skill rating"
+
+      # ===================================================================
+      # TASK-003: Color.Secondary audit fix (BUG-007)
+      # ===================================================================
+      - id: "TASK-003"
+        bug_ids: ["BUG-007"]
+        title: "Fix Color.Secondary misuse on EmptyState and LoadingState shared components"
+        description: >
+          Replace Color="Color.Secondary" with Style="color: var(--mud-palette-text-secondary)"
+          on MudText elements in EmptyState.razor (2 instances) and LoadingState.razor
+          (2 instances). These shared components propagate the fix to all pages that use them.
+        agent: "implementer"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: []
+        acceptance_criteria:
+          - "AC-007-1: Full audit list of Color.Secondary on MudText is documented"
+          - "AC-007-2: EmptyState and LoadingState have Color.Secondary removed from MudText"
+          - "AC-007-3: Color.Secondary on MudIcon, MudButton, MudChip is NOT changed"
+        verification_tier: "Standard"
+        estimated_lines_changed: 10
+        relevant_context:
+          design_sections:
+            - "design-output.yaml#payload.decisions[id='D-7']"
+          spec_requirements:
+            - "spec-output.yaml#payload.requirements[id='BUG-007']"
+          files_to_modify:
+            - path: "src/TourneyPal.UI/Common/Components/EmptyState.razor"
+              risk: "🟢"
+              read_lines: "1-40"
+              description: "Replace Color.Secondary on Title (line 23) and Description (line 28) MudText"
+            - path: "src/TourneyPal.UI/Common/Components/LoadingState.razor"
+              risk: "🟢"
+              read_lines: "1-40"
+              description: "Replace Color.Secondary on circular text (line 19) and linear text (line 29)"
+          files_to_read:
+            - path: "design-output.yaml#payload.changes[bug_id='BUG-007'].audit_results"
+              reason: "Full audit list of remaining files for documentation deliverable"
+
+      # ===================================================================
+      # TASK-004: P0 cancel fix (BUG-004)
+      # ===================================================================
+      - id: "TASK-004"
+        bug_ids: ["BUG-004"]
+        title: "Fix CreateGamePage bottom sheet cancel to show form instead of navigating away (P0)"
+        description: >
+          Decouple action sheet/dialog dismiss from page navigation. Change OnActionSheetCancel()
+          to set _flowStep = FlowStep.Form instead of calling Cancel(). Change
+          OpenTemplatePickerDialog() cancel path to always show blank form instead of conditionally
+          calling Cancel(). Cancel() remains for toolbar back button only.
+        agent: "implementer"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        acceptance_criteria:
+          - "AC-004-1: Overlay tap closes sheet and shows form"
+          - "AC-004-2: Cancel button closes sheet and shows form"
+          - "AC-004-3: User can fill/submit form after dismiss"
+          - "AC-004-4: Dialog cancel shows blank form"
+          - "AC-004-5: Back button still navigates to /events/{EventId}"
+          - "AC-004-6: Template selection still populates form"
+        verification_tier: "Standard"
+        estimated_lines_changed: 20
+        relevant_context:
+          design_sections:
+            - "design-output.yaml#payload.decisions[id='D-4']"
+          spec_requirements:
+            - "spec-output.yaml#payload.requirements[id='BUG-004']"
+          files_to_modify:
+            - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+              risk: "🟡"
+              read_lines: "215-270, 350-370"
+              description: "Fix OnActionSheetCancel (lines 219-222) and OpenTemplatePickerDialog cancel path (lines 249-258)"
+          files_to_read:
+            - path: "src/TourneyPal.UI/Features/Events/ParticipantsTabContent.razor.cs"
+              read_lines: "370-405"
+              reason: "Reference working pattern: CloseAddActionSheet() — dismiss without navigation"
+            - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor"
+              read_lines: "15-25"
+              reason: "Verify ListActionSheet usage and OnCancel binding"
+            - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGamePageTemplateSelectionTests.cs"
+              read_lines: "1-50"
+              reason: "Existing test structure for cancel behavior tests"
+
+      # ===================================================================
+      # TASK-005: Template picker in settings (BUG-002)
+      # ===================================================================
+      - id: "TASK-005"
+        bug_ids: ["BUG-002"]
+        title: "Show TemplatePickerDialog when creating game template from settings"
+        description: >
+          In CreateGamePage.OnInitializedAsync(), change the IsTemplate (else) branch from
+          directly setting FlowStep.Form to invoking OpenTemplatePickerDialog() when templates
+          are available. When no templates exist, skip directly to blank form. Depends on
+          TASK-004 because the cancel path must show blank form, not navigate away.
+        agent: "implementer"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["TASK-004"]
+        acceptance_criteria:
+          - "AC-002-1: Template picker shown in settings template create route"
+          - "AC-002-2: Template selection pre-fills form"
+          - "AC-002-3: 'Create Custom' shows blank form"
+          - "AC-002-4: Cancel shows blank form (not navigate away)"
+          - "AC-002-5: Event-context behavior unchanged"
+        verification_tier: "Standard"
+        estimated_lines_changed: 15
+        relevant_context:
+          design_sections:
+            - "design-output.yaml#payload.decisions[id='D-2']"
+          spec_requirements:
+            - "spec-output.yaml#payload.requirements[id='BUG-002']"
+          files_to_modify:
+            - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+              risk: "🟡"
+              read_lines: "118-165"
+              description: "Extend OnInitializedAsync else branch to invoke OpenTemplatePickerDialog"
+          files_to_read:
+            - path: "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor.cs"
+              read_lines: "1-65"
+              reason: "Understand dialog interface and result handling"
+            - path: "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor"
+              read_lines: "1-95"
+              reason: "Dialog UI structure"
+            - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGamePageTemplateSelectionTests.cs"
+              read_lines: "1-80"
+              reason: "Existing tests for template selection flow"
+
+      # ===================================================================
+      # TASK-006: Template creation error (BUG-003)
+      # ===================================================================
+      - id: "TASK-006"
+        bug_ids: ["BUG-003"]
+        title: "Investigate and fix template creation error (integration test + possible UI fix)"
+        description: >
+          Write integration test exercising CreateGameCommand with EventId=null. If test fails,
+          fix backend root cause. If test passes, bug is UI-side — inspect Submit() form
+          validation with IsTemplate=true. The error may be a symptom of BUG-004 (cancel
+          navigation preventing form state). May require live testing with Playwright/ADB
+          if static analysis is insufficient.
+        agent: "implementer"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["TASK-004", "TASK-005"]
+        acceptance_criteria:
+          - "AC-003-1: CreateGameCommand with EventId=null succeeds through handler"
+          - "AC-003-2: Template persists with EventId=null and is retrievable"
+          - "AC-003-3: Submit flow completes when IsTemplate=true"
+          - "AC-003-4: Template appears in settings game templates list"
+        verification_tier: "Standard"
+        estimated_lines_changed: 50
+        notes: >
+          Root cause is unknown. Investigation may reveal the bug was caused by BUG-004
+          (cancel navigation preventing form render). If so, TASK-004 fix may already resolve
+          BUG-003. Live testing with Playwright/ADB on Android emulator may be required per
+          D-3 investigation plan. The implementer should use the playwright-automation skill
+          if the integration test passes and UI-side diagnosis is needed.
+        relevant_context:
+          design_sections:
+            - "design-output.yaml#payload.decisions[id='D-3']"
+          spec_requirements:
+            - "spec-output.yaml#payload.requirements[id='BUG-003']"
+          files_to_modify:
+            - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGameHandlerTests.cs"
+              risk: "🟢"
+              description: "Add Handle_TemplateCreation_WithNullEventId_Succeeds test"
+            - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+              risk: "🟡"
+              read_lines: "270-330"
+              description: "Inspect Submit() if UI-side fix needed"
+          files_to_read:
+            - path: "src/TourneyPal.Core/Features/Games/CreateGame/CreateGameHandler.cs"
+              read_lines: "1-80"
+              reason: "Handler logic for template creation path"
+            - path: "src/TourneyPal.Core/Features/Games/GameCreationService.cs"
+              read_lines: "1-80"
+              reason: "Service logic for EventId=null path"
+            - path: "src/TourneyPal.Common/Features/Games/CreateGame/CreateGameValidator.cs"
+              read_lines: "1-50"
+              reason: "Validation rules for EventId-null case"
+            - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGameHandlerTests.cs"
+              read_lines: "1-50"
+              reason: "Existing test patterns for handler tests"
+
+      # ===================================================================
+      # TASK-007: Professional theme + Razor Color.Secondary (BUG-006 part 1)
+      # ===================================================================
+      - id: "TASK-007"
+        bug_ids: ["BUG-006"]
+        title: "Redesign Professional theme palette for Apple HIG + fix Color.Secondary on ThemePreviewCard/AppearancePage"
+        description: >
+          Update Professional theme PaletteLight and PaletteDark hex values to Apple HIG
+          alignment per design-output.yaml D-6 (revised Round 2). Update PreviewSwatches.
+          Fix Color.Secondary on ThemePreviewCard.razor and AppearancePage.razor. Run
+          ThemeRegistryTests to verify invariant compliance. All hex values are specified
+          exactly in the design — implementer must use these values verbatim.
+        agent: "implementer"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        acceptance_criteria:
+          - "AC-006-2: Professional PaletteLight Background is #F2F2F7"
+          - "AC-006-3: Professional PaletteDark Background is #1C1C1E"
+          - "AC-006-4: PreviewSwatches match actual palette values"
+          - "AC-006-5: ThemePreviewCard description uses TextSecondary, not accent"
+          - "AC-006-6: AppearancePage mode label uses TextSecondary, not accent"
+          - "AC-006-7: Professional theme retains distinct identity"
+          - "AC-006-8: ThemeRegistryTests pass — no pure black bg, Surface != #FFFFFF, DrawerBackground == Surface"
+        verification_tier: "Standard"
+        estimated_lines_changed: 80
+        relevant_context:
+          design_sections:
+            - "design-output.yaml#payload.decisions[id='D-6']"
+          spec_requirements:
+            - "spec-output.yaml#payload.requirements[id='BUG-006']"
+          files_to_modify:
+            - path: "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs"
+              risk: "🟡"
+              read_lines: "60-150"
+              description: "Update Professional theme PaletteLight (69-105), PaletteDark (108-136), PreviewSwatches (139-145)"
+            - path: "src/TourneyPal.UI/Features/Settings/ThemePreviewCard.razor"
+              risk: "🟢"
+              read_lines: "1-20"
+              description: "Replace Color.Secondary with TextSecondary style on line 9"
+            - path: "src/TourneyPal.UI/Features/Settings/AppearancePage.razor"
+              risk: "🟢"
+              read_lines: "15-25"
+              description: "Replace Color.Secondary with TextSecondary style on line 19"
+          files_to_read:
+            - path: "tests/TourneyPal.Tests/Common/Theme/ThemeRegistryTests.cs"
+              read_lines: "1-150"
+              reason: "Understand invariant tests that must pass, value-specific tests that need hex updates"
+          critical_implementation_notes:
+            - "Use EXACT hex values from design-output.yaml D-6 palette_changes tables"
+            - "Light Surface must be #FAFAFE (not #FFFFFF) to satisfy invariant"
+            - "Dark Background must be #1C1C1E (not #000000) to satisfy invariant + AC-006-8"
+            - "DrawerBackground must match Surface (light) and Background (dark)"
+            - "AppbarBackground RGB must match new Background: rgba(28,28,30,0.8)"
+
+      # ===================================================================
+      # TASK-008: Remaining 6 themes semantic colors (BUG-006 part 2)
+      # ===================================================================
+      - id: "TASK-008"
+        bug_ids: ["BUG-006"]
+        title: "Standardize semantic colors (Error/Success/Warning/Info) for 6 non-HC themes to Apple HIG"
+        description: >
+          Update Error, Success, Warning, Info values for all 6 non-high-contrast themes
+          (cyber-future, classic-sports, stadium-night, retro-arcade, minimal-soft, nature-fresh)
+          to Apple HIG standard values. Light: Error=#FF3B30, Success=#34C759, Warning=#FF9500,
+          Info=#007AFF. Dark: Error=#FF453A, Success=#30D158, Warning=#FF9F0A, Info=#0A84FF.
+          High-contrast theme is NOT modified. Each theme's Primary/Secondary/Tertiary identity
+          colors are preserved.
+        agent: "implementer"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["TASK-007"]
+        acceptance_criteria:
+          - "AC-006-1: All 8 themes align to Apple HIG semantic color conventions"
+          - "AC-006-7: Each theme retains distinct Primary color identity"
+          - "AC-006-8: ThemeRegistryTests pass after changes"
+        verification_tier: "Standard"
+        estimated_lines_changed: 150
+        relevant_context:
+          design_sections:
+            - "design-output.yaml#payload.decisions[id='D-6']"
+            - "design-output.yaml#payload.changes[bug_id='BUG-006'].files[0].changes[3]"
+          spec_requirements:
+            - "spec-output.yaml#payload.requirements[id='BUG-006']"
+          files_to_modify:
+            - path: "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs"
+              risk: "🟡"
+              read_lines: "150-708"
+              description: "Update semantic colors for 6 themes (Error/Success/Warning/Info light+dark)"
+          files_to_read:
+            - path: "tests/TourneyPal.Tests/Common/Theme/ThemeRegistryTests.cs"
+              read_lines: "1-200"
+              reason: "Verify which tests have value-specific hex assertions that need updating"
+          critical_implementation_notes:
+            - "Use EXACT Apple HIG values from design-output.yaml themes_to_update table"
+            - "High-contrast theme is intentionally NOT modified"
+            - "Only change Error/Success/Warning/Info — do NOT change Primary/Secondary/Tertiary identity colors"
+            - "Each theme's Background/Surface structural colors are NOT changed in this task"
+            - "Run tests after each theme to catch mismatches early"
+
+    dependency_graph:
+      TASK-001: []
+      TASK-002: []
+      TASK-003: []
+      TASK-004: []
+      TASK-005: ["TASK-004"]
+      TASK-006: ["TASK-004", "TASK-005"]
+      TASK-007: []
+      TASK-008: ["TASK-007"]
+
+completion:
+  status: "DONE"
+  agent: "planner"
+  timestamp: "2026-02-26T18:30:00Z"
+  summary: "8 tasks created, 3 waves, overall risk 🟡"
+  severity: null
+  findings_count: 0
+  risk_level: "🟡"
+  output_paths:
+    - "docs/feature/ui-bug-fixes/plan-output.yaml"
+    - "docs/feature/ui-bug-fixes/plan.md"
+    - "docs/feature/ui-bug-fixes/tasks/TASK-001.yaml"
+    - "docs/feature/ui-bug-fixes/tasks/TASK-002.yaml"
+    - "docs/feature/ui-bug-fixes/tasks/TASK-003.yaml"
+    - "docs/feature/ui-bug-fixes/tasks/TASK-004.yaml"
+    - "docs/feature/ui-bug-fixes/tasks/TASK-005.yaml"
+    - "docs/feature/ui-bug-fixes/tasks/TASK-006.yaml"
+    - "docs/feature/ui-bug-fixes/tasks/TASK-007.yaml"
+    - "docs/feature/ui-bug-fixes/tasks/TASK-008.yaml"

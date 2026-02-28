@@ -1,0 +1,100 @@
+# Architectural Decision Log — agent-system-overhaul
+# Append-only — never modify or delete existing entries
+# Pipeline Run: 2026-02-27T10:00:00Z
+
+decisions:
+  - id: "DL-001"
+    title: "Adopt 3-Tier Content Architecture"
+    date: "2026-02-27"
+    rationale: >
+      Global rules in .github/copilot-instructions.md (auto-loaded by VS Code for all agents),
+      shared reference docs in NewAgents/.github/agents/*.md (cross-referenced by section number),
+      and lean agent definitions in *.agent.md (≤350 lines target). This eliminates duplication
+      of error handling, SQL templates, tool access tables, and evaluation schemas across 9 agents.
+      Achieved 41% line reduction on orchestrator (797→471 lines). New shared docs: global-operating-rules.md,
+      sql-templates.md, tool-access-matrix.md, review-perspectives.md, evaluation-schema.md,
+      context7-integration.md.
+    confidence: "High"
+    source: "Design Agent (Step 3), validated by Adversarial Review (Steps 3b, 7)"
+
+  - id: "DL-002"
+    title: "Replace Multi-Model Review with Prompt Diversity"
+    date: "2026-02-27"
+    rationale: >
+      VS Code Copilot's runSubagent API routes all agent invocations to the same underlying model.
+      True multi-model adversarial review (different LLMs reviewing the same code) is not achievable
+      within the VS Code agent runtime. Instead, 3 distinct reviewer personas are defined with
+      different review philosophies, priority hierarchies, and severity threshold biases:
+      security-sentinel (strictest, security-first), architecture-guardian (structural purity),
+      pragmatic-verifier (practical correctness). Each reviews ALL 3 categories (security,
+      architecture, correctness) producing 9 total verdict cells per review round. Documented
+      in review-perspectives.md.
+    confidence: "High"
+    source: "Research Agent (Step 1), Design Agent (Step 3)"
+
+  - id: "DL-003"
+    title: "Consolidate All SQLite Tables into verification-ledger.db"
+    date: "2026-02-27"
+    rationale: >
+      Four tables (anvil_checks, pipeline_telemetry, artifact_evaluations, instruction_updates)
+      consolidated into single DB file rather than separate databases. Simplifies Step 0
+      initialization (single DDL script), eliminates need for agents to manage multiple DB
+      connections or paths, and ensures transactional consistency for cross-table queries
+      (e.g., post-mortem analysis joining telemetry with verification results). Single-point-of-failure
+      risk mitigated by PRAGMA integrity_check at Step 0. WAL mode enabled for concurrent reads
+      during parallel wave execution.
+    confidence: "High"
+    source: "Design Agent (Step 3), confirmed by Design Review (Step 3b)"
+
+  - id: "DL-004"
+    title: "Orchestrator Line Budget Exception (550 lines)"
+    date: "2026-02-27"
+    rationale: >
+      Original design proposed 480-line target but design review (ARCH-3) identified a 124-line
+      unsubstantiated compaction gap. Target revised to 550 lines with explicit NFR-1 exception
+      documented. The orchestrator is inherently larger than other agents due to its pipeline
+      coordination responsibilities (10 steps, evidence gates, dispatch logic, state recovery).
+      Actual implementation achieved 471 lines — well within budget with headroom for future additions.
+    confidence: "High"
+    source: "Design Review ARCH-3 finding, Plan Agent (Step 4)"
+
+  - id: "DL-005"
+    title: "Defer schemas.md Full Scope Reduction"
+    date: "2026-02-27"
+    rationale: >
+      Code review (R1 architecture-guardian) identified schemas.md at 1528 lines spanning YAML
+      schemas, SQLite DDL, routing matrix, evidence gates, output format classification, and naming
+      conventions. Critical issues fixed in R1 (DDL conflicts, stale Schema 9, LIKE-based evidence
+      gates). Full extraction of non-schema content deferred because: (a) all critical inconsistencies
+      resolved, (b) extracting would require updating cross-references in all 9 agents, (c) remaining
+      co-located content is correct and well-organized. Classified as low-risk tech debt.
+    confidence: "Medium"
+    source: "Code Review R1 (ARCH-2), R2 confirmation"
+
+  - id: "DL-006"
+    title: "SQL Safety via Stdin Piping and Checklist-Based Enforcement"
+    date: "2026-02-27"
+    rationale: >
+      Design review identified SQL injection (SEC-1) and command injection (SEC-2) risks from
+      string-interpolated SQL templates. Three-layer mitigation: (1) sql_escape() defined in
+      sql-templates.md §0 with single-quote doubling, null byte stripping, and 1000-char truncation,
+      (2) stdin piping to sqlite3 CLI (echo/printf) to avoid shell interpretation of values,
+      (3) self-verification checklist item for SQL-writing agents. Enforcement is checklist-based
+      (not programmatic) because VS Code runtime provides no tool call interception or parameter
+      validation hooks. Accepted as residual risk with defense-in-depth layering.
+    confidence: "Medium"
+    source: "Design Review SEC-1/SEC-2, Code Review SEC-1/SEC-2"
+
+  - id: "DL-007"
+    title: "All-Category Review Coverage per Reviewer"
+    date: "2026-02-27"
+    rationale: >
+      Each reviewer instance covers all 3 categories (security, architecture, correctness) rather
+      than one category per reviewer. This ensures: (a) each perspective applies its unique lens
+      to all aspects of the code, (b) 9 verdict cells provide granular approval tracking,
+      (c) a security-focused reviewer noticing an architecture issue can flag it without scope
+      limitation. Trade-off: reviewers produce more findings, but the bounded round limit (max 2)
+      prevents infinite cycling. EG-6 majority approval requires ALL 3 category verdicts to be
+      'approve' for a reviewer to count as approving.
+    confidence: "High"
+    source: "Spec Agent FR-3, Design Agent (Step 3)"

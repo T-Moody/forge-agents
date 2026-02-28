@@ -1,0 +1,70 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-004"
+    task_type: "documentation"
+    title: "Create Review Perspectives Reference Doc"
+    description: |
+      Create NewAgents/.github/agents/review-perspectives.md — defines the three distinct
+      reviewer perspectives for multi-perspective adversarial review (replacing broken
+      multi-model approach per DP-1).
+
+      Content outline (~130 lines):
+      - §1 Overview: Prompt diversity replaces model diversity. 3 perspectives × 3 categories = 9 review dimensions.
+      - §2 Security Sentinel: Adversarial threat modeler. Assumes hostile inputs. Low severity
+           threshold for auth/crypto/data exposure. Bias: strict. Full persona definition with
+           review philosophy and priority hierarchy.
+      - §3 Architecture Guardian: Structural purity. SOLID principles, coupling analysis,
+           scalability. Bias: moderate. Full persona definition.
+      - §4 Pragmatic Verifier: Functional correctness. Edge cases, test gaps, error handling.
+           Bias: lenient on style, strict on behavior. Full persona definition.
+      - §5 All-Category Coverage: Each reviewer MUST produce findings for security, architecture,
+           AND correctness (not just their primary focus).
+      - §6 Per-Category per-Perspective Guidance: How each perspective approaches each category
+           differently (3×3 matrix of guidance).
+      - §7 Severity Threshold Calibration: Security Sentinel has lowest blocker threshold,
+           Pragmatic Verifier has highest.
+      - §8 Evidence Requirements: 3 SQL INSERTs per reviewer (1 per category), verdict YAML
+           with category sub-verdicts.
+
+      Each perspective definition must be substantively different — not just labels but
+      fundamentally different review philosophies, severity thresholds, and priority hierarchies
+      per AC-2.1 and AC-2.3.
+    risk_classification: "🟢"
+    wave: 1
+    dependencies: []
+    estimated_lines_changed: 130
+    affected_files:
+      - path: "NewAgents/.github/agents/review-perspectives.md"
+        action: "create"
+    addresses_frs: ["FR-2", "FR-3"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/review-perspectives.md']",
+            "payload.shared_documents[path='NewAgents/.github/agents/review-perspectives.md']",
+          ]
+        reason: "File description and §1-§8 content outline"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.review_design.perspectives"]
+        reason: "Detailed persona definitions for all 3 perspectives (security-sentinel, architecture-guardian, pragmatic-verifier) with review priorities and severity biases"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-2']",
+            "payload.functional_requirements[id='FR-3']",
+          ]
+        reason: "AC-2.1 (distinct review_perspective), AC-2.3 (≥3 perspectives), AC-3.1 (all-category coverage), AC-3.2 (category sub-verdicts)"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.decisions[id='D-8']"]
+        reason: "Decision D-8: 3 category-specific SQL INSERTs per reviewer rationale — affects §8 evidence requirements"
+    acceptance_criteria:
+      - "review-perspectives.md exists with 8 sections defining the 3-perspective review system"
+      - "Each perspective (§2-§4) has a substantively different review philosophy, priority hierarchy, and severity threshold — not just different labels"
+      - "§5 mandates all-category coverage (each reviewer reviews security + architecture + correctness)"
+      - "§7 calibrates severity thresholds: Security Sentinel = strictest, Pragmatic Verifier = most lenient"
+      - "§8 documents 3 SQL INSERTs per reviewer (1 per category) and verdict YAML structure"
+      - "File is ≤130 lines"
+    verification_tier: "Standard"

@@ -1,0 +1,152 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-review-fixes-r1"
+  step: "step-7-fixes"
+  started_at: "2026-02-27T12:00:00Z"
+  completed_at: "2026-02-27T12:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "agent-system-overhaul-code-review"
+    task_type: "code"
+    round: 1
+    description: "Fixes for Round 1 adversarial code review findings"
+    baseline:
+      ide_diagnostics:
+        errors: 5 # All pre-existing broken anchor link warnings in schemas.md
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      # === CRITICAL: Schema 9 stale field names (C-1) ===
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Schema 9 YAML Verdict Summary Fields: replaced reviewer_model with
+          reviewer_perspective, removed review_focus, replaced single verdict
+          with per-category verdicts object (security/architecture/correctness)
+          plus overall verdict. Updated example YAML block to match.
+        finding_ids: ["C-1"]
+
+      # === CRITICAL: Schema 9 perspective names (C-2) ===
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Fixed perspective names in Schema 9 Verdict File Naming Convention:
+          architecture-purist → architecture-guardian,
+          correctness-checker → pragmatic-verifier.
+          Updated example paths accordingly.
+        finding_ids: ["C-2"]
+
+      # === MAJOR: Schema 9 SQL check_name convention (C-3) ===
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Changed SQL INSERT convention check_name from
+          'review-{scope}-{perspective}' to 'review-{scope}-{category}'
+          where category is security|architecture|correctness.
+          Added instance column to convention table. Added note explaining
+          3-INSERT-per-reviewer pattern with cross-reference to sql-templates.md §6.
+        finding_ids: ["C-3"]
+
+      # === MAJOR: DDL conflicts — dual source of truth (ARCH-1, CORR-1) ===
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Removed Full Step 0 Initialization Script (70+ lines of duplicate DDL)
+          and replaced with pointer to sql-templates.md §1 as canonical source.
+          Synced inline anvil_checks DDL with sql-templates.md §1: added instance
+          column, fixed task_id/tool/round nullability, changed ts type from
+          DATETIME DEFAULT CURRENT_TIMESTAMP to TEXT NOT NULL DEFAULT datetime('now').
+          Added 'Illustrative reference only' warning to inline DDL blocks.
+          Synced pipeline_telemetry DDL: removed 'running' from status CHECK,
+          fixed ts type. Updated column reference tables to match.
+        finding_ids: ["ARCH-1", "CORR-1"]
+
+      # === MAJOR: Evidence gate query inconsistency (ARCH-3) ===
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Removed LIKE-based evidence gate queries from schemas.md Key Evidence
+          Gate Queries section. Replaced with pointer to sql-templates.md §6
+          with note explaining instance-based grouping and per-category matching.
+        finding_ids: ["ARCH-3"]
+
+      # === MAJOR: Designer NEEDS_REVISION routing (C-4) ===
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Changed Designer row NEEDS_REVISION cell from '→ Revision (from review
+          feedback)' to 'N/A (not returned)' — consistent with Designer's own
+          completion contract which states it never returns NEEDS_REVISION.
+        finding_ids: ["C-4"]
+
+      # === MAJOR: check_name naming patterns (C-3 related) ===
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Consolidated review-design-{perspective} and review-code-{perspective}
+          rows into single review-{scope}-{category} row with correct semantics:
+          scope is design|code, category is security|architecture|correctness,
+          reviewer identity in instance column.
+        finding_ids: ["C-3"]
+
+      # === MINOR: Orchestrator §5-§6 reference (A-1, CORR-1) ===
+      - path: "NewAgents/.github/agents/orchestrator.agent.md"
+        action: "modified"
+        description: >
+          Changed 'sql-templates.md §5–§6' to 'sql-templates.md §6' in both
+          line 24 (responsibility summary) and the Evidence Gate Logic section.
+          §5 is instruction_updates template, not evidence gates.
+        finding_ids: ["A-1", "CORR-1"]
+
+      # === MINOR: pipeline-conventions.md examples (C-5) ===
+      - path: ".github/instructions/pipeline-conventions.md"
+        action: "modified"
+        description: >
+          Updated review verdict/findings example file names to use full
+          perspective IDs: design-security-sentinel.yaml, code-architecture-guardian.yaml,
+          code-pragmatic-verifier.md instead of abbreviated design-security.yaml.
+        finding_ids: ["C-5"]
+
+    self_check:
+      ide_diagnostics:
+        errors: 5 # Same 5 pre-existing anchor link warnings — no regressions
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+
+    findings_addressed:
+      critical: 1 # C-1 (Schema 9 stale fields)
+      major: 6 # C-2, C-3, C-4, ARCH-1, ARCH-3, CORR-1
+      minor: 3 # A-1/CORR-1 (orchestrator ref), C-5 (conventions), CORR-2 (cross-ref drift)
+
+    findings_deferred:
+      - id: "SEC-1"
+        severity: "Major"
+        reason: "sql_escape() is already well-defined in sql-templates.md §0 with 3-step process. Adding enforcement beyond checklist requires architectural changes beyond fix scope."
+      - id: "SEC-2"
+        severity: "Major"
+        reason: "Shell injection prevention patterns (printf vs heredoc) require broader documentation changes and cross-platform testing. Noted for future improvement."
+      - id: "SEC-3"
+        severity: "Minor"
+        reason: "artifact_path traversal CHECK strengthening requires DDL change in sql-templates.md §1 (canonical source). Should be a separate task."
+      - id: "SEC-4"
+        severity: "Minor"
+        reason: "Implementer revert path quoting is in the agent definition template, not in the files under review scope."
+      - id: "ARCH-2"
+        severity: "Major"
+        reason: "schemas.md scope reduction (1528→<900 lines) by extracting non-schema content requires broader refactoring. Critical content drift fixed; full extraction deferred."
+      - id: "C-6"
+        severity: "Minor"
+        reason: "copilot-instructions.md SQL safety example (echo vs printf) is in the global config file, addressing separately."
+
+completion:
+  status: "DONE"
+  summary: "Fixed 10 review findings (1 Critical, 6 Major, 3 Minor) across schemas.md, orchestrator.agent.md, and pipeline-conventions.md. Key fixes: Schema 9 updated to perspective-based system, duplicate DDL removed, evidence gate queries replaced with sql-templates.md §6 pointer, Designer routing corrected."
+  severity: null
+  findings_count: 10
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-overhaul/implementation-reports/REVIEW-FIXES-R1.yaml"

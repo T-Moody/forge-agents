@@ -1,0 +1,82 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-004"
+  step: "step-6"
+  started_at: "2026-02-26T15:00:00Z"
+  completed_at: "2026-02-26T15:10:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-004"
+    run_id: "2026-02-26T14:30:00Z"
+    evidence_gate:
+      total_checks: 4
+      passed: 4
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "CreateGamePage.razor.cs: 0 errors, 0 warnings. CreateGamePageTemplateSelectionTests.cs: 0 errors, 0 warnings."
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Both changed files parse without syntax errors. IDE reports no diagnostics."
+
+      - check_name: "build"
+        tier: 2
+        phase: "after"
+        tool: "dotnet build"
+        command: "dotnet build src/TourneyPal.UI/TourneyPal.UI.csproj --no-incremental"
+        exit_code: 0
+        passed: true
+        output_snippet: "Build succeeded. 0 Error(s), 12 Warning(s) — all pre-existing, none in changed files."
+
+      - check_name: "tests"
+        tier: 2
+        phase: "after"
+        tool: "dotnet test"
+        command: "dotnet test --filter FullyQualifiedName~CreateGamePage --no-build"
+        exit_code: 0
+        passed: true
+        output_snippet: "Total tests: 47, Passed: 47, Failed: 0. All new TASK-004 tests pass: ActionSheetCancel_ShowsForm, ActionSheetCancel_DoesNotCallCancel, BackButtonStillNavigates, TemplatePickerDialogCancel_AlwaysShowsBlankForm, WithCustomTemplates_ShowsBlankForm, AfterActionSheetDismiss_FormIsAccessible."
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-02-26T14-30-00Z:<path>"
+      discrepancies_found: false
+      detail: >
+        Baseline confirmed: OnActionSheetCancel() called Cancel() directly.
+        OpenTemplatePickerDialog() cancel path had conditional Cancel() call
+        when !_customTemplates.Any(). Both match implementer's reported baseline.
+
+    code_review_notes:
+      - "OnActionSheetCancel() now sets _flowStep=FlowStep.Form, clears _sourceTemplateName, calls StateHasChanged(). No Cancel() call. Correct."
+      - "OpenTemplatePickerDialog() cancel path: unconditionally sets _flowStep=FlowStep.Form, clears _sourceTemplateName. Removed conditional Cancel() branch. Correct."
+      - "Cancel() method unchanged at lines 359-371: still navigates to /events/{EventId} or /settings/game-templates. Only called by TaskPage back button. Correct."
+      - "XML doc comment on OpenTemplatePickerDialog updated to reflect new behavior."
+      - "6 new tests covering AC-004-1 through AC-004-5 acceptance criteria."
+
+completion:
+  status: "DONE"
+  summary: "Verified TASK-004: 4 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/ui-bug-fixes/verification-reports/TASK-004.yaml"
+  evidence_summary:
+    total_checks: 4
+    passed: 4
+    failed: 0
+    security_blockers: 0

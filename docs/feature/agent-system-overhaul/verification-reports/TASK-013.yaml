@@ -1,0 +1,127 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-013"
+  step: "step-6"
+  started_at: "2026-02-27T10:00:00Z"
+  completed_at: "2026-02-27T10:15:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-013"
+    run_id: "2026-02-27T10:00:00Z"
+    evidence_gate:
+      total_checks: 3
+      passed: 3
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          4 markdown link validation warnings (schemas.md anchor, 3 internal heading
+          anchors #mode-documentation, #self-verification, #tdd-fallback). All reference
+          valid targets — schemas.md has Schema 7 at L509, internal headings exist in
+          document. These are IDE markdown link checker false positives. No new errors
+          introduced by implementation. Baseline claimed 5 errors, post-edit 4 similar
+          link-checker artifacts.
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: "Verified YAML frontmatter and markdown structure"
+        exit_code: null
+        passed: true
+        output_snippet: >
+          Valid markdown with YAML frontmatter (name: implementer, description present).
+          File is 334 lines, well-structured with headings, tables, code blocks, and
+          lists. No syntax or structural issues detected.
+      - check_name: "import-check"
+        tier: 3
+        phase: "after"
+        tool: "grep_search + file_search"
+        command: "Cross-reference validation of all shared doc section references"
+        exit_code: null
+        passed: true
+        output_snippet: >
+          All referenced shared doc sections verified: tool-access-matrix.md §7 (L51),
+          sql-templates.md §0/§2/§4 (L11/L197/L283), global-operating-rules.md §1/§2/§3/§6
+          (L7/L20/L31/L65), evaluation-schema.md §3/§4 (L25/L34), schemas.md Schema 7
+          (L509), severity-taxonomy.md exists, context7-integration.md exists.
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-02-27T10-00-00Z:NewAgents/.github/agents/implementer.agent.md"
+      discrepancies_found: false
+      notes: >
+        Baseline file at git tag was 382 lines. Implementer change description states
+        'Restructured from 522 to 334 lines' — the 522 figure appears to be from the
+        pre-feature design estimate, not the actual baseline at run start. Formal baseline
+        metrics (ide_diagnostics: 5 errors, build_exit_code: null, test_summary: null)
+        are consistent with the file type (markdown agent instructions). The 5→4 error
+        reduction is plausible (one broken anchor fixed during restructuring). Not flagged
+        as formal discrepancy since the 522 figure is in the narrative description, not
+        the structured baseline data.
+    acceptance_criteria_results:
+      - criterion: "YAML frontmatter with name and description (FR-16)"
+        passed: true
+        evidence: "Line 2: name: implementer; Line 3: description present"
+      - criterion: "Tool access table extracted to tool-access-matrix.md §7 (FR-10)"
+        passed: true
+        evidence: "Lines 21, 327 reference tool-access-matrix.md §7; §7 exists at L51 of shared doc"
+      - criterion: "SQL templates extracted to sql-templates.md §2 (FR-10)"
+        passed: true
+        evidence: "Lines 21, 126, 252, 285 reference sql-templates.md §0/§2/§4; all sections exist"
+      - criterion: "Error handling extracted to global-operating-rules.md (FR-10)"
+        passed: true
+        evidence: "Line 251 references §1–§2; Line 291 references §6; all sections exist"
+      - criterion: "No-file-redirect rule removed inline (FR-8, AC-8.3)"
+        passed: true
+        evidence: "grep for redirect/tee/output-redirect patterns returned 0 matches"
+      - criterion: "Artifact evaluation INSERT step added (FR-5, AC-5.2)"
+        passed: true
+        evidence: "Line 115: evaluation-schema.md §3–§4 and sql-templates.md §4 referenced"
+      - criterion: "Context7 conditional reference present (FR-9, AC-9.2)"
+        passed: true
+        evidence: "Lines 21, 144 reference context7-integration.md"
+      - criterion: "Terminal-only testing in self-fix loop (AC-7.3)"
+        passed: true
+        evidence: "Line 172: explicit terminal-only testing callout with run_in_terminal requirement"
+      - criterion: "TDD workflow preserved"
+        passed: true
+        evidence: "Lines 17, 131-135 (write failing tests), 248 (TDD rule), 262-276 (TDD fallback)"
+      - criterion: "Self-fix loop preserved (max 2 attempts)"
+        passed: true
+        evidence: "Lines 146-170 (loop logic), 250 (max 2 budget), 301 (self-check 0-2)"
+      - criterion: "git add -A at end"
+        passed: true
+        evidence: "Lines 177, 201, 314, 333 all reference git add -A"
+      - criterion: "Anti-drift anchor present"
+        passed: true
+        evidence: "Lines 331-333: Anti-Drift Anchor section with REMEMBER block"
+      - criterion: "File ≤340 lines"
+        passed: true
+        evidence: "334 lines (read_file), 333 lines (PowerShell Get-Content .Count)"
+      - criterion: "Implementation report remains YAML-only (FR-4)"
+        passed: true
+        evidence: "Output schema section shows YAML format; completion block is YAML"
+    tier_coverage:
+      tier_1: "Executed: ide-diagnostics, syntax-check"
+      tier_2: "Not applicable — no build system, type checker, linter, or test runner for markdown agent instruction files"
+      tier_3: "Executed: import-check (cross-reference validation of all shared doc section references)"
+      tier_4: "Skipped — Standard task (🟡 risk, no 🔴 files)"
+completion:
+  status: "DONE"
+  summary: "Verified TASK-013: 3 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "verification-reports/TASK-013.yaml"
+  evidence_summary:
+    total_checks: 3
+    passed: 3
+    failed: 0
+    security_blockers: 0

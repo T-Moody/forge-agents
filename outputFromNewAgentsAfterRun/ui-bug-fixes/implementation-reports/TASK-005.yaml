@@ -1,0 +1,70 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-005"
+  step: "step-5"
+  started_at: "2026-02-26T14:30:00Z"
+  completed_at: "2026-02-26T14:35:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-005"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: 0
+      test_summary:
+        total: 43
+        passed: 43
+        failed: 0
+    changes:
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+        action: "modified"
+        description: >
+          Extended OnInitializedAsync else branch (template context) to show
+          TemplatePickerDialog when built-in or custom templates exist, falling
+          back to blank form when no templates are available.
+      - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGamePageTemplateSelectionTests.cs"
+        action: "modified"
+        description: >
+          Added 4 new logic-level tests for template-context template picker behavior:
+          TemplateContext_ShowsTemplatePicker_WhenBuiltInTemplatesExist,
+          TemplateContext_ShowsTemplatePicker_WhenCustomTemplatesExist,
+          TemplateContext_ShowsBlankForm_WhenNoTemplatesExist,
+          TemplateContext_PickerCancel_ShowsBlankForm. Updated comment on
+          existing TemplateContext_SkipsActionSheet test.
+      - path: "docs/feature/ui-bug-fixes/implementation-reports/TASK-005.yaml"
+        action: "created"
+        description: "Implementation report for TASK-005"
+    self_check:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: 0
+      test_summary:
+        total: 47
+        passed: 47
+        failed: 0
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "baseline-build"
+        phase: "baseline"
+        tool: "dotnet test (implicit build)"
+        passed: true
+      - check_name: "baseline-tests"
+        phase: "baseline"
+        tool: "dotnet test tests/TourneyPal.Tests --filter CreateGamePage"
+        passed: true
+completion:
+  status: "DONE"
+  summary: "TASK-005: Show TemplatePickerDialog when creating game template from settings — extended OnInitializedAsync else branch, added 4 tests"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/ui-bug-fixes/implementation-reports/TASK-005.yaml"

@@ -1,0 +1,93 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-011"
+    task_type: "code"
+    title: "Restructure Adversarial Reviewer Agent"
+    description: |
+      Modify NewAgents/.github/agents/adversarial-reviewer.agent.md to implement multi-perspective
+      review with all-category coverage. Target: 372→335 lines.
+
+      Extractions (remove inline, add reference pointers):
+      - Tool access table → "See tool-access-matrix.md §9"
+      - SQL INSERT template → "See sql-templates.md §2"
+      - Review Focus Areas (security/architecture/correctness details) → "See review-perspectives.md"
+
+      Additions:
+      - YAML frontmatter: name: "adversarial-reviewer", description: "..."
+      - review_perspective parameter: replaces review_focus + model. Values: security-sentinel,
+        architecture-guardian, pragmatic-verifier. Each instance receives one perspective.
+      - All-category coverage: every reviewer reviews security + architecture + correctness (FR-3).
+        Output must have explicit sections for each category.
+      - Updated verdict path: review-verdicts/<scope>-<perspective>.yaml (D-7)
+      - Updated findings path: review-findings/<scope>-<perspective>.md
+      - 3 SQL INSERTs per review: one per category (review-{scope}-security, review-{scope}-architecture,
+        review-{scope}-correctness) with scope-qualified check_names (D-8)
+      - Artifact evaluation INSERT for design-output or implementation code (reference evaluation-schema.md §3)
+
+      Removals:
+      - model parameter (VS Code ignores it per DP-1)
+      - review_focus parameter (replaced by review_perspective — perspective controls lens, not category)
+
+      The reviewer's perspective determines HOW it reviews all categories, not WHICH
+      category it reviews. Security Sentinel reviews all 3 categories but through a
+      security-oriented lens.
+    risk_classification: "🟡"
+    wave: 4
+    dependencies: ["TASK-004", "TASK-006"]
+    estimated_lines_changed: 150
+    affected_files:
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        action: "modify"
+    addresses_frs:
+      ["FR-2", "FR-3", "FR-4", "FR-5", "FR-8", "FR-10", "FR-12", "FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[agent='adversarial-reviewer']"]
+        reason: "Adversarial reviewer design: extracted content, new content, key changes (6 items)"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/adversarial-reviewer.agent.md']",
+          ]
+        reason: "File description with target 335 lines and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.review_design.perspectives",
+            "payload.review_design.verdict_naming",
+          ]
+        reason: "3 perspective definitions and verdict naming convention"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-2']",
+            "payload.functional_requirements[id='FR-3']",
+          ]
+        reason: "AC-2.1 (distinct perspective), AC-2.3 (≥3 perspectives), AC-3.1 (all-category), AC-3.2 (category sub-verdicts)"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.decisions[id='D-7']", "payload.decisions[id='D-8']"]
+        reason: "D-7: perspective-based verdict naming. D-8: 3 category-specific INSERTs per reviewer."
+      - file: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        sections:
+          [
+            "review_focus parameter",
+            "tool access",
+            "SQL INSERT",
+            "output schema",
+          ]
+        reason: "Current content to identify what's replaced and what's preserved"
+    acceptance_criteria:
+      - "adversarial-reviewer.agent.md has YAML frontmatter with name and description (FR-16)"
+      - "review_perspective parameter replaces review_focus + model parameters"
+      - "Each reviewer instance reviews ALL 3 categories (security, architecture, correctness) (FR-3, AC-3.1)"
+      - "Verdict file path: review-verdicts/<scope>-<perspective>.yaml (FR-12, D-7)"
+      - "Findings file path: review-findings/<scope>-<perspective>.md"
+      - "3 SQL INSERTs per review with scope-qualified check_names (D-8)"
+      - "Artifact evaluation INSERT present (FR-5)"
+      - "Tool access table replaced with reference to tool-access-matrix.md §9 (FR-10)"
+      - "Review perspective details reference review-perspectives.md (not inline) (FR-10)"
+      - "File is ≤335 lines"
+      - "Anti-drift anchor retained"
+    verification_tier: "Standard"

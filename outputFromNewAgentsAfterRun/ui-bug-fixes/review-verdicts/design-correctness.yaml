@@ -1,0 +1,10 @@
+reviewer_model: "claude-opus-4.6"
+review_focus: "correctness"
+scope: "design"
+verdict: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 1
+  major: 2
+  minor: 2
+summary: "BUG-006 theme redesign proposes dark Background #000000 which directly contradicts spec AC-006-8 ('dark mode background is not pure black') and will fail AllNonHcThemes_PaletteDark_BackgroundIsNotPureBlack test. Light Surface #FFFFFF violates Surface!=white test invariant and omits required DrawerBackground cascade. BUG-004/005 have minor pattern deviations."

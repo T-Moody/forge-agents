@@ -1,0 +1,128 @@
+task:
+  id: "TASK-007"
+  title: "Redesign Professional theme palette for Apple HIG + fix Color.Secondary on ThemePreviewCard/AppearancePage"
+  description: >
+    Update the Professional theme's PaletteLight and PaletteDark hex values to align with
+    Apple HIG per design-output.yaml D-6 (revised Round 2). Update Professional PreviewSwatches
+    to match new palette values. Fix Color.Secondary on ThemePreviewCard.razor (line 9) and
+    AppearancePage.razor (line 19) using Style="color: var(--mud-palette-text-secondary)".
+    All hex values are specified exactly in design-output.yaml — use verbatim.
+  agent: "implementer"
+  bug_ids: ["BUG-006"]
+  size: "Standard"
+  risk: "🟡"
+  depends_on: []
+  wave: 3
+  verification_tier: "Standard"
+  estimated_lines_changed: 80
+
+  acceptance_criteria:
+    - "AC-006-2: Professional PaletteLight Background is #F2F2F7 (Apple system bg)"
+    - "AC-006-3: Professional PaletteDark Background is #1C1C1E (Apple elevated surface)"
+    - "AC-006-4: PreviewSwatches match actual Primary, Secondary, Tertiary, Surface palette values"
+    - "AC-006-5: ThemePreviewCard description uses muted TextSecondary, not accent color"
+    - "AC-006-6: AppearancePage mode label uses muted TextSecondary, not accent color"
+    - "AC-006-7: Professional theme retains distinct visual identity (blue-purple primary)"
+    - "AC-006-8: ThemeRegistryTests invariant tests pass (no pure black bg, Surface != #FFFFFF, DrawerBackground == Surface)"
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-6']"
+    spec_requirements:
+      - "spec-output.yaml#payload.requirements[id='BUG-006']"
+    files_to_modify:
+      - path: "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs"
+        risk: "🟡"
+        read_lines: "60-150"
+        changes:
+          - description: "Update Professional PaletteLight (lines 69-105)"
+            palette_changes:
+              Primary: { from: "#594AE2", to: "#3478F6" }
+              Secondary: { from: "#ff4081", to: "#FF2D55" }
+              Tertiary: { from: "#1ec8a5", to: "#5AC8FA" }
+              Background: { from: "#FAFAFC", to: "#F2F2F7" }
+              Surface: { from: "#F2F2F6", to: "#FAFAFE" }
+              DrawerBackground: { from: "#F2F2F6", to: "#FAFAFE" }
+              BackgroundGray: { from: "#E8E8EC", to: "#E5E5EA" }
+              Info: { from: "#4a86ff", to: "#007AFF" }
+              Success: { from: "#3dcb6c", to: "#34C759" }
+              Warning: { from: "#ffb545", to: "#FF9500" }
+              Error: { from: "#ff3f5f", to: "#FF3B30" }
+          - description: "Update Professional PaletteDark (lines 108-136)"
+            palette_changes:
+              Primary: { from: "#7e6fff", to: "#5E9CFF" }
+              Tertiary: { from: "#1ec8a5", to: "#64D2FF" }
+              Background: { from: "#1a1a27", to: "#1C1C1E" }
+              Surface: { from: "#1e1e2d", to: "#2C2C2E" }
+              BackgroundGray: { from: "#151521", to: "#141416" }
+              DrawerBackground: { from: "#1a1a27", to: "#1C1C1E" }
+              AppbarBackground:
+                { from: "rgba(26,26,39,0.8)", to: "rgba(28,28,30,0.8)" }
+              Info: { from: "#4a86ff", to: "#0A84FF" }
+              Success: { from: "#3dcb6c", to: "#30D158" }
+              Warning: { from: "#ffb545", to: "#FF9F0A" }
+              Error: { from: "#ff3f5f", to: "#FF453A" }
+          - description: "Update Professional PreviewSwatches (lines 139-145)"
+            before_swatches:
+              - { light: "#594AE2", dark: "#7e6fff" }
+              - { light: "#ff4081", dark: "#ff4081" }
+              - { light: "#1ec8a5", dark: "#1ec8a5" }
+              - { light: "#F2F2F6", dark: "#1e1e2d" }
+            after_swatches:
+              - { light: "#3478F6", dark: "#5E9CFF" }
+              - { light: "#FF2D55", dark: "#FF375F" }
+              - { light: "#5AC8FA", dark: "#64D2FF" }
+              - { light: "#FAFAFE", dark: "#2C2C2E" }
+      - path: "src/TourneyPal.UI/Features/Settings/ThemePreviewCard.razor"
+        risk: "🟢"
+        read_lines: "1-20"
+        changes:
+          - description: "Replace Color.Secondary with TextSecondary style on description MudText (line 9)"
+            before: '<MudText Typo="Typo.body2" Color="Color.Secondary">@Loc[Theme.DescriptionKey]</MudText>'
+            after: '<MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary)">@Loc[Theme.DescriptionKey]</MudText>'
+      - path: "src/TourneyPal.UI/Features/Settings/AppearancePage.razor"
+        risk: "🟢"
+        read_lines: "15-25"
+        changes:
+          - description: "Replace Color.Secondary with TextSecondary style on mode label MudText (line 19)"
+            before: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+            after: '<MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary)">'
+    files_to_read:
+      - path: "tests/TourneyPal.Tests/Common/Theme/ThemeRegistryTests.cs"
+        read_lines: "1-200"
+        reason: "Understand invariant tests (pass without modification) and value-specific tests (need hex updates)"
+
+  critical_implementation_notes:
+    - "Use EXACT hex values from the palette_changes tables above — do not approximate"
+    - "Light Surface MUST be #FAFAFE (not #FFFFFF) — violates AllNonHcThemes_PaletteLight_Has22CoreProperties"
+    - "Dark Background MUST be #1C1C1E (not #000000) — violates AllNonHcThemes_PaletteDark_BackgroundIsNotPureBlack + AC-006-8"
+    - "DrawerBackground MUST match Surface in light (#FAFAFE) and Background in dark (#1C1C1E)"
+    - "AppbarBackground RGB values must match new dark Background: #1C1C1E = rgb(28,28,30) → rgba(28,28,30,0.8)"
+    - "Run ThemeRegistryTests AFTER each palette update to verify invariant compliance"
+
+  invariant_compliance:
+    - test: "AllNonHcThemes_PaletteDark_BackgroundIsNotPureBlack"
+      assertion: "Background != #000000"
+      proposed_value: "#1C1C1E"
+      status: "PASS"
+    - test: "AllNonHcThemes_PaletteLight_Has22CoreProperties"
+      assertion: "Surface != #FFFFFF"
+      proposed_value: "#FAFAFE"
+      status: "PASS"
+    - test: "AllNonHcThemes_PaletteLight_Has22CoreProperties"
+      assertion: "DrawerBackground == Surface"
+      proposed_value: "#FAFAFE == #FAFAFE"
+      status: "PASS"
+    - test: "ProfessionalTheme_PaletteLight_BackgroundHierarchyIsCorrect"
+      assertion: "Surface != Background"
+      proposed_value: "#FAFAFE != #F2F2F7"
+      status: "PASS"
+
+  testing_notes: >
+    ThemeRegistryTests invariant tests MUST pass WITHOUT modification:
+    - AllNonHcThemes_PaletteDark_BackgroundIsNotPureBlack
+    - AllNonHcThemes_PaletteLight_Has22CoreProperties
+    - ProfessionalTheme_PaletteLight_BackgroundHierarchyIsCorrect
+    Value-specific tests WILL need hex assertion updates:
+    - ProfessionalTheme_PaletteLight_HasAllCoreProperties (22 property value assertions)
+    Estimated: 5-10 test assertion updates for changed hex values. 0 new tests.

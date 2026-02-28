@@ -1,0 +1,13 @@
+reviewer_perspective: "pragmatic-verifier"
+scope: "code"
+verdicts:
+  security: "approve"
+  architecture: "approve"
+  correctness: "needs_revision"
+overall: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 1
+  major: 3
+  minor: 5
+summary: "schemas.md Schema 9 not updated for perspective-based review: uses old reviewer_model/review_focus fields, wrong perspective names (architecture-purist/correctness-checker), and incompatible check_name convention. Routing matrix inconsistency for Designer. All 4 major+ findings in schemas.md — single-file fix."

@@ -1,4 +1,3 @@
-````chatagent
 ---
 name: knowledge-agent
 description: "Knowledge evolution agent: captures reusable patterns, maintains the architectural decision log, assembles the evidence bundle, and persists cross-session knowledge via VS Code store_memory."
@@ -27,24 +26,25 @@ You NEVER modify source code, tests, agent definitions, or project files outside
 
 ### Primary Inputs
 
-| Input                                  | Source                           | Schema                          | Purpose                                                            |
-| -------------------------------------- | -------------------------------- | ------------------------------- | ------------------------------------------------------------------ |
-| `implementation-reports/task-*.yaml`   | Implementer (Step 5)             | Schema 7: `implementation-report` | Baseline records, change summaries, self-check results             |
-| `verification-reports/task-*.yaml`     | Verifier (Step 6)                | Schema 8: `verification-report`   | Cascade results, evidence gate summaries, regression analysis      |
-| `review-findings/code-*.md`           | Adversarial Reviewer (Step 7)    | —                               | Per-model code review findings (Markdown)                          |
-| `review-findings/design-*.md`         | Adversarial Reviewer (Step 3b)   | —                               | Per-model design review findings (Markdown)                        |
-| `spec-output.yaml`                     | Spec Agent (Step 2)              | Schema 3: `spec-output`          | Requirements and acceptance criteria                               |
-| `design-output.yaml`                   | Designer (Step 3)                | Schema 4: `design-output`        | Design decisions and justifications                                |
-| `plan-output.yaml`                     | Planner (Step 4)                 | Schema 5: `plan-output`          | Task list, risk classifications, wave assignments                  |
-| `research/*.yaml`                      | Researcher (Step 1)              | Schema 2: `research-output`      | Research findings across all focus areas                           |
-| `verification-ledger.db`              | Verifier / Orchestrator          | SQLite (`anvil_checks`)          | SQL verification evidence (PRIMARY ledger)                         |
-| `pipeline-telemetry.db`               | All agents / Orchestrator        | SQLite (`pipeline_telemetry`)    | Timing, dispatch counts, token usage                               |
-| `git diff`                             | Git                              | —                               | Full changeset for blast radius analysis                           |
-| `initial-request.md`                   | User / Prompt                    | —                               | Original feature request for context                               |
+| Input                                | Source                         | Schema                            | Purpose                                                       |
+| ------------------------------------ | ------------------------------ | --------------------------------- | ------------------------------------------------------------- |
+| `implementation-reports/task-*.yaml` | Implementer (Step 5)           | Schema 7: `implementation-report` | Baseline records, change summaries, self-check results        |
+| `verification-reports/task-*.yaml`   | Verifier (Step 6)              | Schema 8: `verification-report`   | Cascade results, evidence gate summaries, regression analysis |
+| `review-findings/code-*.md`          | Adversarial Reviewer (Step 7)  | —                                 | Per-model code review findings (Markdown)                     |
+| `review-findings/design-*.md`        | Adversarial Reviewer (Step 3b) | —                                 | Per-model design review findings (Markdown)                   |
+| `spec-output.yaml`                   | Spec Agent (Step 2)            | Schema 3: `spec-output`           | Requirements and acceptance criteria                          |
+| `design-output.yaml`                 | Designer (Step 3)              | Schema 4: `design-output`         | Design decisions and justifications                           |
+| `plan-output.yaml`                   | Planner (Step 4)               | Schema 5: `plan-output`           | Task list, risk classifications, wave assignments             |
+| `research/*.yaml`                    | Researcher (Step 1)            | Schema 2: `research-output`       | Research findings across all focus areas                      |
+| `verification-ledger.db`             | Verifier / Orchestrator        | SQLite (`anvil_checks`)           | SQL verification evidence (PRIMARY ledger)                    |
+| `pipeline-telemetry.db`              | All agents / Orchestrator      | SQLite (`pipeline_telemetry`)     | Timing, dispatch counts, token usage                          |
+| `git diff`                           | Git                            | —                                 | Full changeset for blast radius analysis                      |
+| `initial-request.md`                 | User / Prompt                  | —                                 | Original feature request for context                          |
 
 ### Orchestrator-Provided Context
 
 The orchestrator provides in the dispatch message:
+
 - `run_id` — pipeline run identifier (ISO 8601 timestamp)
 - Paths to all upstream outputs
 - Summary of pipeline execution status (steps completed, errors encountered)
@@ -57,11 +57,11 @@ All outputs conform to the `knowledge-output` schema defined in [schemas.md](sch
 
 ### Output Files
 
-| File                    | Format   | Schema              | Description                                                          |
-| ----------------------- | -------- | ------------------- | -------------------------------------------------------------------- |
-| `knowledge-output.yaml` | YAML     | `knowledge-output`  | Typed knowledge updates, decision entries, evidence bundle summary   |
-| `decisions.yaml`        | YAML     | —                   | Append-only decision log (created if absent, appended if exists)     |
-| `evidence-bundle.md`    | Markdown | —                   | Human-readable proof-of-quality deliverable (Step 8b)                |
+| File                    | Format   | Schema             | Description                                                        |
+| ----------------------- | -------- | ------------------ | ------------------------------------------------------------------ |
+| `knowledge-output.yaml` | YAML     | `knowledge-output` | Typed knowledge updates, decision entries, evidence bundle summary |
+| `decisions.yaml`        | YAML     | —                  | Append-only decision log (created if absent, appended if exists)   |
+| `evidence-bundle.md`    | Markdown | —                  | Human-readable proof-of-quality deliverable (Step 8b)              |
 
 ### YAML Output Structure
 
@@ -123,7 +123,7 @@ completion:
     - "knowledge-output.yaml"
     - "decisions.yaml"
     - "evidence-bundle.md"
-````
+```
 
 ---
 

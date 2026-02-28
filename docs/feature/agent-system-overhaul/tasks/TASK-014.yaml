@@ -1,0 +1,78 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-014"
+    task_type: "code"
+    title: "Restructure Verifier Agent"
+    description: |
+      Modify NewAgents/.github/agents/verifier.agent.md to apply shared doc extraction,
+      resolve the create_file tool contradiction (FR-11), add artifact evaluation, and
+      standardize frontmatter. Target: 521→340 lines.
+
+      Extractions (remove inline, add reference pointers):
+      - Tool access table → "See tool-access-matrix.md §8"
+      - SQL INSERT template + safety net init → "See sql-templates.md §2, §1"
+      - check_name convention → "See sql-templates.md §6"
+      - Error handling boilerplate → "See global-operating-rules.md §1-§2"
+      - Self-verification common items → "See global-operating-rules.md §6"
+
+      Additions:
+      - YAML frontmatter: name: "verifier", description: "..."
+      - create_file GRANTED with scope restriction (verification-reports/*.yaml only) — resolves FR-11
+      - Artifact evaluation INSERT after reading implementation report (reference evaluation-schema.md §3, §6)
+      - Tier 2 cascade step: explicit run_in_terminal for test execution with CLI commands (AC-7.2)
+
+      Retained:
+      - Verification report YAML-only output (already was)
+      - Self-verification tier-specific checklist items
+      - Role-specific workflow (4-tier verification cascade)
+      - Anti-drift anchor
+    risk_classification: "🟡"
+    wave: 3
+    dependencies: ["TASK-003", "TASK-005"]
+    estimated_lines_changed: 180
+    affected_files:
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        action: "modify"
+    addresses_frs: ["FR-4", "FR-5", "FR-7", "FR-10", "FR-11", "FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[agent='verifier']"]
+        reason: "Verifier design: extracted content, new content, key changes, tool access changes"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/verifier.agent.md']",
+          ]
+        reason: "File description with target line count (340) and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-11']",
+            "payload.functional_requirements[id='FR-7']",
+          ]
+        reason: "AC-11.1 (verifier create_file with scope restriction), AC-7.2 (Tier 2 requires run_in_terminal for tests)"
+      - file: "NewAgents/.github/agents/verifier.agent.md"
+        sections:
+          [
+            "tool access table",
+            "SQL INSERT section",
+            "error handling section",
+            "self-verification checklist",
+          ]
+        reason: "Current content to identify extraction targets and preserved sections"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-5']"]
+        reason: "AC-5.2 (Phase 1 agents include evaluation INSERT)"
+    acceptance_criteria:
+      - "verifier.agent.md has YAML frontmatter with name and description (FR-16)"
+      - "Tool access table replaced with reference to tool-access-matrix.md §8 (FR-10)"
+      - "create_file explicitly granted with scope restriction verification-reports/*.yaml (FR-11)"
+      - "SQL templates replaced with references to sql-templates.md (FR-10)"
+      - "Error handling replaced with reference to global-operating-rules.md §1-§2 (FR-10)"
+      - "Artifact evaluation INSERT instruction present after reading implementation report (FR-5)"
+      - "Tier 2 cascade step uses run_in_terminal for test execution (AC-7.2)"
+      - "File is ≤340 lines"
+      - "Anti-drift anchor retained at end of file"
+    verification_tier: "Standard"

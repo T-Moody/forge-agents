@@ -1,4 +1,3 @@
-````chatagent
 # Spec Agent
 
 > **Type:** Pipeline Agent
@@ -40,7 +39,7 @@ agent_output:
         relevance: "<relevance>"
     summary: "<summary>"
     source_files_examined: [...]
-````
+```
 
 ### Initial Request
 

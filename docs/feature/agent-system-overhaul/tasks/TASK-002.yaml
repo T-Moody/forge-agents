@@ -1,0 +1,77 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-002"
+    task_type: "documentation"
+    title: "Create Global Operating Rules Reference Doc"
+    description: |
+      Create NewAgents/.github/agents/global-operating-rules.md — the Tier 2 shared reference
+      document containing detailed operating rules referenced by all 9 agents. This is the most
+      widely-referenced shared doc in the system.
+
+      Content outline (~130 lines):
+      - §1 Two-Tiered Retry: Agent-internal 2x transient + orchestrator 1x per agent invocation
+      - §2 Error Categories: Transient (network, tool unavail, DB locked) vs Deterministic (schema violation, missing input)
+      - §3 SQLITE_BUSY Handling: WAL mode, busy_timeout=5000, retry 3x with exponential backoff (1s, 2s, 4s)
+      - §4 run_id Protocol: Generated at Step 0, propagated to all agents, filters all SQL queries
+      - §5 Completion Contract Routing Matrix: REFERENCE schemas.md (DO NOT duplicate the table — per CORR-4).
+           Include a brief summary and explicit pointer: "See schemas.md §Routing Matrix for the full agent × status table."
+      - §6 Self-Verification Common Checklist: Schema compliance, output path exists, completion block valid, schema_version present
+      - §7 Pipeline State Recovery (EC-5): Scan feature dir, read completion blocks, resume from first incomplete step
+      - §8 Output Naming Conventions: docs/feature/<slug>/ prefix, deterministic paths per agent
+      - §9 Governed Instruction Updates: Interactive=approval required, Autonomous=log only.
+           Safety Constraint Filter MUST be formally defined here per SEC-5:
+           - Enumerate immutable rules (copilot-instructions.md rules are never modifiable)
+           - Protected phrases list (patterns that cannot be removed or weakened)
+           - Pattern-matching rejection criteria (what types of changes are auto-rejected)
+           - Evaluator separation: orchestrator evaluates, Knowledge Agent proposes (not self-approving)
+
+      CRITICAL CONSTRAINT (CORR-4): §5 MUST NOT contain the full routing matrix table.
+      It must reference schemas.md as the canonical location.
+
+      CRITICAL CONSTRAINT (SEC-5): §9 MUST formally define the Safety Constraint Filter
+      with immutable rules, protected phrases, and evaluator separation.
+    risk_classification: "🟡"
+    wave: 1
+    dependencies: []
+    estimated_lines_changed: 130
+    affected_files:
+      - path: "NewAgents/.github/agents/global-operating-rules.md"
+        action: "create"
+    addresses_frs: ["FR-10", "FR-13"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/global-operating-rules.md']",
+            "payload.shared_documents[path='NewAgents/.github/agents/global-operating-rules.md']",
+          ]
+        reason: "File description and detailed §1-§9 content outline"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.decisions[id='D-5']"]
+        reason: "Decision D-5: six focused reference docs rationale"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-10']",
+            "payload.functional_requirements[id='FR-13']",
+          ]
+        reason: "AC-10.2 (≥3 shared docs), AC-10.5 (no duplication), AC-13.1 (routing matrix in schemas.md)"
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-correctness.yaml"
+        sections: ["findings[id='CORR-4']"]
+        reason: "CORR-4: Routing matrix must be in schemas.md only — GOR §5 must reference, not duplicate"
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-security.yaml"
+        sections: ["findings[id='SEC-5']"]
+        reason: "SEC-5: Safety Constraint Filter must be formally defined in §9"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.common_requirements"]
+        reason: "CR-1 through CR-8 define the common requirements this doc must capture"
+    acceptance_criteria:
+      - "global-operating-rules.md exists with 9 sections matching the design content outline"
+      - "§5 references schemas.md for the routing matrix — does NOT contain a duplicate table (CORR-4)"
+      - "§9 formally defines Safety Constraint Filter with: immutable rules list, protected phrases, pattern-matching rejection, evaluator separation (SEC-5)"
+      - "§3 SQLITE_BUSY retry includes WAL mode, busy_timeout=5000, exponential backoff (1s, 2s, 4s)"
+      - "File is ≤130 lines"
+      - "All 8 common requirements (CR-1 through CR-8) are addressed by content in this doc or cross-referenced to other docs"
+    verification_tier: "Standard"

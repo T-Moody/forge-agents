@@ -1,0 +1,1063 @@
+agent_output:
+  agent: "spec"
+  instance: "spec-agent-system-overhaul"
+  step: "step-2"
+  started_at: "2026-02-27T11:00:00Z"
+  completed_at: "2026-02-27T12:30:00Z"
+  schema_version: "1.0"
+  payload:
+    feature_name: "Agent System Overhaul"
+    feature_slug: "agent-system-overhaul"
+
+    scope:
+      in_scope:
+        - "Parallel execution investigation and optimization within VS Code runSubagent constraints"
+        - "Multi-perspective adversarial review with prompt diversity (replacing broken multi-model approach)"
+        - "Review restructure: all reviewer instances review all categories (security, architecture, correctness)"
+        - "YAML+MD dual output audit and rationalization"
+        - "Artifact evaluation system restoration using SQLite storage"
+        - "Pipeline telemetry DB population and post-mortem analysis consumer"
+        - "Terminal-only testing enforcement (global rule, not per-agent)"
+        - "Global no-file-redirect rule for all agents with run_in_terminal access"
+        - "Conditional Context7 MCP integration (graceful degradation if unavailable)"
+        - "Agent file size reduction (target 250-350 lines) via shared reference docs"
+        - "Instruction file infrastructure (.github/copilot-instructions.md + .github/instructions/)"
+        - "Expanded SQLite usage for evaluations, metrics, and instruction update tracking"
+        - "Verifier tool contradiction resolution (create_file restriction vs output requirement)"
+        - "Review verdict file path consistency fix"
+        - "VS Code runSubagent API capability research (model routing, concurrency behavior)"
+        - "Proactive instruction file updates via Knowledge Agent governed update mechanism"
+        - "Frontmatter standardization across all agent files"
+      out_of_scope:
+        - "Changing the VS Code agent runtime or runSubagent API implementation"
+        - "Adding new VS Code extensions or modifying VS Code source code"
+        - "GitHub MCP integration (Anvil feature — not requested)"
+        - "Session store / cross-session recall database (Anvil feature — replaced by VS Code memory tool)"
+        - "Changing the 10-step pipeline structure (Steps 0-9 are retained)"
+        - "Restoring Forge's markdown memory system (replaced by typed YAML + SQL)"
+        - "Restoring Forge's 24-agent count (parameterized approach is retained)"
+        - "Circular dependency introduction between agents"
+        - "Breaking the bounded feedback loop invariant (all loops retain hard iteration limits)"
+
+    directions:
+      - id: "A"
+        name: "Incremental Enhancement"
+        summary: >
+          Fix the identified gaps (telemetry, evaluations, tool contradictions, file paths) within the
+          existing 9-agent NewAgents architecture. Keep all agents, add new reference docs for shared
+          patterns. Minimal structural change, maximal bug-fixing.
+      - id: "B"
+        name: "Reference Doc Extraction + Feature Restoration"
+        summary: >
+          Restructure agents to be leaner (250-350 lines) by extracting shared patterns into reference docs
+          (global-operating-rules.md, evaluation-schema.md, tool-access-matrix.md). Restore missing Forge
+          features (evaluations, post-mortem, instruction files) as SQLite-backed capabilities integrated
+          into existing agents rather than adding new agents.
+      - id: "C"
+        name: "Full Architectural Overhaul"
+        summary: >
+          Deep restructure: add new agents (PostMortem), split Knowledge Agent responsibilities, create
+          .github/copilot-instructions.md for global rules, establish .github/instructions/ for domain
+          instructions, restore evaluation system with new SQLite schema, and overhaul all 9 agents to
+          be under 350 lines with comprehensive shared reference docs.
+
+    common_requirements:
+      - id: "CR-1"
+        text: "All agent outputs MUST include typed YAML with completion contracts (schema_version: 1.0)"
+        priority: "must"
+      - id: "CR-2"
+        text: "SQL evidence gates (anvil_checks INSERT + COUNT) MUST be preserved for all verification and review steps"
+        priority: "must"
+      - id: "CR-3"
+        text: "Anti-drift anchors MUST be retained at the end of every agent file (1-3 sentences)"
+        priority: "must"
+      - id: "CR-4"
+        text: "Two-tiered retry pattern MUST be preserved (agent-internal 2x transient + orchestrator 1x per agent)"
+        priority: "must"
+      - id: "CR-5"
+        text: "All feedback loops MUST retain hard iteration limits to prevent infinite cycles"
+        priority: "must"
+      - id: "CR-6"
+        text: "run_id MUST continue to serve as the universal cross-agent namespace filter"
+        priority: "must"
+      - id: "CR-7"
+        text: "Pipeline state recovery (EC-5) MUST be preserved — orchestrator reconstructs state from output file scan"
+        priority: "must"
+      - id: "CR-8"
+        text: "No agent MUST modify another agent's definition files at runtime"
+        priority: "must"
+
+    functional_requirements:
+      - id: "FR-1"
+        title: "Parallel Execution Investigation & Optimization"
+        description: >
+          Investigate why agents execute sequentially despite the orchestrator dispatching via runSubagent
+          with parallel intent. Research VS Code's runSubagent API to determine: (a) whether multiple
+          concurrent runSubagent calls are supported, (b) if there's a specific invocation pattern that
+          enables true concurrency, (c) platform limitations on parallel subagent execution. Implement
+          whatever dispatch pattern maximizes actual parallelism within platform constraints. If true
+          parallelism is not possible, document the platform limitation and optimize sequential dispatch
+          order for minimum wall-clock time.
+        user_requirement_refs:
+          - "REQ-1"
+          - "REQ-8"
+        acceptance_criteria:
+          - id: "AC-1.1"
+            criterion: >
+              Research document exists documenting VS Code runSubagent concurrency behavior with
+              evidence from API investigation or runtime testing.
+          - id: "AC-1.2"
+            criterion: >
+              Orchestrator dispatch pattern is updated to use whatever mechanism maximizes parallelism
+              (e.g., concurrent tool calls, batch dispatch, or documented workaround).
+          - id: "AC-1.3"
+            criterion: >
+              If platform limitation prevents true parallelism, a documented finding exists explaining
+              the constraint with evidence, and dispatch-patterns.md is updated to reflect reality.
+        priority: "must-have"
+
+      - id: "FR-2"
+        title: "Multi-Perspective Adversarial Review"
+        description: >
+          Replace the broken multi-model review approach (VS Code ignores model parameters for custom
+          .agent.md agents — confirmed by real pipeline output showing all 6 verdicts from claude-opus-4.6)
+          with a multi-perspective approach. Each reviewer instance receives a distinct system prompt
+          persona that shapes its review lens (e.g., security-focused pessimist, architecture purist,
+          pragmatic correctness checker). Diversity comes from prompt engineering rather than model
+          differences. If VS Code API research (FR-1) reveals a working model routing mechanism,
+          document it as a Phase 2 enhancement path in the design.
+        user_requirement_refs:
+          - "REQ-2"
+        acceptance_criteria:
+          - id: "AC-2.1"
+            criterion: >
+              Each adversarial reviewer instance receives a distinct review_perspective parameter that
+              meaningfully changes its review behavior (not just a label — the system prompt must be
+              substantively different per perspective).
+          - id: "AC-2.2"
+            criterion: >
+              Real review output from different perspective instances produces measurably different
+              findings (not identical findings with different wording).
+          - id: "AC-2.3"
+            criterion: >
+              The adversarial-reviewer.agent.md includes at least 3 distinct perspective definitions
+              with different review priorities, heuristics, and severity thresholds.
+          - id: "AC-2.4"
+            criterion: >
+              If a working multi-model mechanism is discovered during FR-1 research, a documented
+              enhancement path exists describing how to layer model diversity on top of prompt diversity.
+        priority: "must-have"
+
+      - id: "FR-3"
+        title: "All-Category Review Coverage"
+        description: >
+          Restructure the adversarial review so that every reviewer instance reviews ALL categories
+          (security, architecture, correctness) rather than each having a single review_focus. The
+          review_perspective parameter from FR-2 controls the reviewer's lens and priorities, but
+          each reviewer covers all three domains. This ensures every category gets N independent
+          reviews (where N = number of reviewer instances) rather than 1 review each.
+        user_requirement_refs:
+          - "REQ-3"
+        acceptance_criteria:
+          - id: "AC-3.1"
+            criterion: >
+              Each reviewer instance produces findings across all three categories: security,
+              architecture, and correctness (verified by review-findings output containing all three sections).
+          - id: "AC-3.2"
+            criterion: >
+              The review verdict SQL INSERT includes category-specific sub-verdicts or the review-findings
+              document has explicit sections for each of the three categories.
+          - id: "AC-3.3"
+            criterion: >
+              The orchestrator evidence gate query at Steps 3b and 7 validates that each reviewer
+              submitted findings for all three categories (not just one).
+        priority: "must-have"
+
+      - id: "FR-4"
+        title: "YAML+MD Dual Output Rationalization"
+        description: >
+          Audit the YAML+MD dual output pattern and rationalize which artifacts need both formats.
+          Research confirms: orchestrator reads ONLY typed YAML for routing; no downstream agent reads
+          MD companions for work; MD files serve purely as human audit trail. Rationalization rules:
+          (a) Machine-consumed artifacts that no human reads directly should be YAML-only (research outputs,
+          implementation reports, verification reports, review verdicts). (b) Human-facing specification
+          documents retain MD companions (feature.md, design.md, plan.md). (c) Evidence bundles retain
+          MD format as the primary human-readable audit document.
+        user_requirement_refs:
+          - "REQ-4"
+        acceptance_criteria:
+          - id: "AC-4.1"
+            criterion: >
+              Each agent output type is explicitly classified as YAML-only or YAML+MD in the updated
+              schemas.md, with documented rationale for each classification.
+          - id: "AC-4.2"
+            criterion: >
+              Agents producing YAML-only artifacts no longer generate MD companion files (researcher
+              for research/*.md, implementer for implementation-reports, verifier for verification-reports).
+          - id: "AC-4.3"
+            criterion: >
+              Human-facing documents (feature.md, design.md, plan.md, evidence-bundle.md) are still
+              produced as readable companions alongside their typed YAML.
+          - id: "AC-4.4"
+            criterion: >
+              No downstream agent references a removed MD file in its input section.
+        priority: "should-have"
+
+      - id: "FR-5"
+        title: "Artifact Evaluation System with SQLite Storage"
+        description: >
+          Restore the artifact evaluation capability from Forge using SQLite storage (aligned with REQ-11)
+          rather than Forge's per-file YAML approach. Define an artifact_evaluations table in
+          verification-ledger.db (or a new evaluations.db) with columns for: evaluator_agent, artifact_path,
+          usefulness_score (1-10), clarity_score (1-10), missing_information, inaccuracies, and timestamp.
+          Agents that consume upstream artifacts evaluate them after use. The Knowledge Agent reads
+          evaluation data for pipeline quality analysis. Phase the rollout: initially require evaluations
+          from implementer (evaluating task definitions), verifier (evaluating implementation reports),
+          and adversarial reviewer (evaluating design/code). Remaining agents are Phase 2.
+        user_requirement_refs:
+          - "REQ-5"
+          - "REQ-11"
+        acceptance_criteria:
+          - id: "AC-5.1"
+            criterion: >
+              An artifact_evaluations table schema is defined in schemas.md with columns for
+              evaluator_agent, artifact_path, usefulness_score (1-10), clarity_score (1-10),
+              missing_information (text), inaccuracies (text), run_id, and timestamp.
+          - id: "AC-5.2"
+            criterion: >
+              Phase 1 agents (implementer, verifier, adversarial reviewer) include SQL INSERT
+              instructions for artifact evaluations in their workflow.
+          - id: "AC-5.3"
+            criterion: >
+              The Knowledge Agent reads artifact_evaluations via SQL query and includes quantitative
+              summary in the knowledge-output (mean usefulness_score, mean clarity_score, worst-rated
+              artifacts, most common missing_information patterns).
+          - id: "AC-5.4"
+            criterion: >
+              Evaluation data persists across pipeline phases in SQLite (queryable by run_id, by
+              evaluator_agent, and by artifact_path).
+        priority: "must-have"
+
+      - id: "FR-6"
+        title: "Pipeline Telemetry Population & Post-Mortem Consumer"
+        description: >
+          Fix the dead pipeline_telemetry.db by having the orchestrator INSERT a record into
+          pipeline_telemetry after each agent dispatch completes (including step, agent, instance,
+          started_at, completed_at, status, dispatch_count, retry_count). The Knowledge Agent at
+          Step 8 reads this data via the YAML outputs or SQL queries (requires granting run_in_terminal
+          for read-only SQL, or having the orchestrator extract telemetry into a summary before
+          dispatching Knowledge Agent). The Knowledge Agent produces a post-mortem section in its
+          output with: agent accuracy/reliability metrics, bottleneck identification, recurring issues,
+          and per-step timing data.
+        user_requirement_refs:
+          - "REQ-5"
+          - "REQ-11"
+        acceptance_criteria:
+          - id: "AC-6.1"
+            criterion: >
+              The orchestrator inserts a row into pipeline_telemetry after each agent dispatch
+              completes, with accurate timing and status data.
+          - id: "AC-6.2"
+            criterion: >
+              After a full pipeline run, pipeline_telemetry.db contains ≥1 row per dispatched
+              agent instance (verifiable via: SELECT COUNT(*) FROM pipeline_telemetry WHERE run_id = ?).
+          - id: "AC-6.3"
+            criterion: >
+              The Knowledge Agent output includes a pipeline_telemetry_summary section with:
+              total_dispatches, total_agents_errored, per_step_timing, slowest_step, and
+              retry_summary.
+          - id: "AC-6.4"
+            criterion: >
+              Post-mortem analysis identifies the top 3 bottleneck steps by wall-clock time
+              and any agents that required retries.
+        priority: "must-have"
+
+      - id: "FR-7"
+        title: "Terminal-Only Testing Enforcement"
+        description: >
+          Enforce that ALL test execution across all agents uses run_in_terminal with standard
+          CLI commands (dotnet test, npm test, pytest, cargo test, go test, etc.). No agent may
+          use VS Code's built-in test runner tools (Testing API, runTests task) for test execution.
+          IDE diagnostics via get_errors remain permitted for compile-time error detection (Tier 1
+          verification) but must not be the sole verification mechanism — actual test execution
+          via terminal is required when test infrastructure exists. This must be a GLOBAL rule,
+          not per-agent.
+        user_requirement_refs:
+          - "REQ-6"
+        acceptance_criteria:
+          - id: "AC-7.1"
+            criterion: >
+              A global operating rule in a shared reference document (e.g., global-operating-rules.md
+              or .github/copilot-instructions.md) states that all test execution must use
+              run_in_terminal with CLI commands. No VS Code Testing API usage permitted.
+          - id: "AC-7.2"
+            criterion: >
+              The verifier agent's Tier 2 cascade step explicitly requires run_in_terminal for
+              test execution with commands like 'npm test', 'dotnet test', 'pytest', etc.
+          - id: "AC-7.3"
+            criterion: >
+              The implementer's self-fix loop uses run_in_terminal for test verification, not
+              get_errors or runTests.
+          - id: "AC-7.4"
+            criterion: >
+              After a pipeline run, verification-ledger.db shows tool='run_in_terminal' for all
+              test-execution check_names (never tool='runTests' or tool='get_errors' for test checks).
+        priority: "must-have"
+
+      - id: "FR-8"
+        title: "Global No-File-Redirect Rule"
+        description: >
+          Promote the no-file-redirect prohibition from the implementer-only rule to a GLOBAL
+          operating rule applying to ALL agents with run_in_terminal access. No agent may redirect
+          terminal command output to a file (e.g., command > output.txt, command | tee output.txt,
+          command 2>&1 > log.txt). All terminal output must be read directly via get_terminal_output
+          or run_in_terminal return value. This prevents garbage files, unnecessary permission prompts,
+          and data leakage.
+        user_requirement_refs:
+          - "REQ-6"
+        acceptance_criteria:
+          - id: "AC-8.1"
+            criterion: >
+              A global operating rule prohibiting file-redirect of terminal output exists in a shared
+              reference document (not repeated per-agent). Reference: 'Never redirect terminal command
+              output to a file. Read output directly from the terminal.'
+          - id: "AC-8.2"
+            criterion: >
+              Every agent with run_in_terminal access (orchestrator, implementer, verifier,
+              adversarial reviewer) references the global operating rules document.
+          - id: "AC-8.3"
+            criterion: >
+              No agent definition contains inline no-file-redirect rules (deduplicated to shared doc).
+        priority: "must-have"
+
+      - id: "FR-9"
+        title: "Conditional Context7 MCP Integration"
+        description: >
+          Add Context7 MCP tool usage as a conditional capability. When the Context7 MCP server
+          is configured and available, agents (primarily the implementer and researcher) should
+          use context7-resolve-library-id and context7-query-docs for library/framework documentation
+          lookup BEFORE guessing at API usage. If the MCP server is not configured, agents must
+          gracefully skip Context7 usage with no errors or warnings. The integration instructions
+          should be in a shared reference document (not inlined in each agent). Detection of Context7
+          availability should use a tool availability check, not a configuration flag.
+        user_requirement_refs:
+          - "REQ-7"
+        acceptance_criteria:
+          - id: "AC-9.1"
+            criterion: >
+              Context7 integration instructions exist in a shared reference document with the
+              two-step pattern: (1) resolve library ID, (2) query docs with resolved ID.
+          - id: "AC-9.2"
+            criterion: >
+              The implementer and researcher agent definitions reference the Context7 instructions
+              with a conditional check: 'If Context7 MCP tools are available, use them; otherwise skip.'
+          - id: "AC-9.3"
+            criterion: >
+              An agent that cannot reach Context7 does not error — it proceeds without documentation
+              lookup and logs that Context7 was unavailable.
+          - id: "AC-9.4"
+            criterion: >
+              Context7 instructions are NOT inlined in individual agent files (shared doc only).
+        priority: "nice-to-have"
+
+      - id: "FR-10"
+        title: "Agent File Size Reduction via Shared Reference Docs"
+        description: >
+          Reduce agent file sizes from the current 250-800 lines to a target of 250-350 lines per agent
+          (orchestrator may be up to 450 lines given its coordination complexity). Extract into shared
+          reference documents: (a) global operating rules (no-file-redirect, terminal-only testing,
+          retry policy, error handling), (b) tool access matrix (consolidated from per-agent tables),
+          (c) self-verification common checklist items, (d) SQL INSERT/SELECT templates, (e) Context7
+          integration instructions. Each agent references these shared docs rather than inlining the content.
+          Create a .github/copilot-instructions.md for rules that apply to ALL agents including the orchestrator.
+        user_requirement_refs:
+          - "REQ-9"
+          - "REQ-10"
+        acceptance_criteria:
+          - id: "AC-10.1"
+            criterion: >
+              No agent file (except orchestrator) exceeds 350 lines. Orchestrator does not
+              exceed 500 lines. Measured by wc -l on each .agent.md file.
+          - id: "AC-10.2"
+            criterion: >
+              At least 3 new shared reference documents exist extracting patterns from agent files
+              (e.g., global-operating-rules.md, tool-access-matrix.md, sql-templates.md).
+          - id: "AC-10.3"
+            criterion: >
+              Each agent file references shared docs via explicit section pointers (e.g.,
+              'See global-operating-rules.md §Terminal Rules') rather than inlining shared content.
+          - id: "AC-10.4"
+            criterion: >
+              A .github/copilot-instructions.md file exists with global rules applying to all agents.
+          - id: "AC-10.5"
+            criterion: >
+              No shared pattern (error handling, retry policy, no-file-redirect) is duplicated
+              in more than one agent file — all point to the shared reference.
+        priority: "should-have"
+
+      - id: "FR-11"
+        title: "Verifier Tool Contradiction Resolution"
+        description: >
+          Resolve the contradiction in verifier.agent.md where it must produce
+          verification-reports/<task-id>.yaml but create_file is explicitly restricted. Either:
+          (a) grant create_file to the verifier with scope restriction (only
+          verification-reports/*.yaml), or (b) have the verifier write to stdout/SQL and the
+          orchestrator create the file. The same ambiguity in researcher.agent.md ('MUST NOT use
+          create_file... except to write your own output files') must be clarified with explicit
+          scope-based permissions.
+        user_requirement_refs:
+          - "REQ-9"
+        acceptance_criteria:
+          - id: "AC-11.1"
+            criterion: >
+              The verifier's tool access table explicitly allows create_file with a scope restriction
+              specifying the allowed output path pattern (verification-reports/*.yaml).
+          - id: "AC-11.2"
+            criterion: >
+              The researcher's tool access table explicitly allows create_file with a scope restriction
+              specifying the allowed output path pattern (research/*.yaml, research/*.md).
+          - id: "AC-11.3"
+            criterion: >
+              No agent has an unresolvable contradiction between its required outputs and its
+              tool restrictions.
+        priority: "must-have"
+
+      - id: "FR-12"
+        title: "Review Verdict File Path Consistency"
+        description: >
+          Fix the file path inconsistency between the adversarial reviewer's output
+          (review-verdicts/<scope>-<model>.yaml per reviewer) and the designer's expected input
+          (review-verdicts/design.yaml — singular). Either: (a) change the adversarial reviewer to
+          write a single aggregated verdict file per scope, (b) change the designer to read
+          per-reviewer verdict files, or (c) have the orchestrator aggregate verdict files before
+          dispatching the designer in revision mode.
+        user_requirement_refs:
+          - "REQ-9"
+        acceptance_criteria:
+          - id: "AC-12.1"
+            criterion: >
+              The review verdict output path in adversarial-reviewer.agent.md matches the expected
+              input path in designer.agent.md (and any other consumer) — zero path mismatches.
+          - id: "AC-12.2"
+            criterion: >
+              schemas.md Schema 9 output path definition is consistent with the actual producer
+              agent's output path.
+          - id: "AC-12.3"
+            criterion: >
+              A pipeline run produces verdict files at exactly the paths that consuming agents
+              expect to read.
+        priority: "must-have"
+
+      - id: "FR-13"
+        title: "Deterministic Schema & Contract Enforcement"
+        description: >
+          Strengthen the deterministic and contractual properties of the pipeline. Ensure: (a) all
+          10 YAML schemas have explicit field types, allowed value enumerations, and required/optional
+          annotations, (b) completion contracts are consistently enforced — document which agents
+          support which statuses (DONE/NEEDS_REVISION/ERROR) in a routing matrix, (c) SQL evidence
+          gate queries are templated and consistent across all gate points, (d) schema_version is
+          included and checked in a basic way (log warning if unexpected version, don't fail).
+        user_requirement_refs:
+          - "REQ-10"
+        acceptance_criteria:
+          - id: "AC-13.1"
+            criterion: >
+              schemas.md includes a routing matrix table showing which agents return which
+              completion statuses (DONE/NEEDS_REVISION/ERROR).
+          - id: "AC-13.2"
+            criterion: >
+              Every schema definition in schemas.md has explicit type annotations for each field
+              (string, integer, enum, list, etc.) and required/optional markers.
+          - id: "AC-13.3"
+            criterion: >
+              All evidence gate SQL queries in the orchestrator use parameterized templates from
+              a shared reference (not ad-hoc inline SQL).
+          - id: "AC-13.4"
+            criterion: >
+              Every agent output includes schema_version: "1.0" in the common header (self-verification
+              checklist item in every agent).
+        priority: "must-have"
+
+      - id: "FR-14"
+        title: "Expanded SQLite Usage"
+        description: >
+          Expand SQLite usage beyond verification-ledger.db to cover: (a) artifact evaluations
+          (see FR-5), (b) pipeline telemetry (see FR-6, already has table DDL), (c) instruction
+          update tracking (table tracking which instruction files were updated, when, by which
+          agent, with what content — enabling audit trail), (d) consider consolidating into fewer
+          DB files or a single pipeline.db with multiple tables. All SQL schemas must be defined
+          in schemas.md alongside the YAML schemas.
+        user_requirement_refs:
+          - "REQ-11"
+        acceptance_criteria:
+          - id: "AC-14.1"
+            criterion: >
+              SQLite is used for at least 3 distinct data domains: verification evidence,
+              artifact evaluations, and pipeline telemetry.
+          - id: "AC-14.2"
+            criterion: >
+              All SQLite table schemas are documented in schemas.md with column types, constraints,
+              indexes, and key queries.
+          - id: "AC-14.3"
+            criterion: >
+              An instruction_updates table tracks instruction file modifications with columns for:
+              run_id, agent, file_path, change_type, change_summary, timestamp.
+          - id: "AC-14.4"
+            criterion: >
+              All databases use WAL journal mode and busy_timeout for concurrent access safety.
+        priority: "should-have"
+
+      - id: "FR-15"
+        title: "Instruction File Infrastructure"
+        description: >
+          Create the .github/copilot-instructions.md file and .github/instructions/ directory
+          structure that the Knowledge Agent's governed update mechanism expects. The copilot-instructions.md
+          file should contain global rules applicable to all agents (terminal-only testing, no-file-redirect,
+          retry policy, Context7 conditional usage). The .github/instructions/ directory should contain
+          domain-specific instruction files that the Knowledge Agent can update through its governed
+          mechanism (interactive mode: requires approval; autonomous mode: logged but not auto-applied).
+        user_requirement_refs:
+          - "REQ-5"
+          - "REQ-8"
+        acceptance_criteria:
+          - id: "AC-15.1"
+            criterion: >
+              .github/copilot-instructions.md exists with global operating rules for all agents.
+          - id: "AC-15.2"
+            criterion: >
+              .github/instructions/ directory exists with at least one domain-specific instruction file.
+          - id: "AC-15.3"
+            criterion: >
+              The Knowledge Agent's governed update mechanism targets these files correctly
+              (file paths in agent definition match actual file locations).
+          - id: "AC-15.4"
+            criterion: >
+              Instruction update tracking is recorded in SQLite (see FR-14, AC-14.3).
+        priority: "should-have"
+
+      - id: "FR-16"
+        title: "Frontmatter Standardization"
+        description: >
+          Standardize YAML frontmatter across all agent files. Currently some agents have
+          name/description frontmatter and others use only markdown headers. All agents should have
+          consistent frontmatter with at minimum: name and description fields. This ensures VS Code
+          agent runtime correctly discovers and indexes all agents.
+        user_requirement_refs:
+          - "REQ-9"
+        acceptance_criteria:
+          - id: "AC-16.1"
+            criterion: >
+              Every .agent.md file has YAML frontmatter with at minimum 'name' and 'description' fields.
+          - id: "AC-16.2"
+            criterion: >
+              Frontmatter field names are consistent across all agents (same casing, same field set).
+        priority: "should-have"
+
+    non_functional_requirements:
+      - id: "NFR-1"
+        title: "Agent File Size"
+        description: "Individual agent instruction files must stay within line count targets to maintain LLM instruction-following quality."
+        metric: "All agents ≤350 lines (orchestrator ≤500 lines). Measured by wc -l."
+
+      - id: "NFR-2"
+        title: "Pipeline Determinism"
+        description: "Given the same inputs, the pipeline must produce structurally equivalent outputs. Routing decisions must be based on typed data (YAML completion contracts + SQL evidence gates), never on prose parsing."
+        metric: "Zero routing decisions based on unstructured text. All gate conditions expressible as SQL COUNT queries or YAML field value checks."
+
+      - id: "NFR-3"
+        title: "Pipeline Termination Guarantee"
+        description: "The pipeline must always terminate. All feedback loops must have hard iteration limits."
+        metric: "Design revision loop: max 1 iteration. Implementation-verification loop: max 3 iterations. Code review cycling: max 2 rounds. No unbounded loops."
+
+      - id: "NFR-4"
+        title: "Graceful Degradation"
+        description: "Optional external dependencies (Context7, language-specific build tools) must degrade gracefully. Hard dependencies (sqlite3, git) must be validated at Step 0."
+        metric: "Pipeline completes successfully without Context7. Pipeline fails fast at Step 0 if sqlite3 or git unavailable."
+
+      - id: "NFR-5"
+        title: "Evidence Integrity"
+        description: "All verification and review evidence must be recorded in SQL before any agent can claim the work was done. No hallucinated verification."
+        metric: "Every evidence gate query returns ≥1 row after legitimate verification. Zero false positives from cross-run contamination (run_id filtering enforced)."
+
+      - id: "NFR-6"
+        title: "Maintainability"
+        description: "Shared patterns must be defined once in reference docs and referenced by agents. No duplication of operating rules, error handling, or SQL templates."
+        metric: "Zero instances of duplicated operating rules across agent files. grep for shared rules returns only the reference doc."
+
+      - id: "NFR-7"
+        title: "Schema Backward Compatibility"
+        description: "Schema changes must follow the documented evolution strategy: additive changes = minor bump, breaking changes = major bump with coordinated consumer updates."
+        metric: "All schema changes documented in schemas.md with version bump rationale. No silent field removal or rename."
+
+    risks:
+      - id: "RISK-1"
+        title: "Multi-Model Review Remains Infeasible"
+        description: >
+          VS Code's runSubagent API may never support model routing for custom .agent.md agents.
+          The multi-perspective prompt approach (FR-2) is the primary mitigation, but prompt diversity
+          may produce less variation than model diversity. If models have similar training data and
+          RLHF, different prompts may converge on similar findings.
+        likelihood: "high"
+        impact: "medium"
+        mitigation: >
+          Use maximally divergent review personas (e.g., adversarial security auditor vs. pragmatic
+          architect vs. pedantic correctness checker) with different severity thresholds and priorities.
+          Measure finding overlap across reviewers to validate diversity. Research Anvil's agent_type
+          approach as a potential platform-native alternative.
+
+      - id: "RISK-2"
+        title: "Parallel Execution Not Achievable"
+        description: >
+          VS Code's agent runtime may serialize all runSubagent calls regardless of dispatch pattern.
+          True parallelism may require changes to the VS Code extension or runtime that are outside
+          our control.
+        likelihood: "medium"
+        impact: "high"
+        mitigation: >
+          Research the runSubagent API thoroughly. If serialization is confirmed, optimize dispatch
+          order (shortest-first to unblock dependents), reduce per-agent wall-clock time through
+          leaner instructions, and document the platform limitation. Consider filing a VS Code
+          feature request if appropriate.
+
+      - id: "RISK-3"
+        title: "Evaluation System Adds Overhead Without Sufficient Benefit"
+        description: >
+          Requiring agents to evaluate upstream artifacts adds SQL INSERT operations and context
+          consumption per agent invocation. If evaluations are low-quality (e.g., all scores are
+          8/10 with no useful comments), the overhead isn't justified.
+        likelihood: "medium"
+        impact: "low"
+        mitigation: >
+          Phase the rollout (FR-5 specifies Phase 1 = 3 agents only). Monitor evaluation quality
+          after initial deployment. If evaluations are consistently uninformative, simplify to
+          binary useful/not-useful or remove.
+
+      - id: "RISK-4"
+        title: "Agent File Size Targets Conflict with Feature Additions"
+        description: >
+          Adding evaluation instructions, Context7 references, and restructured review coverage
+          to agents while simultaneously reducing file size may be contradictory. New features
+          add lines; the size reduction goal removes lines.
+        likelihood: "high"
+        impact: "medium"
+        mitigation: >
+          Aggressive extraction to shared reference docs. New features (evaluations, Context7)
+          go in shared docs, not inline in agents. Agents reference shared docs via section
+          pointers. Net line count should still decrease because current inline duplication
+          (error handling, retry rules, SQL templates) exceeds new reference pointers.
+
+      - id: "RISK-5"
+        title: "Instruction File Auto-Updates Introduce Drift"
+        description: >
+          Allowing the Knowledge Agent to update .github/instructions/ files (even with governance)
+          risks progressive drift from the original design intent. Over multiple pipeline runs,
+          accumulated instruction changes could alter agent behavior in unexpected ways.
+        likelihood: "low"
+        impact: "high"
+        mitigation: >
+          Governed updates with interactive approval (already designed in Knowledge Agent).
+          Instruction update tracking via SQLite (FR-14). All changes logged with agent,
+          timestamp, and change summary. Periodic human review of instruction update history.
+
+      - id: "RISK-6"
+        title: "Review Restructure Increases Token Cost"
+        description: >
+          Changing from 3 reviewers × 1 category to 3 reviewers × 3 categories triples the review
+          surface area. Each reviewer processes more content and produces more findings, increasing
+          token usage and wall-clock time.
+        likelihood: "high"
+        impact: "medium"
+        mitigation: >
+          Each reviewer still produces one output file — the review is broader but the output
+          is consolidated. Set clear scope limits per category within each reviewer (e.g., top 3
+          findings per category rather than exhaustive). Monitor token usage before/after.
+
+      - id: "RISK-7"
+        title: "SQLite Concurrency Under Parallel Dispatch"
+        description: >
+          If parallel execution is achieved (FR-1), multiple agents writing to the same SQLite
+          database simultaneously may cause SQLITE_BUSY errors despite WAL mode and busy_timeout.
+        likelihood: "medium"
+        impact: "medium"
+        mitigation: >
+          WAL mode + busy_timeout=5000 already configured. Ensure 4-agent concurrent cap is
+          maintained. Add retry-on-busy logic to SQL INSERT instructions (up to 3 retries with
+          exponential backoff). Consider separate DB files per concern if contention is observed.
+
+    decision_points:
+      - id: "DP-1"
+        question: "How should multi-perspective review diversity be achieved given that VS Code ignores model parameters?"
+        options:
+          - id: "A"
+            description: "Prompt perspective diversity only — 3 instances of the same agent with distinct review persona prompts"
+            pros:
+              - "Works immediately with current VS Code API"
+              - "No platform dependency for diversity"
+              - "Easy to test and iterate on personas"
+              - "Simpler agent definitions (one .agent.md with parameterized perspective)"
+            cons:
+              - "Same underlying model means same training biases"
+              - "Prompt engineering may not produce sufficient divergence"
+              - "Less diversity than true multi-model approach"
+          - id: "B"
+            description: "Separate agent files per perspective — 3 distinct .agent.md files with unique system prompts"
+            pros:
+              - "Maximum prompt divergence (entire system prompt is different)"
+              - "Each agent can have specialized knowledge base"
+              - "VS Code may treat distinct agents differently in context handling"
+            cons:
+              - "Increases agent file count from 9 to 11 (adds 2)"
+              - "Three files to maintain instead of one parameterized agent"
+              - "Contradicts the Forge→NewAgents consolidation philosophy"
+          - id: "C"
+            description: "Anvil's platform agent_type approach — use VS Code's built-in code-review agent type instead of custom agents"
+            pros:
+              - "Known to support model routing in Anvil"
+              - "Platform-native, not a hack"
+              - "May support multiple models out of the box"
+            cons:
+              - "Undocumented API — may not exist or work for custom pipelines"
+              - "Loses custom review criteria and SQL evidence recording"
+              - "Ties pipeline to a specific VS Code feature that may change"
+          - id: "D"
+            description: "Research runtime model routing — investigate VS Code API for model control before deciding"
+            pros:
+              - "Evidence-based decision"
+              - "May discover a working mechanism"
+              - "Avoids premature commitment to a workaround"
+            cons:
+              - "Delays the decision and blocks design"
+              - "Research may be inconclusive"
+              - "Still needs a fallback plan"
+        recommendation: "A"
+        rationale: >
+          Option A (prompt perspective diversity) is the pragmatic choice. It works immediately,
+          requires no platform API investigation, and can be enhanced with model diversity later
+          if VS Code adds support. The key is making the perspectives maximally divergent — not
+          just different labels, but fundamentally different review philosophies, severity thresholds,
+          and priority hierarchies. Option D (research) should be pursued as a parallel task during
+          implementation, with results documented for future enhancement. If research reveals a
+          working mechanism, it layers on top of prompt diversity without replacing it.
+
+      - id: "DP-2"
+        question: "How should the YAML+MD dual output pattern be rationalized?"
+        options:
+          - id: "A"
+            description: "Keep both YAML+MD for all artifact types (status quo)"
+            pros:
+              - "No migration effort"
+              - "Human auditability for all artifacts"
+              - "Consistent output pattern across all agents"
+            cons:
+              - "~50% wasted output effort for machine-only artifacts"
+              - "Agents spend tokens generating derivative content"
+              - "MD files accumulate in the feature directory with no reader"
+          - id: "B"
+            description: "YAML-only for machine artifacts, YAML+MD for human-facing documents"
+            pros:
+              - "Reduces agent output effort for machine-consumed artifacts"
+              - "Human-readable docs still exist where humans need them"
+              - "Clear classification: machine artifacts vs. human documents"
+            cons:
+              - "Must audit each artifact's consumer to classify correctly"
+              - "Removes some human-inspectable artifacts (research/*.md)"
+              - "Inconsistent output pattern (some agents produce 1 file, some produce 2)"
+          - id: "C"
+            description: "YAML-only for everything — eliminate all MD companions"
+            pros:
+              - "Maximum simplification"
+              - "Single source of truth everywhere"
+              - "Fastest agent output (no MD generation)"
+            cons:
+              - "feature.md, design.md, plan.md are genuinely useful for human review"
+              - "Evidence bundle becomes YAML (less readable for audit)"
+              - "Loses the human audit trail entirely"
+        recommendation: "B"
+        rationale: >
+          Option B provides the best balance. Research outputs, implementation reports, verification
+          reports, and review verdicts are machine-consumed — no human reads research/architecture.md
+          for pipeline operation. But feature.md, design.md, and plan.md are genuine specification
+          documents that humans review during approval gates. Evidence bundles are explicitly
+          human-facing audit documents. Classification rule: if the artifact has a human approval
+          gate or is end-of-pipeline documentation, keep MD. If it's inter-agent data transfer, YAML-only.
+
+      - id: "DP-3"
+        question: "How should the artifact evaluation system be implemented?"
+        options:
+          - id: "A"
+            description: "Full Forge restoration — evaluation-schema.md reference doc with per-artifact YAML evaluation files"
+            pros:
+              - "Proven design from Forge"
+              - "Rich evaluation data per artifact"
+              - "Human-readable evaluation files"
+            cons:
+              - "Creates many small YAML files (one per artifact per consuming agent)"
+              - "Not queryable without reading all files"
+              - "Contradicts REQ-11 preference for SQLite"
+          - id: "B"
+            description: "SQLite-based evaluations — artifact_evaluations table in verification-ledger.db"
+            pros:
+              - "Queryable evaluation data (aggregate scores, trends)"
+              - "Aligned with REQ-11 (SQLite preference)"
+              - "No file proliferation"
+              - "Cross-run trend analysis via SQL"
+            cons:
+              - "Less human-readable than YAML files"
+              - "Requires SQL INSERT instructions in evaluating agents"
+              - "Knowledge Agent needs SQL read access for analysis"
+          - id: "C"
+            description: "Hybrid — SQLite for scores, brief YAML metadata in existing output schemas"
+            pros:
+              - "Scores in SQL for querying, context in YAML for agent consumption"
+              - "Minimal schema changes to existing outputs"
+              - "Best of both approaches"
+            cons:
+              - "More complex implementation (two storage mechanisms)"
+              - "Risk of data inconsistency between SQL and YAML"
+        recommendation: "B"
+        rationale: >
+          SQLite-based evaluations (Option B) align with REQ-11, provide queryable data for
+          Post-Mortem analysis, and avoid file proliferation. The Knowledge Agent already reads
+          from verification-ledger.db — evaluations go in the same database. Adding the
+          artifact_evaluations table to the existing DB keeps the architecture simple. Scores
+          are numeric and best suited for SQL aggregation. The Knowledge Agent can produce a
+          human-readable summary in its output for audit purposes.
+
+      - id: "DP-4"
+        question: "Should a memory system be restored for cross-agent context transfer?"
+        options:
+          - id: "A"
+            description: "No memory — maintain current typed YAML + SQL approach (status quo)"
+            pros:
+              - "No merge complexity"
+              - "No memory corruption risk"
+              - "Simpler orchestrator"
+              - "Deterministic routing from structured data"
+            cons:
+              - "No cross-agent context summaries"
+              - "No lessons learned persistence within a run"
+              - "Agents can't orient from compact summaries before deep reads"
+          - id: "B"
+            description: "Lightweight SQLite-backed context — a pipeline_context table for key-value observations"
+            pros:
+              - "Queryable, typed, no merge complexity"
+              - "Agents can INSERT observations, later agents can SELECT relevant context"
+              - "Aligned with SQLite-first philosophy (REQ-11)"
+              - "Survives context window overflow"
+            cons:
+              - "Adds SQL read/write instructions to agents"
+              - "Risk of context table becoming a dumping ground"
+              - "Need clear schema for what constitutes 'context'"
+          - id: "C"
+            description: "Restore Forge's markdown memory system"
+            pros:
+              - "Rich, natural-language context transfer"
+              - "Proven pattern from Forge"
+              - "Human-readable memory files"
+            cons:
+              - "~12 merge operations per run"
+              - "Prose-based routing is non-deterministic"
+              - "Contradicts the typed YAML + SQL direction"
+              - "Adds significant orchestrator complexity"
+        recommendation: "A"
+        rationale: >
+          Maintaining the current no-memory approach (Option A) is the right default. The typed
+          YAML completion contracts + SQL evidence gates already provide sufficient routing data.
+          The evaluation system (FR-5) and telemetry population (FR-6) address the feedback-loop
+          gap that memory files partially solved. The relevant_context mechanism in task schemas
+          is a better targeted approach than global memory for context transfer. If specific
+          cross-agent context gaps are identified during implementation, a lightweight SQLite
+          context table (Option B) can be added as a targeted enhancement.
+
+      - id: "DP-5"
+        question: "What content should be extracted from agent files into shared reference documents?"
+        options:
+          - id: "A"
+            description: "Minimal extraction — only patterns duplicated in ≥3 agents"
+            pros:
+              - "Conservative change"
+              - "Most content stays in agent files (self-contained)"
+              - "Less cross-file navigation for readers"
+            cons:
+              - "Agent files remain large (~500+ lines for some)"
+              - "Some duplication persists"
+          - id: "B"
+            description: "Aggressive extraction — move ALL shared patterns to reference docs"
+            pros:
+              - "Agents become role-specific only (~250-300 lines)"
+              - "Zero duplication"
+              - "Single source of truth for every shared pattern"
+            cons:
+              - "Agents require reading multiple reference docs to understand fully"
+              - "More reference docs to maintain"
+              - "Risk of agent missing a reference doc read"
+          - id: "C"
+            description: "Tiered extraction — global rules to .github/copilot-instructions.md, agent-shared patterns to reference docs, role-specific content inline"
+            pros:
+              - "Global rules apply automatically via VS Code's instruction loading"
+              - "Agent-shared patterns in discoverable reference docs"
+              - "Role-specific content stays inline where it's needed"
+              - "Three clear tiers: global → shared → inline"
+            cons:
+              - "Three places to look for a given rule"
+              - "Requires clear classification of what goes where"
+        recommendation: "C"
+        rationale: >
+          Tiered extraction (Option C) leverages VS Code's copilot-instructions.md mechanism
+          for truly global rules (no-file-redirect, terminal-only testing, retry policy) that
+          are automatically loaded. Agent-shared patterns like SQL templates, evaluation
+          instructions, and Context7 usage go in reference docs within .github/agents/. 
+          Role-specific workflow, output schemas, and self-verification stay inline. This
+          achieves size reduction while maintaining self-containment for role-critical content.
+
+      - id: "DP-6"
+        question: "How should review verdict file paths be standardized?"
+        options:
+          - id: "A"
+            description: "Per-reviewer verdict files (review-verdicts/<scope>-<perspective>.yaml) with orchestrator aggregation"
+            pros:
+              - "Each reviewer's verdict is independently accessible"
+              - "Orchestrator can aggregate before dispatching revision consumer"
+              - "Clear provenance per verdict"
+            cons:
+              - "Requires orchestrator aggregation step (it currently doesn't create files)"
+              - "More files in the directory"
+          - id: "B"
+            description: "Single aggregated verdict file per scope (review-verdicts/<scope>.yaml) written by last reviewer or orchestrator"
+            pros:
+              - "Consumer sees one file at the expected path"
+              - "Simple consumption pattern"
+            cons:
+              - "Last-writer-wins problem if reviewers run in parallel"
+              - "Loses per-reviewer provenance"
+          - id: "C"
+            description: "Per-reviewer verdict files with naming convention that consumer reads via glob (review-verdicts/<scope>-*.yaml)"
+            pros:
+              - "No aggregation needed"
+              - "Consumer reads all matching files"
+              - "Each reviewer's verdict preserved independently"
+            cons:
+              - "Consumer must implement glob-based reading"
+              - "Designer revision mode must handle multiple verdict sources"
+        recommendation: "C"
+        rationale: >
+          Option C (per-reviewer files with glob-based consumption) is cleanest. Each reviewer
+          writes review-verdicts/<scope>-<perspective>.yaml independently. Consumers use list_dir
+          to discover all verdict files matching the scope prefix and read each. This preserves
+          per-reviewer provenance, requires no aggregation step, and works with parallel dispatch.
+          The Designer's revision mode reads all verdict files and synthesizes the feedback.
+          Schema 9 should be updated to document this multi-file convention.
+
+    pushback_log:
+      concerns_identified: 3
+      mode: "interactive"
+      auto_selected: false
+      selected_option: "proceed"
+      note: "ask_questions tool not available — concerns documented here for user review"
+      concerns:
+        - severity: "Critical"
+          title: "Multi-Model Review is Platform-Infeasible"
+          description: >
+            VS Code's runSubagent API does not respect model parameters for custom .agent.md agents.
+            Real pipeline output confirms all 6 review verdicts used claude-opus-4.6. REQ-2 as
+            literally stated (different LLM models per reviewer) cannot be achieved with current
+            platform APIs.
+          recommendation: >
+            Reframe as 'multi-perspective review' using prompt diversity (distinct system prompt
+            personas per reviewer instance). Model diversity is a Phase 2 enhancement if/when
+            VS Code exposes model routing. This is reflected in FR-2 and DP-1.
+
+        - severity: "Major"
+          title: "Parallel Execution is Platform-Controlled"
+          description: >
+            REQ-1 requests a fix for sequential execution, but research confirms the orchestrator
+            already dispatches with parallel intent via runSubagent. Actual concurrency depends on
+            VS Code's runtime behavior, not agent definitions. The fix may require VS Code API
+            investigation rather than agent definition changes.
+          recommendation: >
+            Scope FR-1 to 'investigate and maximize parallelism within platform constraints.'
+            Include VS Code API research as an explicit task. Document platform limitations if
+            true parallelism is not achievable.
+
+        - severity: "Major"
+          title: "Evaluation System is High-Effort with Uncertain ROI"
+          description: >
+            Restoring the artifact evaluation system (REQ-5) requires modifying 7+ agent definitions
+            to produce evaluation SQL INSERTs and adding a consumer. If LLM-generated evaluations
+            are consistently uninformative (e.g., all scores 8/10), the overhead is wasted.
+          recommendation: >
+            Phase the rollout — FR-5 requires evaluations from only 3 key agents initially
+            (implementer, verifier, adversarial reviewer). Monitor evaluation quality before
+            expanding to all agents.
+
+    edge_cases:
+      - id: "EC-1"
+        description: "Context7 MCP server is not configured — agents calling context7 tools receive errors"
+        expected_behavior: "Agent logs 'Context7 unavailable — skipping documentation lookup' and continues without documentation. No ERROR status, no retry."
+        severity_if_missed: "medium"
+
+      - id: "EC-2"
+        description: "sqlite3 CLI not available on the system"
+        expected_behavior: "Orchestrator detects at Step 0 via 'sqlite3 --version' and returns ERROR with clear diagnostic message before dispatching any agents."
+        severity_if_missed: "critical"
+
+      - id: "EC-3"
+        description: "Parallel dispatch of 4 agents causes SQLITE_BUSY on concurrent writes to verification-ledger.db"
+        expected_behavior: "Agents retry SQL INSERT up to 3 times with exponential backoff (1s, 2s, 4s). WAL mode + busy_timeout=5000 prevents most conflicts. If all retries fail, agent logs the error and proceeds (evidence gate will catch the gap)."
+        severity_if_missed: "high"
+
+      - id: "EC-4"
+        description: "A reviewer instance produces findings for only 1 of 3 required categories"
+        expected_behavior: "Orchestrator evidence gate query detects incomplete coverage (expects findings across all 3 categories per reviewer). Triggers reviewer retry with explicit instruction to cover all categories."
+        severity_if_missed: "high"
+
+      - id: "EC-5"
+        description: "Artifact evaluation scores are uniformly high (all 8-10/10) providing no signal"
+        expected_behavior: "Knowledge Agent post-mortem notes low evaluation variance as a pipeline health concern. Does not fail — documenting the finding is the correct behavior."
+        severity_if_missed: "low"
+
+      - id: "EC-6"
+        description: "Agent file exceeds 350-line target after all features are added"
+        expected_behavior: "Designer identifies content that should be extracted to shared reference docs during agent drafting. No agent ships above 350 lines (500 for orchestrator) without explicit justification."
+        severity_if_missed: "medium"
+
+      - id: "EC-7"
+        description: "Pipeline resumes after interruption and encounters partially written evaluation data in SQLite"
+        expected_behavior: "Pipeline State Recovery (EC-5) scans output files for completion status. Partial SQLite records from interrupted agents are safe — they have run_id and the next agent will insert fresh records. Evidence gates filter by run_id + phase + round."
+        severity_if_missed: "medium"
+
+      - id: "EC-8"
+        description: "Instruction file update proposed by Knowledge Agent conflicts with existing rule"
+        expected_behavior: "Safety constraint filter (already in Knowledge Agent) rejects changes that weaken safety rules. In interactive mode, conflicting change is presented to user with context. In autonomous mode, change is logged but NOT applied."
+        severity_if_missed: "high"
+
+      - id: "EC-9"
+        description: "Review verdict files use new naming convention but Designer still reads old path"
+        expected_behavior: "Designer's input section must be updated to use glob-based reading (review-verdicts/<scope>-*.yaml). If path mismatch exists at runtime, Designer reports ERROR with missing file diagnostic."
+        severity_if_missed: "critical"
+
+      - id: "EC-10"
+        description: "VS Code API research reveals that true parallel dispatch IS possible but requires different invocation pattern"
+        expected_behavior: "FR-1 research findings are documented. Dispatch-patterns.md is updated with the working pattern. Orchestrator adopts the new pattern. All downstream agents benefit without modification."
+        severity_if_missed: "medium"
+
+    constraints:
+      - "VS Code runSubagent is the only dispatch mechanism — no alternative agent invocation method exists"
+      - "sqlite3 CLI and git must be available in the system PATH"
+      - "Maximum 4 concurrent subagent invocations per wave (existing design constraint)"
+      - "All agent outputs must conform to schema_version 1.0 definitions in schemas.md"
+      - "Existing pipeline step structure (Steps 0-9) is retained — no step additions or removals"
+      - "The root .github/agents/ directory is the active deployment target (mirrors NewAgents)"
+      - "Context7 is MCP-dependent — availability cannot be assumed"
+      - "Agent definitions (.agent.md files) must not be modified at runtime by any agent"
+      - "All feedback loops must have hard iteration limits (design: 1, implementation: 3, review: 2)"
+
+completion:
+  status: "DONE"
+  summary: "Spec complete: 16 FRs, 7 NFRs, 7 risks, 6 decision points, 10 edge cases addressing all 11 user requirements for agent system overhaul"
+  severity: null
+  findings_count: 0
+  risk_level: "high"
+  output_paths:
+    - "docs/feature/agent-system-overhaul/spec-output.yaml"
+    - "docs/feature/agent-system-overhaul/feature.md"

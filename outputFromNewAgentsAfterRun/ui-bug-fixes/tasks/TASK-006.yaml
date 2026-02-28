@@ -1,0 +1,89 @@
+task:
+  id: "TASK-006"
+  title: "Investigate and fix template creation error (integration test + possible UI fix)"
+  description: >
+    Root cause of the template creation error is unknown. Follow the D-3 investigation plan:
+    (1) Write integration test exercising CreateGameCommand with EventId=null.
+    (2) If test fails → backend root cause identified → fix handler/service/validator.
+    (3) If test passes → bug is UI-side → inspect Submit() form validation with IsTemplate=true.
+    The error may be a symptom of BUG-004 (cancel navigation preventing form render). After
+    TASK-004/005 fixes, retest to see if the error resolves naturally.
+    (4) If still unclear, use Playwright automation on Android emulator to capture exact error.
+  agent: "implementer"
+  bug_ids: ["BUG-003"]
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["TASK-004", "TASK-005"]
+  wave: 2
+  verification_tier: "Standard"
+  estimated_lines_changed: 50
+
+  acceptance_criteria:
+    - "AC-003-1: CreateGameCommand with EventId=null, valid name, valid max players succeeds through handler"
+    - "AC-003-2: Created template persists with EventId=null and is retrievable"
+    - "AC-003-3: CreateGamePage Submit flow completes when IsTemplate=true, navigating to /settings/game-templates"
+    - "AC-003-4: Created template appears in game templates list on settings page"
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-3']"
+    spec_requirements:
+      - "spec-output.yaml#payload.requirements[id='BUG-003']"
+    files_to_modify:
+      - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGameHandlerTests.cs"
+        risk: "🟢"
+        description: "Add Handle_TemplateCreation_WithNullEventId_Succeeds integration test"
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+        risk: "🟡"
+        read_lines: "270-330"
+        description: "Inspect and possibly fix Submit() if UI-side root cause identified"
+    files_to_read:
+      - path: "src/TourneyPal.Core/Features/Games/CreateGame/CreateGameHandler.cs"
+        read_lines: "1-80"
+        reason: "Handler logic for template creation (EventId=null) path"
+      - path: "src/TourneyPal.Core/Features/Games/GameCreationService.cs"
+        read_lines: "1-80"
+        reason: "Service logic for EventId=null path — check for null guards or constraints"
+      - path: "src/TourneyPal.Common/Features/Games/CreateGame/CreateGameValidator.cs"
+        read_lines: "1-50"
+        reason: "Validation rules — check if EventId-null case is handled"
+      - path: "src/TourneyPal.Common/Features/Games/CreateGame/CreateGameCommand.cs"
+        read_lines: "1-30"
+        reason: "Command record shape — EventId type (Guid? nullable?)"
+      - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGameHandlerTests.cs"
+        read_lines: "1-80"
+        reason: "Existing test patterns — check if template path is already tested"
+      - path: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+        read_lines: "270-330, 18-23"
+        reason: "Submit() method and FlowStep enum — check form validation state"
+
+  investigation_plan:
+    - step: 1
+      action: "Write integration test: Handle_TemplateCreation_WithNullEventId_Succeeds"
+      expected_outcome: "If fails → backend root cause. If passes → UI-side."
+    - step: 2
+      action: "If test passes, check if TASK-004/005 fixes resolve the error (retest template creation flow)"
+      expected_outcome: "BUG-003 may be a symptom of BUG-004's cancel-navigation preventing form render"
+    - step: 3
+      action: "If still failing, inspect Submit() — check MudForm validation state, _isValid flag, _flowStep transitions"
+      focus_areas:
+        - "Is _form.Validate() called before _isValid is checked?"
+        - "Does _isValid remain false because form was never rendered (FlowStep was never Form)?"
+        - "Are _scheduledDateValue/_scheduledTimeValue null-safe for template context?"
+        - "Is _saveAsTemplate flag interfering when IsTemplate is already true?"
+    - step: 4
+      action: "If static analysis insufficient, use Playwright automation (playwright-automation skill)"
+      notes: "Launch app on emulator, navigate to Settings → Game Templates → Create, fill form, submit, capture error"
+
+  testing_notes: >
+    1 new integration test: Handle_TemplateCreation_WithNullEventId_Succeeds. If a UI fix is
+    needed, add a page-level test verifying Submit completes in template context. Estimated:
+    1 new test (investigation) + 0-2 additional tests (depending on root cause).
+
+  special_instructions: >
+    This task has unknown scope. The implementer should:
+    1. Start with the integration test (step 1).
+    2. After TASK-004/005 fixes are applied, retest the full template creation flow.
+    3. Only proceed to Playwright/ADB testing if steps 1-2 don't identify the root cause.
+    4. The fix scope may be as small as 0 lines (if TASK-004 resolves it) or up to ~50 lines
+       (if a Submit/validation fix is needed).

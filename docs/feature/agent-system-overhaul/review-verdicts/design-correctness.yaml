@@ -1,0 +1,94 @@
+reviewer_model: "claude-opus-4.6"
+review_perspective: "correctness-checker"
+review_focus: "correctness"
+scope: "design"
+run_id: "2026-02-27T10:00:00Z"
+round: 1
+task_id: "agent-system-overhaul-design-review"
+verdict: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 2
+  major: 2
+  minor: 4
+summary: "2 critical: evidence gates conflate Step 3b/7 records and EG-6 false positives under D-8. 2 major: SQL template quoting, routing matrix duplication. 4 minor doc inaccuracies."
+findings:
+  - id: "CORR-1"
+    severity: "critical"
+    category: "correctness"
+    title: "Evidence gate queries cannot distinguish design review (Step 3b) from code review (Step 7)"
+    description: "EG-1 through EG-6 filter by run_id, phase='review', and round only. No scope, task_id, or step filter. Step 3b round=1 and Step 7 round=1 records conflate, causing incorrect gate results at Step 7."
+    affected_files:
+      - "design.md (Section 5.3 sql-templates.md §6)"
+      - "design-output.yaml (review_design.evidence_gate_queries)"
+      - "design-output.yaml (sqlite_schemas.tables[0].key_queries)"
+    recommendation: "Include scope in check_names (review-design-security, review-code-security) or add task_id filter to all evidence gate queries."
+
+  - id: "CORR-2"
+    severity: "critical"
+    category: "correctness"
+    title: "EG-6 majority approval query incompatible with 3-INSERT-per-reviewer pattern (D-8)"
+    description: "EG-6 counts instances with ANY approve verdict. Under D-8's 3-INSERTs-per-reviewer, a reviewer with mixed verdicts (approve+needs_revision) is falsely counted as approving. No overall-verdict INSERT exists."
+    affected_files:
+      - "design.md (Section 5.3 sql-templates.md §6 EG-6)"
+      - "design.md (Section 7.3 point 4)"
+      - "design-output.yaml (review_design.evidence_gate_queries)"
+      - "design-output.yaml (decisions D-8)"
+    recommendation: "Replace EG-6 with a subquery that identifies instances where ALL 3 category verdicts are 'approve' (HAVING COUNT(CASE WHEN verdict!='approve' THEN 1 END)=0), or add a 4th overall-verdict INSERT per reviewer."
+
+  - id: "CORR-3"
+    severity: "major"
+    category: "correctness"
+    title: "SQL INSERT template has inconsistent quoting for nullable string fields"
+    description: "anvil_checks INSERT template (sql-templates.md §2) leaves {verdict} and {severity} unquoted while other string fields use '{...}'. Substituting a string value like 'approve' without quotes produces invalid SQL."
+    affected_files:
+      - "design.md (Section 5.3 sql-templates.md §2)"
+    recommendation: "Document explicit quoting convention: use NULL (unquoted) when absent, or 'value' (single-quoted) when present. Update template to quote verdict/severity fields consistently."
+
+  - id: "CORR-4"
+    severity: "major"
+    category: "correctness"
+    title: "Routing matrix defined in two locations (global-operating-rules.md §5 and schemas.md)"
+    description: "The Completion Contract Routing Matrix appears in both global-operating-rules.md §5 (full table shown in design.md Section 5.2) and schemas.md (listed in file inventory). AC-13.1 requires it in schemas.md. Dual definitions risk drift."
+    affected_files:
+      - "design.md (Section 5.2 global-operating-rules.md §5)"
+      - "design-output.yaml (file_inventory schemas.md)"
+    recommendation: "Designate schemas.md as the canonical location per AC-13.1. Have global-operating-rules.md §5 reference schemas.md instead of duplicating the table."
+
+  - id: "CORR-5"
+    severity: "minor"
+    category: "correctness"
+    title: "Data flow diagram understates verification-ledger.db writers (4 vs 5)"
+    description: "Data flow text states '4 writers' but Knowledge Agent also writes instruction_updates. Correct count is 5 writers."
+    affected_files:
+      - "design.md (Section 3.3)"
+      - "design-output.yaml (architecture.data_flow)"
+    recommendation: "Update to '5 writers (orchestrator, implementer, verifier, adversarial-reviewer, knowledge-agent).'"
+
+  - id: "CORR-6"
+    severity: "minor"
+    category: "correctness"
+    title: "anvil_checks column count error (14 vs 15)"
+    description: "Data flow diagram annotation says 'anvil_checks (14 cols)' but DDL defines 15 columns."
+    affected_files:
+      - "design.md (Section 3.3)"
+    recommendation: "Change '14 cols' to '15 cols.'"
+
+  - id: "CORR-7"
+    severity: "minor"
+    category: "correctness"
+    title: "Researcher create_file scope narrowing not documented as deviation"
+    description: "AC-11.2 allows research/*.yaml and research/*.md. Design narrows to research/*.yaml only per DP-2 but no deviation record exists."
+    affected_files:
+      - "design-output.yaml (deviation_records)"
+      - "design.md (Section 6.2)"
+    recommendation: "Add DR-3 documenting AC-11.2 scope narrowing with DP-2 rationale."
+
+  - id: "CORR-8"
+    severity: "minor"
+    category: "correctness"
+    title: "AC-2.4 multi-model enhancement path not in dispatch-patterns.md content outline"
+    description: "Spec AC-2.4 conditionally requires a documented enhancement path for model diversity. dispatch-patterns.md outline mentions FR-1 research findings but not the Phase 2 model diversity enhancement path."
+    affected_files:
+      - "design-output.yaml (file_inventory dispatch-patterns.md)"
+    recommendation: "Add 'Phase 2 Enhancement: model diversity layering' to dispatch-patterns.md content outline."

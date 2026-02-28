@@ -1,0 +1,44 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-002"
+  step: "step-5"
+  started_at: "2026-02-27T10:00:00Z"
+  completed_at: "2026-02-27T10:15:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-002"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/global-operating-rules.md"
+        action: "created"
+        description: "Created global operating rules reference doc with 9 sections (§1-§9) covering retry policy, error categories, SQLITE_BUSY handling, run_id protocol, completion contract routing matrix reference, self-verification checklist, pipeline state recovery, output naming, and governed instruction updates with Safety Constraint Filter"
+      - path: "docs/feature/agent-system-overhaul/implementation-reports/TASK-002.yaml"
+        action: "created"
+        description: "Implementation report for TASK-002"
+    self_check:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+completion:
+  status: "DONE"
+  summary: "Created global-operating-rules.md (108 lines, 9 sections) with Two-Tiered Retry, Error Categories, SQLITE_BUSY, run_id Protocol, Routing Matrix reference to schemas.md (CORR-4), Self-Verification Checklist, State Recovery, Output Naming, and Safety Constraint Filter with immutable rules/protected phrases/pattern-matching/evaluator separation (SEC-5)"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-overhaul/implementation-reports/TASK-002.yaml"

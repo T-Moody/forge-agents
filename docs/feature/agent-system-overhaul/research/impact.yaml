@@ -1,0 +1,278 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-impact"
+  step: "step-1"
+  started_at: "2026-02-27T10:00:00Z"
+  completed_at: "2026-02-27T10:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "impact"
+    findings:
+      - id: "F-1"
+        title: "Agent inventory gap: NewAgents has 12 files vs Forge's 28 — 16 missing"
+        category: "structure"
+        detail: |
+          NewAgents defines 12 agent/reference files: adversarial-reviewer, designer, dispatch-patterns, implementer, knowledge-agent, orchestrator, planner, researcher, schemas, severity-taxonomy, spec, verifier.
+          Forge defines 28 files. The 16 files missing from NewAgents are:
+          - 5 critical thinker agents: critical-thinker.agent.md (deprecated base), ct-security, ct-scalability, ct-maintainability, ct-strategy
+          - 4 specialized reviewers: r-quality, r-security, r-testing, r-knowledge
+          - 4 specialized verifiers: v-build, v-feature, v-tasks, v-tests
+          - documentation-writer.agent.md
+          - evaluation-schema.md
+          - post-mortem.agent.md
+          In NewAgents, the CT cluster (4 agents) was replaced by 3 adversarial-reviewer instances with multi-model voting. The V cluster (4 verifiers) was replaced by a single per-task verifier with a 4-tier cascade. The R cluster (4 reviewers) was replaced by adversarial-reviewer instances at Step 7 + knowledge-agent at Step 8. Documentation writing was absorbed into the implementer agent (task_type: documentation mode).
+        evidence:
+          - "NewAgents/.github/agents/ — 12 files total"
+          - "Forge/.github/agents/ — 28 files total"
+          - "NewAgents/.github/agents/implementer.agent.md lines 276-300 — documentation mode"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 283-345 — adversarial-reviewer dispatched for design review (3x parallel replacing CT cluster)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 420-460 — single verifier per-task dispatch replacing V cluster"
+        relevance: "Defines the full scope of what was consolidated or dropped. Any overhaul must decide which of these 16 capabilities to restore, merge, or intentionally omit."
+
+      - id: "F-2"
+        title: "Artifact evaluation/rating system completely absent from NewAgents"
+        category: "risk"
+        detail: |
+          Forge has evaluation-schema.md that defines a structured rating system: usefulness_score (1-10), clarity_score (1-10), useful_elements, missing_information, information_not_used, inaccuracies, impact_on_work. All 14 evaluating agents in Forge produce evaluation files per upstream artifact consumed. These feed into PostMortem's quantitative agent-accuracy analysis.
+          NewAgents has zero evaluation infrastructure: no evaluation-schema.md, no agent produces artifact_evaluation blocks, no downstream consumer processes ratings. The Knowledge Agent at Step 8 gathers telemetry and review verdicts but has no quantitative cross-agent accuracy data to analyze.
+          Impact of adding: would require modifying every consuming agent (spec, designer, planner, implementer, verifier, adversarial-reviewer, knowledge-agent — at minimum 7 agents) to produce evaluation blocks. Would also require adding a consumer (PostMortem or Knowledge Agent extension) to process them.
+        evidence:
+          - "Forge/.github/agents/evaluation-schema.md — full schema with usefulness_score, clarity_score, missing_information, inaccuracies fields"
+          - "Forge/.github/agents/documentation-writer.agent.md lines 73-86 — evaluation workflow example"
+          - "Forge/.github/agents/post-mortem.agent.md lines 73-90 — PostMortem reads artifact-evaluations/ for quantitative analysis"
+          - "NewAgents/.github/agents/schemas.md — no evaluation schema defined among 10 schemas"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md — no mention of artifact evaluation consumption"
+        relevance: "Without evaluation data, the pipeline cannot quantitatively identify which agents produce low-quality artifacts or which artifact types waste downstream context budget. This is the primary data source for pipeline self-improvement."
+
+      - id: "F-3"
+        title: "Pipeline telemetry DB exists but has no PostMortem consumer — quantitative analysis gap"
+        category: "risk"
+        detail: |
+          NewAgents creates pipeline-telemetry.db at Step 0 with a pipeline_telemetry table (run_id, step, agent, instance, started_at, completed_at, status, dispatch_count, retry_count, notes). The Knowledge Agent at Step 8 is listed as a consumer of pipeline-telemetry.db in its input table. However, the Knowledge Agent's workflow focuses on knowledge_updates, decision_log_entries, and evidence_bundle assembly — it does not produce the detailed quantitative run-log or post-mortem report that Forge's PostMortem agent creates.
+          Forge approach: Orchestrator accumulates telemetry in-context, passes structured table to PostMortem at Step 8. PostMortem produces agent-metrics/<run-date>-run-log.md and post-mortems/<run-date>-post-mortem.md with agent_accuracy_scores, recurring_issues, bottlenecks, and most_common_missing_information.
+          NewAgents approach: Telemetry stored in SQLite DB but aggregation into run-logs and post-mortem reports would need to be added to the Knowledge Agent or a new PostMortem step.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 165-185 — pipeline_telemetry table DDL"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md line 60 — pipeline-telemetry.db listed as input"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 70-100 — payload focuses on knowledge_updates, decision_log_entries, evidence_bundle, pipeline_telemetry_summary (just total_dispatches, total_duration_seconds, error_count)"
+          - "Forge/.github/agents/post-mortem.agent.md lines 1-200 — detailed PostMortem workflow producing agent_accuracy_scores, recurring_issues, bottlenecks"
+          - "Forge/.github/agents/orchestrator.agent.md Rule 13 — Telemetry Context Tracking described"
+        relevance: "The telemetry DB is a structural improvement over Forge's in-context approach (survives context window overflow), but without a proper consumer, the data is write-only. An overhaul must either extend Knowledge Agent or add a PostMortem step."
+
+      - id: "F-4"
+        title: "Memory system completely removed — dual-layer memory replaced by typed YAML routing"
+        category: "structure"
+        detail: |
+          Forge memory system:
+          - Shared memory.md: Operational memory (Artifact Index, Recent Decisions, Lessons Learned, Recent Updates). Orchestrator is sole writer (delegates merge to subagent).
+          - Isolated memory: Each agent writes memory/<agent>.mem.md (Status, Key Findings, Highest Severity, Decisions Made, Artifact Index).
+          - Memory lifecycle: Initialize → Merge → Prune → Extract Lessons → Invalidate on revision → Clean invalidated → Validate.
+          - ~12 merge operations per run. Orchestrator reads mem.md files for routing decisions.
+
+          NewAgents memory system:
+          - NO memory.md (shared memory eliminated entirely).
+          - NO *.mem.md files (isolated memory eliminated entirely).
+          - Routing via typed YAML completion contracts (status, summary, severity, findings_count, risk_level, evidence_summary).
+          - In-context state model only (pipeline_state YAML tracked in orchestrator's context window).
+
+          What was lost: Lessons Learned persistence across pipeline phases, Artifact Index navigation for targeted reads, cross-agent context summaries (Key Findings), memory-first reading pattern (agents can't orient from compact summaries before deep reads).
+          What was gained: No merge complexity (~12 merge operations eliminated), no memory corruption risk, no memory-related error handling needed, simpler orchestrator (fewer responsibilities), deterministic routing from structured data instead of prose parsing.
+        evidence:
+          - "Forge/.github/agents/orchestrator.agent.md lines 1-200 — Memory-First Protocol (Rule 6), Memory Write Safety (Rule 12), Memory Lifecycle Actions table"
+          - "Forge/.github/agents/orchestrator.agent.md: Documentation Structure shows memory/ directory and merge workflow"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 80-110 — pipeline_state is in-context only, no memory.md"
+          - "NewAgents/.github/agents/orchestrator.agent.md Anti-Drift Anchor — no mention of memory management responsibilities"
+          - "NewAgents/.github/agents/schemas.md lines 31-38 — routing via typed YAML completion contracts"
+        relevance: "The memory removal was the single largest architectural change from Forge to NewAgents. It simplified the orchestrator dramatically but lost the self-improvement feedback loop. Any overhaul re-introducing memory needs to evaluate whether the complexity cost is justified by the routing/learning benefits."
+
+      - id: "F-5"
+        title: "YAML+MD dual output is intentional but creates double work — downstream agents consume YAML only"
+        category: "pattern"
+        detail: |
+          NewAgents produces paired outputs for 4 artifact types:
+          1. research/<focus>.yaml + research/<focus>.md (Researcher)
+          2. spec-output.yaml + feature.md (Spec)
+          3. design-output.yaml + design.md (Designer)
+          4. plan-output.yaml + plan.md (Planner)
+
+          Consumption analysis from schemas.md Producer/Consumer table and agent input sections:
+          - Orchestrator reads ONLY typed YAML for routing (schemas.md line 38: "The orchestrator reads ONLY the typed YAML for routing decisions. The Markdown companions are for human consumption and auditability.")
+          - Spec reads research/<focus>.yaml (spec.agent.md line 6, 226)
+          - Designer reads research/*.yaml and spec-output.yaml (designer.agent.md lines 11, 31-34, 168)
+          - Planner reads design-output.yaml, spec-output.yaml (planner.agent.md line 218)
+          - Implementer reads tasks/<task-id>.yaml + targeted sections of design-output.yaml and spec-output.yaml (implementer.agent.md lines 112-125)
+          - Verifier reads implementation-reports/<task-id>.yaml, plan-output.yaml, spec-output.yaml (verifier.agent.md lines 27-31)
+          - Adversarial Reviewer reads design-output.yaml or git diff (depending on review_scope)
+
+          No downstream agent reads the .md companions for routing or work. The .md files serve purely as human audit trail.
+
+          In Forge, the opposite: ONLY .md files exist (no typed YAML). Memory .mem.md files serve as lightweight routing data.
+
+          The duplication is intentional design but doubles agent output work. The YAML is the authoritative source; the MD is derivative.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md line 38 — 'The orchestrator reads ONLY the typed YAML for routing decisions'"
+          - "NewAgents/.github/agents/spec.agent.md line 6 — 'Inputs: All research outputs (research/<focus>.yaml x4)'"
+          - "NewAgents/.github/agents/designer.agent.md lines 31-34 — reads research/*.yaml"
+          - "NewAgents/.github/agents/researcher.agent.md line 251 — 'You produce exactly two output files: research/<focus>.yaml and research/<focus>.md'"
+          - "Forge/.github/agents/researcher.agent.md Outputs section — only research/<focus-area>.md (no YAML)"
+        relevance: "If output effort is a concern, the MD companions could be eliminated for machine-consumed artifacts (research, implementation-reports, verification-reports) and retained only where humans need readable docs (feature.md, design.md, plan.md). Alternatively, MD generation could be deferred to a post-pipeline step."
+
+      - id: "F-6"
+        title: "Instruction file update capability exists in Knowledge Agent but no instruction files exist"
+        category: "risk"
+        detail: |
+          NewAgents Knowledge Agent (Step 8) has a Governed Updates section allowing it to modify .github/instructions/ files. In interactive mode, changes require explicit user approval. In autonomous mode, changes are logged but NOT auto-applied. The safety constraint filter prevents weakening safety rules.
+          Forge r-knowledge agent goes further: it auto-applies instruction and skill updates to .github/instructions/ and .github/skills/ automatically (with safety filter), logging all changes in knowledge-suggestions.md.
+          However, no .github/copilot-instructions.md, .github/instructions/, or .github/skills/ directories exist anywhere in the workspace (file_search returned no results for copilot-instructions.md).
+          Impact: The feature is fully specified in agents but has zero infrastructure to operate on. Adding instruction files would enable the self-improvement loop. The governance model (interactive=approval, autonomous=log-only) in NewAgents is safer than Forge's auto-apply approach.
+        evidence:
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 371-390 — Governed Updates section with Interactive/Autonomous behavioral modes"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 391 — Safety Constraint Filter preventing weakening of safety rules"
+          - "Forge/.github/agents/r-knowledge.agent.md lines 10, 143 — auto-applies instruction updates"
+          - "file_search for **/copilot-instructions.md returned 0 results"
+          - "grep_search for 'copilot-instructions|instruction.*file' confirmed no instruction files exist in workspace"
+        relevance: "For agents to proactively update instruction files, the overhaul must create the initial instruction file structure. The governance model must be explicitly chosen: NewAgents' conservative approach (log-only in autonomous) vs Forge's aggressive approach (auto-apply with safety filter)."
+
+      - id: "F-7"
+        title: "Terminal output file-redirect prohibition exists only in implementer — not system-wide"
+        category: "risk"
+        detail: |
+          NewAgents implementer.agent.md (Operating Rule 6, line 344): "No file-redirect of command output: Never redirect terminal command output to a file (e.g., command > output.txt). Always read output directly from the terminal via get_terminal_output or run_in_terminal."
+          Forge has this rule in 3 agents: implementer (line 59, 224, 235 — mentioned 3 times), v-build (line 38), v-tests (line 42). Each includes "Never redirect command output to a file. Read all build/test output directly from the terminal."
+          In NewAgents, the verifier, adversarial-reviewer, and knowledge-agent lack this explicit prohibition. The verifier runs extensive terminal commands (build, test, lint, git show, SQL INSERT) and could potentially redirect output. The adversarial-reviewer may examine git diff output.
+          Impact: Any agent with run_in_terminal access that is not explicitly prohibited from file-redirect could create intermediate output files, triggering unnecessary VS Code permission prompts and leaving garbage files in the workspace.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md line 344 — Rule 6: No file-redirect"
+          - "Forge/.github/agents/implementer.agent.md line 59 — explicit no-redirect rule"
+          - "Forge/.github/agents/v-build.agent.md line 38 — 'Never redirect command output to a file'"
+          - "Forge/.github/agents/v-tests.agent.md line 42 — 'Never redirect command output to a file'"
+          - "NewAgents/.github/agents/verifier.agent.md — no file-redirect prohibition found (searched Operating Rules section)"
+        relevance: "The overhaul should add a global no-file-redirect rule applicable to ALL agents with run_in_terminal access, rather than repeating it per-agent. This could go in dispatch-patterns.md or a shared operating-rules reference."
+
+      - id: "F-8"
+        title: "Design review changed from 4-agent CT cluster to 3-instance adversarial-reviewer"
+        category: "structure"
+        detail: |
+          Forge Step 3b: Dispatches 4 CT sub-agents (ct-security, ct-scalability, ct-maintainability, ct-strategy) in parallel. Each writes ct-review/ct-<focus>.md and memory/ct-<focus>.mem.md. Orchestrator evaluates via CT Cluster Decision Flow reading severity from memory files. Uses semantic severity levels (Critical/High/Medium/Low).
+          NewAgents Step 3b: Dispatches 3 adversarial-reviewer instances with distinct review_focus (security, architecture, correctness) — intended for different LLM models (gpt-5.3-codex, gemini-3-pro-preview, claude-opus-4.6). Each produces review-findings/design-<model>.md, review-verdicts/design.yaml, and SQL INSERT into anvil_checks. Orchestrator verifies via SQL evidence gate queries (all 3 submitted, 0 blockers, ≥2 approve).
+          Key differences:
+          - Forge: Coverage by domain specialization (security/scalability/maintainability/strategy)
+          - NewAgents: Coverage by perspective diversity (3 different models with different focus angles)
+          - Forge: Prose-based severity evaluation from memory files
+          - NewAgents: SQL-backed evidence gate with formal verdict voting (approve/needs_revision/blocker)
+          - NewAgents adds a security blocker policy: any verdict='blocker' → immediate pipeline ERROR
+          The NewAgents approach is more robust operationally (SQL evidence, formal voting) but may miss specialized domain coverage that CT agents provided.
+        evidence:
+          - "Forge/.github/agents/orchestrator.agent.md — CT Cluster Decision Flow reading memory files"
+          - "Forge/.github/agents/ct-security.agent.md, ct-scalability.agent.md, etc. — 4 specialized CT agents"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 283-345 — 3 adversarial-reviewer instances with multi-model voting"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md — review_focus: security|architecture|correctness with SQL verdict INSERT"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 740-750 — Security Blocker Policy"
+        relevance: "The overhaul must decide: keep the 3-instance multi-model approach, restore the 4-agent domain-specialized approach, or combine both (e.g., 4 focus areas × multi-model rotation). The SQL evidence gate pattern from NewAgents is strictly better than Forge's prose parsing."
+
+      - id: "F-9"
+        title: "Single verifier with 4-tier cascade replaces V-cluster of 4 specialized verifiers"
+        category: "structure"
+        detail: |
+          Forge Step 6: V cluster with Pattern B (sequential gate + parallel):
+          - v-build (gate): Builds project, verifies compilation, checks build artifacts
+          - v-tests: Runs test suite, checks coverage, verifies TDD compliance
+          - v-tasks: Verifies all tasks in plan.md completed, acceptance criteria met
+          - v-feature: Verifies implementation satisfies feature.md requirements end-to-end
+          Orchestrator evaluates via V Cluster Decision Flow with Pattern C replan loop (max 3 iterations).
+
+          NewAgents Step 6: Single verifier dispatched per-task with 4-tier cascade:
+          - Tier 1 (always): IDE diagnostics via get_errors, syntax check
+          - Tier 2 (if tooling exists): build, type-check, lint, tests via run_in_terminal
+          - Tier 3 (if no runtime from Tier 2): import-check, smoke-execution
+          - Tier 4 (Large tasks only): readiness checks (observability, degradation, secrets)
+          Plus: baseline cross-check via git show, regression detection, SQL INSERT per check into anvil_checks.
+
+          Key differences:
+          - Forge verifies across all tasks (feature-level integration). NewAgents verifies per-task (isolation).
+          - Forge's v-feature checks end-to-end feature requirements satisfaction. NewAgents has no equivalent.
+          - Forge's v-tasks checks completeness of plan. NewAgents has no equivalent.
+          - NewAgents verifier has stronger evidence recording (SQL INSERT per check, evidence gate with minimum signal requirements).
+          - NewAgents verifier has stronger anti-hallucination (baseline cross-check via git tags).
+          What's lost: Feature-level integration verification, plan completeness verification.
+          What's gained: Per-check SQL evidence, baseline cross-checking, tiered verification with dynamic tool detection.
+        evidence:
+          - "Forge/.github/agents/orchestrator.agent.md — V Cluster with v-build, v-tests, v-tasks, v-feature and Pattern C replan loop"
+          - "Forge/.github/agents/verifier.agent.md — identical to NewAgents verifier (same file contents)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 1-50 — per-task dispatch, 4-tier cascade"
+          - "NewAgents/.github/agents/verifier.agent.md lines 275-320 — Tier 3/4 cascade logic"
+          - "NewAgents/.github/agents/verifier.agent.md lines 360-400 — regression detection and evidence gate summary"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 420-460 — per-task verifier dispatch with SQL evidence gate"
+        relevance: "The overhaul should consider whether per-task verification alone is sufficient or if feature-level integration verification (v-feature equivalent) needs to be added back. The SQL evidence pattern from NewAgents should be preserved."
+
+      - id: "F-10"
+        title: "Test execution correctly uses run_in_terminal — no evidence of VS Code test tool misuse"
+        category: "pattern"
+        detail: |
+          Investigation of test execution patterns across NewAgents agents:
+          - Implementer: Uses run_in_terminal for test execution (lines 136, 146, 166), get_errors for IDE diagnostics (lines 134, 147, 154, 164, 173). Tests are run via terminal commands (e.g., 'npm test', 'pytest', 'dotnet test').
+          - Verifier: Uses run_in_terminal for build/test/lint execution (Tier 2-3), get_errors/ide-get_diagnostics for IDE diagnostics (Tier 1). SQL INSERTs via run_in_terminal.
+          - Orchestrator: Does NOT run tests (restricted to SQLite queries and git). get_errors explicitly prohibited.
+          No agent is configured to use VS Code's built-in test runner tools (e.g., Testing API). All test execution goes through run_in_terminal with explicit commands.
+          The implementer's Tool Access table shows 12 tools including run_in_terminal and get_errors. The verifier's Tool Access shows 8 tools including run_in_terminal, get_errors, and ide-get_diagnostics.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md lines 134-166 — baseline capture and self-fix loop using run_in_terminal for tests"
+          - "NewAgents/.github/agents/implementer.agent.md Tool Access table — run_in_terminal listed for 'Execute build, test, git commands'"
+          - "NewAgents/.github/agents/verifier.agent.md lines 230-280 — Tier 2 tests via run_in_terminal"
+          - "NewAgents/.github/agents/verifier.agent.md Tool Access table — run_in_terminal for 'SQL INSERTs, build/test/lint execution, git'"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 53 — get_errors explicitly restricted from orchestrator"
+        relevance: "Test execution patterns are correctly configured. If the user reports agents using VS Code test tools, the issue may be in model behavior drift rather than agent definition. Anti-drift anchors in each agent should reinforce terminal-based test execution."
+
+      - id: "F-11"
+        title: "Documentation-writer consolidated into implementer — Forge's separate agent eliminated"
+        category: "structure"
+        detail: |
+          Forge has a dedicated documentation-writer.agent.md that handles documentation-only tasks: API docs, architectural diagrams, README updates, code-documentation parity verification, documentation coverage matrix. It is read-only for source code and dispatched for tasks with agent: documentation-writer in the plan.
+          NewAgents absorbed this into the implementer via task_type: documentation mode (implementer.agent.md lines 276-300). When task_type is 'documentation', the implementer skips TDD, captures baseline (IDE diagnostics only), writes documentation, runs get_errors after edits, and produces a standard implementation report.
+          The Forge orchestrator's Rule 9 explicitly supports dispatching either 'implementer' or 'documentation-writer' based on the task file's agent field. NewAgents orchestrator has no documentation-writer dispatch path.
+          Impact: Documentation-only tasks in NewAgents use a general-purpose implementer with a mode flag rather than a specialized agent. This means no separate documentation coverage matrix, no API doc generation specialization, no code-documentation parity verification. However, it reduces agent count by 1 and eliminates the need for a separate agent definition.
+        evidence:
+          - "Forge/.github/agents/documentation-writer.agent.md lines 1-100 — full agent with API docs, diagrams, coverage matrix capabilities"
+          - "Forge/.github/agents/orchestrator.agent.md Rule 9 — 'valid task agents list: implementer, documentation-writer'"
+          - "NewAgents/.github/agents/implementer.agent.md lines 276-300 — Mode: documentation section"
+          - "NewAgents/.github/agents/orchestrator.agent.md Step 5 — dispatches implementers only, no documentation-writer reference"
+        relevance: "If documentation quality is a priority for the overhaul, restoring a dedicated documentation-writer (or at least its capabilities) should be considered. If lean agent count is the priority, the implementer's documentation mode is sufficient."
+
+    summary: |
+      NewAgents (12 agents) represents a major consolidation from Forge (28 agents), eliminating 16 agent files. The three largest architectural changes are: (1) memory system completely removed in favor of typed YAML routing, (2) evaluation/rating system absent — no quantitative agent improvement data, (3) specialized verification and review clusters collapsed into per-task single agents. The SQL evidence gate pattern and typed YAML schemas are strict improvements over Forge's prose-based approach. Key gaps for the overhaul: no artifact evaluation system, no PostMortem consumer for telemetry DB, no feature-level integration verification, and the no-file-redirect rule is agent-specific rather than global. The instruction file update capability exists in agent definitions but has no instruction files to operate on.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "Forge/.github/agents/orchestrator.agent.md"
+      - "Forge/.github/agents/evaluation-schema.md"
+      - "Forge/.github/agents/post-mortem.agent.md"
+      - "Forge/.github/agents/verifier.agent.md"
+      - "Forge/.github/agents/researcher.agent.md"
+      - "Forge/.github/agents/documentation-writer.agent.md"
+      - "Forge/.github/agents/critical-thinker.agent.md"
+      - "Forge/.github/agents/r-knowledge.agent.md"
+      - "Forge/.github/agents/schemas.md"
+      - "Forge/.github/agents/v-build.agent.md"
+      - "Forge/.github/agents/v-tests.agent.md"
+      - ".github/agents/orchestrator.agent.md"
+
+  completion:
+    status: "DONE"
+    summary: "Impact research complete: 11 findings covering agent inventory gaps, evaluation system absence, memory removal, YAML/MD duplication, telemetry consumer gap, and verification architecture changes"
+    severity: null
+    findings_count: 11
+    risk_level: null
+    output_paths:
+      - "research/impact.yaml"
+      - "research/impact.md"

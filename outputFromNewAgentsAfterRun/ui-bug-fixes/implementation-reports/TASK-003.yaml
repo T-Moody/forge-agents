@@ -1,0 +1,537 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-003"
+  step: "step-5"
+  started_at: "2026-02-26T14:30:00Z"
+  completed_at: "2026-02-26T14:45:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-003"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: 0
+      test_summary: null # No tests assert on Color.Secondary — purely visual change
+    changes:
+      - path: "src/TourneyPal.UI/Common/Components/EmptyState.razor"
+        action: "modified"
+        description: 'Replaced Color="Color.Secondary" with Style="color: var(--mud-palette-text-secondary)" on Title MudText (line 23) and Description MudText (line 28)'
+      - path: "src/TourneyPal.UI/Common/Components/LoadingState.razor"
+        action: "modified"
+        description: 'Replaced Color="Color.Secondary" with Style="color: var(--mud-palette-text-secondary)" on circular loading text MudText (line 19) and linear loading text MudText (line 29)'
+      - path: "docs/feature/ui-bug-fixes/implementation-reports/TASK-003.yaml"
+        action: "created"
+        description: "Implementation report with full audit list of remaining Color.Secondary on MudText instances"
+    self_check:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: 0
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "baseline-build"
+        phase: "baseline"
+        tool: "dotnet build"
+        passed: true
+      - check_name: "baseline-tests"
+        phase: "baseline"
+        tool: "N/A"
+        passed: true # No tests to run for visual-only change
+
+    # === AUDIT LIST: All remaining Color.Secondary on MudText instances ===
+    # These were NOT changed in this task — documented for future reference.
+    # Non-MudText elements (MudIcon, MudButton, MudChip, MudSwitch) are excluded.
+    audit_list:
+      # --- Common/Components ---
+      - file: "src/TourneyPal.UI/Common/Components/TaskPage.razor"
+        line: 51
+        current: '<MudText Typo="Typo.body1" Color="Color.Secondary">@LoadingText</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Common/Components/ListActionSheet.razor"
+        line: 12
+        current: '<MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="pa-3 pb-1">@Title</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Settings ---
+      - file: "src/TourneyPal.UI/Features/Settings/ThemePreviewCard.razor"
+        line: 9
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">@Loc[Theme.DescriptionKey]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 45
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 70
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 102
+        current: '<MudText Color="Color.Secondary">@Loc["Settings_Type"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 108
+        current: '<MudText Color="Color.Secondary">@Loc["Settings_Purchased"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 115
+        current: '<MudText Color="Color.Secondary">@Loc["Settings_LastVerified"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 130
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 157
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">@Loc["Appearance_Hint"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 170
+        current: '<MudText Color="Color.Secondary">@Loc["Settings_Version"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 174
+        current: '<MudText Color="Color.Secondary">@Loc["Settings_Build"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/SettingsPage.razor"
+        line: 185
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Settings/AppearancePage.razor"
+        line: 19
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Teams ---
+      - file: "src/TourneyPal.UI/Features/Teams/Components/TeamCard.razor"
+        line: 23
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">@CollapsedSummary</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/Components/TeamCard.razor"
+        line: 59
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">@Loc["Teams_NoPlayersAssigned"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/GenerateTeams/GenerateTeamsDialog.razor"
+        line: 31
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/GenerateTeams/GenerateTeamsPage.razor"
+        line: 36
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/EditTeam/EditTeamPage.razor"
+        line: 33
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">@Loc["Teams_Color"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/EditTeam/EditTeamPage.razor"
+        line: 50
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">@Loc["Teams_NoPlayersAssigned"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/AdvancedGeneration/Components/AdvancedTeamOptions.razor"
+        line: 21
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/AdvancedGeneration/Components/AdvancedTeamOptions.razor"
+        line: 31
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/AdvancedGeneration/Components/PlayerExclusionManager.razor"
+        line: 11
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/AdvancedGeneration/Components/PlayerSkillRatingEditor.razor"
+        line: 9
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Teams/AdvancedGeneration/Components/PlayerSkillRatingEditor.razor"
+        line: 63
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Players ---
+      - file: "src/TourneyPal.UI/Features/Players/BulkAddPlayers/BulkAddPlayersDialog.razor"
+        line: 8
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Players/BulkAddPlayers/BulkAddPlayersPage.razor"
+        line: 14
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Standings ---
+      - file: "src/TourneyPal.UI/Features/Standings/Components/StandingsTable.razor"
+        line: 7
+        current: '<MudText Typo="Typo.body1" Color="Color.Secondary">@Loc["Standings_NoStandingsYet"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Standings/Components/StandingsTable.razor"
+        line: 8
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">@Loc["Standings_CompleteMatches"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Standings/Components/StandingsTable.razor"
+        line: 56
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Scoring ---
+      - file: "src/TourneyPal.UI/Features/Scoring/Components/MatchPointsEditor.razor"
+        line: 5
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Scoring/Components/MatchPointsEditor.razor"
+        line: 34
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Scoring/Components/PlacementPointsEditor.razor"
+        line: 7
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Scoring/Components/PlacementPointsEditor.razor"
+        line: 60
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Scoring/Stats/Components/PlayerStatEntry.razor"
+        line: 96
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Scoring/Stats/Components/StatDefinitionList.razor"
+        line: 60
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary" Style="margin-left: 4px;">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary); margin-left: 4px;"'
+
+      - file: "src/TourneyPal.UI/Features/Scoring/Stats/Components/StatPresetSelector.razor"
+        line: 26
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Scoring/Stats/Components/StatPresetSelector.razor"
+        line: 44
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Scoring/Stats/Components/StatPresetSelector.razor"
+        line: 67
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Scoring/Stats/Components/StatStandingsTable.razor"
+        line: 72
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">-</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Roster ---
+      - file: "src/TourneyPal.UI/Features/Roster/RosterPage.razor"
+        line: 87
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" title="@player.Nickname">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Roster/ImportFromRosterPage.razor"
+        line: 58
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">@player.Nickname</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Export ---
+      - file: "src/TourneyPal.UI/Features/Export/ExportPage.razor"
+        line: 14
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Export/ExportPage.razor"
+        line: 33
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- License ---
+      - file: "src/TourneyPal.UI/Features/License/Components/UpgradeDialog.razor"
+        line: 13
+        current: '<MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/License/Components/PremiumGate.razor"
+        line: 18
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Games ---
+      - file: "src/TourneyPal.UI/Features/Games/GameParticipants/ManagePlayersPage.razor"
+        line: 67
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">@player.Nickname</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/IconPickerDialog.razor"
+        line: 16
+        current: '<MudText Typo="Typo.caption" Class="mb-1" Color="Color.Secondary">@Loc["Games_IconPicker_Categories"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/IconPickerDialog.razor"
+        line: 43
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="text-center pa-2">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/IconPickerDialog.razor"
+        line: 65
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GamesPage.razor"
+        line: 78
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" title="@game.Description">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/UpdateGame/UpdateGameDialog.razor"
+        line: 43
+        current: '<MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-2 mb-2">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameSetupSummaryComponent.razor"
+        line: 12
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameSetupSummaryComponent.razor"
+        line: 17
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameSetupSummaryComponent.razor"
+        line: 25
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameSetupSummaryComponent.razor"
+        line: 29
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/UpdateGame/UpdateGamePage.razor"
+        line: 34
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">@Loc["Games_Icon"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/UpdateGame/UpdateGamePage.razor"
+        line: 71
+        current: '<MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-2">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameSetupStepsComponent.razor"
+        line: 17
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="ml-10">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameSetupStepsComponent.razor"
+        line: 45
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="ml-10">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameSetupStepsComponent.razor"
+        line: 51
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="ml-10">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameSetupStepsComponent.razor"
+        line: 82
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="ml-10 mb-2">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameDetailsPage.razor"
+        line: 45
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/GameDetailsPage.razor"
+        line: 105
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor"
+        line: 36
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">@template.Description</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor"
+        line: 59
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">@template.Description</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor"
+        line: 73
+        current: '<MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-4 mb-2">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Events ---
+      - file: "src/TourneyPal.UI/Features/Events/GamesTabContent.razor"
+        line: 67
+        current: '<MudText Typo="Typo.overline" Color="Color.Secondary" Class="mt-3 mb-1 px-1"'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Events/GamesTabContent.razor"
+        line: 85
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Events/OverviewTabContent.razor"
+        line: 21
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">@Loc["Events_Status"]</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Events/OverviewTabContent.razor"
+        line: 122
+        current: '<MudText Typo="Typo.h5" Color="Color.Secondary">@_gameCount</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Events/ParticipantsTabContent.razor"
+        line: 100
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      # --- Brackets ---
+      - file: "src/TourneyPal.UI/Features/Brackets/MatchPage.razor"
+        line: 39
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/MatchPage.razor"
+        line: 350
+        current: '<MudText Typo="Typo.body1" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 46
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 56
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 66
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 78
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 89
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 100
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 109
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 153
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-8">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 218
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 232
+        current: '<MudText Typo="Typo.caption" Color="Color.Secondary">'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+      - file: "src/TourneyPal.UI/Features/Brackets/CreateBracket/BracketSetupPage.razor"
+        line: 244
+        current: '<MudText Typo="Typo.body2" Color="Color.Secondary">#@(context.Seed)</MudText>'
+        recommendation: 'Replace with Style="color: var(--mud-palette-text-secondary)"'
+
+    # === Non-MudText Color.Secondary instances (intentionally NOT changed) ===
+    # These are interactive components where Color.Secondary is the accent color, not muted text.
+    non_mudtext_instances_preserved:
+      - file: "src/TourneyPal.UI/Features/Teams/GenerateTeams/GenerateTeamsDialog.razor"
+        line: 30
+        element: "MudSwitch"
+      - file: "src/TourneyPal.UI/Features/Teams/GenerateTeams/GenerateTeamsPage.razor"
+        line: 35
+        element: "MudSwitch"
+      - file: "src/TourneyPal.UI/Features/Teams/AdvancedGeneration/Components/PlayerExclusionManager.razor"
+        line: 47
+        element: "MudIcon"
+      - file: "src/TourneyPal.UI/Features/Teams/AdvancedGeneration/Components/PlayerSkillRatingEditor.razor"
+        line: 70
+        element: "MudButton"
+      - file: "src/TourneyPal.UI/Features/Scoring/Components/TiebreakerEditor.razor"
+        line: 8
+        element: "MudChip"
+      - file: "src/TourneyPal.UI/Features/Scoring/Stats/Components/StatDefinitionList.razor"
+        line: 11
+        element: "MudButton"
+      - file: "src/TourneyPal.UI/Features/Events/OverviewTabContent.razor"
+        line: 121
+        element: "MudIcon"
+      - file: "src/TourneyPal.UI/Features/Games/GameSetupSummaryComponent.razor"
+        line: 43
+        element: "MudIcon"
+      - file: "src/TourneyPal.UI/Features/Games/GameCard.razor"
+        line: 51
+        element: "MudChip"
+      - file: "src/TourneyPal.UI/Features/Brackets/MatchPage.razor"
+        line: 151
+        element: "MudButton"
+
+    audit_summary:
+      total_color_secondary_matches: 95
+      mudtext_instances_fixed_this_task: 4 # EmptyState (2) + LoadingState (2)
+      mudtext_instances_remaining: 81 # Documented above for future work
+      non_mudtext_instances_preserved: 10 # MudIcon, MudButton, MudChip, MudSwitch
+
+completion:
+  status: "DONE"
+  summary: "Fixed Color.Secondary on 4 MudText elements in EmptyState.razor and LoadingState.razor; produced full audit of 81 remaining MudText instances across 33 files"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/ui-bug-fixes/implementation-reports/TASK-003.yaml"

@@ -1,0 +1,190 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-012"
+  step: "step-6"
+  started_at: "2026-02-27T22:00:00Z"
+  completed_at: "2026-02-27T22:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-012"
+    run_id: "2026-02-27T10:00:00Z"
+    evidence_gate:
+      total_checks: 6
+      passed: 6
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          3 errors (all pre-existing broken links to schemas.md#schema-10-knowledge-output
+          at lines 66, 225, 279). Identical to baseline — no new errors introduced.
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "file-inspection"
+        command: "Measure-Object -Line + structure check"
+        exit_code: 0
+        passed: true
+        output_snippet: >
+          Valid markdown file. 333 lines (within 345-line limit). YAML frontmatter
+          present with name: knowledge-agent. All markdown sections properly structured.
+
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: "N/A"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          Tier 3 skipped: .agent.md is a non-executable agent instruction file (markdown).
+          No import/load or smoke execution possible. Tier 2 also absent (no build/test/lint
+          tooling for markdown agent files).
+
+      - check_name: "readiness-observability"
+        tier: 4
+        phase: "after"
+        tool: "grep_search+read_file"
+        command: "Inspected error handling, logging, and diagnostic paths"
+        exit_code: null
+        passed: true
+        output_snippet: >
+          Error handling references global-operating-rules.md §1-§2. Non-blocking behavior
+          documented (partial output on failure). SQLITE_BUSY handling via §3. Self-verification
+          checklist with 14 agent-specific checks. Structured error categories.
+
+      - check_name: "readiness-degradation"
+        tier: 4
+        phase: "after"
+        tool: "grep_search+read_file"
+        command: "Inspected graceful degradation paths"
+        exit_code: null
+        passed: true
+        output_snippet: >
+          Non-blocking agent: ERROR does not halt pipeline (lines 9, 20, 237-239). Partial
+          output on failure documented (line 273). SQLITE_BUSY retry pattern via
+          global-operating-rules.md §3. No downstream consumers of output (terminal schema).
+
+      - check_name: "readiness-secrets"
+        tier: 4
+        phase: "after"
+        tool: "grep_search"
+        command: "grep for password|secret|api_key|token|Bearer|hardcoded"
+        exit_code: null
+        passed: true
+        output_snippet: >
+          No hardcoded secrets, API keys, tokens, or passwords found. Only mentions of
+          "secrets" are instructions to NOT store them (lines 233, 298). Clean.
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-02-27T10-00-00Z:NewAgents/.github/agents/knowledge-agent.agent.md"
+      discrepancies_found: false
+      details: >
+        Baseline file: 362 lines with 3 broken links to schemas.md#schema-10-knowledge-output.
+        Implementer reported baseline 3 errors, 0 warnings — confirmed accurate via git show.
+        Current file: 333 lines with same 3 pre-existing broken links. No discrepancies.
+
+    acceptance_criteria_verification:
+      - criterion: "YAML frontmatter with name: knowledge-agent and description (FR-16)"
+        met: true
+        evidence: "Lines 2-5: frontmatter with name: knowledge-agent, description present"
+
+      - criterion: "run_in_terminal granted with SELECT + INSERT on instruction_updates only (SEC-3)"
+        met: true
+        evidence: "Lines 245, 251-252: SQL Access Rules table specifying SELECT any table + INSERT INTO instruction_updates"
+
+      - criterion: "Explicit DML prohibition list (UPDATE/DELETE/DROP/ALTER/CREATE/ATTACH/PRAGMA except busy_timeout)"
+        met: true
+        evidence: "Line 257: 'You MUST NOT execute: UPDATE, DELETE, DROP, ALTER, CREATE, ATTACH, PRAGMA (except busy_timeout)'"
+
+      - criterion: "Responsibility inventory table with 9 responsibilities (ARCH-1)"
+        met: true
+        evidence: "Lines 28-38: Table with 9 rows — 4 Existing + 5 New responsibilities with justifications"
+
+      - criterion: "Pipeline telemetry summary with SQL queries reference (AC-6.3)"
+        met: true
+        evidence: "Step 2 (line 159): queries pipeline_telemetry via sql-templates.md §7"
+
+      - criterion: "Post-mortem identifies top 3 bottleneck steps and agents requiring retries (AC-6.4)"
+        met: true
+        evidence: "Step 2 item 2 (line 161): 'top 3 bottleneck steps by wall-clock time'. Step 4 (line 186): Bottlenecks section"
+
+      - criterion: "Artifact evaluation consumption via SQL aggregation (AC-5.3)"
+        met: true
+        evidence: "Step 3 (line 169): queries artifact_evaluations via sql-templates.md §7"
+
+      - criterion: "instruction_updates INSERT for governed update tracking (AC-15.4)"
+        met: true
+        evidence: "Step 5 (lines 195-198): INSERT INTO instruction_updates with sql-templates.md §5 reference"
+
+      - criterion: "Safety Constraint Filter references global-operating-rules.md §9 (SEC-5)"
+        met: true
+        evidence: "Lines 40, 194, 205, 280: Four references to global-operating-rules.md §9 for evaluator separation"
+
+      - criterion: "File is ≤345 lines"
+        met: true
+        evidence: "File is 333 lines (confirmed via read_file returning 333 total)"
+
+      - criterion: "Anti-drift anchor retained"
+        met: true
+        evidence: "Lines 326-328: Anti-drift anchor section with comprehensive knowledge-agent identity summary"
+
+      - criterion: "8-step workflow present"
+        met: true
+        evidence: "Steps 1-8: Gather Outputs, Telemetry SQL, Evaluation SQL, Post-Mortem, Instruction Improvements, Evidence Bundle, Knowledge Output, Cross-Session Knowledge"
+
+      - criterion: "Evidence bundle with 8 components (a-h)"
+        met: true
+        evidence: "Step 6 table (lines 209-218): Components a-h including Telemetry Summary (g) and Evaluation Summary (h)"
+
+      - criterion: "store_memory capability preserved"
+        met: true
+        evidence: "Lines 33, 91, 230, 298, 309: store_memory referenced in responsibility table, output schema, Step 8 workflow, self-verification, and tool list"
+
+      - criterion: "Non-blocking behavior documented"
+        met: true
+        evidence: "Lines 9, 20, 237-239, 273, 320: Non-blocking stated in type, role, dedicated section, operating rules, and completion contract"
+
+      - criterion: "Completion contract present"
+        met: true
+        evidence: "Lines 315-322: DONE and ERROR statuses defined; no NEEDS_REVISION (terminal agent)"
+
+    cross_reference_verification:
+      - reference: "sql-templates.md §0, §5, §7"
+        valid: true
+        evidence: "sql-templates.md exists with §0 (line 11), §5 (line 325), §7 (line 478)"
+
+      - reference: "tool-access-matrix.md §10"
+        valid: true
+        evidence: "tool-access-matrix.md exists with '## §10 Knowledge Agent' (line 66)"
+
+      - reference: "evaluation-schema.md"
+        valid: true
+        evidence: "evaluation-schema.md exists at NewAgents/.github/agents/evaluation-schema.md"
+
+      - reference: "global-operating-rules.md §1, §2, §3, §6, §9"
+        valid: true
+        evidence: "global-operating-rules.md exists with §1 (line 7), §2 (line 20), §3 (line 31), §6 (line 65), §9 (line 112)"
+
+completion:
+  status: "DONE"
+  summary: "Verified TASK-012: 6 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "verification-reports/TASK-012.yaml"
+  evidence_summary:
+    total_checks: 6
+    passed: 6
+    failed: 0
+    security_blockers: 0

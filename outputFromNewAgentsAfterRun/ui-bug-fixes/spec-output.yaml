@@ -1,0 +1,451 @@
+agent_output:
+  agent: "spec"
+  instance: "spec"
+  step: "step-2"
+  started_at: "2026-02-26T15:20:00Z"
+  completed_at: "2026-02-26T15:45:00Z"
+  schema_version: "1.0"
+  payload:
+    feature_name: "UI Bug Fixes Batch"
+    feature_slug: "ui-bug-fixes"
+    feature_type: "bug-fix-batch"
+
+    directions:
+      - id: "A"
+        name: "Targeted per-bug fixes"
+        summary: >
+          Fix each bug independently with minimal blast radius. CSS/JS for swipe icon,
+          FlowStep logic for template picker, cancel handler for black screen, nullable field
+          for skill rating, ThemeRegistry hex values for appearance colors. Each fix is
+          self-contained and independently testable.
+
+    pushback_log:
+      concerns_identified: 0
+      note: "User pre-decided all scope questions. No pushback raised."
+
+    common_requirements:
+      - id: "CR-1"
+        text: "All fixes must maintain backward compatibility with existing data (events, games, players, templates)."
+        priority: "must"
+      - id: "CR-2"
+        text: "All fixes must pass the existing ~2117 test suite without regressions (excluding expected test updates for changed behavior)."
+        priority: "must"
+      - id: "CR-3"
+        text: "No hardcoded strings — all user-visible text must use IStringLocalizer."
+        priority: "must"
+      - id: "CR-4"
+        text: "All touch targets must meet 44x44px minimum per Apple HIG."
+        priority: "must"
+      - id: "CR-5"
+        text: "Web projects (TourneyPal/, TourneyPal.Client/) must continue to compile. Add NotSupportedException stubs for any new interface methods."
+        priority: "must"
+
+    requirements:
+      - id: "BUG-001"
+        title: "Swipe delete icon too small"
+        priority: "P2"
+        category: "visual-polish"
+        current_behavior: >
+          The swipe-to-delete indicator renders a 24x24px SVG icon (MudBlazor mud-icon-size-medium)
+          inside an 80px-wide container. After the UX overhaul removed the "Delete" text label,
+          the icon appears undersized relative to the container. A dead CSS rule for .delete-icon
+          exists but is never matched (JS uses .mud-svg-icon class).
+        expected_behavior: >
+          The delete icon should be visually prominent within the 80px container. The SVG icon
+          should render at approximately 32-36px (matching MudBlazor's large icon size or a
+          custom CSS override). The dead .delete-icon CSS rule should be removed or repurposed.
+        affected_files:
+          - "src/TourneyPal.UI/wwwroot/css/list-swipe.css"
+          - "src/Tornimate.Mobile/wwwroot/js/list-swipe-bridge.js"
+        acceptance_criteria:
+          - id: "AC-001-1"
+            text: "The swipe delete indicator SVG icon renders at ≥32px width and height."
+            test_method: "inspection"
+          - id: "AC-001-2"
+            text: "The icon is visually centered within the 80px swipe indicator container."
+            test_method: "inspection"
+          - id: "AC-001-3"
+            text: "The fix propagates identically to all 5 list pages: EventsPage, RosterPage, GamesPage, ParticipantsTabContent, GamesTabContent."
+            test_method: "demonstration"
+          - id: "AC-001-4"
+            text: "The dead .delete-icon CSS rule is removed from list-swipe.css."
+            test_method: "inspection"
+        testing_notes: >
+          No automated tests cover swipe delete visuals (JS/CSS only, no JS test framework).
+          Manual visual verification required on all 5 list pages. Zero test breakage expected.
+
+      - id: "BUG-002"
+        title: "Template picker missing from settings template creation"
+        priority: "P1"
+        category: "feature-enhancement"
+        current_behavior: >
+          When creating a new game template from Settings → Game Templates → Create
+          (/settings/game-templates/create), the CreateGamePage.OnInitializedAsync() skips
+          directly to FlowStep.Form with a blank form. No template picker or "build from
+          existing" option is offered. The TemplatePickerDialog exists and works in event
+          context but is never invoked in template context.
+        expected_behavior: >
+          When creating a new template from settings, the user should be offered the option
+          to build from an existing template (system or custom). The existing TemplatePickerDialog
+          should be reused. If the user selects a template, the form should be pre-filled with
+          that template's values. If the user chooses "Create Custom" or cancels the picker,
+          a blank form should be shown. The user must always be able to reach the blank form
+          (no forced template selection).
+        affected_files:
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor"
+        acceptance_criteria:
+          - id: "AC-002-1"
+            text: "Navigating to /settings/game-templates/create shows the TemplatePickerDialog with system and custom templates listed."
+            test_method: "test"
+          - id: "AC-002-2"
+            text: "Selecting a template from the picker pre-fills the creation form with that template's name, description, max players, and scoring fields."
+            test_method: "test"
+          - id: "AC-002-3"
+            text: "Choosing 'Create Custom Game' in the picker shows a blank creation form."
+            test_method: "test"
+          - id: "AC-002-4"
+            text: "Canceling the template picker shows a blank creation form (does NOT navigate away)."
+            test_method: "test"
+          - id: "AC-002-5"
+            text: "Event-context game creation (/events/{id}/games/add) behavior is unchanged."
+            test_method: "test"
+        testing_notes: >
+          Updates needed in CreateGamePageTemplateSelectionTests.cs for template context flow.
+          New tests: template picker shown in template context, cancel shows blank form,
+          template selection pre-fills form. Estimated 3-5 new tests, 2-3 test updates.
+
+      - id: "BUG-003"
+        title: "Template creation throws error"
+        priority: "P1"
+        category: "bug-fix"
+        current_behavior: >
+          Creating a game template from Settings → Game Templates → Create throws an error
+          and the template is not saved. The exact error is unknown from static analysis —
+          the code path (CreateGamePage.Submit → MediatorGameDataService.CreateGameAsync →
+          CreateGameHandler → GameCreationService.CreateAsync) appears structurally sound
+          for template context (EventId=null). The error may be a runtime issue: EF Core
+          constraint, form validation failure, or MudBlazor form binding issue.
+        expected_behavior: >
+          Creating a game template from settings should succeed. The template should be
+          persisted to the database with EventId=null and appear in the game templates list
+          on the settings page. The user should be navigated back to the game templates list
+          after successful creation.
+        affected_files:
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+          - "src/TourneyPal.Core/Features/Games/CreateGame/CreateGameHandler.cs"
+          - "src/TourneyPal.Core/Features/Games/GameCreationService.cs"
+          - "src/TourneyPal.Common/Features/Games/CreateGame/CreateGameValidator.cs"
+        investigation_strategy: |
+          1. Write a focused integration test that exercises the template creation path
+             (CreateGameCommand with EventId=null) to reproduce the error.
+          2. If the test passes, the bug is UI-side — use Playwright automation skill to
+             test live on the Android emulator via CDP.
+          3. Check MudBlazor form validation (EditForm/MudForm) behavior when EventId is null.
+          4. Check if any recent migration or schema change added a NOT NULL constraint on EventId.
+          5. Fix the identified root cause.
+        acceptance_criteria:
+          - id: "AC-003-1"
+            text: "A CreateGameCommand with EventId=null, valid name, and valid max players succeeds without error through the handler and service."
+            test_method: "test"
+          - id: "AC-003-2"
+            text: "The created template persists in the database with EventId=null and is retrievable via GetGamesAsync."
+            test_method: "test"
+          - id: "AC-003-3"
+            text: "The CreateGamePage Submit flow completes successfully when IsTemplate is true, navigating back to /settings/game-templates."
+            test_method: "demonstration"
+          - id: "AC-003-4"
+            text: "The created template appears in the game templates list on the settings page."
+            test_method: "demonstration"
+        testing_notes: >
+          Root cause unknown — requires runtime investigation. Live device testing available
+          via adb-cli and playwright-automation skills. Existing CreateGameHandlerTests and
+          GameCreationServiceTests may already cover the template path — verify before adding
+          new tests. Estimated 1-2 new tests once root cause is identified.
+
+      - id: "BUG-004"
+        title: "Games tab 'Add Game' bottom sheet goes black and navigates away"
+        priority: "P0"
+        category: "workflow-blocker"
+        current_behavior: >
+          When adding a game to an event from the Games tab, the user is navigated to
+          CreateGamePage (/events/{EventId}/games/add). If no custom templates exist,
+          ShowDecisionSheet() is called, rendering a ListActionSheet with a semi-transparent
+          black overlay (rgba(0,0,0,0.4)). The user sees a dark screen with a bottom sheet.
+
+          The critical bug: OnActionSheetCancel() calls Cancel() which navigates to
+          /events/{EventId}, leaving the entire create flow. This means:
+          (a) Tapping the overlay dismisses AND navigates away (user loses the page)
+          (b) The action sheet cancel button navigates away
+          (c) Users cannot reach the game creation form if they dismiss the action sheet
+
+          This is noted as a known latent issue from the UX consistency overhaul
+          (implementer-10.mem.md: "conflates 'dismiss sheet' with 'navigate away'").
+        expected_behavior: >
+          Dismissing the action sheet (via overlay tap or cancel button) should close the
+          sheet and show the blank game creation form (FlowStep.Form) — NOT navigate away.
+          The user should always be able to reach the form. Only the page-level back/cancel
+          button should navigate away from CreateGamePage.
+
+          The TemplatePickerDialog cancel (when custom templates exist) should also show the
+          blank form instead of navigating away when no custom templates remain after cancel.
+
+          Reference pattern: ParticipantsTabContent.CloseAddActionSheet() simply hides the
+          sheet without navigation.
+        affected_files:
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+        acceptance_criteria:
+          - id: "AC-004-1"
+            text: "Tapping the ListActionSheet overlay on CreateGamePage closes the sheet and shows the game creation form."
+            test_method: "test"
+          - id: "AC-004-2"
+            text: "Tapping the ListActionSheet cancel button on CreateGamePage closes the sheet and shows the game creation form."
+            test_method: "test"
+          - id: "AC-004-3"
+            text: "After dismissing the action sheet, the user can fill out and submit the game creation form."
+            test_method: "demonstration"
+          - id: "AC-004-4"
+            text: "Canceling the TemplatePickerDialog (when custom templates exist) shows the blank creation form instead of navigating away."
+            test_method: "test"
+          - id: "AC-004-5"
+            text: "The page-level back/cancel navigation (toolbar back button) still correctly navigates to /events/{EventId}."
+            test_method: "test"
+          - id: "AC-004-6"
+            text: "Selecting a template from the action sheet or picker still correctly populates the form."
+            test_method: "test"
+        testing_notes: >
+          Update CreateGamePageTemplateSelectionTests for new cancel behavior. New tests needed
+          for: action sheet cancel shows form, dialog cancel shows form, back button still
+          navigates. Estimated 2-4 new tests, 1-3 test updates.
+
+      - id: "BUG-005"
+        title: "Skill rating should be optional, not pre-filled"
+        priority: "P1"
+        category: "ux-inconsistency"
+        current_behavior: >
+          CreatePlayerPage (event context, /events/{EventId}/players/add) uses a non-nullable
+          `int _skillRating = ValidationConstants.DefaultSkillRating` (value 50). The
+          MudNumericField uses T="int" with @bind-Value, so the field always shows "50".
+          Users cannot clear the field to indicate "no rating." The field has no HelperText
+          and no FormFieldState deferred validation.
+        expected_behavior: >
+          Skill rating on CreatePlayerPage should be optional, matching the CreateRosterPlayerPage
+          pattern. The field should:
+          - Use `int? _skillRating` initialized to null (empty field)
+          - Use `MudNumericField<int?>` with Value/ValueChanged pattern
+          - Show HelperText explaining the field is optional
+          - Use FormFieldState deferred validation (validate only after interaction)
+          - On submit, coerce null to DefaultSkillRating (50) before passing to the data service
+
+          This mirrors the existing working pattern in CreateRosterPlayerPage.
+        affected_files:
+          - "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor.cs"
+          - "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor"
+        acceptance_criteria:
+          - id: "AC-005-1"
+            text: "The skill rating field on CreatePlayerPage renders empty (no pre-filled value) when the page loads."
+            test_method: "test"
+          - id: "AC-005-2"
+            text: "The user can leave the skill rating field empty and submit the form successfully."
+            test_method: "test"
+          - id: "AC-005-3"
+            text: "When submitted with an empty skill rating, the player is created with DefaultSkillRating (50)."
+            test_method: "test"
+          - id: "AC-005-4"
+            text: "When submitted with a specific value (e.g., 75), the player is created with that value."
+            test_method: "test"
+          - id: "AC-005-5"
+            text: "Validation shows an error for values outside the 1-100 range only after user interaction (deferred validation)."
+            test_method: "test"
+          - id: "AC-005-6"
+            text: "The field displays a HelperText indicating the rating is optional."
+            test_method: "inspection"
+          - id: "AC-005-7"
+            text: "The CreatePlayerCommand, CreatePlayerValidator, and CreatePlayerHandler are NOT modified (UI-only change with null coercion at submission boundary)."
+            test_method: "inspection"
+        testing_notes: >
+          Update CreatePlayerPageTests: Render_ShowsSkillRatingField (empty initial),
+          Submit_PassesSkillRatingToService (null coercion). Estimated 2-4 test updates,
+          1-2 new tests for deferred validation behavior.
+
+      - id: "BUG-006"
+        title: "Theme palette redesign for Apple HIG compliance"
+        priority: "P1"
+        category: "visual-identity"
+        current_behavior: >
+          ThemeRegistry defines 8 themes with custom hex values. The Professional (default) theme
+          uses divergent colors from Apple HIG: Primary is #594AE2 (purple, Apple is #007AFF blue),
+          Tertiary is #1ec8a5 (teal, Apple is #5AC8FA). Secondary (#ff4081) is close to Apple's
+          #FF2D55. Background/Surface values are already close to Apple HIG.
+
+          Additionally, ThemePreviewCard.razor (line 9) and AppearancePage.razor (line 19) use
+          `Color="Color.Secondary"` on MudText, which applies the theme's accent color (e.g.,
+          pink #ff4081) instead of the intended muted TextSecondary color (#6E6E80).
+        expected_behavior: >
+          1. Professional theme and all other themes should have palette values adjusted toward
+             Apple HIG system colors while maintaining theme personality/identity.
+          2. Professional theme Primary should shift toward Apple system blue (#007AFF light,
+             #0A84FF dark) or a refined blue-purple that reads as professional-grade.
+          3. All themes must have consistent Apple-aligned semantic colors: Error close to
+             #FF3B30/#FF453A, Success close to #34C759/#30D158, Warning close to #FF9500/#FF9F0A,
+             Info close to #007AFF/#0A84FF.
+          4. Background/Surface values should match Apple system backgrounds: light #F2F2F7,
+             dark #000000/#1C1C1E.
+          5. PreviewSwatches must be updated to match any changed palette values.
+          6. Color.Secondary on MudText in ThemePreviewCard and AppearancePage must be replaced
+             with TextSecondary styling.
+        affected_files:
+          - "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs"
+          - "src/TourneyPal.UI/Features/Settings/ThemePreviewCard.razor"
+          - "src/TourneyPal.UI/Features/Settings/AppearancePage.razor"
+        acceptance_criteria:
+          - id: "AC-006-1"
+            text: "All 8 themes in ThemeRegistry have PaletteLight and PaletteDark values that align with Apple HIG system color conventions (semantic colors: Error, Success, Warning, Info within ±15% hue of Apple reference values)."
+            test_method: "inspection"
+          - id: "AC-006-2"
+            text: "Professional theme PaletteLight Background is #F2F2F7 (Apple system background)."
+            test_method: "test"
+          - id: "AC-006-3"
+            text: "Professional theme PaletteDark Surface is #1C1C1E (Apple elevated surface)."
+            test_method: "test"
+          - id: "AC-006-4"
+            text: "PreviewSwatches for each theme match the actual Primary, Secondary, Tertiary, and Surface palette values."
+            test_method: "test"
+          - id: "AC-006-5"
+            text: "ThemePreviewCard description text renders in muted gray (TextSecondary), not in the theme's accent color."
+            test_method: "inspection"
+          - id: "AC-006-6"
+            text: "AppearancePage dark/light mode label text renders in muted gray (TextSecondary), not in the theme's accent color."
+            test_method: "inspection"
+          - id: "AC-006-7"
+            text: "Each theme retains its distinct visual identity (unique Primary color) while aligning semantic/structural colors to Apple HIG."
+            test_method: "inspection"
+          - id: "AC-006-8"
+            text: "ThemeRegistryTests still pass — all 22 core properties are non-null, background hierarchy is maintained, dark mode background is not pure black."
+            test_method: "test"
+        testing_notes: >
+          ThemeRegistryTests.cs will need updates for changed hex values (specific color assertions).
+          No bUnit tests assert on Color.Secondary, so removing it from MudText won't break tests.
+          The 22-property assertion and background hierarchy tests should still pass with new
+          values. Manual visual verification on all 8 themes in light and dark mode.
+
+      - id: "BUG-007"
+        title: "Color.Secondary misuse on MudText across codebase (audit scope)"
+        priority: "P2"
+        category: "ux-inconsistency"
+        current_behavior: >
+          `Color="Color.Secondary"` appears ~99 times across ~33 Razor files. On MudText elements,
+          this applies the theme's accent Secondary color (e.g., pink #ff4081 for Professional)
+          instead of the intended muted text color (TextSecondary #6E6E80). In most cases, the
+          developer intent was "muted secondary text," not "pink accent text."
+
+          BUG-006 fixes the Appearance page specifically. This requirement captures the broader
+          audit opportunity but scopes narrowly to avoid a 33-file change.
+        expected_behavior: >
+          As part of BUG-006, audit all Color.Secondary usages on MudText components and
+          document the full list of files needing fixes. Fix the most visible/impactful instances
+          beyond the Appearance page (e.g., EmptyState, LoadingState, SettingsPage). Do NOT
+          attempt a 33-file global change in this batch — constrain to high-visibility pages.
+        affected_files:
+          - "src/TourneyPal.UI/Common/Components/EmptyState.razor (if Color.Secondary on text)"
+          - "src/TourneyPal.UI/Common/Components/LoadingState.razor (if Color.Secondary on text)"
+          - "src/TourneyPal.UI/Features/Settings/SettingsPage.razor (if Color.Secondary on text)"
+        acceptance_criteria:
+          - id: "AC-007-1"
+            text: "A documented list of all files containing Color.Secondary on MudText elements is produced."
+            test_method: "inspection"
+          - id: "AC-007-2"
+            text: "High-visibility shared components (EmptyState, LoadingState) have Color.Secondary removed from MudText elements where the intent is muted text."
+            test_method: "inspection"
+          - id: "AC-007-3"
+            text: "Color.Secondary on MudIcon, MudButton, MudChip (accent color intent) is NOT changed."
+            test_method: "inspection"
+        testing_notes: >
+          No tests assert on Color.Secondary. Zero test breakage expected. Purely visual changes.
+          Manual verification on affected pages.
+
+      - id: "BUG-008"
+        title: "Dead CSS rule .delete-icon in list-swipe.css"
+        priority: "P2"
+        category: "code-hygiene"
+        current_behavior: >
+          The CSS rule `.swipe-delete-indicator .delete-icon` at line 90 of list-swipe.css
+          defines `font-size: 1.25rem; margin-bottom: 4px;` but is dead code — the JS creates
+          the icon with class `.mud-svg-icon`, never `.delete-icon`. This was noted during the
+          UX consistency overhaul and left as out-of-scope.
+        expected_behavior: >
+          The dead .delete-icon CSS rule should be removed as part of the BUG-001 fix. The
+          correct CSS rule targeting `.swipe-delete-indicator .mud-svg-icon` should include
+          explicit width/height for the icon.
+        affected_files:
+          - "src/TourneyPal.UI/wwwroot/css/list-swipe.css"
+        acceptance_criteria:
+          - id: "AC-008-1"
+            text: "The .swipe-delete-indicator .delete-icon CSS rule no longer exists in list-swipe.css."
+            test_method: "inspection"
+          - id: "AC-008-2"
+            text: "A .swipe-delete-indicator .mud-svg-icon CSS rule exists with explicit width and height properties."
+            test_method: "inspection"
+        testing_notes: >
+          No tests cover CSS rules. Clean up during BUG-001 implementation. Zero risk.
+
+    edge_cases:
+      - id: "EC-1"
+        input_condition: "BUG-002: No templates exist (neither system nor custom) when opening template picker in settings context."
+        expected_behavior: "The picker should show an empty state or skip directly to the blank form. It should NOT show an empty dialog with no options."
+        severity_if_missed: "medium"
+
+      - id: "EC-2"
+        input_condition: "BUG-004: User taps an action sheet option (e.g., 'Use Template') but the template load fails."
+        expected_behavior: "Error should be handled gracefully. User should see an error message and remain on the CreateGamePage, not be navigated away."
+        severity_if_missed: "high"
+
+      - id: "EC-3"
+        input_condition: "BUG-005: User enters a skill rating value, then clears the field, then submits."
+        expected_behavior: "The field should accept the empty state (null). On submit, the null should be coerced to DefaultSkillRating (50). No validation error should appear for the cleared field."
+        severity_if_missed: "medium"
+
+      - id: "EC-4"
+        input_condition: "BUG-006: A theme's Primary color is changed but PreviewSwatches are not updated."
+        expected_behavior: "PreviewSwatches must always match the actual palette values. ThemeRegistryTests should catch mismatches."
+        severity_if_missed: "high"
+
+      - id: "EC-5"
+        input_condition: "BUG-004: User navigates to CreateGamePage from event context when custom templates exist (TemplatePickerDialog path)."
+        expected_behavior: "The TemplatePickerDialog is shown. Canceling the dialog shows the blank form (not navigate away). Selecting a template populates the form. This is a change from current behavior where cancel navigates away."
+        severity_if_missed: "critical"
+
+      - id: "EC-6"
+        input_condition: "BUG-003: Template creation from settings with very long name (>100 chars) or empty name."
+        expected_behavior: "FluentValidation catches the invalid input (CreateGameValidator enforces Name max 100, required). Error is displayed to user in the form field."
+        severity_if_missed: "low"
+
+      - id: "EC-7"
+        input_condition: "BUG-001: Swipe delete on a very narrow screen (320px width)."
+        expected_behavior: "The 80px container and larger icon should still fit. The icon should not overflow the container or cause layout issues."
+        severity_if_missed: "low"
+
+      - id: "EC-8"
+        input_condition: "BUG-002: User opens template picker in settings, selects a template, then modifies the pre-filled name, then submits."
+        expected_behavior: "The modified name should be used for the new template, not the original template's name. The new template should be a separate entity."
+        severity_if_missed: "high"
+
+    constraints:
+      - "MAUI-only development — web projects compile but receive no new features."
+      - "No hardcoded strings — all user-visible text via IStringLocalizer."
+      - "No hardcoded colors — all colors via MudBlazor Color enum or CSS variables."
+      - "Minimum 44x44px touch targets on all interactive elements."
+      - "Offline-first — all features must work without network."
+      - "Code-behind only — no @code blocks in .razor files."
+      - "One class per file."
+      - "ValidationConstants from TourneyPal.Common — no magic numbers."
+
+completion:
+  status: "DONE"
+  agent: "spec"
+  step: "step-2"
+  timestamp: "2026-02-26T15:45:00Z"
+  summary: "Specification complete: 8 requirements (BUG-001 through BUG-008) covering swipe icon, template picker, template error, black screen blocker, skill rating, theme redesign, Color.Secondary audit, and dead CSS cleanup."
+  output_paths:
+    - "docs/feature/ui-bug-fixes/spec-output.yaml"
+    - "docs/feature/ui-bug-fixes/feature.md"

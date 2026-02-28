@@ -1,0 +1,921 @@
+agent_output:
+  agent: "designer"
+  instance: "designer-agent-system-overhaul"
+  step: "step-3"
+  started_at: "2026-02-27T14:00:00Z"
+  completed_at: "2026-02-27T19:00:00Z"
+  schema_version: "1.0"
+  payload:
+    feature_slug: "agent-system-overhaul"
+
+    # ──────────────────────────────────────────────────────────────────
+    # 1. FILE INVENTORY — Every file created, modified, or deleted
+    # ──────────────────────────────────────────────────────────────────
+    file_inventory:
+      # ── NEW: Global instruction infrastructure ──
+      - path: ".github/copilot-instructions.md"
+        action: "create"
+        estimated_lines: 55
+        description: >
+          VS Code auto-loaded global rules applying to ALL agents including orchestrator.
+          Contains: terminal-only testing, no-file-redirect, retry policy summary, schema
+          version requirement, anti-hallucination principle, no-runtime-agent-modification,
+          bounded feedback loop invariant.
+        addresses_frs: ["FR-7", "FR-8", "FR-10", "FR-15"]
+
+      - path: ".github/instructions/pipeline-conventions.md"
+        action: "create"
+        estimated_lines: 45
+        description: >
+          Domain-specific instruction file for pipeline conventions. Feature directory
+          structure, file naming patterns, risk classification quick-reference, pipeline
+          step summary. Knowledge Agent governed update target.
+        addresses_frs: ["FR-15"]
+
+      # ── NEW: Shared reference documents in agents/ ──
+      - path: "NewAgents/.github/agents/global-operating-rules.md"
+        action: "create"
+        estimated_lines: 130
+        description: >
+          Shared reference doc extracted from agent inline content. Two-tiered retry
+          pattern (detailed), error handling categories (transient vs deterministic),
+          SQLITE_BUSY retry with exponential backoff, run_id propagation requirements,
+          completion contract routing matrix, self-verification common checklist items,
+          pipeline state recovery protocol, output file naming conventions.
+        addresses_frs: ["FR-10", "FR-13"]
+
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        action: "create"
+        estimated_lines: 160
+        description: >
+          All SQL templates consolidated: anvil_checks INSERT, pipeline_telemetry INSERT,
+          artifact_evaluations INSERT, instruction_updates INSERT, all evidence gate SELECT
+          queries (templated with {run_id}/{round} placeholders), database initialization
+          DDL for all 4 tables, WAL mode + busy_timeout setup, SQLITE_BUSY retry pattern.
+        addresses_frs: ["FR-5", "FR-6", "FR-10", "FR-13", "FR-14"]
+
+      - path: "NewAgents/.github/agents/evaluation-schema.md"
+        action: "create"
+        estimated_lines: 85
+        description: >
+          Artifact evaluation instructions for SQLite-based evaluation system. Table schema
+          reference, evaluation workflow (when and what to evaluate), scoring guidelines
+          (usefulness 1-10, clarity 1-10), missing_information/inaccuracies field guidance,
+          Phase 1 agent roster (implementer, verifier, adversarial reviewer), sample INSERT.
+        addresses_frs: ["FR-5"]
+
+      - path: "NewAgents/.github/agents/context7-integration.md"
+        action: "create"
+        estimated_lines: 45
+        description: >
+          Context7 MCP conditional integration instructions. Availability detection pattern,
+          two-step usage (resolve-library-id then query-docs), when to use (library/framework
+          API lookups before guessing), graceful skip if unavailable, applicable agents
+          (implementer, researcher).
+        addresses_frs: ["FR-9"]
+
+      - path: "NewAgents/.github/agents/review-perspectives.md"
+        action: "create"
+        estimated_lines: 130
+        description: >
+          Three distinct reviewer perspective definitions for multi-perspective adversarial
+          review. Full persona definitions with review philosophy, priority hierarchies,
+          severity threshold biases, and per-category guidance. Includes all-category
+          coverage rules (each reviewer × 3 categories), evidence gate requirements.
+        addresses_frs: ["FR-2", "FR-3"]
+
+      - path: "NewAgents/.github/agents/tool-access-matrix.md"
+        action: "create"
+        estimated_lines: 110
+        description: >
+          Consolidated tool access tables for all 9 agents. Per-agent allowed/restricted
+          tools with scope restrictions. run_in_terminal allowed operations per agent.
+          create_file scope restrictions per agent. Resolves FR-11 contradictions.
+        addresses_frs: ["FR-10", "FR-11"]
+
+      # ── MODIFIED: Agent definition files ──
+      - path: "NewAgents/.github/agents/orchestrator.agent.md"
+        action: "modify"
+        estimated_lines: 550
+        description: >
+          Major restructure: extract tool access (→tool-access-matrix.md), evidence gate
+          SQL queries (→sql-templates.md), SQLite DDL (→sql-templates.md), error handling
+          (→global-operating-rules.md). Add: pipeline_telemetry INSERT after each dispatch,
+          updated review dispatch with perspective parameters, consolidated DB initialization
+          (single verification-ledger.db with all 4 tables), updated evidence gates for
+          all-category review coverage, frontmatter standardization.
+        addresses_frs:
+          ["FR-1", "FR-6", "FR-10", "FR-12", "FR-13", "FR-14", "FR-16"]
+
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        action: "modify"
+        estimated_lines: 340
+        description: >
+          Extract: tool access (→tool-access-matrix.md), SQL templates (→sql-templates.md),
+          error handling (→global-operating-rules.md), no-file-redirect (→copilot-instructions.md).
+          Add: artifact evaluation INSERT after consuming task definition, Context7 conditional
+          reference, frontmatter. Compact YAML output structure and mode sections.
+        addresses_frs:
+          ["FR-4", "FR-5", "FR-7", "FR-8", "FR-9", "FR-10", "FR-16"]
+
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        action: "modify"
+        estimated_lines: 340
+        description: >
+          Extract: tool access (→tool-access-matrix.md), SQL INSERT/safety-net templates
+          (→sql-templates.md), check_name convention (→sql-templates.md), error handling
+          (→global-operating-rules.md). Add: create_file with scope restriction
+          (verification-reports/*.yaml only), artifact evaluation INSERT for implementation
+          reports, frontmatter. Resolve tool contradiction (FR-11).
+        addresses_frs: ["FR-4", "FR-5", "FR-7", "FR-10", "FR-11", "FR-16"]
+
+      - path: "NewAgents/.github/agents/knowledge-agent.agent.md"
+        action: "modify"
+        estimated_lines: 345
+        description: >
+          Extract: tool access (→tool-access-matrix.md), error handling
+          (→global-operating-rules.md), governed update details (→global-operating-rules.md).
+          Add: run_in_terminal grant (SELECT on all tables + INSERT on instruction_updates
+          only), telemetry summary SQL queries, evaluation consumption queries,
+          instruction_updates INSERT, enhanced post-mortem section. Remove YAML-only
+          rationalized outputs.
+        addresses_frs:
+          ["FR-4", "FR-5", "FR-6", "FR-10", "FR-14", "FR-15", "FR-16"]
+
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        action: "modify"
+        estimated_lines: 335
+        description: >
+          Extract: tool access (→tool-access-matrix.md), SQL INSERT template
+          (→sql-templates.md), review focus details (→review-perspectives.md).
+          Add: review_perspective parameter (replaces review_focus + model), all-category
+          coverage (3 categories per reviewer), updated verdict file path
+          (review-verdicts/<scope>-<perspective>.yaml), artifact evaluation INSERT,
+          frontmatter.
+        addresses_frs:
+          ["FR-2", "FR-3", "FR-4", "FR-5", "FR-8", "FR-10", "FR-12", "FR-16"]
+
+      - path: "NewAgents/.github/agents/planner.agent.md"
+        action: "modify"
+        estimated_lines: 340
+        description: >
+          Extract: tool access (→tool-access-matrix.md), error handling
+          (→global-operating-rules.md), self-verification common items
+          (→global-operating-rules.md). Add: frontmatter, shared doc references.
+          Remove MD companion generation (plan.md retained per DP-2).
+        addresses_frs: ["FR-4", "FR-10", "FR-16"]
+
+      - path: "NewAgents/.github/agents/spec.agent.md"
+        action: "modify"
+        estimated_lines: 320
+        description: >
+          Extract: tool access (→tool-access-matrix.md), error handling
+          (→global-operating-rules.md). Add: frontmatter, shared doc references.
+          feature.md companion retained (human-facing per DP-2).
+        addresses_frs: ["FR-4", "FR-10", "FR-16"]
+
+      - path: "NewAgents/.github/agents/designer.agent.md"
+        action: "modify"
+        estimated_lines: 265
+        description: >
+          Extract: tool access (→tool-access-matrix.md). Add: glob-based verdict reading
+          for revision mode (review-verdicts/<scope>-*.yaml via list_dir), shared doc
+          references. design.md companion retained (human-facing per DP-2).
+        addresses_frs: ["FR-4", "FR-10", "FR-12", "FR-16"]
+
+      - path: "NewAgents/.github/agents/researcher.agent.md"
+        action: "modify"
+        estimated_lines: 240
+        description: >
+          Extract: tool access (→tool-access-matrix.md), error handling
+          (→global-operating-rules.md). Add: create_file explicit scope restriction
+          (research/*.yaml only — MD companions removed per DP-2), Context7 conditional
+          reference, frontmatter. Remove MD companion generation.
+        addresses_frs: ["FR-4", "FR-9", "FR-10", "FR-11", "FR-16"]
+
+      # ── MODIFIED: Existing reference documents ──
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modify"
+        estimated_lines: 1450
+        description: >
+          Add: artifact_evaluations table DDL, instruction_updates table DDL, pipeline_telemetry
+          population notes, routing matrix (agent × completion status), output format
+          classification table (YAML-only vs YAML+MD per artifact), updated Schema 9 with
+          per-perspective verdict path convention, field type annotations for all schemas,
+          updated Producer/Consumer table. Consolidate all SQL schemas in one section.
+        addresses_frs: ["FR-4", "FR-5", "FR-12", "FR-13", "FR-14"]
+
+      - path: "NewAgents/.github/agents/dispatch-patterns.md"
+        action: "modify"
+        estimated_lines: 120
+        description: >
+          Update Pattern A for perspective-based review dispatch (replace model references
+          with perspective parameters). Add FR-1 research findings section documenting VS
+          Code runSubagent concurrency behavior. Update evidence gate conditions for
+          all-category review structure. Add Phase 2 Enhancement section: if VS Code API
+          research reveals model routing capability, document how to layer model diversity
+          on top of prompt perspective diversity (AC-2.4).
+        addresses_frs: ["FR-1", "FR-2", "FR-3"]
+
+      - path: "NewAgents/.github/agents/severity-taxonomy.md"
+        action: "modify"
+        estimated_lines: 55
+        description: "Add YAML frontmatter (name, description) for VS Code discovery consistency."
+        addresses_frs: ["FR-16"]
+
+    # ──────────────────────────────────────────────────────────────────
+    # 2. ARCHITECTURE
+    # ──────────────────────────────────────────────────────────────────
+    architecture:
+      components: >
+        9-agent pipeline with 3-tier content architecture: Tier 1 (.github/copilot-instructions.md)
+        for global rules auto-loaded by VS Code, Tier 2 (reference docs in .github/agents/) for
+        agent-shared patterns, Tier 3 (inline in .agent.md files) for role-specific workflow.
+        Agents: orchestrator, researcher ×4, spec, designer, adversarial-reviewer ×3 (perspectives),
+        planner, implementer ×N, verifier ×N, knowledge-agent. Single SQLite database
+        (verification-ledger.db) with 4 tables: anvil_checks, pipeline_telemetry,
+        artifact_evaluations, instruction_updates. Pipeline steps 0-9 retained.
+
+      data_flow: >
+        Typed YAML schemas (10 schemas) flow linearly: researcher → spec → designer → planner →
+        implementer → verifier → adversarial-reviewer → knowledge-agent. Orchestrator reads ONLY
+        completion contracts + SQL evidence gates for routing. SQLite verification-ledger.db is
+        the shared evidence store: 5 writers (orchestrator, implementer, verifier, adversarial-reviewer,
+        knowledge-agent), 3 readers (orchestrator, adversarial-reviewer, knowledge-agent). Review verdicts flow as
+        per-perspective YAML files (review-verdicts/<scope>-<perspective>.yaml) consumed via
+        glob-based discovery. Artifact evaluations flow from Phase 1 agents (implementer, verifier,
+        adversarial-reviewer) to Knowledge Agent via SQL queries.
+
+      tool_access_matrix: >
+        Key changes from current state: (1) Verifier GAINS create_file with scope restriction
+        (verification-reports/*.yaml only) — resolves FR-11 contradiction. (2) Researcher's
+        create_file restriction clarified to explicit scope (research/*.yaml only, no MD per DP-2).
+        (3) Knowledge Agent GAINS run_in_terminal with scope restriction (SELECT on all
+        tables + INSERT on instruction_updates only) — enables direct SQL consumption of
+        telemetry + evaluations and governed update tracking.
+        (4) Adversarial Reviewer's run_in_terminal scope unchanged (git diff + SQL INSERT only).
+        All per-agent tool tables extracted to tool-access-matrix.md.
+
+    # ──────────────────────────────────────────────────────────────────
+    # 3. AGENT-BY-AGENT DESIGN
+    # ──────────────────────────────────────────────────────────────────
+    agent_designs:
+      - agent: "orchestrator"
+        current_lines: 800
+        target_lines: 550
+        extracted_content:
+          - "Tool access table → tool-access-matrix.md"
+          - "run_in_terminal constraint details → tool-access-matrix.md"
+          - "Evidence gate SQL queries (6 templates, ~70 lines) → sql-templates.md"
+          - "SQLite DDL for all tables (~50 lines) → sql-templates.md"
+          - "Self-verification common items → global-operating-rules.md"
+          - "Error handling / retry policy details → global-operating-rules.md"
+          - "Approval gate YAML templates (compacted inline, ~20 lines saved)"
+        new_content:
+          - "pipeline_telemetry INSERT after each agent dispatch completes"
+          - "Consolidated DB init: single verification-ledger.db with 4 tables via sql-templates.md reference"
+          - "Updated Step 3b/7 dispatch with review_perspective parameter (security-sentinel, architecture-guardian, pragmatic-verifier)"
+          - "Updated evidence gate conditions: all 3 reviewers × all 3 categories + zero blockers + majority approval"
+          - "YAML frontmatter (name: orchestrator, description: ...)"
+          - "References to 6 shared docs via section pointers"
+        key_changes:
+          - "800→550 lines through extraction to shared reference docs + compaction (NFR-1 exception documented)"
+          - "pipeline-telemetry.db eliminated — pipeline_telemetry table moves to verification-ledger.db"
+          - "Review dispatch uses review_perspective instead of model parameter"
+          - "Evidence gates validate all-category coverage per reviewer"
+          - "Telemetry INSERT wired after each dispatch (previously dead)"
+        tool_access_changes:
+          - "No tool changes — extracted to tool-access-matrix.md for reference"
+
+      - agent: "researcher"
+        current_lines: 251
+        target_lines: 240
+        extracted_content:
+          - "Tool access table → tool-access-matrix.md"
+          - "Error handling boilerplate → global-operating-rules.md"
+        new_content:
+          - "Explicit create_file scope restriction (research/*.yaml only)"
+          - "Context7 conditional reference → context7-integration.md"
+          - "YAML frontmatter (name: researcher, description: ...)"
+        key_changes:
+          - "MD companion generation REMOVED (research/*.md no longer produced per DP-2)"
+          - "create_file restriction clarified — allowed for research/*.yaml only"
+          - "Output Files section updated: single file (research/<focus>.yaml)"
+        tool_access_changes:
+          - "create_file: explicitly allowed with scope research/*.yaml (clarifies ambiguous exception)"
+
+      - agent: "spec"
+        current_lines: 337
+        target_lines: 320
+        extracted_content:
+          - "Tool access table → tool-access-matrix.md"
+          - "Error handling boilerplate → global-operating-rules.md"
+        new_content:
+          - "YAML frontmatter (name: spec, description: ...)"
+          - "References to shared docs"
+        key_changes:
+          - "337→320 lines through extraction"
+          - "feature.md companion RETAINED (human-facing per DP-2)"
+          - "Input section updated: reads research/*.yaml only (no .md)"
+        tool_access_changes: []
+
+      - agent: "designer"
+        current_lines: 275
+        target_lines: 265
+        extracted_content:
+          - "Tool access table → tool-access-matrix.md"
+        new_content:
+          - "Glob-based verdict reading for revision mode (review-verdicts/<scope>-*.yaml via list_dir)"
+          - "References to shared docs"
+        key_changes:
+          - "Revision mode input updated: reads review-verdicts/<scope>-*.yaml via list_dir glob"
+          - "design.md companion RETAINED (human-facing per DP-2)"
+          - "review-findings input updated: reads review-findings/<scope>-*.md"
+        tool_access_changes: []
+
+      - agent: "planner"
+        current_lines: 376
+        target_lines: 340
+        extracted_content:
+          - "Tool access table → tool-access-matrix.md"
+          - "Error handling boilerplate → global-operating-rules.md"
+          - "Self-verification common items → global-operating-rules.md"
+        new_content:
+          - "YAML frontmatter (name: planner, description: ...)"
+          - "References to shared docs"
+        key_changes:
+          - "376→340 lines through extraction"
+          - "plan.md companion RETAINED (human-facing per DP-2)"
+        tool_access_changes: []
+
+      - agent: "implementer"
+        current_lines: 519
+        target_lines: 340
+        extracted_content:
+          - "Tool access table → tool-access-matrix.md"
+          - "SQL INSERT templates (baseline records) → sql-templates.md"
+          - "Error handling / retry boilerplate → global-operating-rules.md"
+          - "No-file-redirect rule → copilot-instructions.md (global)"
+          - "Self-verification common items → global-operating-rules.md"
+        new_content:
+          - "Artifact evaluation INSERT after consuming task definition (reference → evaluation-schema.md)"
+          - "Context7 conditional reference → context7-integration.md"
+          - "YAML frontmatter (name: implementer, description: ...)"
+        key_changes:
+          - "519→340 lines through aggressive extraction"
+          - "Implementation report remains YAML-only (already was)"
+          - "No-file-redirect rule removed inline (now global)"
+          - "Evaluation: after reading task YAML, INSERT evaluation of task definition quality"
+        tool_access_changes:
+          - "No changes — tools extracted to matrix doc for reference"
+
+      - agent: "verifier"
+        current_lines: 521
+        target_lines: 340
+        extracted_content:
+          - "Tool access table → tool-access-matrix.md"
+          - "SQL INSERT template + safety net init → sql-templates.md"
+          - "check_name convention → sql-templates.md"
+          - "Error handling boilerplate → global-operating-rules.md"
+          - "Self-verification common items → global-operating-rules.md"
+        new_content:
+          - "create_file GRANTED with scope restriction (verification-reports/*.yaml only)"
+          - "Artifact evaluation INSERT for implementation reports (reference → evaluation-schema.md)"
+          - "YAML frontmatter (name: verifier, description: ...)"
+        key_changes:
+          - "521→340 lines through aggressive extraction"
+          - "Tool contradiction RESOLVED: create_file now allowed for output path"
+          - "Evaluation: after reading implementation report, INSERT evaluation"
+          - "Verification report remains YAML-only (already was)"
+        tool_access_changes:
+          - "create_file: GRANTED with scope restriction to verification-reports/*.yaml"
+
+      - agent: "adversarial-reviewer"
+        current_lines: 372
+        target_lines: 335
+        extracted_content:
+          - "Tool access table → tool-access-matrix.md"
+          - "SQL INSERT template → sql-templates.md"
+          - "Review Focus Areas section (security/architecture/correctness details) → review-perspectives.md"
+        new_content:
+          - "review_perspective parameter (replaces review_focus + model)"
+          - "All-category coverage: every reviewer reviews security + architecture + correctness"
+          - "Updated verdict path: review-verdicts/<scope>-<perspective>.yaml"
+          - "Updated findings path: review-findings/<scope>-<perspective>.md"
+          - "Artifact evaluation INSERT for design-output or implementation code"
+          - "YAML frontmatter (name: adversarial-reviewer, description: ...)"
+        key_changes:
+          - "372→335 lines through extraction + restructure"
+          - "review_focus parameter REPLACED by review_perspective"
+          - "model parameter REMOVED (VS Code ignores it)"
+          - "Each reviewer now covers ALL 3 categories, not just one"
+          - "Verdict file naming: <scope>-<perspective>.yaml instead of <scope>-<model>.yaml"
+          - "3 SQL INSERTs per review (one per category) instead of 1"
+        tool_access_changes:
+          - "No changes — tools extracted to matrix doc for reference"
+
+      - agent: "knowledge-agent"
+        current_lines: 509
+        target_lines: 345
+        extracted_content:
+          - "Tool access table → tool-access-matrix.md"
+          - "Error handling boilerplate → global-operating-rules.md"
+          - "Self-verification common items → global-operating-rules.md"
+          - "Governed update details (interactive/autonomous modes) → global-operating-rules.md"
+        new_content:
+          - "run_in_terminal GRANTED (SELECT on all tables + INSERT on instruction_updates only)"
+          - "Pipeline telemetry summary via SQL queries (reference → sql-templates.md)"
+          - "Artifact evaluation consumption via SQL aggregation queries"
+          - "Enhanced post-mortem section: agent reliability metrics, bottleneck identification, evaluation quality analysis"
+          - "instruction_updates INSERT for tracking governed updates"
+          - "YAML frontmatter (name: knowledge-agent, description: ...)"
+        key_changes:
+          - "509→345 lines through extraction"
+          - "GAINS run_in_terminal for SQL reads + instruction_updates INSERT — enables direct telemetry, evaluation consumption, and governed update tracking"
+          - "Post-mortem is now data-driven: SQL queries for telemetry + evaluations"
+          - "Instruction update tracking via instruction_updates table"
+          - "Evidence bundle enhanced with evaluation and telemetry summaries"
+        tool_access_changes:
+          - "run_in_terminal: GRANTED with scope restriction (SELECT on all tables + INSERT on instruction_updates only). MUST NOT: UPDATE, DELETE, DROP, ALTER, CREATE, ATTACH."
+
+    # ──────────────────────────────────────────────────────────────────
+    # 4. SHARED DOCUMENTS DESIGN
+    # ──────────────────────────────────────────────────────────────────
+    shared_documents:
+      - path: ".github/copilot-instructions.md"
+        purpose: "VS Code auto-loaded global rules for ALL agents (Tier 1)"
+        content_outline:
+          - "§1 Terminal-Only Testing: All test execution via run_in_terminal with CLI commands. No VS Code Testing API."
+          - "§2 No File-Redirect: Never redirect terminal output to files. Read via get_terminal_output or run_in_terminal return."
+          - "§3 Retry Policy: Transient errors retry 2x with backoff. Deterministic failures never retried."
+          - "§4 Schema Version: All outputs include schema_version 1.0. Self-verify before returning."
+          - "§5 Evidence-First: Record SQL evidence before claiming verification. INSERT before reporting."
+          - "§6 Agent Boundaries: Never modify another agent's definition at runtime."
+          - "§7 Bounded Loops: All feedback loops have hard iteration limits. Never create unbounded cycles."
+          - "§8 Context7 (Conditional): If Context7 MCP available, use for library docs. See context7-integration.md."
+        estimated_lines: 55
+
+      - path: "NewAgents/.github/agents/global-operating-rules.md"
+        purpose: "Detailed shared operating rules referenced by all agents (Tier 2)"
+        content_outline:
+          - "§1 Two-Tiered Retry: Agent-internal 2x transient + orchestrator 1x per agent invocation"
+          - "§2 Error Categories: Transient (network, tool unavail, DB locked) vs Deterministic (schema violation, missing input)"
+          - "§3 SQLITE_BUSY Handling: WAL mode, busy_timeout=5000, retry 3x with exponential backoff (1s, 2s, 4s)"
+          - "§4 run_id Protocol: Generated at Step 0, propagated to all agents, filters all SQL queries"
+          - "§5 Completion Contract Routing Matrix: Agent × Status (DONE/NEEDS_REVISION/ERROR) table"
+          - "§6 Self-Verification Common Checklist: Schema compliance, output path exists, completion block valid, schema_version present"
+          - "§7 Pipeline State Recovery (EC-5): Scan feature dir, read completion blocks, resume from first incomplete step"
+          - "§8 Output Naming Conventions: docs/feature/<slug>/ prefix, deterministic paths per agent"
+          - "§9 Governed Instruction Updates: Interactive=approval required, Autonomous=log only, Safety Constraint Filter with immutable rules, protected phrases, pattern-matching rejection criteria, and evaluator separation"
+        estimated_lines: 130
+
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        purpose: "All SQL DDL and DML templates for consistent database operations (Tier 2)"
+        content_outline:
+          - "§0 SQL Sanitization Functions: Mandatory sql_escape() (single-quote doubling, null byte stripping, length truncation), shell injection prevention via stdin piping, self-verification checklist"
+          - "§1 Database Initialization DDL: verification-ledger.db with 4 tables, WAL + busy_timeout + integrity_check"
+          - "§2 anvil_checks INSERT Template: 15-column INSERT with CHECK constraints and quoting convention"
+          - "§3 pipeline_telemetry INSERT Template: Orchestrator-only, after each dispatch"
+          - "§4 artifact_evaluations INSERT Template: Phase 1 agents (implementer, verifier, adversarial-reviewer)"
+          - "§5 instruction_updates INSERT Template: Knowledge Agent only, file_path CHECK enforced"
+          - "§6 Evidence Gate SELECT Queries: 6 templated queries with {run_id}, {task_id}, {scope}, {round} placeholders — scope-qualified check_names"
+          - "§7 Knowledge Agent Aggregation Queries: Telemetry summary, evaluation summary, instruction history"
+          - "§8 SQLITE_BUSY Retry Pattern: Retry 3x, exponential backoff, WAL mode note"
+          - "§9 SQLite Schema Evolution Strategy: ALTER TABLE ADD COLUMN, enum expansion via table recreation, schema_meta version tracking, migration ownership"
+        estimated_lines: 160
+
+      - path: "NewAgents/.github/agents/evaluation-schema.md"
+        purpose: "Artifact evaluation system instructions and scoring guidance (Tier 2)"
+        content_outline:
+          - "§1 Overview: SQLite-based evaluation replaces Forge's per-file YAML approach"
+          - "§2 Table Schema Reference: artifact_evaluations table structure"
+          - "§3 Evaluation Workflow: Read upstream artifact → use it → evaluate quality → INSERT"
+          - "§4 Scoring Guidelines: usefulness (1-10 scale with anchor examples), clarity (1-10 scale with anchors)"
+          - "§5 Structured Fields: missing_information (what you needed but wasn't there), inaccuracies (what was wrong)"
+          - "§6 Phase 1 Agents: implementer evaluates task defs, verifier evaluates impl reports, reviewer evaluates design/code"
+          - "§7 Phase 2 Expansion: spec evaluates research, designer evaluates spec, planner evaluates design"
+        estimated_lines: 85
+
+      - path: "NewAgents/.github/agents/context7-integration.md"
+        purpose: "Context7 MCP conditional integration instructions (Tier 2)"
+        content_outline:
+          - "§1 Availability Check: Attempt context7-resolve-library-id; if tool not found, skip all Context7 usage"
+          - "§2 Two-Step Pattern: (1) resolve-library-id with library name, (2) query-docs with resolved ID"
+          - "§3 When to Use: Before guessing at library/framework API usage. For imports, configuration, method signatures."
+          - "§4 Graceful Degradation: Log 'Context7 unavailable — proceeding without documentation lookup'. No ERROR."
+          - "§5 Applicable Agents: Implementer (primary), Researcher (secondary). Others skip."
+        estimated_lines: 45
+
+      - path: "NewAgents/.github/agents/review-perspectives.md"
+        purpose: "Three reviewer perspective definitions for multi-perspective review (Tier 2)"
+        content_outline:
+          - "§1 Overview: Prompt diversity replaces model diversity. 3 perspectives × 3 categories = 9 review dimensions."
+          - "§2 Security Sentinel: Adversarial threat modeler. Assumes hostile inputs. Low severity threshold for auth/crypto/data exposure. Bias: strict."
+          - "§3 Architecture Guardian: Structural purity. SOLID principles, coupling analysis, scalability. Bias: moderate."
+          - "§4 Pragmatic Verifier: Functional correctness. Edge cases, test gaps, error handling. Bias: lenient on style, strict on behavior."
+          - "§5 All-Category Coverage: Each reviewer must produce findings for security, architecture, AND correctness."
+          - "§6 Per-Category per-Perspective Guidance: How each perspective approaches each category differently."
+          - "§7 Severity Threshold Calibration: Security Sentinel has lowest blocker threshold, Pragmatic Verifier has highest."
+          - "§8 Evidence Requirements: 3 SQL INSERTs per reviewer (1 per category), verdict YAML with category sub-verdicts."
+        estimated_lines: 130
+
+      - path: "NewAgents/.github/agents/tool-access-matrix.md"
+        purpose: "Consolidated per-agent tool access tables with scope restrictions (Tier 2)"
+        content_outline:
+          - "§1 Matrix Overview: 9 agents × 12 tools. Allowed/Restricted/Scoped per cell."
+          - "§2 Orchestrator Tools: 7 allowed, 6 restricted. run_in_terminal scoped to SQL+git."
+          - "§3 Researcher Tools: 6 allowed. create_file scoped to research/*.yaml."
+          - "§4 Spec Tools: 8 allowed. ask_questions in interactive mode only."
+          - "§5 Designer Tools: 7 allowed. No run_in_terminal."
+          - "§6 Planner Tools: 7 allowed. No run_in_terminal."
+          - "§7 Implementer Tools: 12 allowed (maximum). Full tool access."
+          - "§8 Verifier Tools: 9 allowed. create_file scoped to verification-reports/*.yaml."
+          - "§9 Adversarial Reviewer Tools: 7 allowed. run_in_terminal scoped to git diff + SQL."
+          - "§10 Knowledge Agent Tools: 9 allowed. run_in_terminal scoped to SELECT on all tables + INSERT on instruction_updates only."
+          - "§11 Scope Restriction Definitions: Detailed allowed operations per scoped tool."
+        estimated_lines: 110
+
+      - path: ".github/instructions/pipeline-conventions.md"
+        purpose: "Domain instruction for pipeline conventions — Knowledge Agent update target (Tier 1)"
+        content_outline:
+          - "§1 Feature Directory Structure: docs/feature/<slug>/ with standard subdirectories"
+          - "§2 File Naming Patterns: Output files per pipeline step"
+          - "§3 Risk Classification Quick-Reference: 🟢/🟡/🔴 per-file classification"
+          - "§4 Pipeline Step Summary: Steps 0-9 with agent and purpose"
+        estimated_lines: 45
+
+    # ──────────────────────────────────────────────────────────────────
+    # 5. REVIEW DESIGN
+    # ──────────────────────────────────────────────────────────────────
+    review_design:
+      perspectives:
+        - id: "security-sentinel"
+          name: "Security Sentinel"
+          persona_summary: >
+            Adversarial threat modeler who assumes all inputs are hostile and all trust
+            boundaries will be probed. Prioritizes authentication, authorization, data
+            exposure, injection vectors, cryptographic misuse, and privilege escalation.
+            Has the lowest severity threshold — when uncertain, classifies higher.
+          review_priorities:
+            - "Threat modeling: trust boundaries, data flow, attack surface"
+            - "Input validation and sanitization completeness"
+            - "Authentication/authorization correctness and bypass resistance"
+            - "Data exposure: secrets in logs, PII leaks, overly broad API responses"
+            - "Injection vectors: SQL, command, path traversal, XSS"
+            - "Cryptographic usage: algorithm choice, key management, randomness"
+          severity_bias: "Strict — lowest threshold for Blocker/Critical classification among all perspectives"
+
+        - id: "architecture-guardian"
+          name: "Architecture Guardian"
+          persona_summary: >
+            Structural purist who examines component boundaries, dependency direction,
+            coupling/cohesion balance, and scalability properties. Evaluates whether the
+            design/code will remain maintainable as the system grows. Flags architectural
+            debt even when current functionality is correct.
+          review_priorities:
+            - "SOLID principle adherence and separation of concerns"
+            - "Dependency direction: no circular deps, clean layer boundaries"
+            - "Coupling analysis: interface width, shared mutable state, temporal coupling"
+            - "Scalability constraints: bottlenecks, resource limits, concurrency safety"
+            - "API design: contract clarity, versioning strategy, backward compatibility"
+            - "Error handling architecture: consistent patterns, no swallowed exceptions"
+          severity_bias: "Moderate — flags structural issues but acknowledges pragmatic tradeoffs"
+
+        - id: "pragmatic-verifier"
+          name: "Pragmatic Verifier"
+          persona_summary: >
+            Functional correctness practitioner who cares about whether the code actually
+            works in all real-world conditions. Focuses on edge cases, error paths, resource
+            cleanup, and test coverage gaps. Lenient on style and theoretical purity, strict
+            on behavioral correctness and failure handling.
+          review_priorities:
+            - "Functional completeness: all acceptance criteria addressable"
+            - "Edge case analysis: boundary values, empty inputs, concurrent access"
+            - "Error path handling: what happens when things fail"
+            - "Resource lifecycle: cleanup, connection pooling, memory management"
+            - "Test coverage gaps: untested paths, missing negative tests"
+            - "Race conditions and timing-dependent behavior"
+          severity_bias: "Lenient on style, strict on behavior — only blocks on functional defects"
+
+      evidence_gate_queries: >
+        Updated evidence gate SQL for all-category review coverage (all queries
+        include task_id filter to distinguish Step 3b design review from Step 7
+        code review, and use scope-qualified check_names):
+        (1) All reviewers submitted: SELECT COUNT(DISTINCT instance) FROM anvil_checks
+        WHERE run_id='{run_id}' AND task_id='{task_id}' AND phase='review' AND round={round};
+        — Expected: 3 (one per perspective).
+        (2) Each reviewer covered all categories: SELECT instance, COUNT(DISTINCT
+        check_name) AS cats FROM anvil_checks WHERE run_id='{run_id}' AND task_id='{task_id}'
+        AND phase='review' AND round={round} AND check_name IN
+        ('review-{scope}-security','review-{scope}-architecture','review-{scope}-correctness')
+        GROUP BY instance HAVING cats=3;
+        — Expected: 3 rows.
+        (3) Zero blockers: SELECT COUNT(*) FROM anvil_checks WHERE run_id='{run_id}'
+        AND task_id='{task_id}' AND phase='review' AND round={round}
+        AND verdict='blocker';
+        — Expected: 0.
+        (4) Majority fully-approving reviewers: SELECT COUNT(*) FROM
+        (SELECT instance FROM anvil_checks WHERE run_id='{run_id}' AND
+        task_id='{task_id}' AND phase='review' AND round={round} AND check_name IN
+        ('review-{scope}-security','review-{scope}-architecture','review-{scope}-correctness')
+        GROUP BY instance HAVING COUNT(CASE WHEN verdict != 'approve' THEN 1 END) = 0);
+        — Expected: ≥2 of 3.
+
+      verdict_naming: >
+        Convention: review-verdicts/<scope>-<perspective>.yaml
+        Examples: review-verdicts/design-security-sentinel.yaml,
+        review-verdicts/design-architecture-guardian.yaml,
+        review-verdicts/design-pragmatic-verifier.yaml,
+        review-verdicts/code-security-sentinel.yaml, etc.
+        Consumers discover via: list_dir on review-verdicts/ then filter by scope prefix.
+        review-findings follow same pattern: review-findings/<scope>-<perspective>.md
+
+    # ──────────────────────────────────────────────────────────────────
+    # 6. SQLITE SCHEMAS
+    # ──────────────────────────────────────────────────────────────────
+    sqlite_schemas:
+      database_strategy: >
+        CONSOLIDATE into single verification-ledger.db. Drop separate pipeline-telemetry.db.
+        All 4 tables in one database file: anvil_checks (existing), pipeline_telemetry
+        (move from separate DB), artifact_evaluations (new), instruction_updates (new).
+        Benefits: single WAL config, single busy_timeout, single Step 0 init, single file
+        for Knowledge Agent to query. run_id provides cross-table namespace filtering.
+
+      tables:
+        - name: "anvil_checks"
+          ddl: >
+            CREATE TABLE IF NOT EXISTS anvil_checks (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              run_id TEXT NOT NULL,
+              task_id TEXT,
+              phase TEXT NOT NULL CHECK (phase IN ('baseline','after','review')),
+              check_name TEXT NOT NULL,
+              tool TEXT,
+              command TEXT,
+              exit_code INTEGER,
+              output_snippet TEXT CHECK (LENGTH(output_snippet) <= 500),
+              passed INTEGER NOT NULL CHECK (passed IN (0, 1)),
+              verdict TEXT CHECK (verdict IN ('approve','needs_revision','blocker')),
+              severity TEXT CHECK (severity IN ('Blocker','Critical','Major','Minor')),
+              round INTEGER DEFAULT 1,
+              instance TEXT,
+              ts TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_anvil_run ON anvil_checks(run_id);
+            CREATE INDEX IF NOT EXISTS idx_anvil_task_phase ON anvil_checks(task_id, phase);
+            CREATE INDEX IF NOT EXISTS idx_anvil_run_round ON anvil_checks(run_id, round);
+          key_queries:
+            - "SELECT COUNT(*) FROM anvil_checks WHERE run_id='{run_id}' AND task_id='{task_id}' AND phase='baseline';"
+            - "SELECT COUNT(*) FROM anvil_checks WHERE run_id='{run_id}' AND task_id='{task_id}' AND phase='after' AND passed=1;"
+            - "SELECT COUNT(DISTINCT instance) FROM anvil_checks WHERE run_id='{run_id}' AND task_id='{task_id}' AND phase='review' AND round={round};"
+            - "SELECT COUNT(*) FROM anvil_checks WHERE run_id='{run_id}' AND task_id='{task_id}' AND phase='review' AND round={round} AND verdict='blocker';"
+
+        - name: "pipeline_telemetry"
+          ddl: >
+            CREATE TABLE IF NOT EXISTS pipeline_telemetry (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              run_id TEXT NOT NULL,
+              step TEXT NOT NULL,
+              agent TEXT NOT NULL,
+              instance TEXT,
+              started_at TEXT NOT NULL,
+              completed_at TEXT,
+              status TEXT CHECK (status IN ('DONE','NEEDS_REVISION','ERROR','TIMEOUT')),
+              dispatch_count INTEGER DEFAULT 1,
+              retry_count INTEGER DEFAULT 0,
+              notes TEXT CHECK (LENGTH(notes) <= 1000),
+              ts TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_telemetry_run ON pipeline_telemetry(run_id);
+            CREATE INDEX IF NOT EXISTS idx_telemetry_step ON pipeline_telemetry(run_id, step);
+          key_queries:
+            - "SELECT COUNT(*) FROM pipeline_telemetry WHERE run_id='{run_id}';"
+            - "SELECT step, agent, instance, status, (julianday(completed_at)-julianday(started_at))*86400 AS duration_s FROM pipeline_telemetry WHERE run_id='{run_id}' ORDER BY started_at;"
+            - "SELECT step, SUM((julianday(completed_at)-julianday(started_at))*86400) AS total_s FROM pipeline_telemetry WHERE run_id='{run_id}' GROUP BY step ORDER BY total_s DESC LIMIT 3;"
+            - "SELECT agent, instance, retry_count FROM pipeline_telemetry WHERE run_id='{run_id}' AND retry_count > 0;"
+
+        - name: "artifact_evaluations"
+          ddl: >
+            CREATE TABLE IF NOT EXISTS artifact_evaluations (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              run_id TEXT NOT NULL,
+              evaluator_agent TEXT NOT NULL,
+              evaluator_instance TEXT,
+              artifact_path TEXT NOT NULL CHECK (artifact_path NOT LIKE '../%' AND artifact_path NOT LIKE '/%'),
+              usefulness_score INTEGER NOT NULL CHECK (usefulness_score BETWEEN 1 AND 10),
+              clarity_score INTEGER NOT NULL CHECK (clarity_score BETWEEN 1 AND 10),
+              missing_information TEXT CHECK (LENGTH(missing_information) <= 2000),
+              inaccuracies TEXT CHECK (LENGTH(inaccuracies) <= 2000),
+              impact_on_work TEXT CHECK (LENGTH(impact_on_work) <= 2000),
+              ts TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_eval_run ON artifact_evaluations(run_id);
+            CREATE INDEX IF NOT EXISTS idx_eval_agent ON artifact_evaluations(evaluator_agent);
+            CREATE INDEX IF NOT EXISTS idx_eval_artifact ON artifact_evaluations(artifact_path);
+          key_queries:
+            - "SELECT evaluator_agent, COUNT(*), AVG(usefulness_score) AS avg_useful, AVG(clarity_score) AS avg_clarity FROM artifact_evaluations WHERE run_id='{run_id}' GROUP BY evaluator_agent;"
+            - "SELECT artifact_path, AVG(usefulness_score) AS avg_useful, AVG(clarity_score) AS avg_clarity FROM artifact_evaluations WHERE run_id='{run_id}' GROUP BY artifact_path ORDER BY avg_useful ASC LIMIT 5;"
+            - "SELECT missing_information FROM artifact_evaluations WHERE run_id='{run_id}' AND missing_information IS NOT NULL AND missing_information != '';"
+
+        - name: "instruction_updates"
+          ddl: >
+            CREATE TABLE IF NOT EXISTS instruction_updates (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              run_id TEXT NOT NULL,
+              agent TEXT NOT NULL,
+              file_path TEXT NOT NULL CHECK (
+                file_path LIKE '.github/instructions/%'
+                OR file_path = '.github/copilot-instructions.md'
+              ),
+              change_type TEXT NOT NULL CHECK (change_type IN ('create','append','modify','delete')),
+              change_summary TEXT NOT NULL CHECK (LENGTH(change_summary) <= 1000),
+              applied INTEGER NOT NULL DEFAULT 0 CHECK (applied IN (0, 1)),
+              ts TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_instr_run ON instruction_updates(run_id);
+          key_queries:
+            - "SELECT * FROM instruction_updates WHERE run_id='{run_id}' ORDER BY ts;"
+            - "SELECT file_path, COUNT(*) AS update_count FROM instruction_updates GROUP BY file_path ORDER BY update_count DESC;"
+
+    # ──────────────────────────────────────────────────────────────────
+    # 7. DECISION RECORDS
+    # ──────────────────────────────────────────────────────────────────
+    decisions:
+      - id: "D-1"
+        title: "Database Consolidation into Single File"
+        risk: "🟡"
+        rationale: >
+          Consolidate pipeline-telemetry.db into verification-ledger.db. All 4 tables
+          (anvil_checks, pipeline_telemetry, artifact_evaluations, instruction_updates)
+          share run_id namespace. Single WAL config, single busy_timeout, single Step 0
+          init, fewer files for Knowledge Agent to query. Risk is medium: concurrent writes
+          to one DB from 4+ agents, mitigated by WAL + busy_timeout.
+        alternatives_rejected:
+          - name: "Keep separate DB files per concern"
+            reason: "More initialization complexity, multiple WAL configs, Knowledge Agent needs multiple DB connections"
+            confidence: "High"
+          - name: "New pipeline.db replacing both"
+            reason: "Breaking change to all existing SQL queries referencing verification-ledger.db path"
+            confidence: "High"
+
+      - id: "D-2"
+        title: "Knowledge Agent SQL Access via run_in_terminal"
+        risk: "🟢"
+        rationale: >
+          Grant Knowledge Agent run_in_terminal with scope restriction (SELECT on all
+          tables + INSERT on instruction_updates only). Enables direct SQL consumption
+          of telemetry and evaluation data without orchestrator-mediated extraction,
+          plus governed update tracking via instruction_updates INSERT. The alternative
+          (orchestrator extracts SQL data into YAML before dispatch) adds complexity to the
+          orchestrator and loses the ability for Knowledge Agent to run ad-hoc queries.
+          MUST NOT execute: UPDATE, DELETE, DROP, ALTER, CREATE, PRAGMA (except busy_timeout), ATTACH.
+        alternatives_rejected:
+          - name: "Orchestrator extracts SQL data into YAML dispatch context"
+            reason: "Adds orchestrator complexity, limits Knowledge Agent to pre-selected data, orchestrator already at 800 lines"
+            confidence: "High"
+          - name: "Knowledge Agent reads evaluation/telemetry data from YAML files only"
+            reason: "Requires other agents to write evaluation summaries to YAML — adds output overhead, loses SQL aggregation"
+            confidence: "Medium"
+
+      - id: "D-3"
+        title: "Review Findings Format Stays MD-Only"
+        risk: "🟢"
+        rationale: >
+          review-findings/<scope>-<perspective>.md stays as Markdown-only. These are
+          narrative review documents with code snippets and explanations serving the human
+          audit trail. Machine-consumed signal is in review-verdicts YAML and anvil_checks SQL.
+          No downstream agent parses the MD content for routing.
+        alternatives_rejected:
+          - name: "Convert review-findings to YAML-only"
+            reason: "Review findings are narrative with code blocks — YAML is poor format for rich text review documents"
+            confidence: "High"
+          - name: "Add YAML companion for review-findings"
+            reason: "Adds output overhead with no consumer — the verdict YAML already provides the machine-readable signal"
+            confidence: "High"
+
+      - id: "D-4"
+        title: "Per-Dispatch Telemetry INSERT (Not Batch)"
+        risk: "🟢"
+        rationale: >
+          Orchestrator INSERTs into pipeline_telemetry after each individual agent dispatch
+          completes. Survives pipeline interruption (partial telemetry preserved). Each
+          record is incremental. Pipeline state recovery can query telemetry for timing.
+          Batch INSERT at end of pipeline would lose all data on interruption.
+        alternatives_rejected:
+          - name: "Batch INSERT all telemetry at end of pipeline"
+            reason: "Complete data loss on pipeline interruption — defeats purpose of SQL persistence"
+            confidence: "High"
+          - name: "Agent self-reporting telemetry via SQL INSERT"
+            reason: "Agents don't have accurate timing data for their own dispatch overhead; orchestrator does"
+            confidence: "Medium"
+
+      - id: "D-5"
+        title: "Six Focused Reference Docs (Not Monolithic)"
+        risk: "🟢"
+        rationale: >
+          Create 6 focused reference documents (global-operating-rules.md, sql-templates.md,
+          evaluation-schema.md, context7-integration.md, review-perspectives.md,
+          tool-access-matrix.md) rather than 2-3 large ones. Agents reference only what they
+          need — an agent that doesn't use SQL templates doesn't read sql-templates.md. A
+          monolithic shared doc would be as bad for context budget as inline content.
+        alternatives_rejected:
+          - name: "2-3 large monolithic reference docs"
+            reason: "Every agent reads same large doc regardless of relevance — wastes context budget"
+            confidence: "High"
+          - name: "8+ micro reference docs"
+            reason: "Excessive fragmentation — agents need too many doc references, harder to maintain"
+            confidence: "Medium"
+
+      - id: "D-6"
+        title: "Researcher YAML-Only Output (Drop MD Companion)"
+        risk: "🟢"
+        rationale: >
+          Research outputs become YAML-only per DP-2 rationalization. No downstream agent
+          reads research/*.md. Spec agent reads research/*.yaml directly. MD companions
+          served no machine consumer and added redundant output effort.
+        alternatives_rejected:
+          - name: "Keep research MD companions for human auditability"
+            reason: "YAML findings contain full detail including evidence — human can read YAML. Audit trail preserved."
+            confidence: "Medium"
+
+      - id: "D-7"
+        title: "Perspective-based Verdict Naming Convention"
+        risk: "🟢"
+        rationale: >
+          Verdict files named review-verdicts/<scope>-<perspective>.yaml (e.g.,
+          design-security-sentinel.yaml) instead of <scope>-<model>.yaml. Perspectives
+          are the diversity mechanism per DP-1. Model names are meaningless since VS Code
+          uses the same model for all custom agents. Consumers discover files via list_dir
+          with scope prefix filtering.
+        alternatives_rejected:
+          - name: "Keep model-based naming (status quo)"
+            reason: "Model parameter is ignored by VS Code — all files would have same model name, no provenance value"
+            confidence: "High"
+          - name: "Numeric naming (design-1.yaml, design-2.yaml)"
+            reason: "Loses perspective provenance — can't tell which reviewer produced which verdict"
+            confidence: "High"
+
+      - id: "D-8"
+        title: "3 Category-Specific SQL INSERTs Per Reviewer"
+        risk: "🟡"
+        rationale: >
+          Each reviewer INSERTs 3 records into anvil_checks (one per category: review-security,
+          review-architecture, review-correctness) instead of 1 aggregate record. Enables
+          evidence gate to verify all-category coverage per reviewer via COUNT(DISTINCT check_name).
+          Tradeoff: 9 SQL INSERTs total per review round instead of 3.
+        alternatives_rejected:
+          - name: "Single aggregate INSERT per reviewer with category field"
+            reason: "Evidence gate cannot verify per-category coverage without parsing — loses deterministic COUNT-based gating"
+            confidence: "High"
+          - name: "Category sub-verdicts in YAML only (no SQL per category)"
+            reason: "Breaks anti-hallucination principle — claims without SQL evidence. Orchestrator would need to parse YAML for category verification."
+            confidence: "High"
+
+    # ──────────────────────────────────────────────────────────────────
+    # 8. DEVIATION RECORDS
+    # ──────────────────────────────────────────────────────────────────
+    deviation_records:
+      - id: "DR-1"
+        spec_requirement: "FR-6"
+        deviation: >
+          Knowledge Agent granted run_in_terminal (currently restricted). Spec contemplated
+          this as one of two options: 'requires granting run_in_terminal for read-only SQL,
+          or having the orchestrator extract telemetry into a summary.'
+        rationale: >
+          Direct SQL access is more reliable and flexible than orchestrator-mediated
+          extraction. Knowledge Agent already conceptually reads from the DB (listed as
+          pipeline-telemetry.db consumer). Scope restriction (SELECT on all tables +
+          INSERT on instruction_updates only) maintains safety while enabling governed
+          update tracking.
+
+      - id: "DR-2"
+        spec_requirement: "FR-14"
+        deviation: >
+          Consolidating pipeline-telemetry.db into verification-ledger.db instead of
+          maintaining separate DB files. Spec says 'consider consolidating into fewer
+          DB files or a single pipeline.db.' We chose consolidation into existing
+          verification-ledger.db rather than creating a new pipeline.db.
+        rationale: >
+          Avoids breaking existing SQL query paths that reference verification-ledger.db.
+          All tables share run_id namespace. Simplifies Step 0 initialization.
+
+      - id: "DR-3"
+        spec_requirement: "AC-11.2"
+        deviation: >
+          AC-11.2 defines the researcher's allowed output path pattern as
+          'research/*.yaml, research/*.md'. The design narrows this to research/*.yaml
+          only, removing MD output per DP-2 output rationalization.
+        rationale: >
+          DP-2 mandates YAML-only for machine-consumed artifacts. No downstream agent
+          reads research/*.md. Spec agent reads research/*.yaml directly. MD companions
+          served no machine consumer.
+
+completion:
+  status: "DONE"
+  summary: "Design revision round 2 complete: addressed 4 Critical (SEC-1 sql_escape, SEC-2 shell injection, CORR-1 task_id filter, CORR-2 EG-6 subquery) + 10 Major (SEC-3/4/5/6, ARCH-1/2/3, CORR-3/4 + minor fixes). 20 files, 3-tier arch, 8 decisions, 3 deviation records."
+  severity: null
+  findings_count: 0
+  risk_level: "🟡"
+  output_paths:
+    - "docs/feature/agent-system-overhaul/design-output.yaml"
+    - "docs/feature/agent-system-overhaul/design.md"

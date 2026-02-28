@@ -1,0 +1,81 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-013"
+    task_type: "code"
+    title: "Restructure Implementer Agent"
+    description: |
+      Modify NewAgents/.github/agents/implementer.agent.md to apply aggressive extraction
+      and add evaluation + Context7 integration. Target: 519→340 lines (largest line
+      reduction among non-orchestrator agents).
+
+      Extractions (remove inline, add reference pointers):
+      - Tool access table → "See tool-access-matrix.md §7"
+      - SQL INSERT templates (baseline records) → "See sql-templates.md §2"
+      - Error handling / retry boilerplate → "See global-operating-rules.md §1-§3"
+      - No-file-redirect rule → REMOVE entirely (now in .github/copilot-instructions.md §2)
+      - Self-verification common items → "See global-operating-rules.md §6"
+
+      Additions:
+      - YAML frontmatter: name: "implementer", description: "..."
+      - Artifact evaluation INSERT after consuming task definition (reference evaluation-schema.md §3, §6)
+      - Context7 conditional reference → "See context7-integration.md"
+
+      Updates:
+      - Self-fix loop: uses run_in_terminal for test verification (AC-7.3)
+
+      Retained:
+      - Implementation report YAML-only output (already was)
+      - Mode sections (implementation, replan)
+      - Role-specific workflow (TDD cycle, self-fix loop)
+      - Anti-drift anchor
+    risk_classification: "🟡"
+    wave: 4
+    dependencies: ["TASK-005", "TASK-006"]
+    estimated_lines_changed: 180
+    affected_files:
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        action: "modify"
+    addresses_frs: ["FR-4", "FR-5", "FR-7", "FR-8", "FR-9", "FR-10", "FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[agent='implementer']"]
+        reason: "Implementer design: extracted content (5 items), new content (3 items), key changes (4 items)"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/implementer.agent.md']",
+          ]
+        reason: "File description with target 340 lines and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-7']",
+            "payload.functional_requirements[id='FR-9']",
+          ]
+        reason: "AC-7.3 (self-fix loop uses run_in_terminal), AC-9.2 (conditional Context7 check)"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-5']"]
+        reason: "AC-5.2 (implementer includes evaluation INSERT for task definitions)"
+      - file: "NewAgents/.github/agents/implementer.agent.md"
+        sections:
+          [
+            "tool access",
+            "SQL INSERT",
+            "error handling",
+            "no-file-redirect",
+            "self-verification",
+          ]
+        reason: "Current content to identify extraction targets and preserved sections"
+    acceptance_criteria:
+      - "implementer.agent.md has YAML frontmatter with name and description (FR-16)"
+      - "Tool access table, SQL templates, error handling extracted to shared doc references (FR-10)"
+      - "No-file-redirect rule REMOVED inline — now in .github/copilot-instructions.md (FR-8, AC-8.3)"
+      - "Artifact evaluation INSERT after consuming task definition (FR-5, AC-5.2)"
+      - "Context7 conditional reference present (FR-9, AC-9.2)"
+      - "Self-fix loop uses run_in_terminal for tests (AC-7.3)"
+      - "Implementation report remains YAML-only (FR-4)"
+      - "File is ≤340 lines"
+      - "Anti-drift anchor retained"
+    verification_tier: "Standard"

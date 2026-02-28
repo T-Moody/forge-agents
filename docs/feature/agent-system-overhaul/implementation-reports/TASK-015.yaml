@@ -1,0 +1,44 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-015"
+  step: "step-5"
+  started_at: "2026-02-27T00:00:00Z"
+  completed_at: "2026-02-27T00:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-015"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/planner.agent.md"
+        action: "modified"
+        description: "Restructured planner agent: extracted tool access table → tool-access-matrix.md §6, error handling → global-operating-rules.md §1–§2, self-verification common items → global-operating-rules.md §6. Added shared doc references to Reference Documents section. Compressed Classification Rules rule 4. Removed 7 section separators for density. Trimmed Schema 5 YAML example completion block. Result: 379→337 lines (≤340 target met)."
+      - path: "docs/feature/agent-system-overhaul/implementation-reports/TASK-015.yaml"
+        action: "created"
+        description: "Implementation report for TASK-015"
+    self_check:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+completion:
+  status: "DONE"
+  summary: "TASK-015 — Planner agent restructured from 379 to 337 lines; tool access, error handling, and common self-verification extracted to shared docs"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-overhaul/implementation-reports/TASK-015.yaml"

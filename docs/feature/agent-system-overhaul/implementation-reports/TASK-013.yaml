@@ -1,0 +1,100 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-013"
+  step: "step-5"
+  started_at: "2026-02-27T00:00:00Z"
+  completed_at: "2026-02-27T00:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-013"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 5
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        action: "modified"
+        description: >
+          Restructured from 522 to 334 lines. Added YAML frontmatter (name, description).
+          Extracted inline tool access table to tool-access-matrix.md §7 reference.
+          Extracted inline SQL INSERT templates to sql-templates.md §2 reference.
+          Extracted error handling/retry rules to global-operating-rules.md §1-§2 reference.
+          Removed inline no-file-redirect rule (now in .github/copilot-instructions.md global).
+          Extracted common self-verification items to global-operating-rules.md §6 reference.
+          Added artifact evaluation INSERT step (FR-5) after reading task file, referencing
+          evaluation-schema.md §3-§4 and sql-templates.md §4.
+          Added Context7 conditional reference to context7-integration.md.
+          Added severity-taxonomy.md reference for security findings.
+          Added terminal-only testing callout in self-fix loop (FR-7, AC-7.3).
+          Enforced SQL safety via stdin piping references to sql-templates.md §0.
+          Compacted YAML output structure, operating rules, TDD fallback, baseline capture,
+          revert mode, and documentation mode sections.
+          Retained: TDD workflow, self-fix loop (max 2), git add -A, anti-drift anchor,
+          role-specific self-verification, implementation report output schema.
+      - path: "docs/feature/agent-system-overhaul/implementation-reports/TASK-013.yaml"
+        action: "created"
+        description: "Implementation report for TASK-013"
+    self_check:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "post-ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: true
+      - check_name: "line-count-target"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+      - check_name: "frontmatter-present"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+      - check_name: "artifact-evaluation-step"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+      - check_name: "terminal-only-testing"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+      - check_name: "context7-reference"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+      - check_name: "shared-doc-references"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+      - check_name: "anti-drift-anchor"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+      - check_name: "no-file-redirect-removed"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+    notes:
+      - "TDD skipped: no test framework for markdown agent instruction files"
+      - "Baseline had 5 pre-existing markdown link errors (broken internal anchors); post-edit has 0 errors"
+      - "File reduced from 522 lines to 334 lines (target was ≤340)"
+completion:
+  status: "DONE"
+  summary: "TASK-013 — Restructured implementer.agent.md from 522→334 lines with shared doc extraction, artifact evaluation, Context7, terminal-only testing, and SQL safety references"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-overhaul/implementation-reports/TASK-013.yaml"

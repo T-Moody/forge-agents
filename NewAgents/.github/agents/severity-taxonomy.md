@@ -1,3 +1,8 @@
+---
+name: severity-taxonomy
+description: Severity classification reference for all pipeline agents
+---
+
 # Severity Taxonomy — Reference
 
 This is a reference document for all agents. Defines the unified severity taxonomy used

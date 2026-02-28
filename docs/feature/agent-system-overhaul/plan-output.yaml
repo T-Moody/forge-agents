@@ -1,0 +1,284 @@
+agent_output:
+  agent: "planner"
+  instance: "planner-agent-system-overhaul"
+  step: "step-4"
+  started_at: "2026-02-27T20:00:00Z"
+  completed_at: "2026-02-27T21:30:00Z"
+  schema_version: "1.0"
+  payload:
+    feature_slug: "agent-system-overhaul"
+    total_tasks: 18
+    waves:
+      - wave: 1
+        task_ids: ["TASK-001", "TASK-002", "TASK-003", "TASK-004"]
+        max_concurrent: 4
+        description: >
+          Foundation — Create core shared reference documents and instruction infrastructure.
+          These files are prerequisites for all subsequent agent modifications. No dependencies.
+
+      - wave: 2
+        task_ids: ["TASK-005", "TASK-006", "TASK-007", "TASK-009"]
+        max_concurrent: 4
+        description: >
+          Templates & Schemas — Create remaining reference docs (Context7, evaluation schema),
+          SQL templates with sanitization (SEC-1/SEC-2 addressed), schemas.md update with SQLite
+          DDL and routing matrix, and severity-taxonomy frontmatter. Depends on Wave 1 for
+          global-operating-rules.md cross-references.
+
+      - wave: 3
+        task_ids: ["TASK-008", "TASK-014", "TASK-015", "TASK-016"]
+        max_concurrent: 4
+        description: >
+          Simple agent modifications + dispatch-patterns update. Low-to-moderate risk agent
+          restructures (planner, spec, verifier) and dispatch-patterns.md perspective-based
+          review update. Depends on Waves 1-2 for shared doc availability.
+
+      - wave: 4
+        task_ids: ["TASK-010", "TASK-011", "TASK-012", "TASK-013"]
+        max_concurrent: 4
+        description: >
+          Core agent modifications — highest-risk wave. Orchestrator rewrite (evidence gates,
+          telemetry, line reduction), adversarial-reviewer restructure (perspectives, all-category),
+          knowledge-agent rewrite (9 responsibilities, SQL access), implementer extraction.
+          Depends on Waves 1-3 for all shared docs and templates.
+
+      - wave: 5
+        task_ids: ["TASK-017", "TASK-018"]
+        max_concurrent: 2
+        description: >
+          Final agent modifications — designer (glob-based verdict reading) and researcher
+          (YAML-only output, Context7, scope clarification). Low risk, completes full agent
+          coverage. Depends on Wave 3 for dispatch-patterns.md (designer) and Wave 2 for
+          context7-integration.md (researcher).
+
+    risk_summary:
+      green: 8
+      yellow: 8
+      red: 2
+    overall_risk_summary: "🔴"
+
+    task_list:
+      - task_id: "TASK-001"
+        title: "Create Instruction File Infrastructure"
+        risk: "🟢"
+        wave: 1
+        type: "infrastructure"
+        dependencies: []
+        affected_files:
+          - ".github/copilot-instructions.md"
+          - ".github/instructions/pipeline-conventions.md"
+
+      - task_id: "TASK-002"
+        title: "Create Global Operating Rules Reference Doc"
+        risk: "🟡"
+        wave: 1
+        type: "documentation"
+        dependencies: []
+        affected_files:
+          - "NewAgents/.github/agents/global-operating-rules.md"
+
+      - task_id: "TASK-003"
+        title: "Create Tool Access Matrix Reference Doc"
+        risk: "🟡"
+        wave: 1
+        type: "documentation"
+        dependencies: []
+        affected_files:
+          - "NewAgents/.github/agents/tool-access-matrix.md"
+
+      - task_id: "TASK-004"
+        title: "Create Review Perspectives Reference Doc"
+        risk: "🟢"
+        wave: 1
+        type: "documentation"
+        dependencies: []
+        affected_files:
+          - "NewAgents/.github/agents/review-perspectives.md"
+
+      - task_id: "TASK-005"
+        title: "Create Context7 Integration + Evaluation Schema Reference Docs"
+        risk: "🟢"
+        wave: 2
+        type: "documentation"
+        dependencies: []
+        affected_files:
+          - "NewAgents/.github/agents/context7-integration.md"
+          - "NewAgents/.github/agents/evaluation-schema.md"
+
+      - task_id: "TASK-006"
+        title: "Create SQL Templates Reference Doc"
+        risk: "🟡"
+        wave: 2
+        type: "documentation"
+        dependencies: ["TASK-002"]
+        affected_files:
+          - "NewAgents/.github/agents/sql-templates.md"
+
+      - task_id: "TASK-007"
+        title: "Update schemas.md with SQLite Schemas and Routing Matrix"
+        risk: "🟡"
+        wave: 2
+        type: "infrastructure"
+        dependencies: ["TASK-002"]
+        affected_files:
+          - "NewAgents/.github/agents/schemas.md"
+
+      - task_id: "TASK-008"
+        title: "Update dispatch-patterns.md for Perspective-Based Review"
+        risk: "🟡"
+        wave: 3
+        type: "documentation"
+        dependencies: ["TASK-004"]
+        affected_files:
+          - "NewAgents/.github/agents/dispatch-patterns.md"
+
+      - task_id: "TASK-009"
+        title: "Add Frontmatter to severity-taxonomy.md"
+        risk: "🟢"
+        wave: 2
+        type: "infrastructure"
+        dependencies: []
+        affected_files:
+          - "NewAgents/.github/agents/severity-taxonomy.md"
+
+      - task_id: "TASK-010"
+        title: "Restructure Orchestrator Agent"
+        risk: "🔴"
+        wave: 4
+        type: "code"
+        dependencies: ["TASK-006", "TASK-007"]
+        affected_files:
+          - "NewAgents/.github/agents/orchestrator.agent.md"
+
+      - task_id: "TASK-011"
+        title: "Restructure Adversarial Reviewer Agent"
+        risk: "🟡"
+        wave: 4
+        type: "code"
+        dependencies: ["TASK-004", "TASK-006"]
+        affected_files:
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+
+      - task_id: "TASK-012"
+        title: "Restructure Knowledge Agent"
+        risk: "🔴"
+        wave: 4
+        type: "code"
+        dependencies: ["TASK-005", "TASK-006"]
+        affected_files:
+          - "NewAgents/.github/agents/knowledge-agent.agent.md"
+
+      - task_id: "TASK-013"
+        title: "Restructure Implementer Agent"
+        risk: "🟡"
+        wave: 4
+        type: "code"
+        dependencies: ["TASK-005", "TASK-006"]
+        affected_files:
+          - "NewAgents/.github/agents/implementer.agent.md"
+
+      - task_id: "TASK-014"
+        title: "Restructure Verifier Agent"
+        risk: "🟡"
+        wave: 3
+        type: "code"
+        dependencies: ["TASK-003", "TASK-005"]
+        affected_files:
+          - "NewAgents/.github/agents/verifier.agent.md"
+
+      - task_id: "TASK-015"
+        title: "Restructure Planner Agent"
+        risk: "🟢"
+        wave: 3
+        type: "code"
+        dependencies: ["TASK-002", "TASK-003"]
+        affected_files:
+          - "NewAgents/.github/agents/planner.agent.md"
+
+      - task_id: "TASK-016"
+        title: "Restructure Spec Agent"
+        risk: "🟢"
+        wave: 3
+        type: "code"
+        dependencies: ["TASK-002", "TASK-003"]
+        affected_files:
+          - "NewAgents/.github/agents/spec.agent.md"
+
+      - task_id: "TASK-017"
+        title: "Restructure Designer Agent"
+        risk: "🟢"
+        wave: 5
+        type: "code"
+        dependencies: ["TASK-003", "TASK-008"]
+        affected_files:
+          - "NewAgents/.github/agents/designer.agent.md"
+
+      - task_id: "TASK-018"
+        title: "Restructure Researcher Agent"
+        risk: "🟢"
+        wave: 5
+        type: "code"
+        dependencies: ["TASK-003", "TASK-005"]
+        affected_files:
+          - "NewAgents/.github/agents/researcher.agent.md"
+
+    dependency_graph:
+      TASK-001: []
+      TASK-002: []
+      TASK-003: []
+      TASK-004: []
+      TASK-005: []
+      TASK-006: ["TASK-002"]
+      TASK-007: ["TASK-002"]
+      TASK-008: ["TASK-004"]
+      TASK-009: []
+      TASK-010: ["TASK-006", "TASK-007"]
+      TASK-011: ["TASK-004", "TASK-006"]
+      TASK-012: ["TASK-005", "TASK-006"]
+      TASK-013: ["TASK-005", "TASK-006"]
+      TASK-014: ["TASK-003", "TASK-005"]
+      TASK-015: ["TASK-002", "TASK-003"]
+      TASK-016: ["TASK-002", "TASK-003"]
+      TASK-017: ["TASK-003", "TASK-008"]
+      TASK-018: ["TASK-003", "TASK-005"]
+
+    planning_constraints:
+      - "SEC-1/SEC-2: sql-templates.md MUST include mandatory sql_escape() wrapper and shell injection prevention (stdin piping to sqlite3) BEFORE any agent task uses those templates. TASK-006 must precede all SQL-writing agent tasks."
+      - "CORR-1: All evidence gate queries MUST include task_id filter to distinguish Step 3b design review from Step 7 code review. Affects TASK-006 (sql-templates §6) and TASK-010 (orchestrator evidence gates)."
+      - "CORR-2: EG-6 majority approval MUST use subquery checking ALL 3 category verdicts approve (HAVING COUNT(CASE WHEN verdict!='approve' THEN 1 END)=0). Affects TASK-006 and TASK-010."
+      - "CORR-3: SQL templates MUST document explicit quoting convention (NULL unquoted, 'value' single-quoted). Affects TASK-006."
+      - "CORR-4: Routing matrix canonical location is schemas.md. global-operating-rules.md §5 MUST reference schemas.md, not duplicate the table. Affects TASK-002 and TASK-007."
+      - "SEC-3: Knowledge Agent run_in_terminal scope is 'SELECT on all tables + INSERT on instruction_updates only' — not SELECT-only. All 14+ occurrences must be consistent. Affects TASK-003 and TASK-012."
+      - "ARCH-1: Knowledge Agent MUST include responsibility inventory table mapping 9 responsibilities to justifications. Affects TASK-012."
+      - "ARCH-2: SQLite schema evolution strategy (ALTER TABLE, enum expansion, migration DDL, version tracking) MUST be in sql-templates.md §9. Affects TASK-006."
+      - "ARCH-3: Orchestrator line count target revised to 550 (from 480) with explicit NFR-1 exception documented. Affects TASK-010."
+      - "SEC-5: Safety Constraint Filter MUST be formally defined in global-operating-rules.md §9 with immutable rules, protected phrases, pattern-matching rejection, and evaluator separation. Affects TASK-002."
+      - "SEC-6: CHECK constraints on instruction_updates.file_path and artifact_evaluations.artifact_path are in revised DDL — implementation must reference these. Affects TASK-006 and TASK-007."
+
+completion:
+  status: "DONE"
+  summary: "18 tasks created, 5 waves, overall risk 🔴. 8 green, 8 yellow, 2 red. 20 files covered. All 16 FRs mapped."
+  severity: null
+  findings_count: 0
+  risk_level: "🔴"
+  output_paths:
+    - "docs/feature/agent-system-overhaul/plan-output.yaml"
+    - "docs/feature/agent-system-overhaul/plan.md"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-001.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-002.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-003.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-004.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-005.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-006.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-007.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-008.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-009.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-010.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-011.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-012.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-013.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-014.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-015.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-016.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-017.yaml"
+    - "docs/feature/agent-system-overhaul/tasks/TASK-018.yaml"

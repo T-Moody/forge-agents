@@ -1,0 +1,107 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-010"
+    task_type: "code"
+    title: "Restructure Orchestrator Agent"
+    description: |
+      Modify NewAgents/.github/agents/orchestrator.agent.md — the HIGHEST RISK task in this
+      plan. Major restructure: 800→550 lines through extraction + new features. This task
+      combines evidence gate fixes, telemetry wiring, review dispatch rewrite, and line reduction.
+
+      Extractions (remove inline, add reference pointers):
+      - Tool access table → "See tool-access-matrix.md §2"
+      - run_in_terminal constraint details → "See tool-access-matrix.md §2, §11"
+      - Evidence gate SQL queries (6 templates, ~70 lines) → "See sql-templates.md §6"
+      - SQLite DDL for all tables (~50 lines) → "See sql-templates.md §1"
+      - Self-verification common items → "See global-operating-rules.md §6"
+      - Error handling / retry policy details → "See global-operating-rules.md §1-§3"
+      - Approval gate YAML templates (compact inline, ~20 lines saved)
+
+      Additions:
+      - YAML frontmatter: name: "orchestrator", description: "..."
+      - pipeline_telemetry INSERT after each agent dispatch completes (reference sql-templates.md §3)
+      - Consolidated DB init: single verification-ledger.db with 4 tables (reference sql-templates.md §1)
+      - Updated Step 3b/7 dispatch with review_perspective parameter
+        (security-sentinel, architecture-guardian, pragmatic-verifier)
+      - Updated evidence gate conditions: all 3 reviewers × all 3 categories + zero blockers +
+        majority fully-approving (reference sql-templates.md §6 with task_id filter per CORR-1)
+      - References to 6 shared docs via section pointers
+
+      CRITICAL CONSTRAINTS:
+      - CORR-1: Evidence gate queries MUST include task_id filter to distinguish Step 3b from Step 7.
+        Reference sql-templates.md §6 — do NOT write inline SQL queries.
+      - CORR-2: Majority approval gate uses the CORR-2-fixed EG-6 subquery from sql-templates.md §6.
+      - ARCH-3: Line count target is 550 (not 480). Document NFR-1 exception explicitly.
+      - Telemetry INSERT uses sql-templates.md §3 template after EACH dispatch (D-4 per-dispatch decision).
+      - DB consolidation: pipeline-telemetry.db eliminated — pipeline_telemetry table in verification-ledger.db.
+      - Review dispatch uses review_perspective (not model parameter) per DP-1.
+    risk_classification: "🔴"
+    wave: 4
+    dependencies: ["TASK-006", "TASK-007"]
+    estimated_lines_changed: 400
+    affected_files:
+      - path: "NewAgents/.github/agents/orchestrator.agent.md"
+        action: "modify"
+    addresses_frs: ["FR-1", "FR-6", "FR-10", "FR-12", "FR-13", "FR-14", "FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[agent='orchestrator']"]
+        reason: "Orchestrator design: extracted content (7 items), new content (6 items), key changes (5 items)"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/orchestrator.agent.md']",
+          ]
+        reason: "File description with target 550 lines and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.review_design.evidence_gate_queries",
+            "payload.review_design.verdict_naming",
+          ]
+        reason: "Updated evidence gate SQL with task_id filters and verdict naming convention"
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-correctness.yaml"
+        sections: ["findings[id='CORR-1']", "findings[id='CORR-2']"]
+        reason: "CORR-1: task_id filter required. CORR-2: EG-6 subquery fix."
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-architecture.yaml"
+        sections: ["findings[id='ARCH-3']"]
+        reason: "ARCH-3: line count target 550 with NFR-1 exception"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.decisions[id='D-1']",
+            "payload.decisions[id='D-4']",
+            "payload.decisions[id='D-8']",
+          ]
+        reason: "D-1: DB consolidation. D-4: per-dispatch telemetry. D-8: 3 INSERTs per reviewer."
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-6']",
+            "payload.functional_requirements[id='FR-13']",
+          ]
+        reason: "AC-6.1 (telemetry INSERT after dispatch), AC-6.2 (telemetry row per agent), AC-13.3 (parameterized SQL from shared ref)"
+      - file: "NewAgents/.github/agents/orchestrator.agent.md"
+        sections:
+          [
+            "tool access",
+            "evidence gates",
+            "SQLite DDL",
+            "review dispatch",
+            "error handling",
+          ]
+        reason: "Current content to identify extraction targets and sections to rewrite"
+    acceptance_criteria:
+      - "orchestrator.agent.md has YAML frontmatter with name and description (FR-16)"
+      - "Tool access table, error handling, SQLite DDL extracted to shared doc references (FR-10)"
+      - "Evidence gate queries reference sql-templates.md §6 — no inline SQL queries (AC-13.3)"
+      - "pipeline_telemetry INSERT after each dispatch referencing sql-templates.md §3 (AC-6.1)"
+      - "DB init creates single verification-ledger.db with 4 tables referencing sql-templates.md §1 (D-1)"
+      - "Review dispatch uses review_perspective parameter (security-sentinel, architecture-guardian, pragmatic-verifier)"
+      - "Evidence gates validate: 3 reviewers submitted, 3 categories each, zero blockers, ≥2/3 fully approving"
+      - "pipeline-telemetry.db references eliminated — consolidated into verification-ledger.db"
+      - "File is ≤550 lines with explicit NFR-1 exception documented (ARCH-3)"
+      - "Anti-drift anchor retained"
+    verification_tier: "Large"

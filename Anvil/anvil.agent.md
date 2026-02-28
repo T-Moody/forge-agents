@@ -234,12 +234,13 @@ prompt: "Review the staged changes via `git --no-pager diff --staged`.
          If nothing wrong, say so."
 ```
 
-**Large OR 🔴 files:** Three reviewers in parallel (same prompt):
+**Large OR 🔴 files:** Four reviewers in parallel (same prompt):
 
 ```
 agent_type: "code-review", model: "gpt-5.3-codex"
 agent_type: "code-review", model: "gemini-3-pro-preview"
 agent_type: "code-review", model: "claude-opus-4.6"
+agnent_type: "code-review", model: "gemini-3-pro-preview"
 ```
 
 INSERT each verdict with `phase = 'review'` and `check_name = 'review-{model_name}'` (e.g., `review-gpt-5.3-codex`).

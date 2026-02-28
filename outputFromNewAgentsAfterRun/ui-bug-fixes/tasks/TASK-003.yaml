@@ -1,0 +1,63 @@
+task:
+  id: "TASK-003"
+  title: "Fix Color.Secondary misuse on EmptyState and LoadingState shared components"
+  description: >
+    Replace Color="Color.Secondary" with Style="color: var(--mud-palette-text-secondary)"
+    on MudText elements in EmptyState.razor (2 instances: Title line 23, Description line 28)
+    and LoadingState.razor (2 instances: circular text line 19, linear text line 29). These
+    shared components propagate the fix to all pages that use them. Also document the full
+    audit list of remaining Color.Secondary on MudText instances for future work.
+  agent: "implementer"
+  bug_ids: ["BUG-007"]
+  size: "Standard"
+  risk: "🟢"
+  depends_on: []
+  wave: 1
+  verification_tier: "Standard"
+  estimated_lines_changed: 10
+
+  acceptance_criteria:
+    - "AC-007-1: Full documented audit list of all Color.Secondary on MudText elements produced"
+    - "AC-007-2: EmptyState and LoadingState have Color.Secondary removed from MudText elements"
+    - "AC-007-3: Color.Secondary on MudIcon, MudButton, MudChip is NOT changed"
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-7']"
+    spec_requirements:
+      - "spec-output.yaml#payload.requirements[id='BUG-007']"
+    files_to_modify:
+      - path: "src/TourneyPal.UI/Common/Components/EmptyState.razor"
+        risk: "🟢"
+        read_lines: "1-40"
+        changes:
+          - description: "Replace Color.Secondary with TextSecondary style on Title MudText (line 23)"
+            before: '<MudText Typo="Typo.body1" Color="Color.Secondary">@Title</MudText>'
+            after: '<MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary)">@Title</MudText>'
+          - description: "Replace Color.Secondary with TextSecondary style on Description MudText (line 28)"
+            before: '<MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">@Description</MudText>'
+            after: '<MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary)" Align="Align.Center">@Description</MudText>'
+      - path: "src/TourneyPal.UI/Common/Components/LoadingState.razor"
+        risk: "🟢"
+        read_lines: "1-40"
+        changes:
+          - description: "Replace Color.Secondary with TextSecondary style on circular loading text (line 19)"
+            before: '<MudText Typo="@GetTextTypo()" Color="Color.Secondary">@Text</MudText>'
+            after: '<MudText Typo="@GetTextTypo()" Style="color: var(--mud-palette-text-secondary)">@Text</MudText>'
+          - description: "Replace Color.Secondary with TextSecondary style on linear loading text (line 29)"
+            before: '<MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 text-center">@Text</MudText>'
+            after: '<MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary)" Class="mt-2 text-center">@Text</MudText>'
+    files_to_read:
+      - path: "design-output.yaml#payload.changes[bug_id='BUG-007'].audit_results"
+        reason: "Full audit list of remaining files with Color.Secondary on MudText for documentation deliverable"
+
+  testing_notes: >
+    No tests assert on Color.Secondary. Zero test breakage expected. Purely visual change.
+    Manual verification that EmptyState and LoadingState render muted gray text instead of
+    accent pink. The fix propagates to all pages using these shared components.
+
+  documentation_deliverable: >
+    Produce a documented audit list of all remaining Color.Secondary on MudText instances
+    not fixed in this batch. The design-output.yaml audit_results section has the full list
+    categorized by file (65 muted-text-intent instances across ~33 files). This list should
+    be committed as a comment or markdown file for future reference.

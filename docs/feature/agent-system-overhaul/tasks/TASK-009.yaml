@@ -1,0 +1,47 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-009"
+    task_type: "infrastructure"
+    title: "Add Frontmatter to severity-taxonomy.md"
+    description: |
+      Add YAML frontmatter to NewAgents/.github/agents/severity-taxonomy.md for VS Code
+      discovery consistency (FR-16). This is a minimal change — add frontmatter block at
+      the top of the existing file.
+
+      Add:
+      ```
+      ---
+      name: "severity-taxonomy"
+      description: "Unified severity definitions for all adversarial review and verification findings"
+      ---
+      ```
+
+      No other content changes required.
+    risk_classification: "🟢"
+    wave: 2
+    dependencies: []
+    estimated_lines_changed: 10
+    affected_files:
+      - path: "NewAgents/.github/agents/severity-taxonomy.md"
+        action: "modify"
+    addresses_frs: ["FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/severity-taxonomy.md']",
+          ]
+        reason: "File description: add YAML frontmatter for VS Code discovery"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-16']"]
+        reason: "AC-16.1 (frontmatter with name+description), AC-16.2 (consistent field names)"
+      - file: "NewAgents/.github/agents/severity-taxonomy.md"
+        sections: ["first 10 lines"]
+        reason: "Current file structure to determine where to add frontmatter"
+    acceptance_criteria:
+      - "severity-taxonomy.md has YAML frontmatter with 'name' and 'description' fields"
+      - "Frontmatter field names match the convention used by other agent files (AC-16.2)"
+      - "Existing content is unchanged — only frontmatter addition"
+    verification_tier: "Standard"

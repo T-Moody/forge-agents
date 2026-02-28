@@ -1,0 +1,70 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-017"
+    task_type: "code"
+    title: "Restructure Designer Agent"
+    description: |
+      Modify NewAgents/.github/agents/designer.agent.md to add glob-based verdict reading
+      for revision mode and standardize frontmatter. Target: 275→265 lines. Minimal changes.
+
+      Extractions (remove inline, add reference pointers):
+      - Tool access table → "See tool-access-matrix.md §5"
+
+      Additions:
+      - YAML frontmatter: name: "designer", description: "..."
+      - Glob-based verdict reading for revision mode: Designer reads
+        review-verdicts/<scope>-*.yaml via list_dir to discover all per-perspective verdict files.
+        Also reads review-findings/<scope>-*.md for detailed findings.
+      - References to shared docs in appropriate sections
+
+      Updates:
+      - Revision mode input: reads review-verdicts/<scope>-<perspective>.yaml (multiple files
+        per scope) instead of review-verdicts/design.yaml (single file). Uses list_dir on
+        review-verdicts/ directory then filters by scope prefix.
+      - Review findings input: reads review-findings/<scope>-<perspective>.md
+
+      Retained:
+      - design.md companion output (human-facing per DP-2)
+      - Role-specific workflow (architecture design, decision records, deviation tracking)
+      - Anti-drift anchor
+    risk_classification: "🟢"
+    wave: 5
+    dependencies: ["TASK-003", "TASK-008"]
+    estimated_lines_changed: 50
+    affected_files:
+      - path: "NewAgents/.github/agents/designer.agent.md"
+        action: "modify"
+    addresses_frs: ["FR-4", "FR-10", "FR-12", "FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[agent='designer']"]
+        reason: "Designer design: extracted content, new content, key changes"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/designer.agent.md']",
+          ]
+        reason: "File description with target 265 lines and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.review_design.verdict_naming"]
+        reason: "Verdict naming convention: review-verdicts/<scope>-<perspective>.yaml"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-12']"]
+        reason: "AC-12.1 (review verdict output path matches expected input in designer)"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.edge_cases[id='EC-9']"]
+        reason: "EC-9: Designer must read new naming convention; path mismatch causes ERROR"
+      - file: "NewAgents/.github/agents/designer.agent.md"
+        sections: ["revision mode input", "tool access table"]
+        reason: "Current content to identify what needs updating"
+    acceptance_criteria:
+      - "designer.agent.md has YAML frontmatter with name and description (FR-16)"
+      - "Tool access table replaced with reference to tool-access-matrix.md §5 (FR-10)"
+      - "Revision mode reads review-verdicts/<scope>-*.yaml via list_dir glob (FR-12, AC-12.1)"
+      - "Review findings input reads review-findings/<scope>-*.md"
+      - "design.md companion output retained (DP-2)"
+      - "File is ≤265 lines"
+      - "Anti-drift anchor retained"
+    verification_tier: "Standard"

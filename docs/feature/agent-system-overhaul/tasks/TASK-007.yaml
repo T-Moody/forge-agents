@@ -1,0 +1,75 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-007"
+    task_type: "infrastructure"
+    title: "Update schemas.md with SQLite Schemas and Routing Matrix"
+    description: |
+      Modify NewAgents/.github/agents/schemas.md to add:
+
+      1. SQLite Table Schemas section: Consolidate all 4 table DDL definitions with
+         column types, constraints, indexes, and key queries. Tables: anvil_checks (15 cols),
+         pipeline_telemetry, artifact_evaluations, instruction_updates. Reference
+         sql-templates.md for INSERT/SELECT templates.
+
+      2. Completion Contract Routing Matrix (CORR-4 canonical location): Agent × Status
+         (DONE/NEEDS_REVISION/ERROR) routing table. This is the CANONICAL location per
+         CORR-4 — global-operating-rules.md §5 references this, not vice versa.
+
+      3. Output Format Classification Table: YAML-only vs YAML+MD per artifact type (DP-2).
+         - YAML-only: research outputs, implementation reports, verification reports, review verdicts
+         - YAML+MD: feature.md, design.md, plan.md, evidence-bundle.md
+
+      4. Updated Schema 9 (Review Verdict): Per-perspective verdict path convention
+         (review-verdicts/<scope>-<perspective>.yaml). Updated producer/consumer table.
+
+      5. Field type annotations for all schemas: string, integer, enum, list, etc. with
+         required/optional markers (AC-13.2).
+
+      This is a large modification to an existing ~1000+ line file. Focus changes on
+      ADDING new sections without disrupting existing schema definitions.
+    risk_classification: "🟡"
+    wave: 2
+    dependencies: ["TASK-002"]
+    estimated_lines_changed: 300
+    affected_files:
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modify"
+    addresses_frs: ["FR-4", "FR-5", "FR-12", "FR-13", "FR-14"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          ["payload.file_inventory[path='NewAgents/.github/agents/schemas.md']"]
+        reason: "schemas.md modification description and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.sqlite_schemas"]
+        reason: "Full DDL for all 4 SQLite tables with CHECK constraints and key queries"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-4']",
+            "payload.functional_requirements[id='FR-13']",
+          ]
+        reason: "AC-4.1 (output format classification), AC-13.1 (routing matrix), AC-13.2 (field type annotations)"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-12']"]
+        reason: "AC-12.2 (Schema 9 output path consistency with producer agent)"
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-correctness.yaml"
+        sections: ["findings[id='CORR-4']"]
+        reason: "CORR-4: schemas.md is canonical location for routing matrix"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.review_design.verdict_naming"]
+        reason: "Verdict naming convention for Schema 9 update"
+      - file: "NewAgents/.github/agents/schemas.md"
+        sections: ["existing schema definitions"]
+        reason: "Current file structure to understand where to add new sections"
+    acceptance_criteria:
+      - "schemas.md contains SQLite table schemas section with all 4 tables' DDL, column types, constraints, and key queries"
+      - "Routing matrix table exists showing agent × status (DONE/NEEDS_REVISION/ERROR) routing (AC-13.1)"
+      - "Output format classification table exists: YAML-only vs YAML+MD per artifact (AC-4.1)"
+      - "Schema 9 updated with per-perspective verdict path convention (review-verdicts/<scope>-<perspective>.yaml)"
+      - "All schema fields have type annotations (string/integer/enum/list) and required/optional markers (AC-13.2)"
+      - "Existing schema definitions are preserved — only additions and updates"
+      - "AC-14.2: All SQLite table schemas documented with column types, constraints, indexes, and key queries"
+    verification_tier: "Standard"

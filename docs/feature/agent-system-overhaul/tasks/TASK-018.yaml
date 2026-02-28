@@ -1,0 +1,81 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-018"
+    task_type: "code"
+    title: "Restructure Researcher Agent"
+    description: |
+      Modify NewAgents/.github/agents/researcher.agent.md to clarify create_file scope,
+      add Context7 integration, remove MD companion generation, and standardize frontmatter.
+      Target: 251→240 lines. Minimal changes.
+
+      Extractions (remove inline, add reference pointers):
+      - Tool access table → "See tool-access-matrix.md §3"
+      - Error handling boilerplate → "See global-operating-rules.md §1-§2"
+
+      Additions:
+      - YAML frontmatter: name: "researcher", description: "..."
+      - Explicit create_file scope restriction: research/*.yaml only (DR-3)
+      - Context7 conditional reference → "See context7-integration.md" (researcher is secondary user)
+
+      Removals:
+      - MD companion generation: research/*.md files no longer produced (DP-2)
+      - Any inline error handling that duplicates global-operating-rules.md
+
+      Updates:
+      - Output Files section: single file (research/<focus>.yaml) — no MD companion
+      - create_file scope: allowed for research/*.yaml only (narrowed from AC-11.2 per DR-3)
+
+      Retained:
+      - Role-specific workflow (4-focus research: architecture, patterns, impact, dependencies)
+      - Research output YAML schema
+      - Anti-drift anchor
+    risk_classification: "🟢"
+    wave: 5
+    dependencies: ["TASK-003", "TASK-005"]
+    estimated_lines_changed: 60
+    affected_files:
+      - path: "NewAgents/.github/agents/researcher.agent.md"
+        action: "modify"
+    addresses_frs: ["FR-4", "FR-9", "FR-10", "FR-11", "FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[agent='researcher']"]
+        reason: "Researcher design: extracted content, new content, key changes, tool access changes"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/researcher.agent.md']",
+          ]
+        reason: "File description with target 240 lines and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.decisions[id='D-6']",
+            "payload.deviation_records[id='DR-3']",
+          ]
+        reason: "D-6: researcher YAML-only output rationale. DR-3: AC-11.2 scope narrowing deviation record."
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-11']",
+            "payload.functional_requirements[id='FR-9']",
+          ]
+        reason: "AC-11.2 (researcher create_file scope), AC-9.2 (Context7 conditional check)"
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-correctness.yaml"
+        sections: ["findings[id='CORR-7']"]
+        reason: "CORR-7: Researcher scope narrowing must reference DR-3 deviation record"
+      - file: "NewAgents/.github/agents/researcher.agent.md"
+        sections: ["tool access table", "output section", "error handling"]
+        reason: "Current content to identify extraction targets and output section to update"
+    acceptance_criteria:
+      - "researcher.agent.md has YAML frontmatter with name and description (FR-16)"
+      - "Tool access table replaced with reference to tool-access-matrix.md §3 (FR-10)"
+      - "create_file scope explicitly restricted to research/*.yaml only (FR-11, DR-3)"
+      - "MD companion generation removed — output is YAML-only (FR-4, DP-2)"
+      - "Context7 conditional reference present (FR-9, AC-9.2)"
+      - "Error handling replaced with reference to global-operating-rules.md §1-§2 (FR-10)"
+      - "File is ≤240 lines"
+      - "Anti-drift anchor retained"
+    verification_tier: "Standard"

@@ -1,0 +1,117 @@
+task:
+  id: "TASK-008"
+  title: "Standardize semantic colors (Error/Success/Warning/Info) for 6 non-HC themes to Apple HIG"
+  description: >
+    Update Error, Success, Warning, Info hex values for all 6 non-high-contrast themes
+    to Apple HIG standard values. Light mode: Error=#FF3B30, Success=#34C759, Warning=#FF9500,
+    Info=#007AFF. Dark mode: Error=#FF453A, Success=#30D158, Warning=#FF9F0A, Info=#0A84FF.
+    Each theme's Primary/Secondary/Tertiary identity colors are preserved. The high-contrast
+    theme is intentionally NOT modified (WCAG AAA guidelines). Background/Surface structural
+    colors for these 6 themes are NOT changed in this task.
+  agent: "implementer"
+  bug_ids: ["BUG-006"]
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["TASK-007"]
+  wave: 3
+  verification_tier: "Standard"
+  estimated_lines_changed: 150
+
+  acceptance_criteria:
+    - "AC-006-1: All 8 themes have Apple HIG-aligned semantic colors (Error, Success, Warning, Info)"
+    - "AC-006-7: Each theme retains distinct Primary color identity"
+    - "AC-006-8: ThemeRegistryTests pass after changes"
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-6']"
+      - "design-output.yaml#payload.changes[bug_id='BUG-006'].files[0].changes[3].themes_to_update"
+    spec_requirements:
+      - "spec-output.yaml#payload.requirements[id='BUG-006']"
+    files_to_modify:
+      - path: "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs"
+        risk: "🟡"
+        read_lines: "150-708"
+        changes:
+          - theme: "cyber-future"
+            semantic_changes:
+              Error_Light: { from: "#FF1744", to: "#FF3B30" }
+              Error_Dark: { from: "#FF5252", to: "#FF453A" }
+              Success_Light: { from: "#00C853", to: "#34C759" }
+              Success_Dark: { from: "#00E676", to: "#30D158" }
+              Warning_Light: { from: "#FF9100", to: "#FF9500" }
+              Warning_Dark: { from: "#FFAB40", to: "#FF9F0A" }
+              Info_Light: { from: "#2196F3", to: "#007AFF" }
+              Info_Dark: { from: "#448AFF", to: "#0A84FF" }
+          - theme: "classic-sports"
+            semantic_changes:
+              Error_Light: { from: "#D32F2F", to: "#FF3B30" }
+              Error_Dark: { from: "#EF5350", to: "#FF453A" }
+              Success_Light: { from: "#2E7D32", to: "#34C759" }
+              Success_Dark: { from: "#66BB6A", to: "#30D158" }
+              Warning_Light: { from: "#F57F17", to: "#FF9500" }
+              Warning_Dark: { from: "#FFA726", to: "#FF9F0A" }
+              Info_Light: { from: "#1976D2", to: "#007AFF" }
+              Info_Dark: { from: "#64B5F6", to: "#0A84FF" }
+          - theme: "stadium-night"
+            semantic_changes:
+              Error_Light: { from: "#C0392B", to: "#FF3B30" }
+              Error_Dark: { from: "#E74C3C", to: "#FF453A" }
+              Success_Light: { from: "#27AE60", to: "#34C759" }
+              Success_Dark: { from: "#4CAF50", to: "#30D158" }
+              Warning_Light: { from: "#D4A017", to: "#FF9500" }
+              Warning_Dark: { from: "#E8C547", to: "#FF9F0A" }
+              Info_Light: { from: "#2980B9", to: "#007AFF" }
+              Info_Dark: { from: "#5B9BD5", to: "#0A84FF" }
+          - theme: "retro-arcade"
+            semantic_changes:
+              Error_Light: { from: "#FF1744", to: "#FF3B30" }
+              Error_Dark: { from: "#FF5252", to: "#FF453A" }
+              Success_Light: { from: "#00C853", to: "#34C759" }
+              Success_Dark: { from: "#69F0AE", to: "#30D158" }
+              Warning_Light: { from: "#FFD600", to: "#FF9500" }
+              Warning_Dark: { from: "#FFD740", to: "#FF9F0A" }
+              Info_Light: { from: "#2979FF", to: "#007AFF" }
+              Info_Dark: { from: "#448AFF", to: "#0A84FF" }
+          - theme: "minimal-soft"
+            semantic_changes:
+              Error_Light: { from: "#EF9A9A", to: "#FF3B30" }
+              Error_Dark: { from: "#FFCDD2", to: "#FF453A" }
+              Success_Light: { from: "#A5D6A7", to: "#34C759" }
+              Success_Dark: { from: "#C8E6C9", to: "#30D158" }
+              Warning_Light: { from: "#FFE082", to: "#FF9500" }
+              Warning_Dark: { from: "#FFF9C4", to: "#FF9F0A" }
+              Info_Light: { from: "#90CAF9", to: "#007AFF" }
+              Info_Dark: { from: "#BBDEFB", to: "#0A84FF" }
+            notes: "Minimal-soft pastel semantics become significantly more saturated — by design per D-6"
+          - theme: "nature-fresh"
+            semantic_changes:
+              Error_Light: { from: "#E53935", to: "#FF3B30" }
+              Error_Dark: { from: "#EF5350", to: "#FF453A" }
+              Success_Light: { from: "#43A047", to: "#34C759" }
+              Success_Dark: { from: "#81C784", to: "#30D158" }
+              Warning_Light: { from: "#F9A825", to: "#FF9500" }
+              Warning_Dark: { from: "#FFD54F", to: "#FF9F0A" }
+              Info_Light: { from: "#039BE5", to: "#007AFF" }
+              Info_Dark: { from: "#4FC3F7", to: "#0A84FF" }
+    files_to_read:
+      - path: "src/TourneyPal.UI/Common/Theme/ThemeRegistry.cs"
+        read_lines: "150-708"
+        reason: "Full file to locate each theme's BuildXxxTheme method and semantic color lines"
+      - path: "tests/TourneyPal.Tests/Common/Theme/ThemeRegistryTests.cs"
+        read_lines: "1-200"
+        reason: "Verify which tests have value-specific hex assertions needing updates"
+
+  critical_implementation_notes:
+    - "Use EXACT Apple HIG values from the semantic_changes tables — do not approximate"
+    - "High-contrast theme is intentionally NOT modified — skip it entirely"
+    - "Only change Error/Success/Warning/Info — do NOT change Primary/Secondary/Tertiary identity colors"
+    - "Do NOT change Background/Surface structural colors for these 6 themes"
+    - "Run ThemeRegistryTests after EACH theme to catch mismatches early"
+    - "Minimal-soft theme will look significantly different (pastel → saturated semantics) — this is intentional"
+
+  testing_notes: >
+    Value-specific hex assertion tests will need updates for changed semantic colors.
+    Invariant tests should still pass (semantic color changes don't affect Background/Surface
+    invariants). Run tests incrementally — after each theme change — to isolate any failures.
+    Estimated: 0-5 test assertion updates (depends on which themes have value-specific tests).

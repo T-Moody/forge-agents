@@ -1,0 +1,73 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-001"
+    task_type: "infrastructure"
+    title: "Create Instruction File Infrastructure"
+    description: |
+      Create the two-tier instruction file infrastructure that VS Code auto-loads for all agents:
+
+      1. `.github/copilot-instructions.md` (Tier 1 — global rules):
+         - §1 Terminal-Only Testing: All test execution via run_in_terminal with CLI commands
+         - §2 No File-Redirect: Never redirect terminal output to files
+         - §3 Retry Policy: Transient errors retry 2x with backoff; deterministic failures never retried
+         - §4 Schema Version: All outputs include schema_version 1.0
+         - §5 Evidence-First: Record SQL evidence before claiming verification
+         - §6 Agent Boundaries: Never modify another agent's definition at runtime
+         - §7 Bounded Loops: All feedback loops have hard iteration limits
+         - §8 Context7 (Conditional): If Context7 MCP available, use for library docs
+
+      2. `.github/instructions/pipeline-conventions.md` (Tier 1 — domain-specific):
+         - §1 Feature Directory Structure: docs/feature/<slug>/ with standard subdirectories
+         - §2 File Naming Patterns: Output files per pipeline step
+         - §3 Risk Classification Quick-Reference: 🟢/🟡/🔴 per-file classification
+         - §4 Pipeline Step Summary: Steps 0-9 with agent and purpose
+
+      Both files must be concise (combined ~100 lines). The copilot-instructions.md is
+      IMMUTABLE (never agent-updatable per SEC-5/ARCH-5). The pipeline-conventions.md
+      is governed-mutable (Knowledge Agent update target with approval).
+    risk_classification: "🟢"
+    wave: 1
+    dependencies: []
+    estimated_lines_changed: 100
+    affected_files:
+      - path: ".github/copilot-instructions.md"
+        action: "create"
+      - path: ".github/instructions/pipeline-conventions.md"
+        action: "create"
+    addresses_frs: ["FR-7", "FR-8", "FR-10", "FR-15"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='.github/copilot-instructions.md']",
+            "payload.file_inventory[path='.github/instructions/pipeline-conventions.md']",
+          ]
+        reason: "File descriptions, estimated lines, and FR mappings for both instruction files"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.shared_documents[path='.github/copilot-instructions.md']",
+            "payload.shared_documents[path='.github/instructions/pipeline-conventions.md']",
+          ]
+        reason: "Detailed content outlines (§1-§8 for copilot-instructions, §1-§4 for pipeline-conventions)"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-7']",
+            "payload.functional_requirements[id='FR-8']",
+            "payload.functional_requirements[id='FR-15']",
+          ]
+        reason: "Acceptance criteria for terminal-only testing (AC-7.1), no-file-redirect (AC-8.1), instruction file infra (AC-15.1, AC-15.2)"
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-architecture.yaml"
+        sections: ["findings[id='ARCH-5']"]
+        reason: "ARCH-5 requires copilot-instructions.md to be classified as immutable (never agent-updatable)"
+    acceptance_criteria:
+      - ".github/copilot-instructions.md exists with 8 sections covering global rules (terminal-only, no-file-redirect, retry policy, schema version, evidence-first, agent boundaries, bounded loops, Context7)"
+      - ".github/instructions/pipeline-conventions.md exists with 4 sections (feature dir structure, file naming, risk classification, pipeline steps)"
+      - "copilot-instructions.md is ≤55 lines"
+      - "pipeline-conventions.md is ≤45 lines"
+      - "copilot-instructions.md contains no per-agent-specific rules (shared rules only)"
+      - "No shared operating rule (no-file-redirect, terminal-only testing) appears inline in any individual agent file after this task"
+    verification_tier: "Standard"

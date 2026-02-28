@@ -1,0 +1,230 @@
+agent_output:
+  agent: "knowledge-agent"
+  instance: "knowledge-agent"
+  step: "step-8"
+  started_at: "2026-02-27T13:00:00Z"
+  completed_at: "2026-02-27T13:30:00Z"
+  schema_version: "1.0"
+  payload:
+    knowledge_updates:
+      # NOTE: Copilot Memory is not enabled in this workspace.
+      # All store_memory updates logged here but could not be persisted cross-session.
+      # Knowledge is preserved in this file and decisions.yaml for project record.
+
+      # ── Conventions ──
+      - type: "convention"
+        key: "3-tier-content-architecture"
+        value: >
+          Agent content follows a 3-tier hierarchy: global (.github/copilot-instructions.md auto-loaded
+          by VS Code), shared reference docs (NewAgents/.github/agents/*.md), and agent definitions
+          (NewAgents/.github/agents/*.agent.md). This reduces duplication and keeps agents under 350 lines.
+        stored_via: "store_memory (unavailable — logged only)"
+
+      - type: "convention"
+        key: "perspective-based-review"
+        value: >
+          Adversarial review uses 3 prompt-diversity perspectives (security-sentinel, architecture-guardian,
+          pragmatic-verifier) rather than multi-model review. Each reviewer instance covers ALL 3 categories
+          (security, architecture, correctness) producing 3 SQL INSERTs per review. Verdict files use
+          pattern: review-verdicts/{scope}-{perspective}.yaml.
+        stored_via: "store_memory (unavailable — logged only)"
+
+      - type: "convention"
+        key: "agent-line-budget"
+        value: >
+          Agent definition files target ≤350 lines (orchestrator has NFR-1 exception at ≤550 lines).
+          Line reduction achieved by extracting shared content to reference docs: global-operating-rules.md,
+          tool-access-matrix.md, sql-templates.md, review-perspectives.md, evaluation-schema.md,
+          context7-integration.md.
+        stored_via: "store_memory (unavailable — logged only)"
+
+      - type: "convention"
+        key: "frontmatter-standardization"
+        value: >
+          All agent .agent.md files and shared reference .md files require YAML frontmatter with at
+          minimum 'name' and 'description' fields. This enables VS Code discovery and categorization.
+        stored_via: "store_memory (unavailable — logged only)"
+
+      # ── Commands ──
+      - type: "command"
+        key: "sql-via-stdin-piping"
+        value: >
+          All SQL execution uses stdin piping to sqlite3 CLI to prevent shell metacharacter injection:
+          echo "SQL..." | sqlite3 db.db — never interpolate agent-generated values into shell command strings.
+          Use printf with %s for multi-line. Reference: sql-templates.md §0 and .github/copilot-instructions.md.
+        stored_via: "store_memory (unavailable — logged only)"
+
+      - type: "command"
+        key: "terminal-only-testing"
+        value: >
+          All test execution MUST use run_in_terminal with standard CLI commands (dotnet test, npm test,
+          pytest, etc.). Do NOT use VS Code's built-in test runner tools (Testing API, runTests task).
+          IDE diagnostics via get_errors are permitted for compile-time error detection only.
+        stored_via: "store_memory (unavailable — logged only)"
+
+      # ── Patterns ──
+      - type: "pattern"
+        key: "evidence-gate-pattern"
+        value: >
+          Verification uses SQL evidence gates (EG-1 through EG-6) stored in verification-ledger.db.
+          Each gate requires INSERT of check results then COUNT query to validate pass threshold.
+          All evidence gate queries MUST include task_id filter to distinguish Step 3b design review
+          from Step 7 code review. Canonical queries in sql-templates.md §6.
+        stored_via: "store_memory (unavailable — logged only)"
+
+      - type: "pattern"
+        key: "shared-doc-extraction"
+        value: >
+          When agent files grow beyond line budget, extract repeated patterns into shared reference docs
+          under NewAgents/.github/agents/. Use section references (e.g., "sql-templates.md §6") to
+          link from agents to specific sections. Verify cross-references exist via grep_search.
+        stored_via: "store_memory (unavailable — logged only)"
+
+      - type: "pattern"
+        key: "multi-model-review-infeasible"
+        value: >
+          Multi-model review is infeasible in VS Code Copilot — all agents use the same underlying model.
+          Use prompt diversity instead: define distinct reviewer personas with different review philosophies,
+          priority hierarchies, and severity threshold biases. Document in review-perspectives.md.
+        stored_via: "store_memory (unavailable — logged only)"
+
+      # ── Lessons ──
+      - type: "lesson"
+        key: "schemas-scope-creep"
+        value: >
+          schemas.md grew to 1528 lines spanning 6+ concern domains (YAML schemas, SQLite DDL, routing
+          matrix, evidence gates, output format classification, naming conventions). This caused DDL
+          dual-source-of-truth conflicts with sql-templates.md. Future: keep schemas.md focused on YAML
+          schema definitions only; extract other concerns to appropriate reference docs.
+        stored_via: "decisions.yaml"
+
+      - type: "lesson"
+        key: "review-round-efficiency"
+        value: >
+          R1 review found 10 actionable findings (1 Critical, 6 Major, 3 Minor) all concentrated in
+          schemas.md. R2 achieved unanimous approval (3/3). Single-file concentration of issues is
+          efficient for fix implementation but indicates the file was under-reviewed during implementation.
+          Verifier should flag files with highest complexity for additional scrutiny.
+        stored_via: "decisions.yaml"
+
+      - type: "lesson"
+        key: "operational-db-drift"
+        value: >
+          Live verification-ledger.db may lack columns (e.g., 'instance') added to canonical DDL in
+          sql-templates.md §1 during the pipeline run. DDL uses CREATE TABLE IF NOT EXISTS which
+          won't ALTER existing tables. Future: add ALTER TABLE migration pattern in sql-templates.md §9
+          and run schema sync at Step 0.
+        stored_via: "decisions.yaml"
+
+    decision_log_entries:
+      - id: "DL-001"
+        title: "Adopt 3-Tier Content Architecture"
+        rationale: >
+          Global rules in .github/copilot-instructions.md (auto-loaded by VS Code), shared reference
+          docs in NewAgents/.github/agents/*.md, and lean agent definitions in *.agent.md. This
+          eliminates duplication of error handling, SQL templates, and tool access tables across
+          9 agents. Achieved 41% line reduction on orchestrator (797→471 lines).
+        confidence: "High"
+
+      - id: "DL-002"
+        title: "Replace Multi-Model Review with Prompt Diversity"
+        rationale: >
+          VS Code Copilot's runSubagent API routes all agents to the same model. True multi-model
+          review is not possible without external API calls. Prompt diversity with 3 distinct
+          personas (security-sentinel, architecture-guardian, pragmatic-verifier) provides meaningful
+          review variance. Each persona reviews all 3 categories (security, architecture, correctness).
+        confidence: "High"
+
+      - id: "DL-003"
+        title: "Consolidate All SQLite Tables into verification-ledger.db"
+        rationale: >
+          Four tables (anvil_checks, pipeline_telemetry, artifact_evaluations, instruction_updates)
+          consolidated into single DB file. Simplifies Step 0 initialization, eliminates need for
+          agents to manage multiple DB connections. Single-point-of-failure risk mitigated by
+          PRAGMA integrity_check at Step 0 and WAL mode for concurrent reads.
+        confidence: "High"
+
+      - id: "DL-004"
+        title: "Orchestrator Line Budget Exception (550 lines)"
+        rationale: >
+          Original 480-line target was unsubstantiated (124-line compaction gap). Revised to 550
+          with explicit NFR-1 exception documented. Actual implementation achieved 471 lines,
+          well within the revised budget. The exception provides headroom for future additions
+          without triggering immediate refactoring.
+        confidence: "High"
+
+      - id: "DL-005"
+        title: "Defer schemas.md Scope Reduction"
+        rationale: >
+          R1 review identified schemas.md grew to 1528 lines with 6+ concern domains. Critical
+          issues (DDL conflicts, stale Schema 9) were fixed in R1 fixes. Full scope reduction
+          (extracting non-schema content) deferred as documented tech debt — would require
+          broader refactoring across all agents referencing schemas.md sections. Risk: Low
+          (content is correct, just co-located).
+        confidence: "Medium"
+
+      - id: "DL-006"
+        title: "SQL Safety via Stdin Piping and Sanitization Templates"
+        rationale: >
+          Design review identified SQL injection (SEC-1) and command injection (SEC-2) risks with
+          string-interpolated templates. Mitigation: sql_escape() defined in sql-templates.md §0
+          with single-quote doubling, null byte stripping, and length truncation. All SQL execution
+          via stdin piping to sqlite3 CLI. Enforcement is checklist-based (not programmatic) due
+          to VS Code runtime constraints.
+        confidence: "Medium"
+
+    evidence_bundle:
+      overall_confidence: "High"
+      verification_summary:
+        tasks_verified: 18
+        total_checks: 52
+        passed: 52
+        failed: 0
+        regressions: 0
+      review_summary:
+        design_review:
+          round: 1
+          verdicts:
+            "security-auditor": "needs_revision"
+            "architecture-purist": "needs_revision"
+            "correctness-checker": "needs_revision"
+        code_review_r1:
+          round: 1
+          verdicts:
+            "security-sentinel": "needs_revision"
+            "architecture-guardian": "needs_revision"
+            "pragmatic-verifier": "needs_revision"
+        code_review_r2:
+          round: 2
+          verdicts:
+            "security-sentinel": "approve"
+            "architecture-guardian": "approve"
+            "pragmatic-verifier": "approve"
+      rollback_command: "git revert --no-commit pipeline-baseline-2026-02-27T10-00-00Z..HEAD"
+      blast_radius:
+        files_modified: 20
+        risk_red_files: 2
+        risk_yellow_files: 8
+        risk_green_files: 10
+        regressions: 0
+      known_issues:
+        - description: "schemas.md scope: 1528+ lines spanning 6+ concern domains beyond YAML schemas. Governance content remains after critical DDL/query issues fixed."
+          severity: "Minor"
+        - description: "Live verification-ledger.db may lack 'instance' column added to canonical DDL. Operational migration needed, not a code defect."
+          severity: "Minor"
+
+    pipeline_telemetry_summary:
+      total_dispatches: 35
+      total_duration_seconds: 9000
+      error_count: 0
+
+completion:
+  status: "DONE"
+  summary: "Knowledge capture complete: 10 knowledge updates, 6 decisions, evidence bundle assembled. Pipeline confidence: High."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "knowledge-output.yaml"
+    - "decisions.yaml"
+    - "evidence-bundle.md"

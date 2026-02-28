@@ -1,0 +1,96 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-006"
+  step: "step-5"
+  started_at: "2026-02-27T10:30:00Z"
+  completed_at: "2026-02-27T10:45:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-006"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics:
+        errors: 5
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        action: "created"
+        description: >
+          Created SQL Templates Reference Doc (~420 lines) with all 10 sections (§0-§9).
+          §0: SQL Sanitization Requirements — mandatory sql_escape() with single-quote
+          doubling, null byte stripping, length truncation; shell injection prevention
+          via stdin piping (printf pipe, heredoc, echo pipe patterns); explicit quoting
+          convention table (CORR-3); self-verification checklist for SQL-writing agents.
+          §1: Full DDL for all 4 tables (anvil_checks, pipeline_telemetry,
+          artifact_evaluations, instruction_updates) with PRAGMA WAL/busy_timeout/integrity_check,
+          all CHECK constraints, all indexes, column legend with LENGTH limits.
+          §2: anvil_checks INSERT template with quoting convention and printf-pipe example.
+          §3: pipeline_telemetry INSERT template (Orchestrator-only).
+          §4: artifact_evaluations INSERT template with path traversal CHECK notes (SEC-6),
+          score range CHECK notes.
+          §5: instruction_updates INSERT template with file_path CHECK constraint (SEC-6).
+          §6: Evidence Gate Queries EG-1 through EG-6 — all include task_id filter (CORR-1),
+          scope-qualified check_names (review-{scope}-security/architecture/correctness),
+          EG-6 uses subquery with HAVING COUNT(CASE WHEN verdict != 'approve' THEN 1 END) = 0
+          to handle D-8's 3-INSERT-per-reviewer pattern (CORR-2).
+          §7: Post-Mortem Analysis Queries — telemetry summary, slowest steps, retry analysis,
+          evaluation summary by agent, worst-rated artifacts, missing information report,
+          instruction update history.
+          §8: Instruction Update Audit Queries — pending updates, update frequency,
+          applied vs pending ratio, full audit trail per file.
+          §9: Schema Evolution Strategy (ARCH-2) — safe additive changes (ALTER TABLE ADD COLUMN),
+          enum expansion via table recreation pattern, schema_meta version tracking table,
+          migration procedure, migration ownership rules.
+      - path: "docs/feature/agent-system-overhaul/implementation-reports/TASK-006.yaml"
+        action: "created"
+        description: "Implementation report for TASK-006"
+    self_check:
+      ide_diagnostics:
+        errors: 5
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+    findings:
+      - description: "TDD skipped: documentation-only task (task_type: documentation)"
+        severity: "info"
+    security_findings_addressed:
+      - id: "SEC-1"
+        status: "addressed"
+        description: "§0 defines mandatory sql_escape() with single-quote doubling, null byte stripping, length truncation. All INSERT templates in §2-§5 show sql_escape() on every free-text field."
+      - id: "SEC-2"
+        status: "addressed"
+        description: "§0 defines shell injection prevention via stdin piping. Three patterns documented (printf pipe, heredoc, echo pipe). Every INSERT section includes shell execution pattern example."
+      - id: "SEC-6"
+        status: "addressed"
+        description: "§4 documents artifact_path CHECK constraint (no ../ or / prefix). §5 documents file_path CHECK constraint (.github/instructions/* or .github/copilot-instructions.md)."
+    correctness_findings_addressed:
+      - id: "CORR-1"
+        status: "addressed"
+        description: "All 6 evidence gate queries in §6 include task_id filter. EG-1 through EG-6 all have WHERE task_id = '{task_id}'."
+      - id: "CORR-2"
+        status: "addressed"
+        description: "EG-6 uses subquery with GROUP BY instance HAVING COUNT(CASE WHEN verdict != 'approve' THEN 1 END) = 0. Detailed explanation of how it works with D-8's 3-INSERT pattern included."
+      - id: "CORR-3"
+        status: "addressed"
+        description: "§0 includes explicit quoting convention table: strings = single-quoted with sql_escape(), absent = NULL unquoted, integers = unquoted numeric."
+    architecture_findings_addressed:
+      - id: "ARCH-2"
+        status: "addressed"
+        description: "§9 documents full schema evolution strategy: ALTER TABLE ADD COLUMN (safe additive), enum expansion via table recreation, schema_meta version tracking table, migration procedure, migration ownership (Orchestrator Step 0 only)."
+completion:
+  status: "DONE"
+  summary: "TASK-006 — Created sql-templates.md with all 10 sections (§0-§9), addressing SEC-1, SEC-2, SEC-6, CORR-1, CORR-2, CORR-3, and ARCH-2 findings"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "implementation-reports/TASK-006.yaml"

@@ -1,0 +1,100 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-012"
+    task_type: "code"
+    title: "Restructure Knowledge Agent"
+    description: |
+      Modify NewAgents/.github/agents/knowledge-agent.agent.md — the SECOND HIGHEST RISK task.
+      Major restructure: 509→345 lines. 9 responsibilities integrated, new SQL access granted,
+      enhanced post-mortem section.
+
+      Extractions (remove inline, add reference pointers):
+      - Tool access table → "See tool-access-matrix.md §10"
+      - Error handling boilerplate → "See global-operating-rules.md §1-§2"
+      - Self-verification common items → "See global-operating-rules.md §6"
+      - Governed update details (interactive/autonomous modes) → "See global-operating-rules.md §9"
+
+      Additions:
+      - YAML frontmatter: name: "knowledge-agent", description: "..."
+      - run_in_terminal GRANTED with scope restriction: SELECT on all tables + INSERT on
+        instruction_updates only (SEC-3 consistent scope)
+      - Pipeline telemetry summary via SQL queries (reference sql-templates.md §7)
+      - Artifact evaluation consumption via SQL aggregation queries (reference sql-templates.md §7)
+      - Enhanced post-mortem section: agent reliability metrics, bottleneck identification,
+        evaluation quality analysis — all data-driven from SQL
+      - instruction_updates INSERT for tracking governed updates (reference sql-templates.md §5)
+      - Responsibility inventory table (ARCH-1): Map all 9 responsibilities to justifications:
+        1. Knowledge capture (existing) — core purpose
+        2. Decisions log (existing) — decision audit trail
+        3. Evidence bundle (existing) — human audit document
+        4. store_memory tool usage (existing) — VS Code memory persistence
+        5. SQL telemetry queries (new) — data-driven post-mortem
+        6. Evaluation consumption (new) — pipeline quality analysis
+        7. instruction_updates INSERT (new) — governed update tracking
+        8. Enhanced post-mortem (new) — reliability metrics from SQL
+        9. Instruction file updates (new) — governed modification of .github/instructions/
+
+      CRITICAL CONSTRAINTS:
+      - SEC-3: run_in_terminal scope is "SELECT on all tables + INSERT on instruction_updates only" —
+        NOT SELECT-only. Include explicit DML prohibition list.
+      - ARCH-1: Include responsibility inventory table with all 9 responsibilities.
+      - SEC-5: Reference global-operating-rules.md §9 for Safety Constraint Filter — KA proposes,
+        orchestrator evaluates (evaluator separation).
+    risk_classification: "🔴"
+    wave: 4
+    dependencies: ["TASK-005", "TASK-006"]
+    estimated_lines_changed: 250
+    affected_files:
+      - path: "NewAgents/.github/agents/knowledge-agent.agent.md"
+        action: "modify"
+    addresses_frs: ["FR-4", "FR-5", "FR-6", "FR-10", "FR-14", "FR-15", "FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[agent='knowledge-agent']"]
+        reason: "Knowledge Agent design: extracted content (4 items), new content (6 items), key changes (5 items)"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/knowledge-agent.agent.md']",
+          ]
+        reason: "File description with target 345 lines, 9 responsibilities, and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections:
+          [
+            "payload.functional_requirements[id='FR-6']",
+            "payload.functional_requirements[id='FR-15']",
+          ]
+        reason: "AC-6.3 (telemetry summary), AC-6.4 (bottleneck identification), AC-15.3 (governed update targets), AC-15.4 (instruction tracking in SQLite)"
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-security.yaml"
+        sections: ["findings[id='SEC-3']", "findings[id='SEC-5']"]
+        reason: "SEC-3: KA scope must be consistent (SELECT + INSERT on instruction_updates). SEC-5: Safety filter via §9 reference."
+      - file: "docs/feature/agent-system-overhaul/review-verdicts/design-architecture.yaml"
+        sections: ["findings[id='ARCH-1']"]
+        reason: "ARCH-1: Knowledge Agent responsibility inventory table required"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.decisions[id='D-2']"]
+        reason: "D-2: Knowledge Agent SQL access rationale (direct SQL over orchestrator extraction)"
+      - file: "NewAgents/.github/agents/knowledge-agent.agent.md"
+        sections:
+          [
+            "tool access",
+            "error handling",
+            "post-mortem section",
+            "governed update section",
+          ]
+        reason: "Current content to identify extraction targets and sections to rewrite"
+    acceptance_criteria:
+      - "knowledge-agent.agent.md has YAML frontmatter with name and description (FR-16)"
+      - "run_in_terminal granted with explicit scope: SELECT on all tables + INSERT on instruction_updates only (SEC-3)"
+      - "Explicit DML prohibition list: MUST NOT UPDATE, DELETE, DROP, ALTER, CREATE, PRAGMA (except busy_timeout), ATTACH"
+      - "Responsibility inventory table with all 9 responsibilities and justifications (ARCH-1)"
+      - "Pipeline telemetry summary section with SQL queries reference (AC-6.3)"
+      - "Post-mortem identifies top 3 bottleneck steps and agents requiring retries (AC-6.4)"
+      - "Artifact evaluation consumption via SQL aggregation (AC-5.3)"
+      - "instruction_updates INSERT for governed update tracking (AC-15.4)"
+      - "Safety Constraint Filter references global-operating-rules.md §9 (SEC-5)"
+      - "File is ≤345 lines"
+      - "Anti-drift anchor retained"
+    verification_tier: "Large"

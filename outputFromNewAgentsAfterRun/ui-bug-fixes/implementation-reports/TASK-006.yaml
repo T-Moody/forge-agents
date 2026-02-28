@@ -1,0 +1,44 @@
+implementation_report:
+  task_id: TASK-006
+  status: DONE
+  investigation_findings:
+    backend_test: pass
+    root_cause: >
+      BUG-003 (template creation error) was a symptom of BUG-004 (cancel navigation
+      preventing form render). Before TASK-004, both OnActionSheetCancel() and
+      OpenTemplatePickerDialog() cancel paths called Cancel() which navigated away
+      from the page. In the template context (EventId=null), this meant the form
+      was never rendered (_form remained null), causing Submit() to silently return
+      at the guard clause: if (_form is null) return. TASK-004 fixed both cancel
+      paths to set _flowStep = FlowStep.Form instead of navigating away. TASK-005
+      extended the template context to show the TemplatePickerDialog, completing
+      the flow. No additional backend or UI fix was required.
+    fix_applied: "N/A — resolved by TASK-004 (cancel navigation fix) and TASK-005 (template picker for template context)"
+    ui_analysis:
+      submit_method: >
+        Submit() is correct for template context: _form null guard is safe,
+        _scheduledDateValue/_scheduledTimeValue are null-safe (.HasValue checks),
+        _saveAsTemplate is harmless (GameCreationService ignores it when EventId=null).
+      save_as_template_toggle: >
+        The _saveAsTemplate MudSwitch is shown even in template context (IsTemplate=true).
+        This is a minor UX inconsistency but NOT a functional bug — the backend ignores
+        SaveAsTemplate when EventId is null. Out of scope for this task.
+  files_modified:
+    - path: "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGameHandlerTests.cs"
+      action: "modified"
+      description: "Added Handle_TemplateCreation_WithNullEventId_Succeeds test exercising full handler pipeline with EventId=null"
+    - path: "docs/feature/ui-bug-fixes/implementation-reports/TASK-006.yaml"
+      action: "created"
+      description: "Implementation report for TASK-006"
+  tests_run: "dotnet test --filter FullyQualifiedName~CreateGame (99 tests)"
+  test_results: "98 passed, 1 skipped, 0 failed"
+  acceptance_criteria_verification:
+    AC-003-1: "PASS — Handle_TemplateCreation_WithNullEventId_Succeeds confirms CreateGameCommand with EventId=null, valid name, MaxPlayersPerMatch=6 succeeds through handler"
+    AC-003-2: "PASS — Handler delegates to GameCreationService which calls repository.AddAsync(); test verifies Success=true and GameId returned. Service code creates Game entity with EventId=null."
+    AC-003-3: "PASS — Submit() flow completes when IsTemplate=true. After TASK-004/005, form renders correctly (FlowStep.Form set on all cancel paths). Submit() null-safe for scheduling fields."
+    AC-003-4: "PASS — On success, NavigationManager.NavigateTo('/settings/game-templates') routes to templates list. Game templates page loads all games with EventId=null."
+completion:
+  status: DONE
+  agent: implementer
+  task_id: TASK-006
+  timestamp: "2026-02-26T14:30:00Z"

@@ -1,0 +1,621 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-dependencies"
+  step: "step-1"
+  started_at: "2026-02-27T10:00:00Z"
+  completed_at: "2026-02-27T10:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "dependencies"
+    findings:
+      - id: "F-1"
+        title: "Inter-agent data flow follows strict 10-schema Producer/Consumer dependency graph"
+        category: "dependency"
+        detail: |
+          The NewAgents pipeline defines 10 typed YAML schemas in schemas.md with a formal Producer/Consumer
+          Dependency Table. The data flow is strictly sequential with well-defined feedback loops:
+
+          Schema 1 (completion-contract): ALL agents → Orchestrator (universal routing signal)
+          Schema 2 (research-output): Researcher ×4 → Spec, Designer
+          Schema 3 (spec-output): Spec → Designer, Planner, Implementer, Verifier
+          Schema 4 (design-output): Designer → Planner, Implementer, Adversarial Reviewer
+          Schema 5 (plan-output): Planner → Orchestrator (risk_summary), Implementer, Verifier
+          Schema 6 (task-schema): Planner → Implementer, Verifier (sub-output of plan-output)
+          Schema 7 (implementation-report): Implementer → Verifier
+          Schema 8 (verification-report): Verifier → Orchestrator (gate_status), Adversarial Reviewer
+          Schema 9 (review-findings): Adversarial Reviewer → Orchestrator (verdict routing), Knowledge Agent
+          Schema 10 (knowledge-output): Knowledge Agent → (terminal, no downstream consumers)
+
+          The Orchestrator reads ONLY completion contracts and SQL evidence for routing — it never reads
+          full agent payloads. The `relevant_context` mechanism in task schemas limits downstream read
+          amplification by providing exact section pointers into upstream outputs.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Producer/Consumer Dependency Table (lines 41-55)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Pipeline Steps 0-9 (lines 200-570)"
+          - "NewAgents/.github/agents/planner.agent.md — relevant_context mechanism (lines 145-190)"
+        relevance: "Defines the complete inter-agent contract surface. Any schema change requires updating all listed consumers. Breaking changes require coordinated updates across multiple agent definitions."
+
+      - id: "F-2"
+        title: "Tool dependency catalog reveals 12 distinct tools with per-agent access control"
+        category: "dependency"
+        detail: |
+          Each agent definition includes an explicit Tool Access table that lists allowed and restricted
+          tools. The complete tool dependency matrix:
+
+          ORCHESTRATOR (7 tools):
+            - agent/runSubagent — dispatch subagents
+            - memory — VS Code cross-session knowledge store
+            - read_file — read agent outputs
+            - list_dir — discover outputs for recovery
+            - run_in_terminal — SQLite queries, DDL, git operations
+            - get_terminal_output — read terminal output
+            - ask_questions — interactive mode approval gates
+            RESTRICTED: create_file, replace_string_in_file, grep_search, semantic_search, file_search, get_errors
+
+          RESEARCHER (5 tools):
+            - read_file, list_dir, grep_search, semantic_search, file_search
+            RESTRICTED: create_file*, replace_string_in_file, run_in_terminal
+            *Exception: "except to write your own output files" — ambiguous
+
+          SPEC (8 tools):
+            - read_file, list_dir, grep_search, semantic_search, file_search
+            - create_file, replace_string_in_file
+            - ask_questions (interactive mode only)
+
+          DESIGNER (7 tools):
+            - read_file, list_dir, grep_search, semantic_search, file_search
+            - create_file, replace_string_in_file
+            RESTRICTED: run_in_terminal, get_terminal_output, get_errors, multi_replace_string_in_file
+
+          PLANNER (7 tools):
+            - read_file, list_dir, grep_search, semantic_search, file_search
+            - create_file, replace_string_in_file
+            RESTRICTED: run_in_terminal, get_terminal_output, get_errors, multi_replace_string_in_file
+
+          IMPLEMENTER (12 tools — maximum):
+            - read_file, list_dir, grep_search, semantic_search, file_search
+            - create_file, replace_string_in_file, multi_replace_string_in_file
+            - run_in_terminal, get_terminal_output, get_errors, list_code_usages
+
+          VERIFIER (8 tools):
+            - read_file, list_dir, grep_search, file_search
+            - run_in_terminal, get_terminal_output, get_errors, ide-get_diagnostics
+            RESTRICTED: create_file, replace_string_in_file, multi_replace_string_in_file, semantic_search
+
+          ADVERSARIAL REVIEWER (7 tools):
+            - read_file, list_dir, grep_search, semantic_search, file_search
+            - run_in_terminal (git diff + SQL only), create_file
+            RESTRICTED: replace_string_in_file, multi_replace_string_in_file, get_errors
+
+          KNOWLEDGE AGENT (8 tools):
+            - read_file, list_dir, grep_search, semantic_search, file_search
+            - create_file, replace_string_in_file
+            - memory (store_memory)
+            RESTRICTED: run_in_terminal
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — Tool Access section (lines 32-55)"
+          - "NewAgents/.github/agents/researcher.agent.md — Tool Access (lines 228-238)"
+          - "NewAgents/.github/agents/spec.agent.md — Tool Access (lines 325-335)"
+          - "NewAgents/.github/agents/designer.agent.md — Tool Access (lines 255-268)"
+          - "NewAgents/.github/agents/planner.agent.md — Tool Access (lines 350-365)"
+          - "NewAgents/.github/agents/implementer.agent.md — Tool Access (lines 470-490)"
+          - "NewAgents/.github/agents/verifier.agent.md — Tool Access (lines 445-460)"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md — Tool Access (lines 340-360)"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md — Tool Access (lines 440-455)"
+        relevance: "Tool restrictions enforce separation of concerns but create coupling to the VS Code agent framework. Any overhaul must preserve or refine these access control boundaries. Two tool contradictions are identified in F-3."
+
+      - id: "F-3"
+        title: "Verifier tool contradiction — must produce file but create_file is explicitly prohibited"
+        category: "risk"
+        detail: |
+          The Verifier agent definition contains a direct contradiction:
+
+          1. Output requirement: "verification-reports/<task-id>.yaml" is a required output
+             (verifier.agent.md line 6, line 50, line 339)
+          2. Operating rule: "You may only write to your designated output path
+             (verification-reports/<task-id>.yaml)" (line 370)
+          3. Tool restriction: "You MUST NOT use create_file, replace_string_in_file,
+             multi_replace_string_in_file" (line 457-459)
+
+          The Verifier needs to create a new YAML file but has no file-creation tool available.
+          This is an unresolvable contradiction in the current agent definition.
+
+          Similarly, the Researcher's restrictions say "You MUST NOT use create_file,
+          replace_string_in_file, run_in_terminal, or any other file-modification or execution
+          tools except to write your own output files." This exception-based phrasing is ambiguous —
+          it simultaneously prohibits and permits create_file.
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md line 6: Outputs include verification-reports/<task-id>.yaml"
+          - "NewAgents/.github/agents/verifier.agent.md line 370: 'You may only write to your designated output path'"
+          - "NewAgents/.github/agents/verifier.agent.md lines 457-459: 'You MUST NOT use create_file, replace_string_in_file, multi_replace_string_in_file'"
+          - "NewAgents/.github/agents/researcher.agent.md lines 234-235: 'MUST NOT use create_file... except to write your own output files'"
+        relevance: "Tool access contradictions will cause agent failures at runtime. Must be resolved in the overhaul — either grant create_file with scope restrictions or provide an alternative output mechanism."
+
+      - id: "F-4"
+        title: "SQLite verification-ledger.db is the primary cross-agent coupling point — 4 writers, 3 readers"
+        category: "dependency"
+        detail: |
+          The anvil_checks table in verification-ledger.db is the most connected shared resource
+          in the pipeline. It functions as the source of truth for verification evidence.
+
+          WRITERS (via run_in_terminal with sqlite3 CLI):
+            - Implementer: INSERT phase='baseline' records (baseline capture, Step 5)
+            - Verifier: INSERT phase='after' records (verification cascade, Step 6)
+            - Adversarial Reviewer: INSERT phase='review' records (verdict SQL, Steps 3b/7)
+            - Orchestrator: CREATE TABLE at Step 0 (DDL only)
+
+          READERS (via run_in_terminal with sqlite3 CLI):
+            - Orchestrator: SELECT for evidence gate queries (Steps 3b, 6, 7)
+              - Baseline exists check
+              - Verification sufficient check
+              - Review completion check
+              - Blocker detection check
+              - Majority approval check
+            - Adversarial Reviewer: SELECT for code review context (Step 7)
+            - Knowledge Agent: reads for evidence bundle assembly (Step 8)
+              NOTE: Knowledge Agent is restricted from run_in_terminal, so it reads
+              verification data from verification-reports/*.yaml, not directly from SQL
+
+          SCHEMA:
+            14 columns with CHECK constraints on phase, passed, verdict, severity
+            2 indexes: idx_anvil_task_phase, idx_anvil_run_round
+            WAL journal mode + busy_timeout=5000 for concurrent access (up to 4 agents)
+
+          All queries use run_id filtering to prevent cross-run contamination and round
+          filtering for review phase queries to prevent stale records.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — SQLite Schemas section (lines 950-1070)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Step 0 initialization (lines 148-195)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Evidence Gate SQL queries (lines 594-660)"
+          - "NewAgents/.github/agents/implementer.agent.md — SQL INSERT for Baseline Records (lines 415-460)"
+          - "NewAgents/.github/agents/verifier.agent.md — SQL Evidence Recording (lines 100-160)"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md — SQL INSERT Format (lines 130-150)"
+        relevance: "verification-ledger.db is the single most critical dependency in the pipeline. Its availability determines whether evidence gating functions. Any schema change to anvil_checks requires coordinated updates across 4 agent definitions plus schemas.md."
+
+      - id: "F-5"
+        title: "pipeline_telemetry.db is created but never populated — dead dependency"
+        category: "risk"
+        detail: |
+          The pipeline_telemetry table has a complete lifecycle gap:
+
+          1. CREATED: Orchestrator at Step 0 (orchestrator.agent.md lines 176-195)
+          2. SCHEMA: Defined in schemas.md with 11 columns, 1 index, key queries
+          3. EXPECTED READER: Knowledge Agent reads it for pipeline_telemetry_summary
+             (knowledge-agent.agent.md line 41: "pipeline-telemetry.db | All agents / Orchestrator |
+             SQLite (pipeline_telemetry) | Timing, dispatch counts, token usage")
+          4. NO WRITER IDENTIFIED:
+             - Orchestrator says: "You NEVER accumulate telemetry (Knowledge Agent handles this at Step 8)"
+               (orchestrator.agent.md line 24)
+             - Knowledge Agent: RESTRICTED from run_in_terminal (knowledge-agent.agent.md line 451),
+               so it CANNOT INSERT into the table
+             - No other agent has instructions to INSERT into pipeline_telemetry
+
+          Result: The table is created empty, never populated, Knowledge Agent reads empty data,
+          and pipeline_telemetry_summary in the knowledge-output will always be zero/empty.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md line 24: 'You NEVER accumulate telemetry'"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 176-195: Step 0 creates pipeline_telemetry table"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md line 41: Reads from pipeline-telemetry.db"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md — Tool restrictions: 'You MUST NOT use run_in_terminal'"
+          - "NewAgents/.github/agents/schemas.md lines 1064-1095: pipeline_telemetry table definition with key queries"
+        relevance: "Pipeline telemetry is a dead feature — designed but not wired. The overhaul must either add an explicit writer (e.g., orchestrator inserts dispatch metadata after each step) or remove the table and related Knowledge Agent expectations."
+
+      - id: "F-6"
+        title: "Review verdicts file path inconsistency between Schema 9, Adversarial Reviewer, and Designer"
+        category: "risk"
+        detail: |
+          Three documents define conflicting output paths for review verdict files:
+
+          1. schemas.md Schema 9 header states:
+             "YAML verdict summary — machine-readable verdict at review-verdicts/<scope>.yaml"
+             This implies ONE file per scope (e.g., review-verdicts/design.yaml).
+
+          2. Adversarial Reviewer output table states:
+             "review-verdicts/<scope>-<model>.yaml" as output per reviewer
+             This produces THREE files per scope (one per model):
+             - review-verdicts/design-gpt-5.3-codex.yaml
+             - review-verdicts/design-gemini-3-pro-preview.yaml
+             - review-verdicts/design-claude-opus-4.6.yaml
+
+          3. Designer input table states (for revision mode):
+             "review-verdicts/design.yaml" — expects a single aggregated file
+
+          No agent is responsible for aggregating per-model verdict files into the single
+          review-verdicts/<scope>.yaml that the Designer expects. The Orchestrator does not
+          produce files. This is a missing aggregation step.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md line 761: 'YAML verdict summary at review-verdicts/<scope>.yaml'"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md — Output Files table: 'review-verdicts/<scope>-<model>.yaml'"
+          - "NewAgents/.github/agents/designer.agent.md — Revision Mode Inputs: 'review-verdicts/design.yaml'"
+        relevance: "This file path mismatch will cause Designer revision mode to fail — it will look for review-verdicts/design.yaml which no agent produces. Must be resolved by clarifying the output convention or adding an aggregation step."
+
+      - id: "F-7"
+        title: "Deterministic file path dependency map — 20+ paths agents expect to exist"
+        category: "dependency"
+        detail: |
+          Agents reference specific file paths deterministically. All paths are relative to
+          docs/feature/<feature-slug>/. A failure to create any required path blocks downstream agents.
+
+          PIPELINE INPUTS:
+            initial-request.md — Required by Researcher (×4), Spec, Designer
+
+          STEP 1 OUTPUTS (Researcher):
+            research/architecture.yaml + research/architecture.md
+            research/impact.yaml + research/impact.md
+            research/dependencies.yaml + research/dependencies.md
+            research/patterns.yaml + research/patterns.md
+
+          STEP 2 OUTPUTS (Spec):
+            spec-output.yaml
+            feature.md
+
+          STEP 3 OUTPUTS (Designer):
+            design-output.yaml
+            design.md
+
+          STEP 3b OUTPUTS (Adversarial Reviewer ×3):
+            review-findings/design-<model>.md  (×3 files)
+            review-verdicts/design-<model>.yaml (×3 files, path inconsistency — see F-6)
+
+          STEP 4 OUTPUTS (Planner):
+            plan-output.yaml
+            plan.md
+            tasks/task-*.yaml (N files, one per task)
+
+          STEP 5 OUTPUTS (Implementer):
+            implementation-reports/task-*.yaml (N files)
+            Code/test files (variable)
+
+          STEP 6 OUTPUTS (Verifier):
+            verification-reports/task-*.yaml (N files)
+
+          STEP 7 OUTPUTS (Adversarial Reviewer ×3):
+            review-findings/code-<model>.md (×3 files)
+            review-verdicts/code-<model>.yaml (×3 files)
+
+          STEP 8 OUTPUTS (Knowledge Agent):
+            knowledge-output.yaml
+            decisions.yaml (append-only, created if absent)
+            evidence-bundle.md
+
+          DATABASES (Step 0, persist across steps):
+            verification-ledger.db
+            pipeline-telemetry.db
+
+          GIT ARTIFACTS:
+            pipeline-baseline-{run_id} (tag, created before Step 5)
+
+          RECOVERY: The orchestrator reconstructs pipeline state by scanning these directories
+          with list_dir (EC-5 — Pipeline State Recovery).
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Output paths defined per schema (lines 113, 197, 244, 336, 456, 511, 619, 760, 828)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Pipeline State Recovery EC-5 (lines 103-120)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Pre-implementation git tag (lines 395-400)"
+        relevance: "File path conventions are a critical coupling contract. Any path change requires coordinated updates across producer and all consumer agent definitions. The recovery mechanism (EC-5) depends on these exact paths existing at known locations."
+
+      - id: "F-8"
+        title: "External tool dependencies — sqlite3 CLI and git are hard requirements"
+        category: "dependency"
+        detail: |
+          The pipeline depends on external tools available via run_in_terminal:
+
+          HARD DEPENDENCIES (pipeline fails without these):
+            - sqlite3 CLI: Used by Orchestrator (DDL + SELECT), Implementer (INSERT),
+              Verifier (INSERT + SELECT), Adversarial Reviewer (INSERT).
+              All SQL operations use the pattern: sqlite3 <db-path> "<SQL>"
+              Unavailability = no evidence gating = pipeline cannot function.
+
+            - git: Used by Orchestrator (status, rev-parse, show, tag, add, commit),
+              Implementer (add, checkout for revert mode), Verifier (show for baseline
+              cross-check), Adversarial Reviewer (diff --staged for code review).
+              Unavailability = no baseline verification, no staging, no commit.
+
+          SOFT DEPENDENCIES (gracefully degraded):
+            - Language-specific build tools: Detected dynamically by Verifier and
+              Implementer from config files (package.json, Cargo.toml, go.mod, etc.).
+              If absent, Tier 2 verification is skipped, Tier 3 becomes mandatory.
+
+            - Language-specific test runners: Same dynamic detection. If absent, TDD
+              fallback is documented in the implementation report.
+
+            - Language-specific linters/type-checkers: Optional Tier 2 checks.
+
+          NOT REFERENCED IN NEWAGENTS (deliberately removed):
+            - Context7 MCP tools (context7-resolve-library-id, context7-query-docs):
+              Present in Anvil (anvil.agent.md line 364-367) but not referenced by any
+              NewAgents agent definition. Deliberate architectural choice to remove
+              external MCP dependency.
+
+            - session_store database: Present in Anvil (Step 1b Recall) but not in
+              NewAgents. Cross-session recall is handled by VS Code memory tool instead.
+
+          VS CODE FRAMEWORK DEPENDENCIES:
+            - agent/runSubagent: Core dispatch mechanism (Orchestrator only)
+            - ask_questions: Interactive mode approval gates (Orchestrator, Spec)
+            - memory/store_memory: Cross-session knowledge persistence (Orchestrator, Knowledge Agent)
+            - get_errors: IDE diagnostics (Implementer, Verifier)
+            - ide-get_diagnostics: Enhanced IDE diagnostics (Verifier, preferred over get_errors)
+            - list_code_usages: Reference finder (Implementer, with grep_search fallback)
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md line 429: 'sqlite3 verification-ledger.db'"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 60-70: run_in_terminal allowed operations"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 128-135: git hygiene checks"
+          - "NewAgents/.github/agents/verifier.agent.md lines 220-280: dynamic tool detection"
+          - "Anvil/anvil.agent.md lines 364-367: Context7 MCP reference (not in NewAgents)"
+        relevance: "sqlite3 and git are hard runtime requirements that cannot be gracefully degraded. If the overhaul targets environments where sqlite3 may not be available, an alternative evidence storage mechanism is needed."
+
+      - id: "F-9"
+        title: "run_id serves as universal cross-agent namespace filter — single coupling parameter"
+        category: "dependency"
+        detail: |
+          The run_id parameter (ISO 8601 timestamp, e.g., '2026-02-26T14:30:00Z') is generated
+          by the Orchestrator at Step 0 and passed to every downstream agent. It serves as the
+          universal namespace filter preventing cross-run contamination:
+
+          SQL USAGE: Every evidence gate query filters on run_id:
+            WHERE run_id = '{run_id}' AND ...
+          This prevents queries from returning records from previous pipeline runs.
+
+          GIT USAGE: The baseline tag includes run_id:
+            git tag -f pipeline-baseline-{run_id}
+            git show pipeline-baseline-{run_id}:<filepath>
+            git revert --no-commit pipeline-baseline-{run_id}..HEAD
+
+          YAML USAGE: Every agent output includes run_id in the payload or header context.
+
+          PARAMETERS: Passed via orchestrator dispatch to every agent that needs it:
+            - Implementer: run_id parameter
+            - Verifier: run_id parameter
+            - Adversarial Reviewer: run_id parameter
+
+          If run_id is corrupted, mismatched, or not propagated correctly, evidence gates
+          will return zero results and the pipeline will stall or produce false negatives.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md line 85: run_id in pipeline_state"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 145: run_id generation at Step 0"
+          - "NewAgents/.github/agents/schemas.md — Evidence Gate Queries (lines 1000-1060): all use run_id filter"
+          - "NewAgents/.github/agents/verifier.agent.md line 37: run_id as orchestrator-provided parameter"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md line 57: run_id as required parameter"
+        relevance: "run_id is a single point of failure for cross-agent data integrity. Any overhaul must ensure reliable propagation of this parameter to all agents."
+
+      - id: "F-10"
+        title: "No circular agent dependencies — pipeline is strictly linear with bounded feedback loops"
+        category: "dependency"
+        detail: |
+          The pipeline has NO circular dependencies between agents. The execution flow is:
+
+          LINEAR: Step 0 → 1 → 2 → 3 → 3b → 4 → 5 → 6 → 7 → 8 → 9
+
+          FEEDBACK LOOPS (all have hard iteration limits):
+            1. Design revision: Step 3b (review) → Step 3 (redesign) → Step 3b (re-review)
+               Max: 1 design revision loop
+            2. Implementation-verification: Step 5 → 6 → Planner (replan) → 5 → 6
+               Max: 3 iterations
+            3. Code review cycling: Step 7 → 5 (fix) → 6 (verify) → 7 (re-review)
+               Max: 2 review rounds
+
+          Each feedback loop has a hard maximum iteration count to prevent infinite cycles.
+          After exhausting iteration budget, the pipeline proceeds with documented findings
+          and Confidence: Low.
+
+          AGENT REFERENCES ARE UNIDIRECTIONAL:
+            - Researcher references no other agents
+            - Spec reads Researcher outputs only
+            - Designer reads Spec + Researcher outputs only
+            - Planner reads Designer + Spec outputs only (+ Verifier in replan mode)
+            - Implementer reads Planner tasks only (with relevant_context pointers)
+            - Verifier reads Implementer reports only
+            - Adversarial Reviewer reads Designer or Implementer/Verifier outputs
+            - Knowledge Agent reads ALL upstream outputs (terminal consumer)
+            - Orchestrator reads completion contracts and SQL evidence only
+        evidence:
+          - "NewAgents/.github/agents/dispatch-patterns.md — Pattern B with max 3 iterations (lines 60-90)"
+          - "NewAgents/.github/agents/dispatch-patterns.md — Code Review Cycling max 2 rounds (lines 95-105)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Decision Table (lines 570-610)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Retry Budgets (lines 668-720)"
+        relevance: "The absence of circular dependencies is a strong architectural property. The bounded feedback loops ensure the pipeline always terminates. This property should be preserved in any overhaul."
+
+      - id: "F-11"
+        title: "Completion contract is the universal integration point — 3-state protocol drives all routing"
+        category: "dependency"
+        detail: |
+          Every agent produces a completion block conforming to Schema 1 (completion-contract).
+          The Orchestrator reads ONLY this block for routing decisions. The protocol defines:
+
+          STATES: DONE | NEEDS_REVISION | ERROR
+
+          STATE USAGE BY AGENT:
+            - Researcher: DONE or ERROR (never NEEDS_REVISION)
+            - Spec: DONE or ERROR (never NEEDS_REVISION)
+            - Designer: DONE or ERROR (never NEEDS_REVISION)
+            - Planner: DONE, NEEDS_REVISION, or ERROR
+            - Implementer: DONE or ERROR (never NEEDS_REVISION)
+            - Verifier: DONE, NEEDS_REVISION, or ERROR
+            - Adversarial Reviewer: DONE or ERROR (never NEEDS_REVISION)
+            - Knowledge Agent: DONE or ERROR (never NEEDS_REVISION)
+            - Orchestrator: DONE or ERROR (never NEEDS_REVISION — handles revision internally)
+
+          Only Planner and Verifier can return NEEDS_REVISION. All other agents either
+          succeed or fail — revision routing is handled by the Orchestrator based on the
+          decision table rather than agent self-reporting.
+
+          COMPLETION CONTRACT FIELDS:
+            status, summary (≤200 chars), severity (null or Blocker/Critical/Major/Minor),
+            findings_count (≥0), risk_level (null or emoji), output_paths (≥1),
+            evidence_summary (optional, for verification/review agents)
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Schema 1: completion-contract (lines 58-95)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Decision Table (lines 570-610)"
+          - "NewAgents/.github/agents/researcher.agent.md — Completion Contract (lines 158-166)"
+          - "NewAgents/.github/agents/verifier.agent.md — Completion Contract (lines 340-365)"
+          - "NewAgents/.github/agents/planner.agent.md — Completion Contract (lines 308-320)"
+        relevance: "The completion contract is the minimum viable integration surface between agents. Any overhaul that changes the routing protocol must update all agent completion contracts in coordination."
+
+      - id: "F-12"
+        title: "relevant_context pointers create controlled coupling between Planner and Implementer"
+        category: "dependency"
+        detail: |
+          The Planner produces tasks/*.yaml files that include a relevant_context block with
+          exact section pointers into upstream outputs. The Implementer reads ONLY what the
+          relevant_context specifies — no full document scans.
+
+          FORMAT:
+            relevant_context:
+              design_sections:
+                - "design-output.yaml#payload.decisions[id='D-8']"
+              spec_requirements:
+                - "spec-output.yaml#payload.functional_requirements[id='FR-4']"
+              files_to_modify:
+                - path: "src/auth/handler.ts"
+                  risk: "🔴"
+
+          RULES:
+            - Every task MUST have ≥1 design_sections + ≥1 spec_requirements pointer
+            - Implementer reads ONLY referenced sections (trust the Planner's curation)
+            - If a pointer references a non-existent section, Implementer logs warning and proceeds
+            - Late-pipeline agents (Verifier, Adversarial Reviewer) are NOT bound by relevant_context
+
+          This mechanism prevents context window overflow for the Implementer while creating a
+          tight coupling between Planner task decomposition quality and Implementer success.
+          A badly-curated relevant_context means the Implementer lacks critical information.
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md — Relevant Context Mechanism (lines 145-190)"
+          - "NewAgents/.github/agents/implementer.agent.md — Relevant Context Consumption (lines 315-340)"
+          - "NewAgents/.github/agents/schemas.md — Schema 6 task-schema (lines 455-510)"
+        relevance: "The relevant_context mechanism is a novel coupling pattern that trades completeness for efficiency. Quality of Planner output directly determines Implementer effectiveness."
+
+      - id: "F-13"
+        title: "ask_questions creates mode-dependent interactive coupling for Orchestrator and Spec"
+        category: "dependency"
+        detail: |
+          Two agents depend on the ask_questions tool for interactive mode:
+
+          ORCHESTRATOR uses ask_questions at:
+            - Step 0: Lightweight pushback evaluation (proceed/modify/abandon/other)
+            - Step 1a: Post-research approval gate (proceed/expand/abort/other)
+            - Step 4a: Post-planning approval gate (approve/revise/abort)
+
+          SPEC AGENT uses ask_questions at:
+            - Step 2: Pushback system (proceed/modify/abandon)
+
+          IN AUTONOMOUS MODE:
+            - ask_questions is bypassed entirely
+            - Default option is auto-selected
+            - Auto-selection is logged (auto_selected: true)
+
+          This creates a bifurcated execution path:
+            Interactive: Human-in-the-loop at 4 decision points
+            Autonomous: Zero human interaction, all defaults applied
+
+          The approval_mode (autonomous|interactive) is tracked in orchestrator pipeline state
+          but is not explicitly passed as a parameter to subagents — it's embedded in the
+          dispatch context.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 17, 138, 257, 386: ask_questions usage"
+          - "NewAgents/.github/agents/spec.agent.md lines 158-195: Interactive mode pushback via ask_questions"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 83: approval_mode in pipeline state"
+        relevance: "The interactive/autonomous mode split affects pipeline execution flow. Any overhaul must maintain both modes or explicitly deprecate one."
+
+      - id: "F-14"
+        title: "Anvil's session_store and Context7 MCP dependencies are deliberately absent from NewAgents"
+        category: "dependency"
+        detail: |
+          Comparing Anvil to NewAgents reveals deliberately removed external dependencies:
+
+          ANVIL HAS, NEWAGENTS DOES NOT:
+            1. Context7 MCP tools (context7-resolve-library-id, context7-query-docs):
+               Anvil uses these for library/framework documentation lookup (anvil.agent.md lines 364-367).
+               NewAgents has no equivalent — agents rely on codebase search instead.
+
+            2. session_store database:
+               Anvil's Step 1b (Recall) queries a session_store SQLite database for past session
+               history on affected files (anvil.agent.md lines ~130-155).
+               NewAgents uses VS Code memory tool instead for cross-session knowledge.
+
+            3. ask_user tool:
+               Anvil uses ask_user for pushback interaction.
+               NewAgents uses ask_questions (different tool name, structured multiple-choice format).
+
+            4. report_intent tool:
+               Anvil uses report_intent for progress display during silent steps.
+               NewAgents has no equivalent — agents produce output files directly.
+
+            5. GitHub MCP tools:
+               Anvil references GitHub MCP for fetching issues/PRs.
+               NewAgents does not reference any GitHub integration.
+
+          These removals reduce external coupling but also remove capabilities. The overhaul
+          should evaluate which capabilities to restore, replace, or keep removed.
+        evidence:
+          - "Anvil/anvil.agent.md lines 364-367: Context7 MCP tool references"
+          - "Anvil/anvil.agent.md lines ~130-155: session_store query for Step 1b Recall"
+          - "NewAgents/.github/agents/ — no agent references context7, session_store, report_intent, or GitHub MCP"
+        relevance: "The deliberate removal of external MCP dependencies simplifies the pipeline but loses documentation lookup and session recall capabilities. The overhaul should decide whether to maintain this simplification."
+
+      - id: "F-15"
+        title: "Schema version coupling — all agents hardcode schema_version 1.0 with no version negotiation"
+        category: "dependency"
+        detail: |
+          Every agent output must include schema_version: "1.0" in the common header. The
+          Schema Evolution Strategy in schemas.md defines additive (minor bump) and breaking
+          (major bump) change policies.
+
+          CURRENT STATE:
+            - All agents hardcode schema_version: "1.0"
+            - No consumer validates schema_version
+            - The orchestrator "NEVER performs schema validation" (orchestrator.agent.md line 24)
+            - Agents "self-validate" via Self-Verification checklists
+            - There is no runtime version negotiation or compatibility check
+
+          EVOLUTION POLICY (from schemas.md):
+            - Additive (new optional field): 1.0 → 1.1, consumers ignore unknown fields
+            - Breaking (remove/rename/retype field): 1.0 → 2.0, update ALL consumers
+            - 4 schemas were explicitly removed from v1: pipeline-manifest, approval-request,
+              decision-record, verification-record (merged into other schemas)
+
+          RISK: Because there is no version checking, a schema mismatch between producer and
+          consumer would cause silent failures — the consumer would try to read a field that
+          doesn't exist or has changed type, with no error message explaining the version mismatch.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Schema Evolution Strategy (lines 1240-1284)"
+          - "NewAgents/.github/agents/schemas.md — Schema Version Requirement (lines 12-14)"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 24: 'You NEVER perform schema validation'"
+          - "NewAgents/.github/agents/schemas.md — Schemas Removed from v1 (lines 1275-1284)"
+        relevance: "The lack of version negotiation means schema evolution will require careful manual coordination. The overhaul should consider whether to add runtime version checking or maintain the current trust-based approach."
+
+    summary: |
+      The NewAgents pipeline has a well-defined dependency graph with 10 typed YAML schemas,
+      2 SQLite databases, and 20+ deterministic file paths creating the inter-agent contract
+      surface. The primary coupling point is verification-ledger.db (anvil_checks table),
+      shared by 4 writers and 3 readers. Key risks identified: (1) Verifier cannot create its
+      required output file due to tool restriction contradiction, (2) pipeline_telemetry.db is
+      created but never populated, (3) review verdict file paths are inconsistent between
+      producer and consumer agent definitions, (4) schema version checking is absent despite
+      a formal evolution policy. External hard dependencies are sqlite3 CLI and git. Context7
+      MCP tools were deliberately removed from the Anvil baseline. The pipeline has no circular
+      dependencies and all feedback loops have hard iteration limits.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "Anvil/anvil.agent.md"
+
+completion:
+  status: "DONE"
+  summary: "Dependencies research complete: 15 findings covering inter-agent data flow, tool contracts, SQLite coupling, file paths, external tools, and 3 critical gaps"
+  severity: null
+  findings_count: 15
+  risk_level: null
+  output_paths:
+    - "research/dependencies.yaml"
+    - "research/dependencies.md"

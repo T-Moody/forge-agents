@@ -1,0 +1,10 @@
+reviewer_model: "claude-opus-4.6"
+review_focus: "architecture"
+scope: "design"
+verdict: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 1
+  major: 2
+  minor: 1
+summary: "BUG-006 theme redesign has critical spec contradiction (AC-006-8 forbids pure-black dark background but D-6 proposes #000000), two broken invariants (Surface=#FFFFFF violates Surface!=white, DrawerBackground not updated to match Surface), and missing property coupling. Other 7 bugs are architecturally sound."

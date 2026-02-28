@@ -1,0 +1,342 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-001-007"
+  step: "step-6"
+  started_at: "2026-02-27T10:30:00Z"
+  completed_at: "2026-02-27T10:45:00Z"
+  schema_version: "1.0"
+  payload:
+    task_ids:
+      [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003",
+        "TASK-004",
+        "TASK-005",
+        "TASK-006",
+        "TASK-007",
+      ]
+    run_id: "2026-02-27T10:00:00Z"
+    batch_rationale: "Wave 1 + Wave 2 foundation tasks — all 🟢 Standard risk, documentation/infrastructure type, Tier 1-2 only"
+
+    evidence_gate:
+      total_checks: 14
+      passed: 14
+      failed: 0
+      gate_status: "passed"
+
+    per_task_results:
+      - task_id: "TASK-001"
+        title: "Create Instruction File Infrastructure"
+        risk: "🟢"
+        wave: 1
+        files_verified:
+          - path: ".github/copilot-instructions.md"
+            exists: true
+            action: "created"
+            baseline_existed: false
+            lines: 52
+            sections: 8
+          - path: ".github/instructions/pipeline-conventions.md"
+            exists: true
+            action: "created"
+            baseline_existed: false
+            lines: 38
+            sections: 4
+        checks:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            passed: true
+            output_snippet: "No errors in either file"
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            passed: true
+            output_snippet: "Both files are valid Markdown with expected section structure"
+        acceptance_criteria_spot_check:
+          - criterion: "Files exist and auto-loaded by VS Code"
+            met: true
+            evidence: "copilot-instructions.md in .github/ root (VS Code auto-loads). pipeline-conventions.md in .github/instructions/ (domain-specific)."
+          - criterion: "Valid content with global operating rules"
+            met: true
+            evidence: "8 sections covering terminal-only testing, no file-redirect, retry policy, schema version, anti-hallucination, no runtime modification, bounded feedback loops, output paths, SQL safety."
+        gate_status: "passed"
+        checks_passed: 2
+        checks_failed: 0
+
+      - task_id: "TASK-002"
+        title: "Create Global Operating Rules Reference Doc"
+        risk: "🟡"
+        wave: 1
+        files_verified:
+          - path: "NewAgents/.github/agents/global-operating-rules.md"
+            exists: true
+            action: "created"
+            baseline_existed: false
+            lines: 160
+            sections: 9
+        checks:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            passed: true
+            output_snippet: "No errors"
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            passed: true
+            output_snippet: "160 lines, 9 sections (§1-§9). Valid Markdown."
+        acceptance_criteria_spot_check:
+          - criterion: "9 sections (§1-§9)"
+            met: true
+            evidence: "§1 Two-Tiered Retry, §2 Error Categories, §3 SQLITE_BUSY, §4 run_id Protocol, §5 Completion Contract Routing, §6 Self-Verification, §7 State Recovery, §8 Output Naming, §9 Safety Constraint Filter"
+          - criterion: "Safety Constraint Filter"
+            met: true
+            evidence: "§9 includes formal definition with immutable rules, protected phrases, pattern-matching"
+          - criterion: "Retry policy"
+            met: true
+            evidence: "§1 defines two-tiered retry (agent 2x + orchestrator 1x)"
+          - criterion: "Completion routing"
+            met: true
+            evidence: "§5 references canonical routing matrix in schemas.md"
+        gate_status: "passed"
+        checks_passed: 2
+        checks_failed: 0
+
+      - task_id: "TASK-003"
+        title: "Create Tool Access Matrix Reference Doc"
+        risk: "🟡"
+        wave: 1
+        files_verified:
+          - path: "NewAgents/.github/agents/tool-access-matrix.md"
+            exists: true
+            action: "created"
+            baseline_existed: false
+            lines: 87
+            sections: 11
+        checks:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            passed: true
+            output_snippet: "No errors"
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            passed: true
+            output_snippet: "87 lines, 14×9 matrix, per-agent sections. Valid Markdown."
+        acceptance_criteria_spot_check:
+          - criterion: "14×9 matrix"
+            met: true
+            evidence: "§1 Master Matrix table has 14 tools (rows) × 9 agents (columns) with ✅/❌/🔒 notation"
+          - criterion: "Scope restrictions"
+            met: true
+            evidence: "🔒 entries have scope limits: Researcher create_file to research/*.yaml, Verifier to verification-reports/*.yaml, etc."
+          - criterion: "Per-agent sections (§1-§10)"
+            met: true
+            evidence: "§1 Master Matrix, §2 Orchestrator through §10 Knowledge Agent, §11 Enforcement Note"
+        gate_status: "passed"
+        checks_passed: 2
+        checks_failed: 0
+
+      - task_id: "TASK-004"
+        title: "Create Review Perspectives Reference Doc"
+        risk: "🟢"
+        wave: 1
+        files_verified:
+          - path: "NewAgents/.github/agents/review-perspectives.md"
+            exists: true
+            action: "created"
+            baseline_existed: false
+            lines: 143
+            sections: 8
+        checks:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            passed: true
+            output_snippet: "No errors"
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            passed: true
+            output_snippet: "143 lines, 8 sections, 3 perspectives. Valid Markdown."
+        acceptance_criteria_spot_check:
+          - criterion: "3 perspectives"
+            met: true
+            evidence: "§2 Security Sentinel (security-sentinel), §3 Architecture Guardian (architecture-guardian), §4 Pragmatic Verifier (pragmatic-verifier)"
+          - criterion: "All-category coverage"
+            met: true
+            evidence: "§5 defines mandatory coverage of Security, Architecture, Correctness per reviewer. §6 provides per-category per-perspective guidance matrix."
+          - criterion: "Substantively different personas"
+            met: true
+            evidence: "Each perspective has unique philosophy, review priorities (6 items each), severity bias, and per-category review lens. Security Sentinel is strictest, Pragmatic Verifier most lenient."
+        gate_status: "passed"
+        checks_passed: 2
+        checks_failed: 0
+
+      - task_id: "TASK-005"
+        title: "Create Context7 Integration + Evaluation Schema Reference Docs"
+        risk: "🟢"
+        wave: 2
+        files_verified:
+          - path: "NewAgents/.github/agents/context7-integration.md"
+            exists: true
+            action: "created"
+            baseline_existed: false
+            lines: 45
+            sections: 5
+          - path: "NewAgents/.github/agents/evaluation-schema.md"
+            exists: true
+            action: "created"
+            baseline_existed: false
+            lines: 84
+            sections: 7
+        checks:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            passed: true
+            output_snippet: "No errors in either file"
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            passed: true
+            output_snippet: "context7-integration.md: 45 lines, 5 sections. evaluation-schema.md: 84 lines, 7 sections. Valid Markdown."
+        acceptance_criteria_spot_check:
+          - criterion: "Context7 MCP usage"
+            met: true
+            evidence: "§2 defines two-step pattern: context7-resolve-library-id then context7-query-docs"
+          - criterion: "Graceful degradation"
+            met: true
+            evidence: "§4 defines degradation table: MCP not configured → skip; resolve returns nothing → proceed; query empty → best-effort"
+          - criterion: "Evaluation rubric 1-10"
+            met: true
+            evidence: "§4 defines usefulness score (1-10) and clarity score (1-10) with 5-tier rubric each"
+          - criterion: "SQLite-based scoring"
+            met: true
+            evidence: "§1 specifies SQL INSERT into artifact_evaluations table in verification-ledger.db. §2 references schemas.md for DDL."
+        gate_status: "passed"
+        checks_passed: 2
+        checks_failed: 0
+
+      - task_id: "TASK-006"
+        title: "Create SQL Templates Reference Doc"
+        risk: "🟡"
+        wave: 2
+        files_verified:
+          - path: "NewAgents/.github/agents/sql-templates.md"
+            exists: true
+            action: "created"
+            baseline_existed: false
+            lines: 699
+            sections: 10
+        checks:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            passed: true
+            output_snippet: "No errors"
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file"
+            passed: true
+            output_snippet: "699 lines, 10 sections (§0-§9). Valid Markdown."
+        acceptance_criteria_spot_check:
+          - criterion: "10 sections (§0-§9)"
+            met: true
+            evidence: "§0 Sanitization, §1 DDL, §2 anvil_checks INSERT, §3 telemetry INSERT, §4 evaluations INSERT, §5 instruction_updates INSERT, §6 Evidence Gates, §7 Post-Mortem, §8 Audit, §9 Schema Evolution"
+          - criterion: "stdin piping"
+            met: true
+            evidence: "§0 defines printf pipe, heredoc, and echo pipe patterns for shell injection prevention (SEC-2)"
+          - criterion: "Sanitization (sql_escape)"
+            met: true
+            evidence: "§0 defines sql_escape() with single-quote doubling, null byte stripping, length truncation (SEC-1)"
+          - criterion: "DDL"
+            met: true
+            evidence: "§1 has full DDL for 4 tables (anvil_checks, pipeline_telemetry, artifact_evaluations, instruction_updates)"
+          - criterion: "Evidence gates"
+            met: true
+            evidence: "§6 defines EG-1 through EG-6 with task_id filters (CORR-1)"
+        gate_status: "passed"
+        checks_passed: 2
+        checks_failed: 0
+
+      - task_id: "TASK-007"
+        title: "Update schemas.md with SQLite Schemas and Routing Matrix"
+        risk: "🟡"
+        wave: 2
+        files_verified:
+          - path: "NewAgents/.github/agents/schemas.md"
+            exists: true
+            action: "modified"
+            baseline_existed: true
+        checks:
+          - check_name: "ide-diagnostics"
+            tier: 1
+            phase: "after"
+            tool: "get_errors"
+            passed: true
+            output_snippet: "5 errors — all pre-existing markdown anchor link resolution issues (identical to baseline 5 errors). No new errors."
+          - check_name: "syntax-check"
+            tier: 1
+            phase: "after"
+            tool: "read_file + grep_search"
+            passed: true
+            output_snippet: "Has SQLite schemas section, Routing Matrix, Output Format Classification, artifact_evaluations, instruction_updates, verdict naming. Valid Markdown."
+        acceptance_criteria_spot_check:
+          - criterion: "SQLite schemas added"
+            met: true
+            evidence: "SQLite Schemas section at line 952 with 4 consolidated tables: anvil_checks, pipeline_telemetry, artifact_evaluations, instruction_updates"
+          - criterion: "Routing matrix"
+            met: true
+            evidence: "Completion Contract Routing Matrix section at line 1411 with 8 agents × 3 statuses"
+          - criterion: "Output format classification"
+            met: true
+            evidence: "Output Format Classification section at line 1438"
+          - criterion: "Verdict naming convention"
+            met: true
+            evidence: "Per-perspective verdict naming at line 767: review-verdicts/<scope>-<perspective>.yaml"
+        gate_status: "passed"
+        checks_passed: 2
+        checks_failed: 0
+
+    findings: []
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-02-27T10-00-00Z:<path>"
+      discrepancies_found: false
+      details: >
+        All 6 newly created files (TASK-001 through TASK-006) confirmed absent in baseline tag —
+        consistent with implementer reports claiming action: created. TASK-007 schemas.md confirmed
+        present in baseline — consistent with action: modified. No discrepancies between implementer
+        baseline claims and git tag state.
+
+completion:
+  status: "DONE"
+  summary: "Verified TASK-001 through TASK-007: 14 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-overhaul/verification-reports/TASK-001-007.yaml"
+  evidence_summary:
+    total_checks: 14
+    passed: 14
+    failed: 0
+    security_blockers: 0

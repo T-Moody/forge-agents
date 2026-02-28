@@ -1,0 +1,13 @@
+reviewer_perspective: "architecture-guardian"
+scope: "code"
+verdicts:
+  security: "approve"
+  architecture: "needs_revision"
+  correctness: "needs_revision"
+overall: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 0
+  major: 4
+  minor: 2
+summary: "schemas.md has grown to 1528 lines spanning 6+ concern domains beyond YAML schemas, including DDL that conflicts with canonical sql-templates.md §1 (missing instance column, nullability differences, status enum divergence). Evidence gate queries in schemas.md use LIKE-based counting logic incompatible with the 3-INSERT-per-reviewer pattern. Recommend extracting non-schema content and removing duplicate DDL to restore single-source-of-truth discipline."

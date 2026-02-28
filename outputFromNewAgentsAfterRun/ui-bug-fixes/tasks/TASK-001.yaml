@@ -1,0 +1,64 @@
+task:
+  id: "TASK-001"
+  title: "Fix swipe delete icon sizing and remove dead .delete-icon CSS rule"
+  description: >
+    Add explicit width: 36px and height: 36px to .swipe-delete-indicator .mud-svg-icon
+    CSS rule to make the swipe delete icon visually prominent within the 80px container.
+    Remove the dead .swipe-delete-indicator .delete-icon rule (JS uses .mud-svg-icon class,
+    not .delete-icon). Single CSS file change propagates to all 5 list pages.
+  agent: "implementer"
+  bug_ids: ["BUG-001", "BUG-008"]
+  size: "Standard"
+  risk: "🟢"
+  depends_on: []
+  wave: 1
+  verification_tier: "Standard"
+  estimated_lines_changed: 10
+
+  acceptance_criteria:
+    - "AC-001-1: SVG icon renders at ≥32px width and height (36px specified)"
+    - "AC-001-2: Icon is visually centered within 80px container"
+    - "AC-001-3: Fix propagates to all 5 list pages (EventsPage, RosterPage, GamesPage, ParticipantsTabContent, GamesTabContent)"
+    - "AC-001-4: Dead .delete-icon CSS rule removed from list-swipe.css"
+    - "AC-008-1: .swipe-delete-indicator .delete-icon no longer exists in list-swipe.css"
+    - "AC-008-2: .swipe-delete-indicator .mud-svg-icon rule has explicit width and height properties"
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-1']"
+    spec_requirements:
+      - "spec-output.yaml#payload.requirements[id='BUG-001']"
+      - "spec-output.yaml#payload.requirements[id='BUG-008']"
+    files_to_modify:
+      - path: "src/TourneyPal.UI/wwwroot/css/list-swipe.css"
+        risk: "🟢"
+        read_lines: "68-100"
+        changes:
+          - description: "Add width: 36px; height: 36px; to .swipe-delete-indicator .mud-svg-icon rule (lines 88-89)"
+            before: |
+              .swipe-delete-indicator .mud-svg-icon {
+                  fill: var(--mud-palette-error-contrasttext);
+              }
+            after: |
+              .swipe-delete-indicator .mud-svg-icon {
+                  fill: var(--mud-palette-error-contrasttext);
+                  width: 36px;
+                  height: 36px;
+              }
+          - description: "Remove dead .swipe-delete-indicator .delete-icon rule (lines 91-94)"
+            before: |
+              .swipe-delete-indicator .delete-icon {
+                  font-size: 1.25rem;
+                  margin-bottom: 4px;
+              }
+            after: "(removed — dead code)"
+    files_to_read:
+      - path: "src/Tornimate.Mobile/wwwroot/js/list-swipe-bridge.js"
+        read_lines: "155-170"
+        reason: "Verify JS innerHTML creates SVG with .mud-svg-icon class (not .delete-icon). Confirms dead CSS."
+
+  testing_notes: >
+    No automated tests cover CSS/visual changes (no JS test framework). Zero test breakage
+    expected. Manual visual verification required on all 5 list pages: EventsPage, RosterPage,
+    GamesPage, ParticipantsTabContent, GamesTabContent. The 36px icon should be centered in
+    the 80px container with 22px padding on each side.

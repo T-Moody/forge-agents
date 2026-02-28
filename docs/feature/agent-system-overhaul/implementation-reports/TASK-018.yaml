@@ -1,0 +1,55 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-018"
+  step: "step-5"
+  started_at: "2026-02-27T10:30:00Z"
+  completed_at: "2026-02-27T10:45:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-018"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 3
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/researcher.agent.md"
+        action: "modified"
+        description: >
+          Restructured researcher agent: added YAML frontmatter (name, description),
+          removed MD companion generation (DR-3/DP-2), extracted tool access table to
+          tool-access-matrix.md §3 reference, extracted error handling to global-operating-rules.md
+          §1-§2 reference, extracted common self-verification to global-operating-rules.md §6
+          reference, added explicit create_file scope restriction (research/*.yaml only),
+          added Context7 MCP integration reference (context7-integration.md), updated
+          anti-drift anchor to YAML-only output. Reduced from 252 to 212 lines.
+      - path: "docs/feature/agent-system-overhaul/implementation-reports/TASK-018.yaml"
+        action: "created"
+        description: "Implementation report for TASK-018"
+    self_check:
+      ide_diagnostics:
+        errors: 3
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: false
+      - check_name: "post-ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: false
+completion:
+  status: "DONE"
+  summary: "TASK-018 — Restructured researcher.agent.md: frontmatter added, MD companion removed, tool access/error handling/self-verification extracted to shared docs, Context7 integration added, create_file scoped to research/*.yaml only. 252→212 lines."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-overhaul/implementation-reports/TASK-018.yaml"

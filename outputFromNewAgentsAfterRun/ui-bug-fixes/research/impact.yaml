@@ -1,0 +1,446 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-impact"
+  step: "step-1"
+  started_at: "2026-02-26T14:30:00Z"
+  completed_at: "2026-02-26T14:55:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "impact"
+    findings:
+      # =========================================================================
+      # Bug 1: Swipe delete icon too small
+      # =========================================================================
+      - id: "F-1"
+        title: "Swipe delete icon change propagates to all 5 list pages via single JS+CSS"
+        category: "blast-radius"
+        detail: |
+          The swipe-to-delete indicator is rendered in `showDeleteIndicator()` in
+          `list-swipe-bridge.js` (line 155). It uses a single inline SVG with
+          `mud-icon-size-medium` (24x24px) inside an 80px-wide container. The CSS
+          is in `list-swipe.css`. Both files are shared across all 5 list pages:
+          EventsPage, RosterPage, GamesPage, ParticipantsTabContent, GamesTabContent.
+
+          Changing the icon size (CSS or JS) affects ALL 5 pages simultaneously.
+          This is a LOW-RISK change because all pages share identical swipe behavior
+          and there is no per-page customization.
+        evidence:
+          - "src/Tornimate.Mobile/wwwroot/js/list-swipe-bridge.js line 155-167"
+          - "src/TourneyPal.UI/wwwroot/css/list-swipe.css lines 68-93"
+          - "5 pages implement OnSwipeDeleteAsync: EventsPage, RosterPage, GamesPage, ParticipantsTabContent, GamesTabContent"
+        relevance: "Low blast radius. Single CSS/JS change. No .NET code changes. No test updates needed (JS/CSS only, no JS test framework)."
+
+      - id: "F-2"
+        title: "No automated tests cover swipe delete visual appearance"
+        category: "testing"
+        detail: |
+          The swipe-to-delete visual indicator is rendered entirely in JavaScript
+          and styled by CSS. The project has no JS test framework configured.
+          Existing bUnit tests for list pages do NOT test swipe visuals — they test
+          the `OnSwipeDeleteAsync` .NET callback behavior only. No tests will break
+          from a CSS/JS icon size change.
+        evidence:
+          - "docs/feature/ux-consistency-overhaul/memory/implementer-06.mem.md: 'TDD not applicable: JS/CSS-only changes with no JS test framework configured'"
+          - "tests/TourneyPal.Tests/Features/Events/EventsPage*.cs — test OnSwipeDeleteAsync behavior, not visual indicator"
+        relevance: "Zero test breakage risk. Manual visual verification required on all 5 list pages."
+
+      # =========================================================================
+      # Bug 2: Game template creation bugs (settings page)
+      # =========================================================================
+      - id: "F-3"
+        title: "Template creation missing dropdown — affects only settings game library flow"
+        category: "blast-radius"
+        detail: |
+          The CreateGamePage handles two routes:
+          1. `/events/{EventId}/games/add` — event-scoped game creation (has template picker)
+          2. `/settings/game-templates/create` — template creation (skips template picker)
+
+          When `IsTemplate` is true (EventId is null), `OnInitializedAsync()` skips directly to
+          `FlowStep.Form` (line 157). The template picker dialog is never shown. This means
+          creating a new template from settings has NO way to pre-fill from an existing template.
+
+          The blast radius is limited to the settings game templates page only. Event-scoped
+          game creation works correctly because it triggers the template picker flow.
+        evidence:
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs lines 117-162 (OnInitializedAsync)"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor lines 1-2 (dual routes)"
+          - "Line 156: 'else { _flowStep = FlowStep.Form; }' — IsTemplate path skips picker"
+        relevance: "Isolated to settings. Fix requires adding template picker to IsTemplate path. Does not affect event game creation."
+
+      - id: "F-4"
+        title: "Template creation error — GameCreationService and handler have no template-specific bugs visible from static analysis"
+        category: "risk"
+        detail: |
+          The Submit() flow in CreateGamePage (lines 352-436) calls
+          GameDataService.CreateGameAsync() which creates a CreateGameCommand and sends via MediatR.
+          CreateGameHandler validates dates and delegates to GameCreationService.
+
+          GameCreationService.CreateAsync() sets `EventId = null` for templates (line 31),
+          which is correct behavior. The CreateGameValidator has no template-specific validation
+          rules that would reject templates.
+
+          The error may be runtime-specific (e.g., database constraint, concurrency, or a
+          MudBlazor form validation issue when no EventId is present). Static analysis cannot
+          reproduce the error. Runtime debugging is needed.
+
+          If template creation is broken, it impacts:
+          - Users cannot pre-create game templates from settings
+          - Event game creation still works (users can create games directly)
+          - Existing templates continue to function
+        evidence:
+          - "src/TourneyPal.Core/Features/Games/GameCreationService.cs — full file, 94 lines"
+          - "src/TourneyPal.Common/Features/Games/CreateGame/CreateGameValidator.cs — no template-specific rules"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs lines 352-436 (Submit)"
+        relevance: "Moderate impact. Users who want to build a template library are blocked, but event-scoped game creation works."
+
+      - id: "F-5"
+        title: "Template creation bug blocks game library management but not core tournament flow"
+        category: "dependency"
+        detail: |
+          Downstream dependencies on game templates:
+          1. GamesPage (/settings/game-templates) — displays template library, uses GetGamesAsync(includeCounts: false)
+          2. CreateGamePage (event context) — loads templates via GameDataService.GetGamesAsync() for picker
+          3. TemplatePickerDialog — shows built-in + custom templates for selection
+
+          If templates cannot be created:
+          - The template picker in event context shows only built-in templates (Chess, Checkers, etc.)
+          - Users can still create custom games directly in events
+          - The GamesPage settings section shows empty library
+
+          Game templates are a convenience feature, not a blocking dependency for the core
+          tournament workflow (create event → add players → add game → create bracket → play matches).
+        evidence:
+          - "src/TourneyPal.UI/Features/Games/GamesPage.razor.cs — manages template library"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs lines 119-128 — loads custom templates"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor — shows built-in + custom"
+        relevance: "Low-to-moderate severity. Core tournament workflow is not blocked. Template library is a convenience feature."
+
+      - id: "F-6"
+        title: "Test coverage for game template creation — 4 test files at risk"
+        category: "testing"
+        detail: |
+          Test files covering game template creation flow:
+          1. CreateGameHandlerTests.cs — 5+ tests on handler logic (may need updates if handler changes)
+          2. CreateGameValidatorTests.cs — validator tests (may need template-specific rules)
+          3. CreateGamePageTemplateSelectionTests.cs — 21+ tests on template picker UI flow
+          4. TemplatePickerDialogTests.cs — dialog component tests
+          5. GamesPageTemplateTests.cs — 21+ tests on game template library page
+
+          Additionally:
+          6. GameCreationServiceTests.cs — service-level tests
+          7. MediatorGameDataServiceTests.cs — data service tests
+
+          Total estimated tests at risk of needing updates: ~15-25 tests depending on fix scope.
+        evidence:
+          - "tests/TourneyPal.Tests/Features/Games/CreateGame/ — 4 test files"
+          - "tests/TourneyPal.Tests/Features/Games/GamesPageTemplateTests.cs — 21+ facts"
+          - "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGamePageTemplateSelectionTests.cs — 21+ facts"
+        relevance: "Moderate test update effort if CreateGamePage flow changes for template path."
+
+      # =========================================================================
+      # Bug 3: Games tab in events — black screen + screen return
+      # =========================================================================
+      - id: "F-7"
+        title: "Add-game black screen is the ListActionSheet overlay — affects all action sheet usages if changed globally"
+        category: "blast-radius"
+        detail: |
+          The "black screen" is the ListActionSheet overlay with CSS class
+          `.list-action-sheet-overlay` using `background: rgba(0, 0, 0, 0.4)`.
+          This is EXPECTED behavior — it's a semi-transparent backdrop.
+
+          The real bug is that the action sheet cancel navigates AWAY from the page
+          rather than just closing the sheet. `OnActionSheetCancel()` (line 219) calls
+          `Cancel()` which navigates to `/events/{EventId}`.
+
+          ListActionSheet is used in:
+          - CreateGamePage (bug location — used for decision sheet)
+          - GamesPage (long-press context menu)
+          - GamesTabContent (long-press context menu)
+          - ParticipantsTabContent (add player action sheet + long-press)
+          - EventsPage (long-press context menu)
+          - RosterPage (long-press context menu)
+
+          The fix should be in CreateGamePage's OnActionSheetCancel, NOT in ListActionSheet
+          itself. Other pages use correct cancel behavior (just hide the sheet).
+        evidence:
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs lines 218-222 (OnActionSheetCancel)"
+          - "src/TourneyPal.UI/Common/Components/ListActionSheet.razor — shared component, 6+ usages"
+          - "docs/feature/ux-consistency-overhaul/memory/implementer-10.mem.md: 'CreateGamePage.OnActionSheetCancel conflates dismiss sheet with navigate away'"
+        relevance: "Fix is page-specific (CreateGamePage only). ListActionSheet component itself is correct. No global blast radius."
+
+      - id: "F-8"
+        title: "Add-game-to-event is a critical step in the event workflow"
+        category: "dependency"
+        detail: |
+          The event workflow requires games to function:
+          1. Create Event → 2. Add Players → 3. Add Game → 4. Configure Scoring →
+          5. Create Bracket → 6. Play Matches → 7. View Standings
+
+          Without games, the following features are blocked:
+          - Bracket creation (requires a game)
+          - Match scoring (requires a bracket)
+          - Standings calculation (requires completed matches)
+          - Export (uses game/bracket/standings data)
+          - Victory banner (checks game standings)
+
+          EventStatusUpdater.DeriveStatusForEventAsync() returns Draft when games.Count == 0.
+          The GamesTabContent shows an EmptyState with "Add Game" button that navigates to CreateGamePage.
+
+          If the "add game" flow fails (black screen + navigate back), users cannot
+          progress their event beyond players. This is a HIGH-SEVERITY blocker.
+        evidence:
+          - "src/TourneyPal.Core/Features/Events/EventStatusUpdater.cs lines 31-35: 'if (games.Count == 0) return EventStatus.Draft'"
+          - "src/TourneyPal.UI/Features/Events/GamesTabContent.razor.cs — add game button navigates to CreateGamePage"
+          - "src/TourneyPal.Core/Features/Standings/StandingsCalculator.cs — iterates games, needs at least one"
+        relevance: "HIGH severity. Core tournament workflow is blocked if users cannot add games to events."
+
+      - id: "F-9"
+        title: "ParticipantsTabContent uses similar ListActionSheet pattern correctly — proves fix scope"
+        category: "pattern"
+        detail: |
+          ParticipantsTabContent uses ListActionSheet for "Add Player" with two actions:
+          "Add New Player" and "Import from Roster". When cancelled, it hides the sheet
+          and stays on the page — it does NOT navigate away.
+
+          This proves the ListActionSheet component works correctly. The bug is exclusively
+          in CreateGamePage's cancel handler, which conflates "dismiss action sheet" with
+          "navigate away from page."
+
+          The fix should change OnActionSheetCancel to just toggle _actionSheetVisible = false
+          and show the blank form (FlowStep.Form) instead of calling Cancel().
+        evidence:
+          - "src/TourneyPal.UI/Features/Events/ParticipantsTabContent.razor.cs — uses ListActionSheet, cancel hides sheet"
+          - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs line 219-222"
+          - "tests/TourneyPal.Tests/Features/Events/ParticipantsTabContentTests.cs — tests action sheet behavior"
+        relevance: "Clear fix pattern: mirror ParticipantsTabContent cancel behavior."
+
+      # =========================================================================
+      # Bug 3b: Skill rating should be optional
+      # =========================================================================
+      - id: "F-10"
+        title: "Skill rating change requires CreatePlayerPage, CreatePlayerCommand, IPlayerDataService, and 2 data service implementations"
+        category: "blast-radius"
+        detail: |
+          Making skill rating optional in CreatePlayerPage requires changes across multiple layers:
+
+          1. **UI Layer:** `CreatePlayerPage.razor.cs` — change `int _skillRating = DefaultSkillRating` to `int? _skillRating`
+          2. **UI Layer:** `CreatePlayerPage.razor` — change `MudNumericField T="int"` to `T="int?"`
+          3. **Command:** `CreatePlayerCommand.cs` — change `int SkillRating = DefaultSkillRating` (keep default)
+          4. **Interface:** `IPlayerDataService.cs` — parameter is already `int skillRating = DefaultSkillRating`
+          5. **Data Service:** `MediatorPlayerDataService.cs` — passes through, needs null-to-default coercion
+          6. **Client stub:** `ClientPlayerDataService.cs` — needs matching signature
+          7. **Handler/Entity:** `Player.cs` — SkillRating is `int` in entity, stays non-nullable
+
+          The key insight: the UI field should be `int?` (empty = not provided), but the command
+          default handles the null case by falling back to DefaultSkillRating (50). This means
+          the command signature can remain unchanged — the UI just passes null which the default
+          parameter handles. However, the current Submit() passes `_skillRating` directly to
+          CreatePlayerAsync, so `int? _skillRating` with null value would need to be coerced to
+          the default before passing to the service.
+
+          The CreateRosterPlayerPage already does this correctly:
+          - Uses `int? _skillRating` initialized to null
+          - Passes `_skillRating ?? ValidationConstants.DefaultSkillRating` to the service
+        evidence:
+          - "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor.cs line 58: 'int _skillRating = DefaultSkillRating'"
+          - "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor.cs line 42: 'int? _skillRating'"
+          - "src/TourneyPal.Common/Features/Players/CreatePlayer/CreatePlayerCommand.cs line 14: 'int SkillRating = DefaultSkillRating'"
+          - "src/TourneyPal.Common/Features/Players/IPlayerDataService.cs line 19: 'int skillRating = DefaultSkillRating'"
+        relevance: "Medium blast radius. UI-only change possible by coercing null to default before passing to service."
+
+      - id: "F-11"
+        title: "Skill rating tests will need updates for nullable field behavior"
+        category: "testing"
+        detail: |
+          Test files affected by making skill rating optional in CreatePlayerPage:
+
+          1. **CreatePlayerPageTests.cs** — 15 tests total, 3 directly test skill rating:
+             - `Render_ShowsSkillRatingField` — may need update for empty initial value
+             - `Submit_PassesNicknameAndSkillRatingToService` — tests with value 75, still valid
+             - Other submit tests pass `_skillRating` implicitly via the form
+
+          2. **CreatePlayerValidatorTests.cs** — has `Validate_WithDefaultSkillRating_ShouldPass`
+             which tests the command default. This test remains valid if command signature unchanged.
+
+          3. **UpdatePlayerPage** — has its own skill rating field (pre-filled from existing player).
+             This is UNAFFECTED because it loads from existing player data, not a default.
+
+          Estimated test updates: 2-4 tests in CreatePlayerPageTests.cs. No validator test changes
+          if command signature stays the same.
+        evidence:
+          - "tests/TourneyPal.Tests/Features/Players/CreatePlayer/CreatePlayerPageTests.cs — 15 facts"
+          - "tests/TourneyPal.Tests/Features/Players/CreatePlayer/CreatePlayerValidatorTests.cs line 222"
+          - "tests/TourneyPal.Tests/Features/Players/UpdatePlayer/ — UNAFFECTED"
+        relevance: "Low test update effort. Most tests work unchanged if command defaults apply."
+
+      # =========================================================================
+      # Bug 4: Appearance colors
+      # =========================================================================
+      - id: "F-12"
+        title: "Color.Secondary on MudText is widespread — 99 usages across 33+ razor files"
+        category: "blast-radius"
+        detail: |
+          `Color="Color.Secondary"` appears 99 times across razor files. Of these:
+          - ~65 are on MudText elements (secondary text intent)
+          - ~15 are on MudIcon, MudButton, MudChip (accent color intent — CORRECT usage)
+          - ~5 are on MudSwitch section headers (overline text)
+
+          The bug report specifically targets the Appearance page (ThemePreviewCard + AppearancePage),
+          NOT a global audit. However, the same Color.Secondary pattern is used for "muted text"
+          intent across the entire codebase.
+
+          Fixing only ThemePreviewCard.razor (line 9) and AppearancePage.razor (line 19) is
+          safe and isolated. A global audit would affect 33+ files across 15+ features.
+
+          In MudBlazor, Color.Secondary on MudText applies the Secondary palette color
+          (e.g., #ff4081 pink for Professional theme). The intended behavior is muted
+          TextSecondary (#6E6E80 gray). The correct fix is to remove Color parameter
+          and use inline Style="color: var(--mud-palette-text-secondary)" or simply
+          remove the Color parameter (MudText without Color uses default text color).
+        evidence:
+          - "99 occurrences of Color='Color.Secondary' across razor files"
+          - "src/TourneyPal.UI/Features/Settings/ThemePreviewCard.razor line 9"
+          - "src/TourneyPal.UI/Features/Settings/AppearancePage.razor line 19"
+          - "Files affected: EmptyState, LoadingState, TaskPage, ListActionSheet, SettingsPage, RosterPage, and 27+ more"
+        relevance: "HIGH risk if done globally (33+ files). LOW risk if scoped to Appearance page only (2 files, 2 lines)."
+
+      - id: "F-13"
+        title: "No tests assert on Color.Secondary — zero test breakage from color changes"
+        category: "testing"
+        detail: |
+          Search across all test files for `Color.Secondary` yields zero matches. The bUnit
+          tests for ThemePreviewCard (ThemePreviewCardTests.cs, 7+ tests) and AppearancePage
+          (AppearancePageTests.cs, 7+ tests) verify content rendering, click callbacks, and
+          theme selection — but do NOT assert on color values.
+
+          Changing `Color="Color.Secondary"` on MudText elements will not break any tests.
+        evidence:
+          - "grep for 'Color.Secondary' in tests/ — 0 matches"
+          - "tests/TourneyPal.Tests/Features/Settings/ThemePreviewCardTests.cs — tests name/desc rendering, not color"
+          - "tests/TourneyPal.Tests/Features/Settings/AppearancePageTests.cs — tests toggle/theme selection, not color"
+        relevance: "Zero test breakage. Manual visual verification sufficient."
+
+      # =========================================================================
+      # Cross-cutting impact
+      # =========================================================================
+      - id: "F-14"
+        title: "Cross-cutting test impact summary — estimated 5-10 test updates across all bugs"
+        category: "testing"
+        detail: |
+          Test impact by bug area:
+
+          | Bug Area | Test Files at Risk | Tests Needing Updates | New Tests Needed |
+          |---|---|---|---|
+          | Swipe icon size | 0 | 0 | 0 (JS/CSS only) |
+          | Template creation (dropdown) | 1-2 (CreateGamePageTemplateSelectionTests) | 2-5 | 1-3 |
+          | Template creation (error) | Depends on root cause | 0-5 | 1-2 |
+          | Add game black screen | 1 (CreateGamePage tests) | 1-3 | 2-3 |
+          | Skill rating optional | 1 (CreatePlayerPageTests) | 2-4 | 1-2 |
+          | Appearance colors | 0 | 0 | 0-1 |
+
+          Total test files likely needing changes: 3-5
+          Total existing tests likely needing updates: 5-15
+          Total new tests to write: 5-10
+
+          Existing test infrastructure:
+          - ListActionSheetTests.cs: 13 tests (UNAFFECTED — tests component, not page usage)
+          - CreateGameHandlerTests.cs: tests pass-through (likely UNAFFECTED)
+          - TemplatePickerDialogTests.cs: may need additions for template context
+        evidence:
+          - "tests/TourneyPal.Tests/Features/Games/CreateGame/ — 4 test files"
+          - "tests/TourneyPal.Tests/Features/Players/CreatePlayer/CreatePlayerPageTests.cs — 15 facts"
+          - "tests/TourneyPal.Tests/Common/Components/ListActionSheetTests.cs — 13 facts"
+          - "tests/TourneyPal.Tests/Features/Settings/ThemePreviewCardTests.cs"
+          - "tests/TourneyPal.Tests/Features/Settings/AppearancePageTests.cs"
+        relevance: "Test impact is manageable. Most updates are in CreateGamePage and CreatePlayerPage test files."
+
+      - id: "F-15"
+        title: "Severity ranking — add-game-to-event is highest priority, appearance colors lowest"
+        category: "risk"
+        detail: |
+          Impact severity ranking by user-facing impact:
+
+          1. **CRITICAL: Add game to event (black screen + navigate back)** — Blocks core tournament
+             workflow. Users cannot progress beyond adding players. Workaround: none obvious to
+             end users (the template picker dialog path works only if custom templates exist).
+
+          2. **HIGH: Template creation error** — Prevents building template library. Partial
+             workaround: users can create games directly in events and toggle "Save as Template."
+
+          3. **MEDIUM: Skill rating pre-filled** — Incorrect UX but not blocking. Users can
+             manually clear the field. Inconsistent with roster add page pattern.
+
+          4. **MEDIUM: Template creation missing dropdown** — Settings-only convenience feature.
+             Users can build templates through "Save as Template" toggle during event game creation.
+
+          5. **LOW: Swipe delete icon too small** — Visual polish issue. Delete still works correctly,
+             just the icon is smaller than expected in the 80px container.
+
+          6. **LOW: Appearance colors** — Cosmetic issue on settings/appearance page. Affected only
+             when viewing theme preview cards and mode label. Does not impact functionality.
+        evidence:
+          - "Event workflow: Create Event → Add Players → Add Game (BLOCKED) → Create Bracket → Play"
+          - "EventStatusUpdater returns Draft with 0 games — event stays in limbo"
+          - "All other bugs have functional workarounds"
+        relevance: "Bug 3 (add game) should be fixed first as it's a workflow blocker. Other bugs are convenience/polish."
+
+    summary: |
+      Impact analysis covers 6 bug areas across 4 severity levels. The most critical bug is the
+      add-game-to-event black screen/navigation issue (Bug 3), which blocks the core tournament
+      workflow — events cannot progress past the players step. The swipe delete icon (Bug 1) and
+      appearance colors (Bug 4) are low-risk CSS/visual-only changes with zero test breakage.
+      Game template creation issues (Bug 2) affect the settings template library but have
+      workarounds via event-scoped game creation. Skill rating optionality (Bug 3b) requires
+      changes to CreatePlayerPage UI only — the command/handler/validator can stay unchanged
+      by coercing null to the default. Total estimated test impact: 5-15 existing tests need
+      updates across 3-5 test files, plus 5-10 new tests. The codebase has 99 occurrences of
+      Color.Secondary on razor elements, but the bug report scopes the fix to the Appearance
+      page only (2 files, 2 lines changed). Global Color.Secondary audit is out of scope.
+
+    source_files_examined:
+      - "src/Tornimate.Mobile/wwwroot/js/list-swipe-bridge.js"
+      - "src/TourneyPal.UI/wwwroot/css/list-swipe.css"
+      - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor"
+      - "src/TourneyPal.UI/Features/Games/CreateGame/CreateGamePage.razor.cs"
+      - "src/TourneyPal.UI/Features/Games/CreateGame/TemplatePickerDialog.razor"
+      - "src/TourneyPal.UI/Features/Games/GamesPage.razor.cs"
+      - "src/TourneyPal.UI/Features/Events/GamesTabContent.razor.cs"
+      - "src/TourneyPal.UI/Features/Events/ParticipantsTabContent.razor.cs"
+      - "src/TourneyPal.UI/Features/Events/EventsPage.razor.cs"
+      - "src/TourneyPal.UI/Features/Roster/RosterPage.razor.cs"
+      - "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor"
+      - "src/TourneyPal.UI/Features/Players/CreatePlayer/CreatePlayerPage.razor.cs"
+      - "src/TourneyPal.UI/Features/Roster/CreateRosterPlayer/CreateRosterPlayerPage.razor.cs"
+      - "src/TourneyPal.UI/Features/Settings/AppearancePage.razor"
+      - "src/TourneyPal.UI/Features/Settings/ThemePreviewCard.razor"
+      - "src/TourneyPal.UI/Common/Components/ListActionSheet.razor"
+      - "src/TourneyPal.Common/Features/Players/CreatePlayer/CreatePlayerCommand.cs"
+      - "src/TourneyPal.Common/Features/Players/IPlayerDataService.cs"
+      - "src/TourneyPal.Common/Features/Players/PlayerDto.cs"
+      - "src/TourneyPal.Common/Common/ValidationConstants.cs"
+      - "src/TourneyPal.Core/Features/Games/GameCreationService.cs"
+      - "src/TourneyPal.Core/Features/Events/EventStatusUpdater.cs"
+      - "src/TourneyPal.Core/Features/Standings/StandingsCalculator.cs"
+      - "tests/TourneyPal.Tests/Features/Players/CreatePlayer/CreatePlayerPageTests.cs"
+      - "tests/TourneyPal.Tests/Features/Players/CreatePlayer/CreatePlayerValidatorTests.cs"
+      - "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGameHandlerTests.cs"
+      - "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGamePageTemplateSelectionTests.cs"
+      - "tests/TourneyPal.Tests/Features/Games/CreateGame/TemplatePickerDialogTests.cs"
+      - "tests/TourneyPal.Tests/Features/Games/CreateGame/CreateGameValidatorTests.cs"
+      - "tests/TourneyPal.Tests/Features/Games/GamesPageTemplateTests.cs"
+      - "tests/TourneyPal.Tests/Features/Games/GameCreationServiceTests.cs"
+      - "tests/TourneyPal.Tests/Common/Components/ListActionSheetTests.cs"
+      - "tests/TourneyPal.Tests/Features/Settings/ThemePreviewCardTests.cs"
+      - "tests/TourneyPal.Tests/Features/Settings/AppearancePageTests.cs"
+      - "docs/feature/ux-consistency-overhaul/memory/implementer-06.mem.md"
+      - "docs/feature/ux-consistency-overhaul/memory/implementer-10.mem.md"
+
+completion:
+  status: "DONE"
+  summary: "Impact analysis complete: 6 bugs across 4 severity levels. Add-game-to-event is critical workflow blocker; swipe icon and appearance are low-risk visual changes. 5-15 test updates estimated across 3-5 files."
+  severity: null
+  findings_count: 15
+  risk_level: null
+  output_paths:
+    - "docs/feature/ui-bug-fixes/research/impact.yaml"
+    - "docs/feature/ui-bug-fixes/research/impact.md"

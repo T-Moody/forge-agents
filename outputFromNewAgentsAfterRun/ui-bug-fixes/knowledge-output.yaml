@@ -1,0 +1,152 @@
+agent_output:
+  agent: "knowledge-agent"
+  instance: "knowledge-agent"
+  step: "step-8"
+  started_at: "2026-02-26T20:00:00Z"
+  completed_at: "2026-02-26T20:15:00Z"
+  schema_version: "1.0"
+  payload:
+    knowledge_updates:
+      - type: "convention"
+        key: "apple-hig-semantic-colors"
+        value: >
+          Apple HIG semantic colors for ThemeRegistry (all non-HC themes):
+          Light: Error=#FF3B30, Success=#34C759, Warning=#FF9500, Info=#007AFF.
+          Dark: Error=#FF453A, Success=#30D158, Warning=#FF9F0A, Info=#0A84FF.
+          High-contrast theme uses WCAG AAA values (unchanged).
+        stored_via: "decisions.yaml"
+
+      - type: "pattern"
+        key: "text-muting-css-var"
+        value: >
+          Use Style="color: var(--mud-palette-text-secondary)" instead of
+          Color="Color.Secondary" on MudText for muted/helper text. MudBlazor's
+          Color enum has no TextSecondary value — Color.Secondary resolves to the
+          theme's accent brand color, not the muted text color.
+        stored_via: "decisions.yaml"
+
+      - type: "pattern"
+        key: "cancel-dismiss-decoupling"
+        value: >
+          Action sheet/dialog cancel/dismiss handlers should set flow step + clear state +
+          StateHasChanged(). Never call page Cancel() (which navigates) from sheet/dialog
+          dismissal. Only TaskPage back button should invoke Cancel() for navigation.
+          Reference: ParticipantsTabContent.CloseAddActionSheet().
+        stored_via: "decisions.yaml"
+
+      - type: "pattern"
+        key: "nullable-field-submit-coercion"
+        value: >
+          Optional numeric fields use int? with Value/ValueChanged binding. Null-coalescing
+          to default constant happens at submit boundary (e.g., _skillRating ??
+          ValidationConstants.DefaultSkillRating). Deferred validation returns null (valid)
+          for null input. Matches FormFieldState pattern from CreateRosterPlayerPage.
+        stored_via: "decisions.yaml"
+
+      - type: "convention"
+        key: "theme-registry-test-invariants"
+        value: >
+          ThemeRegistryTests safety invariants: (1) Surface != #FFFFFF for non-HC themes,
+          (2) Background != #000000 in dark mode for non-HC themes, (3) DrawerBackground ==
+          Surface in light mode. These are design rules encoded as tests, not just value checks.
+          Never weaken without explicit justification.
+        stored_via: "decisions.yaml"
+
+      - type: "lesson"
+        key: "design-review-catches-invariant-violations"
+        value: >
+          Design review (Step 3b) successfully caught 3 invariant violations in the theme
+          palette redesign before implementation (pure black dark bg, pure white Surface,
+          missing DrawerBackground cascade). The implementer then used compliant values.
+          This validates the multi-stage review pipeline for catching spec-design contradictions
+          before code is written.
+        stored_via: "knowledge-output.yaml"
+
+      - type: "lesson"
+        key: "test-type-mismatch-on-nullable-change"
+        value: >
+          When changing a component field from int to int?, existing tests that find
+          MudNumericField<int> will fail with ComponentNotFoundException. Test type
+          parameters must be updated to match (MudNumericField<int?>). TASK-002 verification
+          caught this on first pass, fixed in revision loop.
+        stored_via: "knowledge-output.yaml"
+
+    decision_log_entries:
+      - id: "DL-001"
+        title: "Apple HIG semantic colors as standard for non-HC themes"
+        rationale: "Standardized Error/Success/Warning/Info across 6 themes for consistent status indicators."
+        confidence: "High"
+      - id: "DL-002"
+        title: "Text muting via CSS var() instead of MudBlazor Color enum"
+        rationale: "Color.Secondary resolves to brand accent, not muted text. CSS var() is the only correct approach."
+        confidence: "High"
+      - id: "DL-003"
+        title: "Cancel/dismiss vs navigation decoupling in action sheets"
+        rationale: "Prevents black screen bugs from premature navigation during sheet/dialog dismissal."
+        confidence: "High"
+      - id: "DL-004"
+        title: "Nullable field pattern for optional numeric inputs"
+        rationale: "Aligns with FormFieldState pattern; null-coalescing at submit boundary preserves backend validation."
+        confidence: "High"
+      - id: "DL-005"
+        title: "ThemeRegistry test invariants are safety constraints"
+        rationale: "Surface!=white, Background!=black, DrawerBackground==Surface encode design rules, not just values."
+        confidence: "High"
+
+    evidence_bundle:
+      overall_confidence: "High"
+      verification_summary:
+        tasks_verified: 8
+        total_checks: 32
+        passed: 32
+        failed: 0
+        regressions: 0
+      review_summary:
+        design_review:
+          round: 1
+          verdicts:
+            "claude-opus-4.6-architecture": "needs_revision"
+            "claude-opus-4.6-correctness": "needs_revision"
+            "claude-opus-4.6-security": "approve"
+        code_review:
+          round: 1
+          verdicts:
+            "claude-opus-4.6-architecture": "approve"
+            "claude-opus-4.6-correctness": "approve"
+            "claude-opus-4.6-security": "approve"
+      rollback_command: "git revert --no-commit pipeline-baseline-2026-02-26T14-30-00Z..HEAD"
+      blast_radius:
+        files_modified: 12
+        risk_red_files: 0
+        risk_yellow_files: 4
+        risk_green_files: 8
+        regressions: 0
+      known_issues:
+        - description: "Contradictory tests for saveAsTemplate EventId guard (stale test documents superseded spec)"
+          severity: "Major"
+        - description: "Professional theme PaletteDark.Secondary (#ff4081) mismatches PreviewSwatches DarkColor (#FF375F)"
+          severity: "Minor"
+        - description: "No test for null→DefaultSkillRating coercion at submit boundary"
+          severity: "Minor"
+        - description: "Logic-level tests assert local variables instead of production code (spec documentation only)"
+          severity: "Minor"
+        - description: "30+ .razor files still use Color.Secondary on MudText for muted text (inconsistent with new pattern)"
+          severity: "Minor"
+        - description: "CreatePlayerPage lacks unsaved-changes guardrail present in CreateRosterPlayerPage (pre-existing)"
+          severity: "Minor"
+
+    pipeline_telemetry_summary:
+      total_dispatches: 8
+      total_duration_seconds: null
+      error_count: 0
+
+completion:
+  status: "DONE"
+  summary: "Knowledge captured (5 conventions/patterns, 2 lessons, 5 decisions), evidence bundle assembled — High confidence, 32/32 checks pass, all reviewers approve"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "knowledge-output.yaml"
+    - "decisions.yaml"
+    - "evidence-bundle.md"

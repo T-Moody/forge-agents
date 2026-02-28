@@ -1,0 +1,70 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-005"
+    task_type: "documentation"
+    title: "Create Context7 Integration + Evaluation Schema Reference Docs"
+    description: |
+      Create two small, focused reference documents:
+
+      1. NewAgents/.github/agents/context7-integration.md (~45 lines):
+         - §1 Availability Check: Attempt context7-resolve-library-id; if tool not found, skip
+         - §2 Two-Step Pattern: (1) resolve-library-id, (2) query-docs with resolved ID
+         - §3 When to Use: Before guessing at library/framework API usage
+         - §4 Graceful Degradation: Log 'Context7 unavailable'; no ERROR status; no retry
+         - §5 Applicable Agents: Implementer (primary), Researcher (secondary). Others skip.
+
+      2. NewAgents/.github/agents/evaluation-schema.md (~85 lines):
+         - §1 Overview: SQLite-based evaluation replaces Forge's per-file YAML approach
+         - §2 Table Schema Reference: artifact_evaluations table structure (point to schemas.md)
+         - §3 Evaluation Workflow: Read upstream artifact → use it → evaluate quality → INSERT
+         - §4 Scoring Guidelines: usefulness (1-10 scale with anchor examples), clarity (1-10)
+         - §5 Structured Fields: missing_information, inaccuracies guidance
+         - §6 Phase 1 Agents: implementer evaluates task defs, verifier evaluates impl reports,
+              reviewer evaluates design/code
+         - §7 Phase 2 Expansion: spec evaluates research, designer evaluates spec, planner evaluates design
+
+      Both docs are straightforward reference material from the design spec.
+    risk_classification: "🟢"
+    wave: 2
+    dependencies: []
+    estimated_lines_changed: 130
+    affected_files:
+      - path: "NewAgents/.github/agents/context7-integration.md"
+        action: "create"
+      - path: "NewAgents/.github/agents/evaluation-schema.md"
+        action: "create"
+    addresses_frs: ["FR-5", "FR-9"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/context7-integration.md']",
+            "payload.shared_documents[path='NewAgents/.github/agents/context7-integration.md']",
+          ]
+        reason: "Context7 integration file description and §1-§5 content outline"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/evaluation-schema.md']",
+            "payload.shared_documents[path='NewAgents/.github/agents/evaluation-schema.md']",
+          ]
+        reason: "Evaluation schema file description and §1-§7 content outline"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-9']"]
+        reason: "AC-9.1 (two-step pattern), AC-9.2 (conditional check), AC-9.3 (graceful skip), AC-9.4 (shared doc only)"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-5']"]
+        reason: "AC-5.1 (evaluation table schema), AC-5.2 (Phase 1 agents), AC-5.3 (Knowledge Agent queries)"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.decisions[id='DP-3']"]
+        reason: "Decision DP-3: SQLite-based evaluations over per-file YAML (Option B chosen)"
+    acceptance_criteria:
+      - "context7-integration.md exists with 5 sections; ≤45 lines"
+      - "evaluation-schema.md exists with 7 sections; ≤85 lines"
+      - "Context7 integration includes graceful degradation — no ERROR on unavailability (AC-9.3)"
+      - "Context7 instructions are NOT inlined in any agent file (AC-9.4)"
+      - "Evaluation schema defines Phase 1 agents: implementer, verifier, adversarial reviewer"
+      - "Evaluation scoring uses 1-10 scale with anchor examples for both usefulness and clarity"
+    verification_tier: "Standard"

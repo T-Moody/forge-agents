@@ -1,0 +1,55 @@
+# Architectural Decision Log
+# Append-only — never modify or delete existing entries
+decisions:
+  - id: "DL-001"
+    title: "Apple HIG semantic colors as standard for non-HC themes"
+    rationale: >
+      All 6 non-high-contrast themes now use identical Apple HIG semantic color values
+      (Error/Success/Warning/Info) for both light and dark palettes. This establishes
+      a codebase-wide convention that any new theme must adopt the same semantic color
+      set unless it is a high-contrast accessibility theme (which uses WCAG AAA values).
+      Standardization reduces cognitive load and ensures consistent status indicator
+      appearance across all themes.
+    confidence: "High"
+
+  - id: "DL-002"
+    title: "Text muting via CSS var() instead of MudBlazor Color enum"
+    rationale: >
+      MudBlazor's Color enum lacks a TextSecondary value. Color="Color.Secondary" on
+      MudText resolves to the theme's accent/brand Secondary color, not the muted text
+      color. The correct approach is Style="color: var(--mud-palette-text-secondary)"
+      which references MudBlazor's CSS custom property for text muting. This was applied
+      to EmptyState, LoadingState, ThemePreviewCard, and AppearancePage with 30+ remaining
+      instances tracked as technical debt.
+    confidence: "High"
+
+  - id: "DL-003"
+    title: "Cancel/dismiss vs navigation decoupling in action sheets"
+    rationale: >
+      Action sheet and dialog cancel/dismiss should reset component state (set flow step,
+      clear selection, call StateHasChanged) but NEVER call page Cancel() which triggers
+      navigation. Only the TaskPage back button should invoke Cancel() for navigation.
+      This pattern matches ParticipantsTabContent.CloseAddActionSheet() and prevents
+      the black screen / unrecoverable state bugs seen in CreateGamePage.
+    confidence: "High"
+
+  - id: "DL-004"
+    title: "Nullable field pattern for optional numeric inputs"
+    rationale: >
+      Optional numeric form fields should use int? with Value/ValueChanged binding.
+      Null-coalescing to a default constant (e.g., ValidationConstants.DefaultSkillRating)
+      happens at the submit boundary, not in the field binding. The deferred validation
+      callback returns null (valid) when the value is null, treating it as "unset."
+      This matches the FormFieldState pattern established in CreateRosterPlayerPage.
+    confidence: "High"
+
+  - id: "DL-005"
+    title: "ThemeRegistry test invariants are safety constraints"
+    rationale: >
+      Three ThemeRegistryTests invariants encode deliberate design rules: (1) Surface !=
+      #FFFFFF (elevated areas need visual depth), (2) Background != #000000 in dark mode
+      (near-black, not pure-black), (3) DrawerBackground == Surface in light mode
+      (coupled properties). The design review caught the designer proposing values that
+      would violate these invariants, and the implementer correctly used compliant values.
+      These invariants must never be weakened without explicit justification.
+    confidence: "High"

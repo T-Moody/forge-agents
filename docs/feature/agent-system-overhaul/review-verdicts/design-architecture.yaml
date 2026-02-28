@@ -1,0 +1,79 @@
+reviewer_model: "claude-opus-4.6"
+review_perspective: "architecture-purist"
+review_focus: "architecture"
+scope: "design"
+run_id: "2026-02-27T10:00:00Z"
+round: 1
+task_id: "agent-system-overhaul-design-review"
+verdict: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 0
+  major: 3
+  minor: 4
+summary: "3 major: Knowledge Agent 9-responsibility bloat, no SQLite schema evolution strategy, orchestrator 480-line target has 124-line gap. 4 minor. No blockers."
+findings:
+  - id: "ARCH-1"
+    severity: "major"
+    category: "architecture"
+    title: "Knowledge Agent Responsibility Bloat"
+    description: "Knowledge Agent accumulates 9 distinct responsibilities (knowledge capture, decisions log, evidence bundle, store_memory, SQL telemetry queries, evaluation consumption, instruction_updates tracking, enhanced post-mortem, instruction file updates). Approaching god-object pattern. No other agent has more than 3 new capabilities added."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md"
+      - "docs/feature/agent-system-overhaul/design-output.yaml"
+    recommendation: "Add responsibility inventory table mapping each Knowledge Agent function to its justification. Document cohesion argument or split post-mortem SQL analysis from instruction update tracking."
+
+  - id: "ARCH-2"
+    severity: "major"
+    category: "architecture"
+    title: "SQLite Schema Evolution Strategy Absent"
+    description: "No evolution strategy for 4 SQLite tables (ALTER TABLE patterns, enum expansion, migration procedures, version tracking). YAML schemas have documented evolution in schemas.md but SQLite schemas have none. CREATE TABLE IF NOT EXISTS is creation-only with no migration path."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md"
+      - "docs/feature/agent-system-overhaul/design-output.yaml"
+    recommendation: "Add SQLite Schema Evolution Strategy section. Document ALTER TABLE ADD COLUMN as safe additive change. Define migration DDL pattern for CHECK constraint changes. Consider schema_meta version tracking table."
+
+  - id: "ARCH-3"
+    severity: "major"
+    category: "architecture"
+    title: "Orchestrator Line Count Target Unsubstantiated"
+    description: "Design calculates 800-240+44=604 lines then hand-waves 'further compaction' to reach 480. The 124-line gap (20% of target) is not itemized. If compaction fails, orchestrator remains at 600+ violating AC-10.1 and NFR-1."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md"
+    recommendation: "Itemize the 124-line compaction with specific sections and expected savings, or raise the target to 550-600 with explicit NFR-1 exception."
+
+  - id: "ARCH-4"
+    severity: "minor"
+    category: "architecture"
+    title: "Dual Evidence Representation for Review Verdicts"
+    description: "Each reviewer writes verdicts to both SQL (3 INSERTs) and YAML (category_verdicts). No source-of-truth hierarchy defined. SQL and YAML could drift silently."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md"
+    recommendation: "Define explicit hierarchy: SQL is authoritative for routing, YAML is derived summary. Add self-verification check that YAML matches SQL INSERTs."
+
+  - id: "ARCH-5"
+    severity: "minor"
+    category: "architecture"
+    title: "Mutable Tier 1 Instruction Files Create Hidden Global Coupling"
+    description: "Knowledge Agent can update .github/instructions/pipeline-conventions.md which is auto-loaded for all agents. Silent global behavior change possible across pipeline runs."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md"
+    recommendation: "Establish mutability classification: copilot-instructions.md is immutable (never agent-updatable), pipeline-conventions.md is governed-mutable. Document explicitly."
+
+  - id: "ARCH-6"
+    severity: "minor"
+    category: "architecture"
+    title: "Single Database File as Single Point of Failure"
+    description: "All 4 tables consolidated into verification-ledger.db. Corruption causes total evidence loss. Not all tables are equally critical (anvil_checks is mission-critical, artifact_evaluations is informational)."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md"
+    recommendation: "Document data criticality tiers. Add PRAGMA integrity_check at Step 0 for existing DB files. Document corruption recovery priority."
+
+  - id: "ARCH-7"
+    severity: "minor"
+    category: "architecture"
+    title: "Tool Scope Restrictions Are Prompt-Only Enforcement"
+    description: "6 scoped tool entries in the matrix are enforced via prompt instructions only. VS Code runtime has no parameterized tool access. LLM can violate scope if confused."
+    affected_files:
+      - "docs/feature/agent-system-overhaul/design.md"
+    recommendation: "Acknowledge prompt-only enforcement in tool-access-matrix.md design. Add tool scope compliance to self-verification checklists."

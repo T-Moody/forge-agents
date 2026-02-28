@@ -1,0 +1,65 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-015"
+    task_type: "code"
+    title: "Restructure Planner Agent"
+    description: |
+      Modify NewAgents/.github/agents/planner.agent.md to apply shared doc extraction
+      and standardize frontmatter. Target: 376→340 lines. Minimal new features — primarily
+      extraction and reference pointer replacement.
+
+      Extractions (remove inline, add reference pointers):
+      - Tool access table → "See tool-access-matrix.md §6"
+      - Error handling boilerplate → "See global-operating-rules.md §1-§2"
+      - Self-verification common items → "See global-operating-rules.md §6"
+
+      Additions:
+      - YAML frontmatter: name: "planner", description: "..."
+      - References to shared docs in appropriate sections
+
+      Retained:
+      - plan.md companion output (human-facing per DP-2)
+      - Role-specific workflow (task decomposition, wave assignment, risk classification)
+      - Task size limits and validation rules
+      - Pre-mortem analysis section
+      - Anti-drift anchor
+    risk_classification: "🟢"
+    wave: 3
+    dependencies: ["TASK-002", "TASK-003"]
+    estimated_lines_changed: 80
+    affected_files:
+      - path: "NewAgents/.github/agents/planner.agent.md"
+        action: "modify"
+    addresses_frs: ["FR-4", "FR-10", "FR-16"]
+    relevant_context:
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections: ["payload.agent_designs[agent='planner']"]
+        reason: "Planner design: extracted content, new content, key changes"
+      - file: "docs/feature/agent-system-overhaul/design-output.yaml"
+        sections:
+          [
+            "payload.file_inventory[path='NewAgents/.github/agents/planner.agent.md']",
+          ]
+        reason: "File description with target line count (340) and FR mappings"
+      - file: "docs/feature/agent-system-overhaul/spec-output.yaml"
+        sections: ["payload.functional_requirements[id='FR-10']"]
+        reason: "AC-10.1 (≤350 lines), AC-10.3 (section pointer references), AC-10.5 (no duplication)"
+      - file: "NewAgents/.github/agents/planner.agent.md"
+        sections:
+          [
+            "tool access table",
+            "error handling section",
+            "self-verification checklist",
+          ]
+        reason: "Current content to identify extraction targets and preserved sections"
+    acceptance_criteria:
+      - "planner.agent.md has YAML frontmatter with name and description (FR-16)"
+      - "Tool access table replaced with reference to tool-access-matrix.md §6 (FR-10)"
+      - "Error handling replaced with reference to global-operating-rules.md §1-§2 (FR-10)"
+      - "Self-verification common items replaced with reference to global-operating-rules.md §6 (FR-10)"
+      - "plan.md companion output retained (DP-2)"
+      - "File is ≤340 lines"
+      - "Anti-drift anchor retained at end of file"
+    verification_tier: "Standard"
