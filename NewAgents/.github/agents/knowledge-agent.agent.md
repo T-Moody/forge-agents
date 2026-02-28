@@ -1,4 +1,3 @@
-````chatagent
 ---
 name: knowledge-agent
 description: "Pipeline knowledge capture — metrics, post-mortem, evaluations, evidence bundle, cross-session memory"
@@ -25,17 +24,17 @@ You NEVER modify source code, tests, agent definitions, or project files outside
 
 ## Responsibility Inventory (ARCH-1)
 
-| #  | Responsibility                  | Status   | Justification                                                   |
-| -- | ------------------------------- | -------- | --------------------------------------------------------------- |
-| 1  | Knowledge capture               | Existing | Core purpose — reusable patterns from pipeline run              |
-| 2  | Decisions log                   | Existing | Append-only decision audit trail                                |
-| 3  | Evidence bundle (Step 8b)       | Existing | Human-readable proof-of-quality deliverable                     |
-| 4  | `store_memory` persistence      | Existing | VS Code cross-session knowledge storage                         |
-| 5  | SQL telemetry queries           | New      | Data-driven post-mortem from `pipeline_telemetry`               |
-| 6  | Evaluation consumption          | New      | Pipeline quality analysis from `artifact_evaluations`           |
-| 7  | `instruction_updates` INSERT    | New      | Governed update tracking via SQLite audit trail                  |
-| 8  | Enhanced post-mortem            | New      | Agent reliability metrics, bottleneck identification            |
-| 9  | Instruction file updates        | New      | Governed modification of `.github/instructions/`                |
+| #   | Responsibility               | Status   | Justification                                         |
+| --- | ---------------------------- | -------- | ----------------------------------------------------- |
+| 1   | Knowledge capture            | Existing | Core purpose — reusable patterns from pipeline run    |
+| 2   | Decisions log                | Existing | Append-only decision audit trail                      |
+| 3   | Evidence bundle (Step 8b)    | Existing | Human-readable proof-of-quality deliverable           |
+| 4   | `store_memory` persistence   | Existing | VS Code cross-session knowledge storage               |
+| 5   | SQL telemetry queries        | New      | Data-driven post-mortem from `pipeline_telemetry`     |
+| 6   | Evaluation consumption       | New      | Pipeline quality analysis from `artifact_evaluations` |
+| 7   | `instruction_updates` INSERT | New      | Governed update tracking via SQLite audit trail       |
+| 8   | Enhanced post-mortem         | New      | Agent reliability metrics, bottleneck identification  |
+| 9   | Instruction file updates     | New      | Governed modification of `.github/instructions/`      |
 
 All 9 responsibilities share the common theme of **pipeline quality analysis and institutional memory**. Responsibilities 5–8 are data consumers/producers of the same SQLite database, forming a cohesive analysis unit. See global-operating-rules.md §9 for evaluator separation on responsibility 9 (SEC-5).
 
@@ -43,19 +42,19 @@ All 9 responsibilities share the common theme of **pipeline quality analysis and
 
 ## Input Schema
 
-| Input                                  | Source                       | Purpose                                                         |
-| -------------------------------------- | ---------------------------- | --------------------------------------------------------------- |
-| `implementation-reports/task-*.yaml`   | Implementer (Step 5)         | Baseline records, change summaries, self-check results          |
-| `verification-reports/task-*.yaml`     | Verifier (Step 6)            | Cascade results, evidence gate summaries, regression analysis   |
-| `review-findings/<scope>-<persp>.md`   | Adversarial Reviewer         | Per-perspective review findings (Markdown)                      |
-| `review-verdicts/<scope>-<persp>.yaml` | Adversarial Reviewer         | Structured verdicts for aggregation                             |
-| `spec-output.yaml`                     | Spec Agent (Step 2)          | Requirements and acceptance criteria                            |
-| `design-output.yaml`                   | Designer (Step 3)            | Design decisions and justifications                             |
-| `plan-output.yaml`                     | Planner (Step 4)             | Task list, risk classifications, wave assignments               |
-| `research/*.yaml`                      | Researcher (Step 1)          | Research findings                                               |
-| `verification-ledger.db`              | Pipeline (all agents)        | SQLite: `anvil_checks`, `pipeline_telemetry`, `artifact_evaluations`, `instruction_updates` |
-| `git diff`                             | Git                          | Full changeset for blast radius analysis                        |
-| `initial-request.md`                   | User                         | Original feature request for context                            |
+| Input                                  | Source                | Purpose                                                                                     |
+| -------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
+| `implementation-reports/task-*.yaml`   | Implementer (Step 5)  | Baseline records, change summaries, self-check results                                      |
+| `verification-reports/task-*.yaml`     | Verifier (Step 6)     | Cascade results, evidence gate summaries, regression analysis                               |
+| `review-findings/<scope>-<persp>.md`   | Adversarial Reviewer  | Per-perspective review findings (Markdown)                                                  |
+| `review-verdicts/<scope>-<persp>.yaml` | Adversarial Reviewer  | Structured verdicts for aggregation                                                         |
+| `spec-output.yaml`                     | Spec Agent (Step 2)   | Requirements and acceptance criteria                                                        |
+| `design-output.yaml`                   | Designer (Step 3)     | Design decisions and justifications                                                         |
+| `plan-output.yaml`                     | Planner (Step 4)      | Task list, risk classifications, wave assignments                                           |
+| `research/*.yaml`                      | Researcher (Step 1)   | Research findings                                                                           |
+| `verification-ledger.db`               | Pipeline (all agents) | SQLite: `anvil_checks`, `pipeline_telemetry`, `artifact_evaluations`, `instruction_updates` |
+| `git diff`                             | Git                   | Full changeset for blast radius analysis                                                    |
+| `initial-request.md`                   | User                  | Original feature request for context                                                        |
 
 The orchestrator provides `run_id` and paths to all upstream outputs in the dispatch message.
 
@@ -65,13 +64,13 @@ The orchestrator provides `run_id` and paths to all upstream outputs in the disp
 
 All outputs conform to `knowledge-output` (Schema 10) from [schemas.md](schemas.md#schema-10-knowledge-output).
 
-| File                               | Format   | Description                                                                                  |
-| ---------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `knowledge-output.yaml`            | YAML     | Typed knowledge updates, decision entries, evidence bundle summary, telemetry + eval summary  |
-| `decisions.yaml`                   | YAML     | Append-only decision log (created if absent, appended if exists)                             |
-| `evidence-bundle.md`               | Markdown | Human-readable proof-of-quality deliverable (Step 8b)                                        |
-| `agent-metrics/{date}-run-log.md`  | Markdown | Consolidated per-agent telemetry run log                                                     |
-| `post-mortems/{date}-{slug}.md`    | Markdown | Data-driven post-mortem analysis                                                             |
+| File                              | Format   | Description                                                                                  |
+| --------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| `knowledge-output.yaml`           | YAML     | Typed knowledge updates, decision entries, evidence bundle summary, telemetry + eval summary |
+| `decisions.yaml`                  | YAML     | Append-only decision log (created if absent, appended if exists)                             |
+| `evidence-bundle.md`              | Markdown | Human-readable proof-of-quality deliverable (Step 8b)                                        |
+| `agent-metrics/{date}-run-log.md` | Markdown | Consolidated per-agent telemetry run log                                                     |
+| `post-mortems/{date}-{slug}.md`   | Markdown | Data-driven post-mortem analysis                                                             |
 
 ### YAML Output Structure
 
@@ -138,7 +137,7 @@ completion:
     - "evidence-bundle.md"
     - "agent-metrics/{date}-run-log.md"
     - "post-mortems/{date}-{slug}.md"
-````
+```
 
 ---
 

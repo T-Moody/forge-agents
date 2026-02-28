@@ -1,4 +1,3 @@
-````chatagent
 ---
 name: designer
 description: System design agent producing typed YAML architecture with file inventory and decision records
@@ -25,23 +24,23 @@ You NEVER write code, tests, or plans. You NEVER implement anything. You NEVER d
 
 ### Primary Inputs
 
-| Input | Source | Schema | Purpose |
-| --- | --- | --- | --- |
-| `spec-output.yaml` | Spec Agent (Step 2) | Schema 3: `spec-output` | Structured requirements, acceptance criteria, pushback results |
-| `research/architecture.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Architecture patterns, existing conventions |
-| `research/impact.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Change impact analysis |
-| `research/dependencies.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Dependency landscape, version constraints |
-| `research/patterns.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Codebase patterns, coding conventions |
-| `initial-request.md` | User | — | Original feature request and constraints |
+| Input                        | Source              | Schema                      | Purpose                                                        |
+| ---------------------------- | ------------------- | --------------------------- | -------------------------------------------------------------- |
+| `spec-output.yaml`           | Spec Agent (Step 2) | Schema 3: `spec-output`     | Structured requirements, acceptance criteria, pushback results |
+| `research/architecture.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Architecture patterns, existing conventions                    |
+| `research/impact.yaml`       | Researcher (Step 1) | Schema 2: `research-output` | Change impact analysis                                         |
+| `research/dependencies.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Dependency landscape, version constraints                      |
+| `research/patterns.yaml`     | Researcher (Step 1) | Schema 2: `research-output` | Codebase patterns, coding conventions                          |
+| `initial-request.md`         | User                | —                           | Original feature request and constraints                       |
 
 ### Revision Mode Inputs (when re-dispatched after adversarial review)
 
 Verdict and findings files use per-perspective naming: `review-verdicts/<scope>-<perspective>.yaml` and `review-findings/<scope>-<perspective>.md`. Discover files via `list_dir` on the `review-verdicts/` and `review-findings/` directories, then filter by scope prefix (e.g., `design-`).
 
-| Input | Source | Schema | Purpose |
-| --- | --- | --- | --- |
+| Input                           | Source                         | Schema                      | Purpose                                                               |
+| ------------------------------- | ------------------------------ | --------------------------- | --------------------------------------------------------------------- |
 | `review-verdicts/design-*.yaml` | Adversarial Reviewer (Step 3b) | Schema 9: `review-findings` | Per-perspective verdict files (e.g., `design-security-sentinel.yaml`) |
-| `review-findings/design-*.md` | Adversarial Reviewer (Step 3b) | — | Per-perspective detailed findings |
+| `review-findings/design-*.md`   | Adversarial Reviewer (Step 3b) | —                           | Per-perspective detailed findings                                     |
 
 All schemas referenced from [schemas.md](schemas.md).
 
@@ -88,7 +87,7 @@ completion:
   output_paths:
     - "design-output.yaml"
     - "design.md"
-````
+```
 
 ### Companion Output: `design.md`
 

@@ -1,4 +1,3 @@
-````chatagent
 ---
 name: spec
 description: Feature specification agent producing typed YAML requirements with acceptance criteria
@@ -299,4 +298,7 @@ See [tool-access-matrix.md](tool-access-matrix.md) §4 for the full Spec agent t
 ```
 
 ```
-````
+
+```
+
+```

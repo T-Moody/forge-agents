@@ -10,27 +10,27 @@
 
 All 18 implementation tasks verified with 52 total checks, 0 failures, 0 regressions.
 
-| Task | Title | Risk | Checks | Passed | Failed | Regressions |
-|------|-------|------|--------|--------|--------|-------------|
-| TASK-001 | Create Instruction File Infrastructure | 🟢 | 2 | 2 | 0 | 0 |
-| TASK-002 | Create Global Operating Rules Reference Doc | 🟡 | 2 | 2 | 0 | 0 |
-| TASK-003 | Create Tool Access Matrix Reference Doc | 🟡 | 2 | 2 | 0 | 0 |
-| TASK-004 | Create Review Perspectives Reference Doc | 🟢 | 2 | 2 | 0 | 0 |
-| TASK-005 | Create Context7 Integration + Evaluation Schema | 🟢 | 2 | 2 | 0 | 0 |
-| TASK-006 | Create SQL Templates Reference Doc | 🟡 | 2 | 2 | 0 | 0 |
-| TASK-007 | Update schemas.md with SQLite Schemas | 🟡 | 2 | 2 | 0 | 0 |
-| TASK-008 | Update dispatch-patterns.md for Perspective Review | 🟡 | 4 | 4 | 0 | 0 |
-| TASK-009 | Add Frontmatter to severity-taxonomy.md | 🟢 | 2 | 2 | 0 | 0 |
-| TASK-010 | Restructure Orchestrator Agent | 🔴 | 8 | 8 | 0 | 0 |
-| TASK-011 | Restructure Adversarial Reviewer Agent | 🟡 | 4 | 4 | 0 | 0 |
-| TASK-012 | Restructure Knowledge Agent | 🔴 | 6 | 6 | 0 | 0 |
-| TASK-013 | Restructure Implementer Agent | 🟡 | 3 | 3 | 0 | 0 |
-| TASK-014 | Restructure Verifier Agent | 🟡 | 3 | 3 | 0 | 0 |
-| TASK-015 | Restructure Planner Agent | 🟢 | 2 | 2 | 0 | 0 |
-| TASK-016 | Restructure Spec Agent | 🟢 | 2 | 2 | 0 | 0 |
-| TASK-017 | Restructure Designer Agent | 🟢 | 2 | 2 | 0 | 0 |
-| TASK-018 | Restructure Researcher Agent | 🟢 | 2 | 2 | 0 | 0 |
-| **Total** | | | **52** | **52** | **0** | **0** |
+| Task      | Title                                              | Risk | Checks | Passed | Failed | Regressions |
+| --------- | -------------------------------------------------- | ---- | ------ | ------ | ------ | ----------- |
+| TASK-001  | Create Instruction File Infrastructure             | 🟢   | 2      | 2      | 0      | 0           |
+| TASK-002  | Create Global Operating Rules Reference Doc        | 🟡   | 2      | 2      | 0      | 0           |
+| TASK-003  | Create Tool Access Matrix Reference Doc            | 🟡   | 2      | 2      | 0      | 0           |
+| TASK-004  | Create Review Perspectives Reference Doc           | 🟢   | 2      | 2      | 0      | 0           |
+| TASK-005  | Create Context7 Integration + Evaluation Schema    | 🟢   | 2      | 2      | 0      | 0           |
+| TASK-006  | Create SQL Templates Reference Doc                 | 🟡   | 2      | 2      | 0      | 0           |
+| TASK-007  | Update schemas.md with SQLite Schemas              | 🟡   | 2      | 2      | 0      | 0           |
+| TASK-008  | Update dispatch-patterns.md for Perspective Review | 🟡   | 4      | 4      | 0      | 0           |
+| TASK-009  | Add Frontmatter to severity-taxonomy.md            | 🟢   | 2      | 2      | 0      | 0           |
+| TASK-010  | Restructure Orchestrator Agent                     | 🔴   | 8      | 8      | 0      | 0           |
+| TASK-011  | Restructure Adversarial Reviewer Agent             | 🟡   | 4      | 4      | 0      | 0           |
+| TASK-012  | Restructure Knowledge Agent                        | 🔴   | 6      | 6      | 0      | 0           |
+| TASK-013  | Restructure Implementer Agent                      | 🟡   | 3      | 3      | 0      | 0           |
+| TASK-014  | Restructure Verifier Agent                         | 🟡   | 3      | 3      | 0      | 0           |
+| TASK-015  | Restructure Planner Agent                          | 🟢   | 2      | 2      | 0      | 0           |
+| TASK-016  | Restructure Spec Agent                             | 🟢   | 2      | 2      | 0      | 0           |
+| TASK-017  | Restructure Designer Agent                         | 🟢   | 2      | 2      | 0      | 0           |
+| TASK-018  | Restructure Researcher Agent                       | 🟢   | 2      | 2      | 0      | 0           |
+| **Total** |                                                    |      | **52** | **52** | **0**  | **0**       |
 
 ### Verification Report Sources
 
@@ -49,31 +49,31 @@ All 18 implementation tasks verified with 52 total checks, 0 failures, 0 regress
 
 ### Design Review (Step 3b) — Round 1
 
-| Perspective | Round | Verdict | Findings |
-|-------------|-------|---------|----------|
-| security-auditor | 1 | needs_revision | 2 Critical, 4 Major, 2 Minor |
-| architecture-purist | 1 | needs_revision | 3 Major, 4 Minor |
-| correctness-checker | 1 | needs_revision | 2 Critical, 2 Major, 4 Minor |
+| Perspective         | Round | Verdict        | Findings                     |
+| ------------------- | ----- | -------------- | ---------------------------- |
+| security-auditor    | 1     | needs_revision | 2 Critical, 4 Major, 2 Minor |
+| architecture-purist | 1     | needs_revision | 3 Major, 4 Minor             |
+| correctness-checker | 1     | needs_revision | 2 Critical, 2 Major, 4 Minor |
 
 All design review findings were addressed during the design revision phase before implementation began.
 
 ### Code Review (Step 7) — Round 1
 
-| Perspective | Round | Verdict | Findings |
-|-------------|-------|---------|----------|
-| security-sentinel | 1 | needs_revision | 3 Major, 4 Minor |
-| architecture-guardian | 1 | needs_revision | 4 Major, 2 Minor |
-| pragmatic-verifier | 1 | needs_revision | 1 Critical, 3 Major, 5 Minor |
+| Perspective           | Round | Verdict        | Findings                     |
+| --------------------- | ----- | -------------- | ---------------------------- |
+| security-sentinel     | 1     | needs_revision | 3 Major, 4 Minor             |
+| architecture-guardian | 1     | needs_revision | 4 Major, 2 Minor             |
+| pragmatic-verifier    | 1     | needs_revision | 1 Critical, 3 Major, 5 Minor |
 
 **R1 Fix Summary:** 10 findings addressed (1 Critical, 6 Major, 3 Minor) across `schemas.md`, `orchestrator.agent.md`, and `pipeline-conventions.md`. 6 findings deferred as non-blocking (SEC-1/SEC-2 enforcement, SEC-3/SEC-4 path hardening, ARCH-2 scope reduction, C-6 example format).
 
 ### Code Review (Step 7) — Round 2 (Final)
 
-| Perspective | Round | Verdict | Findings |
-|-------------|-------|---------|----------|
-| security-sentinel | 2 | **approve** | 0 new findings |
-| architecture-guardian | 2 | **approve** | 1 Minor (residual observation) |
-| pragmatic-verifier | 2 | **approve** | 1 Minor (operational DB drift) |
+| Perspective           | Round | Verdict     | Findings                       |
+| --------------------- | ----- | ----------- | ------------------------------ |
+| security-sentinel     | 2     | **approve** | 0 new findings                 |
+| architecture-guardian | 2     | **approve** | 1 Minor (residual observation) |
+| pragmatic-verifier    | 2     | **approve** | 1 Minor (operational DB drift) |
 
 **Result:** Unanimous approval (3/3) in Round 2. All R1 Critical and Major findings resolved. 2 Minor residual observations documented as known issues.
 
@@ -105,37 +105,37 @@ git revert --no-commit pipeline-baseline-2026-02-27T10-00-00Z..HEAD
 
 ### Files Modified
 
-| # | File | Action | Task | Risk |
-|---|------|--------|------|------|
-| 1 | `.github/copilot-instructions.md` | create | TASK-001 | 🟢 |
-| 2 | `.github/instructions/pipeline-conventions.md` | create | TASK-001 | 🟢 |
-| 3 | `NewAgents/.github/agents/global-operating-rules.md` | create | TASK-002 | 🟡 |
-| 4 | `NewAgents/.github/agents/tool-access-matrix.md` | create | TASK-003 | 🟡 |
-| 5 | `NewAgents/.github/agents/review-perspectives.md` | create | TASK-004 | 🟢 |
-| 6 | `NewAgents/.github/agents/context7-integration.md` | create | TASK-005 | 🟢 |
-| 7 | `NewAgents/.github/agents/evaluation-schema.md` | create | TASK-005 | 🟢 |
-| 8 | `NewAgents/.github/agents/sql-templates.md` | create | TASK-006 | 🟡 |
-| 9 | `NewAgents/.github/agents/schemas.md` | modify | TASK-007 | 🟡 |
-| 10 | `NewAgents/.github/agents/dispatch-patterns.md` | modify | TASK-008 | 🟡 |
-| 11 | `NewAgents/.github/agents/severity-taxonomy.md` | modify | TASK-009 | 🟢 |
-| 12 | `NewAgents/.github/agents/orchestrator.agent.md` | modify | TASK-010 | 🔴 |
-| 13 | `NewAgents/.github/agents/adversarial-reviewer.agent.md` | modify | TASK-011 | 🟡 |
-| 14 | `NewAgents/.github/agents/knowledge-agent.agent.md` | modify | TASK-012 | 🔴 |
-| 15 | `NewAgents/.github/agents/implementer.agent.md` | modify | TASK-013 | 🟡 |
-| 16 | `NewAgents/.github/agents/verifier.agent.md` | modify | TASK-014 | 🟡 |
-| 17 | `NewAgents/.github/agents/planner.agent.md` | modify | TASK-015 | 🟢 |
-| 18 | `NewAgents/.github/agents/spec.agent.md` | modify | TASK-016 | 🟢 |
-| 19 | `NewAgents/.github/agents/designer.agent.md` | modify | TASK-017 | 🟢 |
-| 20 | `NewAgents/.github/agents/researcher.agent.md` | modify | TASK-018 | 🟢 |
+| #   | File                                                     | Action | Task     | Risk |
+| --- | -------------------------------------------------------- | ------ | -------- | ---- |
+| 1   | `.github/copilot-instructions.md`                        | create | TASK-001 | 🟢   |
+| 2   | `.github/instructions/pipeline-conventions.md`           | create | TASK-001 | 🟢   |
+| 3   | `NewAgents/.github/agents/global-operating-rules.md`     | create | TASK-002 | 🟡   |
+| 4   | `NewAgents/.github/agents/tool-access-matrix.md`         | create | TASK-003 | 🟡   |
+| 5   | `NewAgents/.github/agents/review-perspectives.md`        | create | TASK-004 | 🟢   |
+| 6   | `NewAgents/.github/agents/context7-integration.md`       | create | TASK-005 | 🟢   |
+| 7   | `NewAgents/.github/agents/evaluation-schema.md`          | create | TASK-005 | 🟢   |
+| 8   | `NewAgents/.github/agents/sql-templates.md`              | create | TASK-006 | 🟡   |
+| 9   | `NewAgents/.github/agents/schemas.md`                    | modify | TASK-007 | 🟡   |
+| 10  | `NewAgents/.github/agents/dispatch-patterns.md`          | modify | TASK-008 | 🟡   |
+| 11  | `NewAgents/.github/agents/severity-taxonomy.md`          | modify | TASK-009 | 🟢   |
+| 12  | `NewAgents/.github/agents/orchestrator.agent.md`         | modify | TASK-010 | 🔴   |
+| 13  | `NewAgents/.github/agents/adversarial-reviewer.agent.md` | modify | TASK-011 | 🟡   |
+| 14  | `NewAgents/.github/agents/knowledge-agent.agent.md`      | modify | TASK-012 | 🔴   |
+| 15  | `NewAgents/.github/agents/implementer.agent.md`          | modify | TASK-013 | 🟡   |
+| 16  | `NewAgents/.github/agents/verifier.agent.md`             | modify | TASK-014 | 🟡   |
+| 17  | `NewAgents/.github/agents/planner.agent.md`              | modify | TASK-015 | 🟢   |
+| 18  | `NewAgents/.github/agents/spec.agent.md`                 | modify | TASK-016 | 🟢   |
+| 19  | `NewAgents/.github/agents/designer.agent.md`             | modify | TASK-017 | 🟢   |
+| 20  | `NewAgents/.github/agents/researcher.agent.md`           | modify | TASK-018 | 🟢   |
 
 ---
 
 ## Known Issues
 
-| # | Description | Severity | Source |
-|---|-------------|----------|--------|
-| 1 | `schemas.md` remains at 1528+ lines spanning 6+ concern domains (YAML schemas, SQLite DDL, routing matrix, evidence gates, output format classification). Critical DDL/query issues fixed in R1, but full scope reduction to schema-only content is deferred as tech debt. | Minor | Code Review R2 (architecture-guardian) |
-| 2 | Live `verification-ledger.db` may lack `instance` column added to canonical DDL in `sql-templates.md §1`. `CREATE TABLE IF NOT EXISTS` won't alter existing tables. Operational migration needed at next Step 0. | Minor | Code Review R2 (pragmatic-verifier) |
+| #   | Description                                                                                                                                                                                                                                                                | Severity | Source                                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------- |
+| 1   | `schemas.md` remains at 1528+ lines spanning 6+ concern domains (YAML schemas, SQLite DDL, routing matrix, evidence gates, output format classification). Critical DDL/query issues fixed in R1, but full scope reduction to schema-only content is deferred as tech debt. | Minor    | Code Review R2 (architecture-guardian) |
+| 2   | Live `verification-ledger.db` may lack `instance` column added to canonical DDL in `sql-templates.md §1`. `CREATE TABLE IF NOT EXISTS` won't alter existing tables. Operational migration needed at next Step 0.                                                           | Minor    | Code Review R2 (pragmatic-verifier)    |
 
 ---
 
@@ -157,6 +157,7 @@ git revert --no-commit pipeline-baseline-2026-02-27T10-00-00Z..HEAD
 **Rating: High**
 
 All criteria for High confidence are met:
+
 - ✅ All 52 verification checks pass across 18 tasks
 - ✅ All 3 reviewers approve unanimously in Round 2
 - ✅ Zero regressions detected across all baseline cross-checks
