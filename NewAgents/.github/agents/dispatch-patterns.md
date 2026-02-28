@@ -8,20 +8,36 @@ description: Dispatch pattern definitions for pipeline agent coordination
 This is a reference document for the orchestrator. Contains full definitions of reusable
 dispatch patterns for subagent invocations and the replan loop.
 
+The orchestrator uses the VS Code Copilot `runSubagent` tool. When multiple `runSubagent`
+calls are issued within the same orchestration step, they are dispatched concurrently by
+the Copilot runtime (subject to the concurrency cap defined below). Pattern A relies on
+this native parallel execution capability.
+
 ---
 
 ## Pattern A — Fully Parallel
 
 Used by: Research (Step 1), Design Review (Step 3b), Implementation waves (Step 5), Verification waves (Step 6), Code Review (Step 7).
 
-1. Dispatch N subagents in parallel (N ≤ concurrency cap of 4).
-2. Wait for all N to return.
-3. Handle individual errors: retry once per failed agent (1 retry per agent, orchestrator-level).
-4. Evaluate gate condition: **≥M of N must return `status: DONE`** (M varies by step — see Pattern Usage Table).
-5. If gate condition met → pattern DONE; orchestrator proceeds.
-6. If gate condition NOT met after retries → pattern ERROR for that step.
+**Fact:** When Pattern A is executed, all subagents in the wave are dispatched concurrently.
+The orchestrator emits multiple `runSubagent` calls in the same step, and the Copilot
+runtime executes them in parallel (up to the concurrency cap).
 
-### Gate Condition Details
+### Execution Model
+
+1. Dispatch N subagents concurrently (N ≤ concurrency cap of 4).
+2. The runtime executes them in parallel.
+3. Wait for all N to return (implicit Promise.all behavior).
+4. Handle individual errors: retry once per failed agent (1 retry per agent, orchestrator-level).
+5. Evaluate gate condition: **≥M of N must return `status: DONE`** (M varies by step — see Pattern Usage Table).
+6. If gate condition met → pattern DONE; orchestrator proceeds.
+7. If gate condition NOT met after retries → pattern ERROR for that step.
+
+Parallelism is native to the dispatch mechanism — no additional configuration is required.
+
+---
+
+## Gate Condition Details
 
 | Dispatch         | N (total) | M (required DONE) | Gate Expression              |
 | ---------------- | --------- | ----------------- | ---------------------------- |
@@ -31,26 +47,35 @@ Used by: Research (Step 1), Design Review (Step 3b), Implementation waves (Step 
 | Verifiers        | ≤4/wave   | all               | all DONE (per-task gate)     |
 | Code Review ×3   | 3         | 2                 | ≥2 of 3 approve + 0 blockers |
 
-### Retry Policy
+---
+
+## Retry Policy
 
 - **Budget:** 1 retry per failed subagent (orchestrator-level).
 - **Trigger:** Agent returns `status: ERROR` or fails to return within timeout.
 - **Schema violation:** Treated as transient — retry once. Second schema violation → ERROR.
 - **No retry on:** Security Blocker verdicts (immediate pipeline ERROR — see severity-taxonomy.md).
 
-### Examples
+Retries are dispatched as a new parallel wave (≤ concurrency cap).
 
-**Researchers ×4 (Step 1):**
+---
+
+## Examples
+
+### Researchers ×4 (Step 1)
 
 ```
 Dispatch: researcher ×4 (architecture, impact, dependencies, patterns)
 Concurrency: 4 concurrent (at cap)
+Execution: All four subagents run in parallel.
 Gate: ≥2 of 4 DONE
-Retry: Failed researchers retried once
+Retry: Failed researchers retried once (parallel retry wave)
 Result: 2–4 research outputs forwarded to Spec agent
 ```
 
-**Adversarial Reviewers ×3 (Steps 3b, 7) — Perspective-Based:**
+---
+
+### Adversarial Reviewers ×3 (Steps 3b, 7) — Perspective-Based
 
 Each reviewer reviews **all** categories (security, architecture, correctness) through a distinct perspective lens. 3 perspectives × 3 categories = 9 review dimensions per round. See [review-perspectives.md](review-perspectives.md) for full perspective definitions.
 
@@ -68,9 +93,10 @@ Dispatch: adversarial-reviewer ×3 with distinct review_perspective
     feature_slug: {feature_slug}
 
 Concurrency: 3 concurrent (within cap)
+Execution: All three reviewers run in parallel.
 Gate: All 3 reviewers submitted (9 SQL rows) AND 0 verdict='blocker'
       AND ≥2 of 3 reviewers fully approve across all categories
-Retry: Failed reviewers retried once
+Retry: Failed reviewers retried once (parallel retry wave)
 Result: Review verdicts + findings forwarded; any blocker → pipeline ERROR
 ```
 

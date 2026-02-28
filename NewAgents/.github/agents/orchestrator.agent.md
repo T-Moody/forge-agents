@@ -110,6 +110,8 @@ On pipeline resume, reconstruct state per [global-operating-rules.md](global-ope
 
 **Dispatch:** 4 researcher instances in parallel. Dispatch with context7 preference per [context7-integration.md](context7-integration.md).
 
+Invoke four researcher subagents concurrently using separate `runSubagent` calls in the same reasoning step. Do not await between calls.
+
 | Instance                  | Focus Area     |
 | ------------------------- | -------------- |
 | `researcher-architecture` | `architecture` |
@@ -152,6 +154,8 @@ Present via `ask_questions`: **proceed** (default) | **expand** | **abort** | **
 ### Step 3b: Adversarial Design Review (3× Parallel — Pattern A)
 
 **Dispatch:** 3 adversarial-reviewer instances with distinct `review_perspective`. See [review-perspectives.md](review-perspectives.md) for perspective definitions, [dispatch-patterns.md](dispatch-patterns.md) for dispatch details.
+
+Invoke three adversarial-reviewer subagents concurrently using separate `runSubagent` calls in the same reasoning step. Do not await between calls.
 
 | Instance | `review_perspective`    | Lens                                      |
 | -------- | ----------------------- | ----------------------------------------- |
@@ -218,6 +222,8 @@ Create git baseline tag: `git tag -f pipeline-baseline-{run_id}`
 #### Step 5: Implementation Wave
 
 **Dispatch:** ≤4 implementers per sub-wave (Pattern A within Pattern B).
+
+Invoke up to four implementer subagents concurrently using separate `runSubagent` calls in the same reasoning step. Do not await between calls.
 Sub-wave partitioning when >4 tasks: sort by dependency, partition into ≤4 per wave.
 
 **Per implementer:**
@@ -232,6 +238,8 @@ Sub-wave partitioning when >4 tasks: sort by dependency, partition into ≤4 per
 #### Step 6: Verification (Per-Task)
 
 **Dispatch:** 1 verifier per completed task (≤4 concurrent).
+
+When dispatching multiple verifiers, invoke them concurrently using separate `runSubagent` calls in the same reasoning step. Do not await between calls.
 
 **Per verifier:**
 
@@ -260,6 +268,8 @@ Sub-wave partitioning when >4 tasks: sort by dependency, partition into ≤4 per
 ### Step 7: Adversarial Code Review (3× Parallel — Pattern A)
 
 **Dispatch:** 3 adversarial-reviewer instances (same perspectives as Step 3b).
+
+Invoke three adversarial-reviewer subagents concurrently using separate `runSubagent` calls in the same reasoning step. Do not await between calls.
 
 | Instance | `review_perspective`    | Lens                                   |
 | -------- | ----------------------- | -------------------------------------- |
