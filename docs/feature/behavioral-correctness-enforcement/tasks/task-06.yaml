@@ -1,0 +1,96 @@
+task:
+  id: "task-06"
+  title: "implementer.agent.md — Behavioral TDD rules, test selection strategy, output schema, self-verification"
+  description: >
+    Update implementer.agent.md with 5 groups of changes for behavioral enforcement:
+
+    (1) TDD Structural Rules (add to Step 4 TDD section):
+    - Tests MUST import at least one production module modified/created by the task
+    - Test assertions MUST reference values from production code (method returns, property
+      values, observable side effects) — NOT local variables replicating production logic
+    - After writing tests and before writing production code, run tests and record the
+      result in tdd_red_green {tests_written_first, initial_run_failures, initial_run_exit_code}
+
+    (2) Output Schema Update (YAML Output Structure section):
+    - Add behavioral_coverage field to payload (list of AC-to-test mappings)
+    - Add tdd_red_green field to payload (TDD ordering evidence)
+    - Both match Schema 7 definitions from schemas.md (established in task-04)
+
+    (3) Test Selection Strategy (new subsection in Operating Rules, after rule 10):
+    - Test behavior, not implementation details
+    - Do NOT write tests for what the type system guarantees
+    - Public interface only — do NOT expose internals or add test-only hooks
+    - test_method-based selection guide: test→automated, inspection→no test,
+      demonstration→runtime evidence, analysis→static analysis
+    - UI-specific: Playwright for cross-component flows, unit tests for logic, inspection for CSS
+
+    (4) Self-Verification Items (add to Implementation Correctness checklist):
+    - "Tests invoke production code, not local variable replications"
+    - "Every test_method='test' AC has a corresponding automated test in behavioral_coverage"
+    - "New source files are imported/referenced by at least one existing source file"
+
+    (5) Edge Case Handling:
+    - EC-1: For inspection-only tasks, map all ACs as status='not_applicable' with justification
+    - EC-2: For TDD Fallback, use status='not_applicable' with justification explaining why
+      tests could not be written (test_method='test' but no framework, bootstrap task, etc.)
+    - EC-3: Runtime wiring check applies only to new files, not modifications
+
+    Total estimated addition: ~66 lines. Current file: 334 lines → ~400 lines (NFR-2 budget limit).
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["task-04"]
+  acceptance_criteria:
+    - id: "AC-4"
+      text: >
+        Implementer Step 4 (TDD) contains structural rules requiring: (a) test files import
+        production modules modified/created by the task, (b) assertions reference production
+        code output, not local variable replications.
+      test_method: "test"
+    - id: "AC-5"
+      text: >
+        Implementer self-verification checklist contains all three items: (a) "Tests invoke
+        production code, not local variable replications", (b) "Every test_method='test' AC
+        has a corresponding automated test in behavioral_coverage", (c) "New source files are
+        imported/referenced by at least one existing source file."
+      test_method: "inspection"
+    - id: "AC-11"
+      text: >
+        Implementer TDD section records tdd_red_green with tests_written_first (boolean),
+        initial_run_failures (integer), and initial_run_exit_code (integer). TDD Fallback
+        scenario (EC-2) maps as behavioral_coverage status='not_applicable' with justification.
+      test_method: "test"
+    - id: "AC-15"
+      text: >
+        Implementer Operating Rules contain a Test Selection Strategy covering: (a) test
+        behavior not implementation, (b) no type-system tests, (c) public interface only,
+        (d) test_method-based selection guide, (e) UI-specific strategy.
+      test_method: "inspection"
+    - id: "AC-2-impl"
+      text: >
+        Implementer YAML Output Structure includes behavioral_coverage and tdd_red_green
+        fields matching the Schema 7 definitions in schemas.md.
+      test_method: "inspection"
+    - id: "AC-13"
+      text: >
+        No TBD, TODO, FIXME, or placeholder markers exist in implementer.agent.md after
+        modification. Final file line count does not exceed 400 lines.
+      test_method: "test"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-2']"
+      - "design-output.yaml#payload.decisions[id='D-7']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-6']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-9']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-4']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-5']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-11']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-15']"
+      - "spec-output.yaml#payload.edge_cases[id='EC-1']"
+      - "spec-output.yaml#payload.edge_cases[id='EC-2']"
+      - "spec-output.yaml#payload.edge_cases[id='EC-3']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        risk: "🟡"

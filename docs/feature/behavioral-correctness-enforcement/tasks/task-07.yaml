@@ -1,0 +1,90 @@
+task:
+  id: "task-07"
+  title: "verifier.agent.md — Behavioral-coverage and runtime-wiring Tier 2 checks"
+  description: >
+    Update verifier.agent.md with behavioral verification checks in Tier 2:
+
+    (1) Add Step 3e (behavioral-coverage check) and Step 3f (runtime-wiring check) to
+    the Tier 2 section. CRITICAL CONSTRAINT from design review Correctness Major 1:
+    These checks use always-available workspace tools (read_file, grep_search), NOT
+    external tooling detected from config files. They MUST be placed under a distinct
+    sub-heading within Tier 2 that explicitly states they are UNCONDITIONAL for code tasks,
+    separate from the existing "Run If Tooling Exists" conditional checks (3a-3d).
+    Suggested structure: After 3d (Tests), add sub-heading "#### Always-Run Behavioral
+    Checks (Code Tasks)" containing Steps 3e and 3f.
+
+    Step 3e (behavioral-coverage):
+    - For task_type='code' tasks with test_method='test' criteria
+    - Read behavioral_coverage from implementation report
+    - Verify: (a) test files import production modules, (b) behavioral_coverage mapping
+      is present and complete for all test_method='test' criteria, (c) referenced files exist
+    - Accept 'not_applicable' with justification for test_method='inspection' ACs and
+      TDD Fallback scenarios (EC-2)
+    - INSERT with check_name='behavioral-coverage'
+
+    Step 3f (runtime-wiring):
+    - ONLY for tasks creating new source files (EC-3: skip for modification-only tasks)
+    - Use grep_search to verify at least one pre-existing file references each new file
+    - INSERT with check_name='runtime-wiring'
+
+    (2) Update check_name Quick Reference table: add behavioral-coverage (Tier 2) and
+    runtime-wiring (Tier 2) entries.
+
+    (3) Add Self-Verification items for behavioral cascade completeness:
+    - "behavioral-coverage check executed for all code tasks with test_method='test' criteria"
+    - "runtime-wiring check executed for tasks creating new files (or documented as N/A)"
+
+    Total estimated addition: ~40 lines.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["task-04"]
+  acceptance_criteria:
+    - id: "AC-3"
+      text: >
+        Verifier Tier 2 contains a behavioral-coverage check (Step 3e) that: reads
+        behavioral_coverage from implementation report, verifies completeness for
+        test_method='test' criteria, checks test file existence and production imports.
+        INSERT uses check_name='behavioral-coverage'. Accepts 'not_applicable' for
+        inspection ACs and TDD Fallback (EC-2) scenarios.
+      test_method: "test"
+    - id: "AC-12"
+      text: >
+        Verifier Tier 2 contains a runtime-wiring check (Step 3f) that: runs only for
+        tasks creating new source files, uses grep_search to verify references from
+        existing code, INSERT uses check_name='runtime-wiring'. Modification-only tasks
+        skip this check (EC-3).
+      test_method: "test"
+    - id: "AC-14"
+      text: >
+        Verifier check_name Quick Reference table includes 'behavioral-coverage' (Tier 2,
+        description: behavioral coverage verification) and 'runtime-wiring' (Tier 2,
+        description: runtime wiring for new files).
+      test_method: "inspection"
+    - id: "AC-3-unconditional"
+      text: >
+        Steps 3e and 3f are placed under a distinct sub-heading within Tier 2 that
+        explicitly states they are unconditional for code tasks, NOT gated by external
+        tooling detection. The existing "Run If Tooling Exists" conditional framing
+        (Steps 3a-3d) is clearly separated from the always-run behavioral checks.
+      test_method: "inspection"
+    - id: "AC-13"
+      text: >
+        No TBD, TODO, FIXME, or placeholder markers exist in verifier.agent.md after modification.
+      test_method: "test"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-3']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-6']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-3']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-12']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-14']"
+      - "spec-output.yaml#payload.edge_cases[id='EC-1']"
+      - "spec-output.yaml#payload.edge_cases[id='EC-2']"
+      - "spec-output.yaml#payload.edge_cases[id='EC-3']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        risk: "🟡"

@@ -454,25 +454,30 @@ completion:
 
 > Produced by the Planner as sub-output of `plan-output`. One file per task. Contains per-task specification with risk classification and `relevant_context` pointers to bound downstream agent reads.
 > **Output path:** `tasks/<task-id>.yaml` (e.g., `tasks/task-03.yaml`)
+>
+> **Version 2.0 (breaking change):** `acceptance_criteria` changed from `list of strings` to `list of objects` with structured sub-fields `{id, text, test_method}`. This enables AC-to-test traceability and test_method propagation from spec through task to implementation. **Migration:** Planner (producer) must emit structured AC objects; Implementer and Verifier (consumers) must consume the object format. Existing string-format ACs are not forward-compatible.
 
 ### Fields
 
-| Field                                          | Type            | Required    | Constraint / Allowed Values                                        |
-| ---------------------------------------------- | --------------- | ----------- | ------------------------------------------------------------------ |
-| `task.id`                                      | string          | Yes         | Task identifier assigned by Planner (e.g., `task-03`)              |
-| `task.title`                                   | string          | Yes         | Task title                                                         |
-| `task.description`                             | string          | Yes         | Detailed description of work to be done                            |
-| `task.agent`                                   | string          | Yes         | Assigned agent (e.g., `implementer`)                               |
-| `task.size`                                    | string          | Yes         | `Standard` \| `Large`                                              |
-| `task.risk`                                    | string          | Yes         | `"🟢"` \| `"🟡"` \| `"🔴"`                                         |
-| `task.depends_on`                              | list of strings | No          | Task IDs this task depends on                                      |
-| `task.acceptance_criteria`                     | list of strings | Yes         | ≥ 1 entry; testable acceptance criteria                            |
-| `task.relevant_context`                        | object          | Yes         | Pointers to specific upstream sections (bounds read amplification) |
-| `task.relevant_context.design_sections`        | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `design-output.yaml`   |
-| `task.relevant_context.spec_requirements`      | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `spec-output.yaml`     |
-| `task.relevant_context.files_to_modify`        | list of objects | No          | Files to create or modify                                          |
-| `task.relevant_context.files_to_modify[].path` | string          | Conditional | Relative file path                                                 |
-| `task.relevant_context.files_to_modify[].risk` | string          | Conditional | `"🟢"` \| `"🟡"` \| `"🔴"`                                         |
+| Field                                              | Type            | Required    | Constraint / Allowed Values                                                                   |
+| -------------------------------------------------- | --------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| `task.id`                                          | string          | Yes         | Task identifier assigned by Planner (e.g., `task-03`)                                         |
+| `task.title`                                       | string          | Yes         | Task title                                                                                    |
+| `task.description`                                 | string          | Yes         | Detailed description of work to be done                                                       |
+| `task.agent`                                       | string          | Yes         | Assigned agent (e.g., `implementer`)                                                          |
+| `task.size`                                        | string          | Yes         | `Standard` \| `Large`                                                                         |
+| `task.risk`                                        | string          | Yes         | `"🟢"` \| `"🟡"` \| `"🔴"`                                                                    |
+| `task.depends_on`                                  | list of strings | No          | Task IDs this task depends on                                                                 |
+| `task.acceptance_criteria`                         | list of objects | Yes         | ≥ 1 entry; structured acceptance criteria (v2.0)                                              |
+| `task.acceptance_criteria[].id`                    | string          | Yes         | AC identifier from spec (e.g., `AC-1`)                                                        |
+| `task.acceptance_criteria[].text`                  | string          | Yes         | Testable acceptance criterion text                                                            |
+| `task.acceptance_criteria[].test_method`           | string          | Yes         | `inspection` \| `demonstration` \| `test` \| `analysis`                                       |
+| `task.relevant_context`                            | object          | Yes         | Pointers to specific upstream sections (bounds read amplification)                            |
+| `task.relevant_context.design_sections`            | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `design-output.yaml`                              |
+| `task.relevant_context.spec_requirements`          | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `spec-output.yaml`                                |
+| `task.relevant_context.files_to_modify`            | list of objects | No          | Files to create or modify                                                                     |
+| `task.relevant_context.files_to_modify[].path`     | string          | Conditional | Relative file path                                                                            |
+| `task.relevant_context.files_to_modify[].risk`     | string          | Conditional | `"🟢"` \| `"🟡"` \| `"🔴"`                                                                    |
 
 ### Example
 
@@ -487,10 +492,18 @@ task:
   depends_on:
     - "task-01"
   acceptance_criteria:
-    - "Email validation rejects malformed addresses"
-    - "Password strength check enforces minimum 12 characters"
-    - "Rate limiting returns 429 after 5 attempts per minute"
-    - "All validation errors return structured JSON error responses"
+    - id: "AC-1"
+      text: "Email validation rejects malformed addresses"
+      test_method: "test"
+    - id: "AC-2"
+      text: "Password strength check enforces minimum 12 characters"
+      test_method: "test"
+    - id: "AC-3"
+      text: "Rate limiting returns 429 after 5 attempts per minute"
+      test_method: "test"
+    - id: "AC-4"
+      text: "All validation errors return structured JSON error responses"
+      test_method: "inspection"
   relevant_context:
     design_sections:
       - "design-output.yaml#payload.decisions[id='D-8']" # Risk classification
@@ -544,7 +557,24 @@ task:
 | `payload.verification_entries[].phase`        | string          | Conditional | Always `baseline` for Implementer entries                               |
 | `payload.verification_entries[].tool`         | string          | Conditional | Tool used (e.g., `ide-get_diagnostics`, `dotnet build`)                 |
 | `payload.verification_entries[].passed`       | boolean         | Conditional | Whether the check passed                                                |
+| `payload.behavioral_coverage`                 | list of objects | Conditional | Required for `task_type='code'`; maps each AC to its verifying test     |
+| `payload.behavioral_coverage[].ac_id`         | string          | Yes         | AC identifier (e.g., `AC-1`)                                           |
+| `payload.behavioral_coverage[].test_file`     | string          | Conditional | Relative path to test file; required when `status='covered'`            |
+| `payload.behavioral_coverage[].test_name`     | string          | Conditional | Test function/method name; required when `status='covered'`             |
+| `payload.behavioral_coverage[].status`        | string          | Yes         | `covered` \| `not_applicable`                                           |
+| `payload.behavioral_coverage[].justification` | string          | Conditional | Required when `status='not_applicable'`; explains why no test exists    |
+| `payload.tdd_red_green`                       | object          | Conditional | Required for `task_type='code'` when TDD applies; records TDD cycle     |
+| `payload.tdd_red_green.tests_written_first`   | boolean         | Yes         | `true` if tests were written before production code                     |
+| `payload.tdd_red_green.initial_run_failures`  | integer         | Yes         | Number of test failures on initial (red) run                            |
+| `payload.tdd_red_green.initial_run_exit_code` | integer         | Yes         | Exit code of the initial (red) test run                                 |
 | `completion` (contract)                       | object          | Yes         | See Schema 1                                                            |
+
+> **`behavioral_coverage.status` values:**
+> - `covered` — AC has a corresponding automated test that invokes production code. Requires `test_file` and `test_name`.
+> - `not_applicable` — AC does not require an automated test. Requires `justification`. Valid reasons include:
+>   - `test_method='inspection'` or `test_method='analysis'` — criterion verified by review, not automation
+>   - `test_method='demonstration'` — criterion verified by runtime evidence (screenshot, log)
+>   - TDD Fallback (EC-2) — `test_method='test'` but tests could not be written (no test framework, bootstrap task, or documented justification per TDD Fallback rules)
 
 ### Example
 
@@ -602,6 +632,26 @@ agent_output:
         phase: "baseline"
         tool: "dotnet test"
         passed: true
+    behavioral_coverage:
+      - ac_id: "AC-1"
+        test_file: "tests/auth/validator.test.ts"
+        test_name: "rejects malformed email addresses"
+        status: "covered"
+      - ac_id: "AC-2"
+        test_file: "tests/auth/validator.test.ts"
+        test_name: "enforces minimum 12 character password"
+        status: "covered"
+      - ac_id: "AC-3"
+        test_file: "tests/auth/validator.test.ts"
+        test_name: "returns 429 after 5 attempts per minute"
+        status: "covered"
+      - ac_id: "AC-4"
+        status: "not_applicable"
+        justification: "test_method='inspection' — JSON response structure verified by code review"
+    tdd_red_green:
+      tests_written_first: true
+      initial_run_failures: 3
+      initial_run_exit_code: 1
 completion:
   status: DONE
   summary: "Implemented task-03: input validation for auth handler, 7 new tests, 0 self-fixes"
@@ -962,68 +1012,16 @@ completion:
 
 > All tables reside in `verification-ledger.db` within the feature directory (per D-1 database consolidation). SQLite is the PRIMARY verification ledger. All agents use `run_in_terminal` for SQL operations. Schema initialization is centralized in Step 0 by the orchestrator.
 >
-> **Consolidated tables (4):** `anvil_checks`, `pipeline_telemetry`, `artifact_evaluations`, `instruction_updates` — all share `run_id` namespace for cross-table queries.
+> **Canonical DDL:** See [sql-templates.md](sql-templates.md) §1 for all table CREATE statements, indexes, and PRAGMA settings. Do not duplicate DDL here to prevent drift.
 
-### Initialization (Step 0 — Orchestrator via `run_in_terminal`)
+| Table | Purpose |
+| ----- | ------- |
+| `anvil_checks` | Verification ledger — baseline, after-implementation, and review check results |
+| `pipeline_telemetry` | Pipeline metrics — dispatch timing, status, and retry counts per agent |
+| `artifact_evaluations` | Artifact quality — usefulness/clarity scores and qualitative feedback |
+| `instruction_updates` | Instruction governance — Knowledge Agent modifications to instruction files |
 
-```sql
--- MANDATORY: Set before any table creation or data operations
-PRAGMA journal_mode=WAL;
-PRAGMA busy_timeout=5000;
-```
-
-**Why these are mandatory:**
-
-- `journal_mode=WAL` — allows concurrent reads with one writer; prevents `SQLITE_BUSY` errors when up to 4 agents write in parallel
-- `busy_timeout=5000` — queues concurrent writers for up to 5 seconds instead of failing immediately
-
-### `anvil_checks` Table (Verification Ledger)
-
-> **Canonical definition** — from design.md §Decision 6. If this differs from §Data Storage, §Decision 6 takes precedence.
-> **Database file:** `verification-ledger.db` in the feature directory.
-
-```sql
--- Illustrative reference only. Execute sql-templates.md §1 for the canonical DDL.
-CREATE TABLE IF NOT EXISTS anvil_checks (
-  id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id         TEXT    NOT NULL,
-  task_id        TEXT,
-  phase          TEXT    NOT NULL CHECK (phase IN ('baseline','after','review')),
-  check_name     TEXT    NOT NULL,
-  tool           TEXT,
-  command        TEXT,
-  exit_code      INTEGER,
-  output_snippet TEXT    CHECK (LENGTH(output_snippet) <= 500),
-  passed         INTEGER NOT NULL CHECK (passed IN (0, 1)),
-  verdict        TEXT    CHECK (verdict IN ('approve','needs_revision','blocker')),
-  severity       TEXT    CHECK (severity IN ('Blocker','Critical','Major','Minor')),
-  round          INTEGER DEFAULT 1,
-  instance       TEXT,
-  ts             TEXT    NOT NULL DEFAULT (datetime('now'))
-);
-```
-
-#### Column Reference
-
-| Column           | Type    | Nullable | Constraint / Notes                                                                         |
-| ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------ |
-| `id`             | INTEGER | No       | Auto-increment primary key                                                                 |
-| `run_id`         | TEXT    | No       | Pipeline run identifier (ISO 8601 timestamp, e.g., `2026-02-26T14:30:00Z`)                 |
-| `task_id`        | TEXT    | Yes      | See [task_id Naming Convention](#task_id-naming-convention); `NULL` for orchestrator-level |
-| `phase`          | TEXT    | No       | `baseline` \| `after` \| `review`                                                          |
-| `check_name`     | TEXT    | No       | See [check_name Naming Patterns](#check_name-naming-patterns)                              |
-| `tool`           | TEXT    | Yes      | Tool or command used for the check; `NULL` for non-tool checks                             |
-| `command`        | TEXT    | Yes      | Full command string; `NULL` for non-command checks (e.g., IDE diagnostics)                 |
-| `exit_code`      | INTEGER | Yes      | Command exit code; `NULL` for non-command checks and review records                        |
-| `output_snippet` | TEXT    | Yes      | ≤ 500 characters; first 500 chars of output (Anvil truncation rule)                        |
-| `passed`         | INTEGER | No       | `0` (failed) or `1` (passed); for reviews: `1` if `verdict='approve'`, else `0`            |
-| `verdict`        | TEXT    | Yes      | `approve` \| `needs_revision` \| `blocker`; `NULL` for `phase='baseline'`/`'after'`        |
-| `severity`       | TEXT    | Yes      | `Blocker` \| `Critical` \| `Major` \| `Minor`; `NULL` for baseline/after and clean approve |
-| `round`          | INTEGER | Yes      | Review round (1 or 2); defaults to `1`; used to prevent stale record accumulation          |
-| `instance`       | TEXT    | Yes      | Reviewer perspective ID (e.g., `security-sentinel`); `NULL` for non-review records         |
-| `ts`             | TEXT    | No       | Auto-set to `datetime('now')`                                                              |
-
-#### Phase Semantics
+### `anvil_checks` Phase Semantics
 
 | Phase      | Written By           | When                                             | `verdict`/`severity` |
 | ---------- | -------------------- | ------------------------------------------------ | -------------------- |
@@ -1031,212 +1029,9 @@ CREATE TABLE IF NOT EXISTS anvil_checks (
 | `after`    | Verifier             | After implementation (full verification cascade) | Always `NULL`        |
 | `review`   | Adversarial Reviewer | During adversarial review (verdict insertion)    | Set per review       |
 
-#### Required Indexes
-
-```sql
--- Composite indexes for evidence gate query performance
-CREATE INDEX IF NOT EXISTS idx_anvil_task_phase ON anvil_checks(task_id, phase);
-CREATE INDEX IF NOT EXISTS idx_anvil_run_round ON anvil_checks(run_id, round);
-```
-
-#### Evidence Gate Queries
+### Evidence Gate Queries
 
 > **See [sql-templates.md](sql-templates.md) §6 for all canonical evidence gate queries (EG-1 through EG-6).** Do not duplicate queries here to prevent drift. Evidence gate logic uses `instance`-based grouping and per-category `check_name` matching — do not use `LIKE`-based counting for review approval checks.
-
-### `pipeline_telemetry` Table
-
-> **Database file:** `verification-ledger.db` in the feature directory (consolidated per D-1).
-> **Writer:** Orchestrator only (after each agent dispatch completes).
-
-```sql
--- Illustrative reference only. Execute sql-templates.md §1 for the canonical DDL.
-CREATE TABLE IF NOT EXISTS pipeline_telemetry (
-  id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id         TEXT    NOT NULL,
-  step           TEXT    NOT NULL,
-  agent          TEXT    NOT NULL,
-  instance       TEXT,
-  started_at     TEXT    NOT NULL,
-  completed_at   TEXT,
-  status         TEXT    CHECK (status IN ('DONE','NEEDS_REVISION','ERROR','TIMEOUT')),
-  dispatch_count INTEGER DEFAULT 1,
-  retry_count    INTEGER DEFAULT 0,
-  notes          TEXT    CHECK (LENGTH(notes) <= 1000),
-  ts             TEXT    NOT NULL DEFAULT (datetime('now'))
-);
-```
-
-#### Column Reference
-
-| Column           | Type    | Nullable | Constraint / Notes                                                        |
-| ---------------- | ------- | -------- | ------------------------------------------------------------------------- |
-| `id`             | INTEGER | No       | Auto-increment primary key                                                |
-| `run_id`         | TEXT    | No       | Pipeline run identifier (ISO 8601)                                        |
-| `step`           | TEXT    | No       | Pipeline step (e.g., `step-1`, `step-5`)                                  |
-| `agent`          | TEXT    | No       | Agent name                                                                |
-| `instance`       | TEXT    | Yes      | Instance identifier (e.g., `researcher-architecture`); `NULL` if singular |
-| `started_at`     | TEXT    | No       | ISO 8601 timestamp                                                        |
-| `completed_at`   | TEXT    | Yes      | ISO 8601 timestamp; `NULL` if still running                               |
-| `status`         | TEXT    | Yes      | `DONE` \| `NEEDS_REVISION` \| `ERROR` \| `TIMEOUT`                        |
-| `dispatch_count` | INTEGER | No       | Number of times this agent was dispatched (≥ 1)                           |
-| `retry_count`    | INTEGER | No       | Number of retries (≥ 0)                                                   |
-| `notes`          | TEXT    | Yes      | Free-form notes; ≤ 1000 characters (`LENGTH(notes) <= 1000`)              |
-| `ts`             | TEXT    | No       | Auto-set to `datetime('now')`                                             |
-
-#### Required Indexes
-
-```sql
-CREATE INDEX IF NOT EXISTS idx_telemetry_run ON pipeline_telemetry(run_id);
-CREATE INDEX IF NOT EXISTS idx_telemetry_step ON pipeline_telemetry(run_id, step);
-```
-
-#### Key Telemetry Queries
-
-```sql
--- Total dispatch count for the pipeline run
-SELECT COUNT(*) FROM pipeline_telemetry WHERE run_id = '{run_id}';
-
--- Per-step timing with duration
-SELECT step, agent, instance, status,
-       (julianday(completed_at)-julianday(started_at))*86400 AS duration_s
-FROM pipeline_telemetry WHERE run_id = '{run_id}' ORDER BY started_at;
-
--- Top 3 slowest steps
-SELECT step, SUM((julianday(completed_at)-julianday(started_at))*86400) AS total_s
-FROM pipeline_telemetry WHERE run_id = '{run_id}' GROUP BY step ORDER BY total_s DESC LIMIT 3;
-
--- Agents with retries
-SELECT agent, instance, retry_count FROM pipeline_telemetry
-WHERE run_id = '{run_id}' AND retry_count > 0;
-
--- Failed steps
-SELECT step, agent, status, notes FROM pipeline_telemetry
-WHERE run_id = '{run_id}' AND status = 'ERROR';
-```
-
-### `artifact_evaluations` Table (NEW)
-
-> **Database file:** `verification-ledger.db` in the feature directory (consolidated per D-1).
-> **Writers:** Implementer (evaluates task definitions), Verifier (evaluates implementation reports), Adversarial Reviewer (evaluates design/implementation data).
-
-```sql
-CREATE TABLE IF NOT EXISTS artifact_evaluations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id TEXT NOT NULL,
-    evaluator_agent TEXT NOT NULL,
-    evaluator_instance TEXT,
-    artifact_path TEXT NOT NULL CHECK (artifact_path NOT LIKE '../%' AND artifact_path NOT LIKE '/%'),
-    usefulness_score INTEGER NOT NULL CHECK (usefulness_score BETWEEN 1 AND 10),
-    clarity_score INTEGER NOT NULL CHECK (clarity_score BETWEEN 1 AND 10),
-    missing_information TEXT CHECK (LENGTH(missing_information) <= 2000),
-    inaccuracies TEXT CHECK (LENGTH(inaccuracies) <= 2000),
-    impact_on_work TEXT CHECK (LENGTH(impact_on_work) <= 2000),
-    ts TEXT NOT NULL DEFAULT (datetime('now'))
-);
-```
-
-#### Column Reference
-
-| Column                | Type    | Nullable | Constraint / Notes                                                                                                            |
-| --------------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `id`                  | INTEGER | No       | Auto-increment primary key                                                                                                    |
-| `run_id`              | TEXT    | No       | Pipeline run identifier (ISO 8601)                                                                                            |
-| `evaluator_agent`     | TEXT    | No       | Agent type performing evaluation (e.g., `"implementer"`, `"verifier"`)                                                        |
-| `evaluator_instance`  | TEXT    | Yes      | Specific instance (e.g., `"implementer-TASK-001"`); `NULL` if singular                                                        |
-| `artifact_path`       | TEXT    | No       | Relative path to evaluated artifact (e.g., `"tasks/TASK-001.yaml"`). CHECK prevents path traversal (`../`) and absolute (`/`) |
-| `usefulness_score`    | INTEGER | No       | 1 (irrelevant) to 10 (everything needed); `CHECK (BETWEEN 1 AND 10)`                                                          |
-| `clarity_score`       | INTEGER | No       | 1 (incomprehensible) to 10 (crystal clear); `CHECK (BETWEEN 1 AND 10)`                                                        |
-| `missing_information` | TEXT    | Yes      | What the evaluator needed but wasn't in the artifact; ≤ 2000 characters                                                       |
-| `inaccuracies`        | TEXT    | Yes      | What was wrong or misleading in the artifact; ≤ 2000 characters                                                               |
-| `impact_on_work`      | TEXT    | Yes      | How artifact quality affected task execution; ≤ 2000 characters                                                               |
-| `ts`                  | TEXT    | No       | Auto-set to `datetime('now')`                                                                                                 |
-
-#### Phase 1 Writers
-
-| Agent                | Evaluates                                        | When                                    |
-| -------------------- | ------------------------------------------------ | --------------------------------------- |
-| Implementer          | `tasks/{task_id}.yaml`                           | After reading task, before implementing |
-| Verifier             | `implementation-reports/{task_id}.yaml`          | After reading report, before verifying  |
-| Adversarial Reviewer | `design-output.yaml` (3b) or impl+verif data (7) | After reading, before reviewing         |
-
-#### Required Indexes
-
-```sql
-CREATE INDEX IF NOT EXISTS idx_eval_run ON artifact_evaluations(run_id);
-CREATE INDEX IF NOT EXISTS idx_eval_agent ON artifact_evaluations(evaluator_agent);
-CREATE INDEX IF NOT EXISTS idx_eval_artifact ON artifact_evaluations(artifact_path);
-```
-
-#### Key Evaluation Queries
-
-```sql
--- Evaluation summary per agent
-SELECT evaluator_agent, COUNT(*), AVG(usefulness_score) AS avg_useful,
-       AVG(clarity_score) AS avg_clarity
-FROM artifact_evaluations WHERE run_id = '{run_id}' GROUP BY evaluator_agent;
-
--- Worst-rated artifacts (quality improvement targets)
-SELECT artifact_path, AVG(usefulness_score) AS avg_useful,
-       AVG(clarity_score) AS avg_clarity
-FROM artifact_evaluations WHERE run_id = '{run_id}'
-GROUP BY artifact_path ORDER BY avg_useful ASC LIMIT 5;
-
--- Missing information reports (common gaps)
-SELECT missing_information FROM artifact_evaluations
-WHERE run_id = '{run_id}' AND missing_information IS NOT NULL
-  AND missing_information != '';
-```
-
-### `instruction_updates` Table (NEW)
-
-> **Database file:** `verification-ledger.db` in the feature directory (consolidated per D-1).
-> **Writer:** Knowledge Agent only (governs instruction file modifications).
-
-```sql
-CREATE TABLE IF NOT EXISTS instruction_updates (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id TEXT NOT NULL,
-    agent TEXT NOT NULL,
-    file_path TEXT NOT NULL CHECK (
-        file_path LIKE '.github/instructions/%'
-        OR file_path = '.github/copilot-instructions.md'
-    ),
-    change_type TEXT NOT NULL CHECK (change_type IN ('create', 'append', 'modify', 'delete')),
-    change_summary TEXT NOT NULL CHECK (LENGTH(change_summary) <= 1000),
-    applied INTEGER NOT NULL DEFAULT 0 CHECK (applied IN (0, 1)),
-    ts TEXT NOT NULL DEFAULT (datetime('now'))
-);
-```
-
-#### Column Reference
-
-| Column           | Type    | Nullable | Constraint / Notes                                                                                            |
-| ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------- |
-| `id`             | INTEGER | No       | Auto-increment primary key                                                                                    |
-| `run_id`         | TEXT    | No       | Pipeline run identifier (ISO 8601)                                                                            |
-| `agent`          | TEXT    | No       | Always `"knowledge-agent"` (only writer)                                                                      |
-| `file_path`      | TEXT    | No       | Target instruction file; CHECK enforces `.github/instructions/*` or `.github/copilot-instructions.md` only    |
-| `change_type`    | TEXT    | No       | `create` (new file) \| `append` (add content) \| `modify` (edit existing) \| `delete` (remove content)        |
-| `change_summary` | TEXT    | No       | Human-readable description of the change; ≤ 1000 characters                                                   |
-| `applied`        | INTEGER | No       | `0` = proposed but not applied (autonomous mode), `1` = applied (interactive mode with approval); default `0` |
-| `ts`             | TEXT    | No       | Auto-set to `datetime('now')`                                                                                 |
-
-#### Required Indexes
-
-```sql
-CREATE INDEX IF NOT EXISTS idx_instr_run ON instruction_updates(run_id);
-```
-
-#### Key Instruction Queries
-
-```sql
--- All instruction updates for a run (audit trail)
-SELECT * FROM instruction_updates WHERE run_id = '{run_id}' ORDER BY ts;
-
--- Most frequently updated instruction files
-SELECT file_path, COUNT(*) AS update_count
-FROM instruction_updates GROUP BY file_path ORDER BY update_count DESC;
-```
 
 ### Full Step 0 Initialization Script
 
@@ -1283,6 +1078,8 @@ FROM instruction_updates GROUP BY file_path ORDER BY update_count DESC;
 | `readiness-{type}`          | `after`    | Verifier             | Tier 4: Operational readiness (Large tasks only). Types: `observability`, `degradation`, `secrets`                                                                                                                                              |
 | `review-{scope}-{category}` | `review`   | Adversarial Reviewer | Review verdict per category where `{scope}` is `design` or `code` and `{category}` is `security`, `architecture`, or `correctness` (e.g., `review-code-security`, `review-design-architecture`). Reviewer identity stored in `instance` column. |
 | `baseline-discrepancy`      | `after`    | Verifier             | Flagged when Implementer baseline claims don't match `git show`                                                                                                                                                                                 |
+| `behavioral-coverage`       | `after`    | Verifier             | Tier 2: Behavioral coverage verification — confirms each `test_method='test'` AC has a corresponding automated test that invokes production code                                                                                                |
+| `runtime-wiring`            | `after`    | Verifier             | Tier 2: Runtime wiring verification — confirms new source files are imported/referenced by at least one pre-existing source file (new-file tasks only)                                                                                          |
 
 ### SQL LIKE Filter Usage
 

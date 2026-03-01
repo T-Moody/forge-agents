@@ -1,0 +1,208 @@
+agent_output:
+  agent: "designer"
+  instance: "designer"
+  step: "step-3"
+  started_at: "2026-03-01T13:00:00Z"
+  completed_at: "2026-03-01T14:15:00Z"
+  schema_version: "1.0"
+  payload:
+    architecture: >
+      Structural enforcement within existing 10-step pipeline architecture (Direction A).
+      Eight files modified with additive changes: implementer (behavioral TDD + test selection),
+      verifier (behavioral-coverage and runtime-wiring checks in Tier 2), planner (structured AC
+      objects with test_method), adversarial-reviewer (correctness guidance expansion),
+      schemas.md (DDL deduplication + new fields), severity-taxonomy.md (3 Major entries),
+      sql-templates.md (EG-7 informational query), review-perspectives.md (behavioral priorities).
+      No new agents, no new pipeline steps, no new review categories. All schema changes additive
+      with backward-compatible defaults.
+
+    decisions:
+      - id: "D-1"
+        title: "Acceptance Criteria Format — Structured Objects in Task Schema"
+        risk: "🟡"
+        rationale: >
+          Replace task.acceptance_criteria list-of-strings with list-of-objects carrying
+          {id, text, test_method}. This enables AC-to-test traceability (FR-1), test_method
+          propagation (FR-1.4), and behavioral_coverage mapping (FR-1.2). The spec-output
+          schema already uses structured AC objects — this extends the pattern to task schema,
+          closing the narrowing gap identified in architecture F-3. Made backward-compatible
+          by defaulting test_method to 'test' if omitted, so existing string-only consumers
+          degrade gracefully. Schema version bumps from 1.0 to 1.1 (additive, per evolution
+          strategy).
+        alternatives_rejected:
+          - name: "Keep strings, add parallel metadata field"
+            reason: >
+              Two fields to maintain creates drift risk. Consumers must correlate by
+              position index, which is fragile. The string list format is already
+              documented as insufficient (dependencies F-2, patterns F-4). A structural
+              replacement is cleaner than a parallel annotation field.
+            confidence: "High"
+
+      - id: "D-2"
+        title: "Behavioral Test Enforcement — Inline Additions to Implementer"
+        risk: "🟡"
+        rationale: >
+          Add behavioral enforcement as inline additions to existing implementer sections:
+          3 self-verification checklist items (production import check, anti-self-referential
+          assertion check, behavioral coverage mapping check), TDD structural recording in
+          Step 4, behavioral_coverage and tdd_red_green fields in output schema, and runtime
+          wiring check for new files. Total addition ~46 lines, keeping implementer at ~380
+          lines (under 400-line NFR-2 budget). Uses the existing self-verification checklist
+          pattern, which is architecturally consistent across all agents (patterns F-7) —
+          the key improvement is adding substance checks alongside the existing form checks.
+        alternatives_rejected:
+          - name: "Dedicated Behavioral Validation section"
+            reason: >
+              Would add ~60 lines as a separate section, risking the 400-line budget
+              and breaking the established section organization. The checklist pattern
+              already exists and is the expected enforcement mechanism — adding to it
+              is more consistent than creating a parallel structure.
+            confidence: "High"
+
+      - id: "D-3"
+        title: "Verifier Behavioral Checks — Tier 2 Placement"
+        risk: "🟡"
+        rationale: >
+          Add behavioral-coverage and runtime-wiring as Tier 2 checks (Steps 3e and 3f)
+          in the verifier cascade. Tier 2 is the natural home because: (a) it runs when
+          tooling exists and behavioral checks use existing tools (grep_search, read_file),
+          (b) behavioral-coverage counts toward the EG-2 minimum signal threshold (FR-3.4),
+          (c) Tier 2 checks are unconditional when tooling exists (unlike Tier 3 which is
+          conditional), and (d) the check pattern matches existing Tier 2 structure
+          (detect condition → run check → INSERT result). Runtime-wiring only runs for tasks
+          creating new files (per EC-3). Both checks use static file analysis, keeping
+          NFR-1 (<50% execution time increase) achievable.
+        alternatives_rejected:
+          - name: "New Tier 2.5 (dedicated behavioral tier)"
+            reason: >
+              Introduces a new tier concept that doesn't exist in the architecture.
+              Renumbering tiers (even conceptually) affects all documentation references
+              to 4-tier cascade. The checks are functionally similar to Tier 2 checks
+              (tool-based, always-run-for-code-tasks) — a separate tier is over-engineering.
+            confidence: "High"
+          - name: "Tier 3 placement"
+            reason: >
+              Tier 3 is conditional ('required when Tiers 1-2 produce no runtime
+              verification'). Behavioral checks must always run for code tasks with
+              test_method='test' criteria, making Tier 3 conditional logic inappropriate.
+            confidence: "High"
+
+      - id: "D-4"
+        title: "Severity Recalibration — Explicit Major Entries"
+        risk: "🟢"
+        rationale: >
+          Add 3 explicit named entries to the Major section of severity-taxonomy.md:
+          (1) tests that do not invoke production code (self-referential tests),
+          (2) business logic code changes with zero test coverage,
+          (3) acceptance criteria with test_method='test' lacking automated tests.
+          This directly addresses the root cause identified in patterns F-8: the
+          adversarial reviewer detected self-referential tests in ui-bug-fixes but
+          classified them as Minor, preventing remediation routing. Adding explicit
+          Major entries uses the existing severity infrastructure — the verdict logic
+          already routes Major findings to needs_revision — without any pipeline changes.
+        alternatives_rejected:
+          - name: "New severity sub-category between Major and Minor"
+            reason: >
+              Breaks the 4-level taxonomy used throughout the pipeline. Would require
+              updating all verdict determination logic, SQL CHECK constraints, and
+              every agent that references severity levels. Massive blast radius for
+              marginal benefit — the existing Major level achieves the routing goal.
+            confidence: "High"
+
+      - id: "D-5"
+        title: "schemas.md DDL Deduplication — Cross-Reference Replacement"
+        risk: "🟢"
+        rationale: >
+          Replace the ~286-line SQLite Schemas section (lines ~961-1246) with a ~25-line
+          cross-reference section listing table names with one-line descriptions and
+          referencing sql-templates.md §1 for canonical DDL. This follows the existing
+          pattern where evidence gate queries already say 'See sql-templates.md §6' — the
+          DDL section is the only remaining duplication. Preserves the check_name Naming
+          Patterns table and phase semantics documentation (unique to schemas.md per FR-7.2).
+          Net reduction of ~260 lines, bringing schemas.md from 1422 to ~1162 base, with
+          ~30 lines of new behavioral fields bringing total to ~1192 (well under 1300
+          NFR-5/FR-7.3 target).
+        alternatives_rejected:
+          - name: "Keep abbreviated DDL (column names only)"
+            reason: >
+              Still duplicates information from sql-templates.md, still creates drift
+              risk, and only saves ~150 lines (vs ~260). The inconsistency where
+              evidence gate queries cross-reference but DDL doesn't would remain.
+              Full cross-reference is the cleaner architectural choice.
+            confidence: "High"
+
+      - id: "D-6"
+        title: "Planner AC Quality — Checklist Items and test_method Propagation"
+        risk: "🟢"
+        rationale: >
+          Add to planner: (a) self-verification item requiring observable behavior in AC
+          text (FR-8.1), (b) workflow rule to propagate spec AC IDs into task ACs (FR-8.2),
+          (c) workflow rule to propagate test_method from spec to task (FR-8.3). Uses existing
+          self-verification checklist pattern. The planner is the translation boundary where
+          structured spec ACs currently degrade to plain strings (architecture F-3) — adding
+          propagation rules here closes the gap at the source. Total addition ~15 lines,
+          keeping planner at ~352 lines (under 400-line budget).
+        alternatives_rejected:
+          - name: "Structural validation with vague-term pattern matching"
+            reason: >
+              Pattern matching for 'works correctly', 'performs well', etc. is brittle —
+              the list of vague terms is unbounded. A self-verification instruction to
+              check for observable behavior is more robust because agents can apply
+              judgment rather than matching against a fixed list. Over-engineered for
+              the intent.
+            confidence: "Medium"
+
+      - id: "D-7"
+        title: "Test Selection Strategy — Inline in Implementer Operating Rules"
+        risk: "🟢"
+        rationale: >
+          Add a Test Selection Strategy subsection to implementer Operating Rules covering:
+          (a) test behavior not implementation, (b) don't test type-system guarantees,
+          (c) public interface only, (d) test_method-based selection guide, (e) UI-specific
+          strategy (Playwright for cross-component flows, unit tests for logic, inspection
+          for CSS). Single consumer (implementer), so a shared reference document is
+          unnecessary. Total ~20 lines. Combines FR-9.1, FR-9.2, and FR-9.3 into one
+          codified reference the implementer consults when writing tests.
+        alternatives_rejected:
+          - name: "Separate shared reference document (test-strategy.md)"
+            reason: >
+              Only the implementer writes tests — verifier and reviewer reference the
+              strategy indirectly through behavioral check definitions. A new shared
+              document adds context window pressure for an additional file reference
+              with only one real consumer. YAGNI.
+            confidence: "High"
+
+      - id: "D-8"
+        title: "Evidence Gate EG-7 — Informational Behavioral Query"
+        risk: "🟢"
+        rationale: >
+          Add EG-7 query to sql-templates.md §6 checking that each code task has at least
+          one anvil_checks record with check_name='behavioral-coverage' AND passed=1.
+          Query is informational initially (logged by orchestrator, not blocking). This
+          follows the spec requirement (FR-5.1 explicitly says 'informational initially')
+          and addresses EC-4 (pipeline resume) — non-blocking means tasks verified before
+          behavioral enforcement won't break. Promotion to required gate deferred to
+          follow-up after behavioral checks prove stable (per CR-9 recommendation).
+        alternatives_rejected:
+          - name: "Required gate immediately"
+            reason: >
+              High pipeline-flow risk: tasks verified before behavioral enforcement
+              was enabled would not have behavioral-coverage records, causing
+              gate_status='failed' and pipeline halt on resume (EC-4). Also introduces
+              sudden threshold increase that could trigger unexpected NEEDS_REVISION
+              loops. Informational first, required later is the safer rollout.
+            confidence: "High"
+
+    deviation_records: []
+    agent_inventory: []
+    pipeline_steps: []
+
+completion:
+  status: "DONE"
+  summary: "Design complete: 8 decisions, 8 files modified, Direction A (structural enforcement), all additive changes"
+  severity: null
+  findings_count: 0
+  risk_level: "🟡"
+  output_paths:
+    - "design-output.yaml"
+    - "design.md"

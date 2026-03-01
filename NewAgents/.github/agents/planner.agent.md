@@ -93,8 +93,12 @@ task:
   risk: "🔴"
   depends_on: ["task-01"]
   acceptance_criteria:
-    - "Email validation rejects malformed addresses"
-    - "Rate limiting returns 429 after 5 attempts per minute"
+    - id: "AC-1"
+      text: "Email validation rejects malformed addresses"
+      test_method: "test"
+    - id: "AC-2"
+      text: "Rate limiting returns 429 after 5 attempts per minute"
+      test_method: "test"
   relevant_context:
     design_sections:
       - "design-output.yaml#payload.decisions[id='D-8']" # Risk classification
@@ -211,7 +215,7 @@ State the detected mode at the top of the output.
    a. Group related changes into tasks following Task Size Limits.
    b. Assign per-task risk (escalation: any 🔴 file → task is Large).
    c. Assign `relevant_context` pointers to each task (design sections, spec requirements, files).
-   d. Write acceptance criteria for each task (traceable to spec requirements).
+   d. Write acceptance criteria for each task as structured objects with `{id, text, test_method}` (traceable to spec requirements). Propagate the parent spec AC ID into each task AC's `id` field and preserve `test_method` from the source `spec-output.yaml` AC. Valid `test_method` values: `test` (automated unit/integration test), `inspection` (code/output review), `demonstration` (runtime execution evidence), `analysis` (static analysis or metric check). This structured propagation narrows the spec-to-task AC format gap but does not fully close it — completeness of AC coverage remains a self-attested property.
 4. **Assign waves:**
    a. Build dependency graph — tasks depend on others only when reading/modifying outputs of those tasks.
    b. Organize into execution waves (parallel groups with `max_concurrent ≤ 4`).
@@ -326,6 +330,8 @@ Before returning, verify all items in [global-operating-rules.md](global-operati
 6. [ ] `overall_risk_summary` matches the highest risk across all tasks.
 7. [ ] Plan Validation passed (no circular deps, all sizes within limits, all deps exist).
 8. [ ] No code, build commands, or implementation details in outputs.
+9. [ ] Every acceptance criterion specifies an observable behavior with a clear pass/fail definition. No criterion uses vague terms like 'works correctly', 'performs well', or 'is user-friendly' without measurable qualifiers.
+10. [ ] Spec AC IDs and `test_method` propagated to task-level acceptance criteria for all tasks with `task_type='code'`.
 
 ## Tool Access
 

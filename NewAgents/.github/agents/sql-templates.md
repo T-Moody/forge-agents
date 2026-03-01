@@ -473,6 +473,43 @@ SELECT COUNT(*) FROM (
 3. `HAVING COUNT(CASE WHEN verdict != 'approve' THEN 1 END) = 0` — zero non-approve verdicts means full approval
 4. Outer `COUNT(*)` counts how many reviewers fully approved — must be ≥2 for majority
 
+### EG-7: Behavioral Coverage Evidence (INFORMATIONAL)
+
+> **Status: INFORMATIONAL** — This query is logged by the orchestrator but does NOT block the pipeline (per FR-5.1, Design Decision D-8). Tasks without behavioral-coverage records pass the gate; results are recorded for observability only.
+>
+> **Promotion criteria:** Promote EG-7 to a required (blocking) gate after 3+ consecutive pipeline runs where ≥90% of code tasks naturally produce behavioral-coverage records with zero false-positive overrides. The Knowledge Agent tracks these metrics via post-mortem telemetry.
+
+Checks that each code task in the current run has at least one `anvil_checks` record with `check_name='behavioral-coverage'` AND `passed=1`.
+
+```sql
+-- EG-7: Behavioral coverage evidence per task (INFORMATIONAL — logged, not blocking)
+-- Expected: 1 (behavioral-coverage record exists and passed)
+-- If 0: log informational warning, do NOT halt pipeline
+SELECT COUNT(*) FROM anvil_checks
+WHERE run_id = '{run_id}'
+  AND task_id = '{task_id}'
+  AND check_name = 'behavioral-coverage'
+  AND passed = 1;
+```
+
+**Gap-detection companion query** — identifies code tasks MISSING behavioral-coverage records entirely (useful for promotion readiness assessment):
+
+```sql
+-- EG-7 gap detection: code tasks without any behavioral-coverage record
+-- Use this to assess promotion readiness across a pipeline run
+-- Expected: 0 when all code tasks produce behavioral-coverage signals
+SELECT t.task_id
+FROM pipeline_telemetry t
+LEFT JOIN anvil_checks a
+  ON t.run_id = a.run_id
+  AND t.task_id = a.task_id
+  AND a.check_name = 'behavioral-coverage'
+WHERE t.run_id = '{run_id}'
+  AND t.agent = 'implementer'
+  AND a.id IS NULL
+GROUP BY t.task_id;
+```
+
 ---
 
 ## §7 Post-Mortem Analysis Queries

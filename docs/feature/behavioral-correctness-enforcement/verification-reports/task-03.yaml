@@ -1,0 +1,66 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-03"
+  step: "step-6"
+  started_at: "2026-03-01T12:20:00Z"
+  completed_at: "2026-03-01T12:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-03"
+    run_id: "2026-03-01T12:00:00Z"
+    evidence_gate:
+      total_checks: 3
+      passed: 3
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "No errors found in sql-templates.md. 0 errors, 0 warnings."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "manual-inspection"
+        command: "Markdown structure validation"
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file parses correctly. All headings, code blocks, and blockquotes properly structured. No broken fences or unclosed blocks."
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: "N/A"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Tier 3 skipped: sql-templates.md is a Markdown documentation file with no executable code. No modules to import, no runtime to exercise. Tier 1 checks (ide-diagnostics + syntax) and content inspection provide sufficient verification."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-01T12-00-00Z:NewAgents/.github/agents/sql-templates.md"
+      discrepancies_found: false
+    content_verification:
+      eg7_heading_informational: true
+      eg7_query_checks_behavioral_coverage_and_passed: true
+      promotion_criteria_documented: true
+      gap_detection_companion_query_present: true
+      no_tbd_todo_fixme_placeholders: true
+      eg1_through_eg6_unchanged: true
+      diff_summary: "37 added lines, 0 deleted lines. Only additions between EG-6 explanation and §7 heading."
+
+completion:
+  status: "DONE"
+  summary: "Verified task-03: 3 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/verification-reports/task-03.yaml"
+  evidence_summary:
+    total_checks: 3
+    passed: 3
+    failed: 0
+    security_blockers: 0

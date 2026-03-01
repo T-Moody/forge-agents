@@ -1,0 +1,63 @@
+task:
+  id: "task-05"
+  title: "planner.agent.md — Structured AC propagation, test_method workflow rules, self-verification"
+  description: >
+    Update planner.agent.md with 4 changes to support structured acceptance criteria flow:
+
+    (1) Update the inline Schema 6 definition (in the task decomposition / output section)
+    to match the canonical Schema 6 from schemas.md: acceptance_criteria field as list of
+    objects with {id, text, test_method}. Update the inline example to show structured ACs.
+
+    (2) Add workflow rule in the task decomposition section: "When creating task acceptance
+    criteria, propagate spec AC IDs and test_method from the source spec-output.yaml ACs.
+    Each task AC must reference its parent spec AC ID for traceability."
+
+    (3) Add Self-Verification item: "Every acceptance criterion specifies an observable
+    behavior with a clear pass/fail definition. No criterion uses vague terms like 'works
+    correctly', 'performs well', or 'is user-friendly' without measurable qualifiers."
+
+    (4) Add Self-Verification item: "Spec AC IDs and test_method propagated to task-level
+    acceptance criteria for all tasks with task_type='code'."
+
+    NOTE: Planner propagation "narrows" the F-3 AC gap (format loss addressed by structured
+    objects; completeness remains self-attested). Do NOT claim it "closes" the gap.
+    Total estimated addition: ~30 lines, keeping planner.agent.md under 400-line budget.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["task-04"]
+  acceptance_criteria:
+    - id: "AC-1-planner"
+      text: >
+        Planner inline Schema 6 definition shows acceptance_criteria as list of objects
+        with {id, text, test_method} sub-fields, matching the canonical Schema 6 definition
+        in schemas.md. Inline example shows structured AC objects.
+      test_method: "inspection"
+    - id: "AC-9"
+      text: >
+        Planner workflow contains a rule requiring propagation of spec AC IDs and test_method
+        to task-level acceptance criteria. test_method values (test, inspection, demonstration,
+        analysis) are preserved from spec through to task output.
+      test_method: "inspection"
+    - id: "AC-8"
+      text: >
+        Planner self-verification checklist contains: "Every acceptance criterion specifies
+        an observable behavior with a clear pass/fail definition."
+      test_method: "inspection"
+    - id: "AC-13"
+      text: >
+        No TBD, TODO, FIXME, or placeholder markers exist in planner.agent.md after modification.
+      test_method: "test"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-1']"
+      - "design-output.yaml#payload.decisions[id='D-6']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-8']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-1']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-8']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-9']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/planner.agent.md"
+        risk: "🟡"

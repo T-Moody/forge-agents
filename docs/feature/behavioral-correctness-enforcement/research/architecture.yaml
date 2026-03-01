@@ -1,0 +1,306 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-architecture"
+  step: "step-1"
+  started_at: "2026-03-01T00:00:00Z"
+  completed_at: "2026-03-01T00:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "architecture"
+    findings:
+      - id: "F-1"
+        title: "Implementer TDD enforcement is instruction-only with no structural guard against weak tests"
+        category: "structure"
+        detail: >
+          The implementer agent (implementer.agent.md) is instructed to follow TDD: write failing tests first,
+          then write minimal production code. However, the enforcement mechanism is purely instructional —
+          the agent is told to 'confirm they fail' and that 'tests that pass before production code are not
+          testing new behavior — rewrite them.' There is no structural safeguard that prevents the implementer
+          from writing trivially-passing tests, self-referential tests (testing its own mocks), or tests
+          that only validate syntax rather than behavior. The implementer's self-fix loop (max 2 attempts)
+          focuses on making tests pass, not on test quality. The self-check captures test_summary
+          (total/passed/failed counts) but never evaluates whether tests actually exercise meaningful behavior.
+          Additionally, the TDD Fallback clause (implementer.agent.md lines ~259-274) allows TDD to be
+          skipped entirely when no test framework is detected, when the task creates the framework itself,
+          or for documentation/configuration tasks — with only a textual note in the report.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md — Step 4 'Write Failing Tests (TDD)': enforcement is 'Confirm they fail' instruction only"
+          - "NewAgents/.github/agents/implementer.agent.md — Self-Fix Loop: focuses on making checks pass, no test quality evaluation"
+          - "NewAgents/.github/agents/implementer.agent.md — TDD Fallback section: allows skipping TDD with only a textual note"
+          - "NewAgents/.github/agents/implementer.agent.md — Self-Verification 'Implementation Correctness' section: checks 'Tests exist and pass' but not test quality"
+        relevance: >
+          This is the primary structural gap enabling 'green tests without real correctness'. Downstream
+          agents (verifier, reviewer) can catch weak tests, but the implementer — who writes both tests
+          and production code — has no built-in constraint preventing self-reinforcing test-code pairs.
+
+      - id: "F-2"
+        title: "Verifier 4-tier cascade validates tooling output but not behavioral adequacy of tests"
+        category: "structure"
+        detail: >
+          The verifier agent (verifier.agent.md) executes a 4-tier verification cascade: Tier 1 (IDE diagnostics,
+          syntax), Tier 2 (build, type-check, lint, tests), Tier 3 (import/load, smoke execution), Tier 4
+          (operational readiness for Large tasks). The cascade is comprehensive for detecting compilation
+          failures, syntax errors, and test execution failures. However, it checks WHETHER tests pass (exit
+          code, count), not WHETHER the tests are meaningful. The verifier runs `npm test`, `pytest`, etc.
+          and records pass/fail counts, but has no mechanism to assess: (a) whether tests actually cover
+          the acceptance criteria, (b) whether test assertions are trivial or tautological, (c) whether
+          tests exercise real behavioral contracts vs. implementation internals. The evidence gate requires
+          minimum signal counts (2 for Standard, 3 for Large) but these are quantity-based, not quality-based.
+          The baseline cross-check (git show comparison) validates that baseline claims are honest, but
+          does not evaluate test substance.
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md — Tier 2 Step 3d: 'Tests — run test execution, INSERT with check_name=tests' — records exit code and pass/fail, not test quality"
+          - "NewAgents/.github/agents/verifier.agent.md — Evidence Gate Summary: gate_status based on count of passed checks, not test adequacy"
+          - "NewAgents/.github/agents/verifier.agent.md — Minimum Signal Requirements: '2 Standard, 3 Large' — purely quantitative thresholds"
+          - "NewAgents/.github/agents/verifier.agent.md — Baseline Cross-Check: validates implementer honesty about pre-existing state, not test quality"
+        relevance: >
+          The verifier is the pipeline's primary quality gate but operates as a pass/fail signal counter.
+          If the implementer writes trivially-passing tests, the verifier will record them as passed signals,
+          meeting the evidence gate threshold without validating behavioral correctness.
+
+      - id: "F-3"
+        title: "Acceptance criteria flow has a structural narrowing gap from spec to implementer"
+        category: "risk"
+        detail: >
+          Acceptance criteria originate in spec-output.yaml (produced by the Spec agent), where each criterion
+          has an explicit test_method (inspection/demonstration/test/analysis). These are consumed by the
+          Planner, who decomposes them into per-task acceptance_criteria in tasks/<task-id>.yaml. The
+          Implementer then reads ONLY what the task's relevant_context specifies — it does NOT read the
+          full spec. This creates a structural narrowing: the Planner must faithfully translate spec-level
+          acceptance criteria into task-level criteria, and the Implementer must faithfully translate task-level
+          criteria into tests. Neither translation step has structural verification. The Planner's self-verification
+          includes 'Every task must trace to at least one requirement in spec-output.yaml' but this is a
+          self-check, not an external audit. The Implementer's self-verification checks 'All acceptance
+          criteria files created or modified' but not whether the tests actually validate the acceptance
+          criteria's intent. The Verifier reads task-relevant acceptance criteria from spec-output.yaml
+          (Step 0.4) but uses them only for context — there is no systematic check that every acceptance
+          criterion has a corresponding behavioral test.
+        evidence:
+          - "NewAgents/.github/agents/spec.agent.md — acceptance_criteria with test_method field: defines HOW to verify but this metadata is not consumed downstream"
+          - "NewAgents/.github/agents/planner.agent.md — Relevant Context Mechanism: Implementer reads ONLY relevant_context pointers, not full spec"
+          - "NewAgents/.github/agents/planner.agent.md — Self-Verification item 7: 'Every task must trace to at least one requirement' — self-reported, no external audit"
+          - "NewAgents/.github/agents/implementer.agent.md — Step 1 'Read Context (Targeted)': 'Do NOT read full upstream documents. Trust the Planner''s relevant_context pointers.'"
+          - "NewAgents/.github/agents/verifier.agent.md — Step 0.4: reads acceptance criteria for context but no systematic criterion-to-test mapping check"
+        relevance: >
+          Behavioral requirements can be silently dropped or weakened at two translation boundaries:
+          spec→planner (criteria decomposition) and planner→implementer (criteria-to-test translation).
+          No agent structurally validates that every spec acceptance criterion results in a meaningful
+          behavioral test.
+
+      - id: "F-4"
+        title: "Adversarial reviewer pragmatic-verifier perspective covers test gaps but lacks mutation/adequacy tools"
+        category: "structure"
+        detail: >
+          The adversarial reviewer system dispatches 3 perspectives, each covering all 3 categories
+          (security, architecture, correctness). The pragmatic-verifier perspective is specifically designed
+          to catch test quality issues — its priorities include 'Test coverage gaps — untested paths,
+          missing negative tests' and 'Functional completeness — all acceptance criteria addressable.'
+          However, the pragmatic-verifier operates by reading code and tests (via git diff --staged and
+          read_file), not by executing tests or performing mutation testing. It can identify obvious gaps
+          (missing edge case tests, untested paths) through code inspection, but cannot detect: (a) tests
+          that appear to cover behavior but use weak assertions, (b) tests that pass due to implementation
+          coupling rather than behavioral contracts, (c) tests that would still pass if the production
+          code were replaced with a trivial stub. The reviewer's tool access (tool-access-matrix.md §9)
+          restricts run_in_terminal to 'git diff commands + SQL INSERT only' — no test execution, no
+          mutation testing, no coverage analysis tools.
+        evidence:
+          - "NewAgents/.github/agents/review-perspectives.md — §4 Pragmatic Verifier: priorities include test coverage gaps and functional completeness"
+          - "NewAgents/.github/agents/review-perspectives.md — §6 Per-Category Guidance: pragmatic-verifier correctness = 'Primary focus. Edge cases & test gaps'"
+          - "NewAgents/.github/agents/tool-access-matrix.md — §9: Adversarial Reviewer run_in_terminal restricted to 'git diff commands + SQL INSERT only'"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md — Step 2 Code Review: uses git diff --staged and read_file, no test execution"
+        relevance: >
+          The adversarial review layer is the best-positioned agent to catch weak tests, but it operates
+          as a static analysis / code review agent without runtime verification capabilities. It can catch
+          obvious omissions but not subtle test inadequacy.
+
+      - id: "F-5"
+        title: "Pipeline has no mutation testing, coverage gating, or independent test generation capability"
+        category: "risk"
+        detail: >
+          Across the entire 10-step pipeline (orchestrator.agent.md Steps 0-9), there is no step, agent,
+          or mechanism that performs: (a) mutation testing to validate that tests actually detect behavioral
+          changes, (b) code coverage gating to ensure tests exercise the code paths they claim to validate,
+          (c) independent test generation where a separate agent writes tests independently of the implementer
+          to cross-validate behavior, (d) behavioral contract verification where tests are checked against
+          formal acceptance criteria mappings. The pipeline's correctness enforcement relies entirely on:
+          the implementer self-reporting TDD compliance, the verifier counting pass/fail signals, and
+          the adversarial reviewer performing static code inspection. All three are necessary but
+          insufficient for detecting the specific failure mode described in the feature request — agents
+          optimizing for green tests rather than real behavioral correctness.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — Steps 0-9: no mutation testing, coverage gating, or independent test generation step exists"
+          - "NewAgents/.github/agents/verifier.agent.md — 4-tier cascade: no tier performs mutation testing or coverage analysis"
+          - "NewAgents/.github/agents/implementer.agent.md — produces both tests and code with no independent cross-validation"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md — reviews test quality via static inspection only"
+        relevance: >
+          This is the fundamental architectural gap. The pipeline's correctness enforcement is structurally
+          unable to distinguish between 'tests that pass and validate behavior' and 'tests that pass and
+          validate nothing meaningful.' All current enforcement mechanisms operate at the pass/fail signal
+          level, not the behavioral adequacy level.
+
+      - id: "F-6"
+        title: "Evidence gate system is quantity-driven with no quality dimension"
+        category: "structure"
+        detail: >
+          The evidence gate system (orchestrator.agent.md, sql-templates.md §6) uses SQL queries (EG-1
+          through EG-6) on the anvil_checks table to make routing decisions. Verification gates (EG-1, EG-2)
+          check that baseline records exist and that sufficient verification signals were recorded.
+          Review gates (EG-3 through EG-6) check that all reviewers submitted, all categories were covered,
+          no blockers exist, and majority approval was achieved. All gates are binary (pass/fail) and
+          count-based. There is no evidence gate that evaluates the quality of verification signals —
+          a task with 3 trivially-passing checks meets the Large task threshold identically to a task
+          with 3 rigorous behavioral tests. The gate_status determination (verifier.agent.md Step 7)
+          checks: 'any failed > 0, any regression, any baseline-discrepancy, or passed < minimum signal.'
+          Quality of the passing signals is never assessed.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — Evidence Gate Logic section: all gates are count/binary based"
+          - "NewAgents/.github/agents/sql-templates.md — §6 (referenced): EG-1 through EG-6 query definitions use COUNT and existence checks"
+          - "NewAgents/.github/agents/verifier.agent.md — Step 7 Evidence Gate Summary: gate_status='failed' conditions are all quantitative"
+          - "NewAgents/.github/agents/verifier.agent.md — Minimum Signal Requirements: 2 Standard, 3 Large — no quality dimension"
+        relevance: >
+          The evidence gate system is the orchestrator's decision-making backbone. Its purely quantitative
+          nature means the entire pipeline routing can be satisfied by sufficient quantity of trivial
+          verification signals, creating a systemic incentive for agents to optimize for signal count
+          rather than signal quality.
+
+      - id: "F-7"
+        title: "Implementer writes both tests and production code with no separation of concerns"
+        category: "risk"
+        detail: >
+          The implementer agent is the sole author of both test code and production code for each task.
+          The TDD workflow (write failing test → write production code → self-fix loop) is internal to
+          a single agent instance. This creates a structural conflict of interest: the same agent that
+          needs its tests to pass (to report DONE) is the agent that writes those tests. The pipeline
+          has no 'test author' role separate from the 'code author' role. The verifier runs the tests
+          but does not write them. The adversarial reviewer can critique tests but operates after
+          implementation. No agent independently generates tests from acceptance criteria before or
+          parallel to implementation. The implementer's completion contract has only DONE or ERROR —
+          there is no incentive mechanism to report weak tests, and the self-verification checklist
+          checks 'Tests exist and pass' without evaluating test adequacy.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md — Steps 4-5: same agent writes failing tests then production code"
+          - "NewAgents/.github/agents/implementer.agent.md — Completion Contract: 'DONE or ERROR' — no status for 'tests exist but may be weak'"
+          - "NewAgents/.github/agents/implementer.agent.md — Self-Verification: 'Tests exist and pass for task_type: code' — existence check, not quality check"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Steps 5-6: no independent test generation step between implementation and verification"
+        relevance: >
+          The lack of separation between test authorship and code authorship is the root structural cause
+          of the 'optimizing for green tests' failure mode. Without an independent test author or test
+          adequacy validator, the implementer can (unintentionally or through optimization pressure)
+          produce tests that validate its own implementation rather than the specified behavior.
+
+      - id: "F-8"
+        title: "Spec acceptance criteria test_method metadata is not consumed by downstream enforcement"
+        category: "risk"
+        detail: >
+          The Spec agent defines acceptance criteria with a test_method field (values: inspection,
+          demonstration, test, analysis) in spec-output.yaml. This metadata specifies HOW each criterion
+          should be verified. However, no downstream agent consumes or enforces this metadata. The Planner
+          copies acceptance criteria text into task files but does not propagate test_method. The Implementer
+          writes tests based on acceptance criteria text without reference to the specified verification
+          method. The Verifier reads acceptance criteria for context but does not validate that the
+          test_method was followed. For example, a criterion with test_method='demonstration' (implying
+          runtime behavioral demonstration) could be satisfied by a unit test that mocks the behavior,
+          and no pipeline agent would flag this mismatch.
+        evidence:
+          - "NewAgents/.github/agents/spec.agent.md — Output Schema: acceptance_criteria[].test_method field defined as 'inspection | demonstration | test | analysis'"
+          - "NewAgents/.github/agents/planner.agent.md — Task Schema (Schema 6): acceptance_criteria field contains text only, no test_method propagation"
+          - "NewAgents/.github/agents/implementer.agent.md — Step 4: writes tests from acceptance criteria text, no reference to test_method"
+          - "NewAgents/.github/agents/verifier.agent.md — Step 0.4: reads acceptance criteria but does not validate test_method compliance"
+        relevance: >
+          The test_method metadata represents the spec author's intent about HOW correctness should be
+          verified. Its non-propagation means the pipeline loses verification intent information at the
+          spec→planner boundary, allowing behavioral criteria to be satisfied by inappropriate verification
+          methods.
+
+      - id: "F-9"
+        title: "Pipeline feedback loops are bounded but correction signals focus on pass/fail, not behavioral adequacy"
+        category: "structure"
+        detail: >
+          The pipeline has three feedback loops with hard iteration limits: (1) Design revision loop
+          (Steps 3-3b, max 1 iteration) — designer revises based on reviewer findings, (2)
+          Implementation-verification loop (Steps 5-6, max 3 iterations) — planner replans failed tasks,
+          implementer re-implements, verifier re-verifies, (3) Code review cycling (Step 7, max 2 rounds)
+          — implementer fixes based on reviewer findings. All loops are triggered by binary failure
+          signals: verification gate_status='failed' or review verdict='needs_revision'. The correction
+          signals passed back to the implementer are: verification findings (which checks failed) and
+          review findings (what issues were found). However, neither the verifier's NEEDS_REVISION nor
+          the reviewer's needs_revision verdict specifically addresses test quality. A NEEDS_REVISION
+          from the verifier means 'checks did not pass' — not 'tests are inadequate.' A needs_revision
+          from the reviewer could flag test gaps, but this depends on the reviewer identifying the gap
+          through static analysis. After max iterations, the pipeline proceeds with Confidence: Low,
+          which may still include weak tests.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — Retry Budgets: Design 1 iter, Verification 3 iter, Code review 2 rounds"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Steps 5-6 routing: 'Below threshold + iteration < 2 → Planner replan' — triggered by count, not quality"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Step 7 routing: 'Any needs_revision + 0 blockers → Implementer fix' — correction is generic"
+          - "NewAgents/.github/agents/verifier.agent.md — Completion Contract: NEEDS_REVISION means 'Any check failed / regression / discrepancy'"
+          - "NewAgents/.github/agents/global-operating-rules.md — §5 Completion Contract: NEEDS_REVISION defined generically, not test-quality-specific"
+        relevance: >
+          Even when the pipeline detects problems and triggers correction loops, the correction signals
+          are not specific enough to address test adequacy. An implementer receiving a generic
+          NEEDS_REVISION will try to make failing checks pass, which reinforces the 'optimize for green'
+          behavior rather than improving test quality.
+
+      - id: "F-10"
+        title: "Artifact evaluation system captures quality scores but does not enforce minimum quality thresholds"
+        category: "structure"
+        detail: >
+          The artifact evaluation system (evaluation-schema.md) requires Phase 1 agents (Implementer,
+          Verifier, Adversarial Reviewer) to score upstream artifacts on usefulness (1-10) and clarity
+          (1-10) and INSERT evaluations into the artifact_evaluations table. The Knowledge Agent queries
+          these scores for post-mortem analysis. However, low scores do not trigger any pipeline routing
+          action. A task definition scored 3/10 on usefulness is consumed identically to one scored 9/10.
+          No evidence gate checks artifact evaluation scores. The evaluation system is observational
+          (for post-mortem learning) rather than enforcement (for real-time quality gating). This means
+          even if the verifier evaluates an implementation report as having low quality or the reviewer
+          evaluates tests as inadequate, this information does not feed back into pipeline routing decisions.
+        evidence:
+          - "NewAgents/.github/agents/evaluation-schema.md — §1 Overview: evaluations are 'queryable by Knowledge Agent for pipeline quality analysis'"
+          - "NewAgents/.github/agents/evaluation-schema.md — §6 Phase 1 Agents: must INSERT but no threshold enforcement"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Evidence Gate Logic: no gate queries artifact_evaluations table"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Decision Table: no routing condition references artifact evaluation scores"
+        relevance: >
+          The artifact evaluation system could serve as a quality enforcement mechanism but currently
+          operates as a passive data collection system. Integrating evaluation scores into evidence
+          gates could provide a quality dimension to pipeline routing without requiring new agent roles.
+
+    summary: >
+      The agent system pipeline has a systemic architectural gap in behavioral correctness enforcement.
+      The pipeline's correctness validation stack — implementer TDD, verifier 4-tier cascade, adversarial
+      review, evidence gates — operates almost entirely at the pass/fail signal level without evaluating
+      whether tests actually validate meaningful behavior. Ten specific structural gaps were identified:
+      (1) Implementer TDD enforcement is instruction-only with no structural guard, (2) Verifier cascade
+      validates pass/fail counts not test adequacy, (3) Acceptance criteria have a narrowing gap from
+      spec to implementer with no external audit, (4) Adversarial reviewer lacks runtime/mutation tools,
+      (5) No pipeline step performs mutation testing, coverage gating, or independent test generation,
+      (6) Evidence gates are purely quantity-driven, (7) The implementer writes both tests and code with
+      no separation, (8) Spec test_method metadata is not consumed downstream, (9) Feedback loop correction
+      signals are generic not test-quality-specific, (10) Artifact evaluations are observational not
+      enforcement. The root architectural issue is that the same agent authors both tests and production
+      code, and no downstream agent has the tools or mandate to evaluate whether tests are behaviorally
+      adequate rather than merely passing.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/review-perspectives.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+
+completion:
+  status: "DONE"
+  summary: "Architecture research complete: 10 findings on correctness enforcement structural gaps across the pipeline"
+  severity: null
+  findings_count: 10
+  risk_level: null
+  output_paths:
+    - "research/architecture.yaml"

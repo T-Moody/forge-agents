@@ -1,0 +1,10 @@
+reviewer_model: "claude-opus-4.6"
+review_focus: "correctness"
+scope: "design"
+verdict: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 0
+  major: 3
+  minor: 3
+summary: "Design is fundamentally sound with thorough FR/AC coverage and layered enforcement. Three Major issues: (1) Tier 2 conditional framing risks behavioral checks being implemented as tooling-dependent, (2) behavioral_coverage status enum lacks TDD Fallback accommodation for test_method=test ACs, (3) D-1 overclaims closing F-3 narrowing gap when planner completeness remains unverified. Three Minor issues on EG-7 query gaps, misleading backward-compat language, and unverified TDD ordering."

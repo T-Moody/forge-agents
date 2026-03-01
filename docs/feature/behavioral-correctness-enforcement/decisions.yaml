@@ -1,0 +1,58 @@
+# Architectural Decision Log
+# Append-only — never modify or delete existing entries
+decisions:
+  - id: "DL-001"
+    title: "Schema 6 acceptance_criteria changed from string list to object list (breaking change v2.0)"
+    rationale: >
+      The implementer classified Schema 6 as v2.0 breaking change contrary to design D-1's
+      v1.1 additive specification and spec CR-1 (no field type changes). The breaking classification
+      is architecturally correct per the codebase's own Schema Evolution Strategy (schemas.md) which
+      classifies retyping as breaking. All consumers (Planner, Implementer, Verifier) are updated
+      synchronously in this run, so practical impact is nil. However, no formal deviation record was
+      filed. This decision log entry serves as the record of the discrepancy. Future schema type
+      changes should follow the v2.0 breaking path with explicit deviation documentation.
+    confidence: "High"
+
+  - id: "DL-002"
+    title: "Behavioral checks placed as unconditional Tier 2 with distinct sub-heading"
+    rationale: >
+      Design review correctness Finding 1 identified that Tier 2's existing heading ('Run If Tooling
+      Exists') could cause behavioral checks to be incorrectly gated behind external tooling detection.
+      The implementation resolved this by adding an 'Always-Run Behavioral Checks (Code Tasks)' sub-heading
+      under Tier 2, explicitly marking Steps 3e (behavioral-coverage) and 3f (runtime-wiring) as
+      unconditional for code tasks. This was the correct architectural choice — behavioral checks use
+      always-available workspace tools (grep_search, read_file), not external build/test tooling.
+    confidence: "High"
+
+  - id: "DL-003"
+    title: "EG-7 behavioral coverage gate deployed as informational (non-blocking)"
+    rationale: >
+      EG-7 is informational initially per spec FR-5.1 and design D-8. This conservative rollout prevents
+      pipeline halt for tasks verified before behavioral enforcement existed (EC-4 pipeline resume
+      compatibility). Promotion criteria documented in sql-templates.md: >=90% tasks with behavioral-coverage
+      records over 3+ runs and zero false-positive overrides. The gap-detection companion query has a
+      known defect (references non-existent pipeline_telemetry.task_id column) that must be fixed before
+      EG-7 can be promoted to required.
+    confidence: "High"
+
+  - id: "DL-004"
+    title: "DDL deduplication in schemas.md via cross-references to sql-templates.md"
+    rationale: >
+      ~260 lines of duplicated SQLite DDL replaced with 27-line cross-reference section pointing to
+      sql-templates.md §1. This follows the existing pattern where evidence gate queries already reference
+      sql-templates.md §6. Reduced schemas.md from 1422 to ~1218 lines, well under the 1300-line target.
+      Creates cross-reference coupling (section-number notation). Known staleness issue: EG cross-reference
+      says 'EG-1 through EG-6' but EG-7 now exists. Future additions to sql-templates.md should trigger
+      verification of schemas.md cross-references.
+    confidence: "High"
+
+  - id: "DL-005"
+    title: "YAML schema versioning framework gap identified — not resolved in this run"
+    rationale: >
+      Code review architecture Finding A-3 identified that no YAML schema versioning framework exists.
+      Schema 6 is labeled v2.0 in schemas.md but the common header schema_version remains '1.0'. The
+      sql-templates.md §9 Schema Evolution Strategy covers only SQLite table evolution. This gap means
+      consumers cannot distinguish Schema 6 v1.0 (string ACs) from v2.0 (object ACs) based on the common
+      header alone. Resolution deferred to a follow-up feature that defines YAML schema versioning
+      conventions alongside the existing SQLite evolution strategy.
+    confidence: "Medium"

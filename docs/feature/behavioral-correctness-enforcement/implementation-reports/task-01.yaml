@@ -1,0 +1,59 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-01"
+  step: "step-5"
+  started_at: "2026-03-01T12:00:00Z"
+  completed_at: "2026-03-01T12:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-01"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics:
+        errors: 5
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Replaced ~260 lines of duplicated SQLite DDL (Initialization, anvil_checks DDL +
+          Column Reference, pipeline_telemetry DDL + Column Reference + queries,
+          artifact_evaluations DDL + Column Reference + queries, instruction_updates DDL +
+          Column Reference + queries) with a 27-line cross-reference section. The replacement
+          includes: (1) compact intro with canonical DDL cross-reference to sql-templates.md §1,
+          (2) table summary listing all 4 tables with one-line descriptions,
+          (3) preserved anvil_checks Phase Semantics table (unique to schemas.md),
+          (4) preserved Evidence Gate Queries cross-reference to sql-templates.md §6,
+          (5) preserved Full Step 0 Initialization Script cross-reference.
+          File reduced from 1422 lines to 1167 lines (255-line reduction).
+          All 10 schema examples preserved intact. No TBD/TODO/FIXME markers.
+      - path: "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-01.yaml"
+        action: "created"
+        description: "Implementation report for task-01 (this file)"
+    self_check:
+      ide_diagnostics:
+        errors: 3
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: true
+completion:
+  status: "DONE"
+  summary: "task-01 — Replaced ~260 lines of duplicated SQLite DDL in schemas.md with 27-line cross-reference section pointing to sql-templates.md. File reduced from 1422 to 1167 lines. All 10 schema examples preserved."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "implementation-reports/task-01.yaml"

@@ -84,6 +84,16 @@ agent_output:
       - { check_name: "baseline-ide-diagnostics", phase: "baseline", tool: "get_errors", passed: <bool> }
       - { check_name: "baseline-build", phase: "baseline", tool: "<cmd>", passed: <bool> }
       - { check_name: "baseline-tests", phase: "baseline", tool: "<cmd>", passed: <bool> }
+    behavioral_coverage: # Required for task_type='code'
+      - ac_id: "<AC-id>"
+        test_file: "<path>"       # required when status='covered'
+        test_name: "<name>"       # required when status='covered'
+        status: "covered|not_applicable"
+        justification: "..."     # required when status='not_applicable'
+    tdd_red_green: # Required for task_type='code' when TDD applies
+      tests_written_first: <bool>
+      initial_run_failures: <int>
+      initial_run_exit_code: <int>
 completion:
   status: "DONE"
   summary: "<one-line summary>"
@@ -133,6 +143,13 @@ Before making ANY changes, capture the pre-implementation state:
 - Tests MUST be meaningful — they should test behavior, not implementation details.
 - Run the tests via `run_in_terminal`. **Confirm they fail.** Tests that pass before production code are not testing new behavior — rewrite them.
 - Run `get_errors` after writing test files to catch syntax/import issues.
+
+**TDD Structural Rules:**
+
+- Test files MUST import at least one production module modified/created by the task. Tests asserting only on local variables or hardcoded values are invalid.
+- Assertions MUST reference values from production code (method returns, property values, observable side effects) — NOT local variables replicating production logic.
+- Each test MUST trace to at least one AC with `test_method='test'` from the task.
+- After writing tests, run them and record the result in `tdd_red_green`: `{tests_written_first: true, initial_run_failures: <count>, initial_run_exit_code: <code>}`. If tests pass before production code, rewrite and re-record.
 
 > **Skip condition:** If `task_type: documentation` or `task_type: configuration`, skip this step (see [Documentation Mode](#mode-documentation)).
 
@@ -254,6 +271,23 @@ The Implementer does **not** return `NEEDS_REVISION`. If blocked after max self-
 9. **Code quality:** YAGNI, KISS, DRY (extract at 3+ instances). Use `list_code_usages` (fall back to `grep_search`) before modifying existing code.
 10. **Context-efficient reading:** Use `semantic_search` and `grep_search` for discovery. Read only what `relevant_context` specifies.
 
+### Test Selection Strategy
+
+Choose the testing approach based on the behavior being verified:
+
+| `test_method`    | Testing approach                                                         |
+| ---------------- | ------------------------------------------------------------------------ |
+| `test`           | Automated unit/integration test required — assert on observable behavior |
+| `inspection`     | No automated test — verified by code/output review                       |
+| `demonstration`  | Runtime evidence required (screenshot, log output, Playwright trace)     |
+| `analysis`       | Static analysis or metric check                                          |
+
+**Principles:** Test behavior through the public interface, not implementation details. Do NOT write tests for what the type system already guarantees. Do NOT expose internals or add test-only hooks/backdoors to production code.
+
+**UI-specific:** Playwright/E2E tests ONLY for cross-component navigation, JS interop, and gesture-driven flows. Unit/integration tests for component logic and state management. Inspection for pure visual/CSS changes.
+
+**Runtime wiring:** For tasks creating new source files, verify at least one existing file imports/references the new file before staging. Does not apply to modification-only tasks (EC-3).
+
 ---
 
 ## TDD Fallback
@@ -271,6 +305,12 @@ Skip TDD if:
 1. Record `"TDD skipped: <reason>"` in the implementation report.
 2. Proceed with `get_errors` as primary validation.
 3. If code could be tested but framework is missing, note: `"Recommend adding test framework; untested code at <paths>."`
+
+**Edge cases:**
+
+- **Inspection-only tasks (EC-1):** Map all ACs as `behavioral_coverage` `status='not_applicable'` with justification `"test_method='inspection'"`.
+- **TDD Fallback (EC-2):** Map `test_method='test'` ACs as `status='not_applicable'` with justification explaining why tests could not be written.
+- **Modification-only tasks (EC-3):** Runtime wiring check applies only to new files, not modifications — skip for modification-only tasks.
 
 ---
 
@@ -313,6 +353,9 @@ Before returning, run the common checklist from [global-operating-rules.md](glob
 - [ ] Self-fix loop ran (0–2 attempts recorded)
 - [ ] `git add -A` executed and `git_staged: true`
 - [ ] No files outside task scope modified
+- [ ] Tests invoke production code, not local variable replications
+- [ ] Every `test_method='test'` AC has a corresponding automated test in `behavioral_coverage`
+- [ ] New source files are imported/referenced by at least one existing source file
 
 ### Revert Mode (if applicable)
 

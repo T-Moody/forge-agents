@@ -1,0 +1,47 @@
+task:
+  id: "task-01"
+  title: "schemas.md DDL Deduplication — Replace SQLite Schemas section with cross-references"
+  description: >
+    Replace the ~286-line SQLite Schemas section in schemas.md (approximately lines 961-1246)
+    with a ~25-line cross-reference section. The replacement section lists table names with
+    one-line descriptions and references sql-templates.md §1 for canonical DDL. This follows
+    the existing pattern where evidence gate queries already say 'See sql-templates.md §6'.
+    MUST preserve the check_name Naming Patterns table (starts after the DDL section, ~line 1265),
+    the phase semantics documentation, and the task_id Naming Convention section — these are
+    unique to schemas.md and not duplicated in sql-templates.md. MUST preserve the
+    'Full Step 0 Initialization Script' cross-reference note. After removal, schemas.md should
+    drop from ~1422 lines to ~1162 lines, creating headroom for behavioral field additions in task-04.
+    Verify all 10 schema examples remain intact after the change.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: []
+  acceptance_criteria:
+    - id: "AC-7"
+      text: >
+        schemas.md SQLite DDL section (previously ~lines 961-1246) is replaced with a
+        cross-reference section of ≤30 lines pointing to sql-templates.md §1. schemas.md
+        total line count is reduced by at least 200 lines compared to the pre-change baseline
+        of ~1422 lines.
+      test_method: "test"
+    - id: "AC-18"
+      text: >
+        All 10 schema examples in schemas.md are preserved after changes. Schema example
+        count remains at 10. Count example blocks before and after — must be equal.
+      test_method: "inspection"
+    - id: "AC-13"
+      text: >
+        No TBD, TODO, FIXME, or placeholder markers exist in schemas.md after modification.
+      test_method: "test"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-5']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-7']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-18']"
+      - "spec-output.yaml#payload.common_requirements[id='CR-4']"
+      - "spec-output.yaml#payload.common_requirements[id='CR-5']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/schemas.md"
+        risk: "🟡"

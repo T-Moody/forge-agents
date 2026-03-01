@@ -1,0 +1,400 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-impact"
+  step: "step-1"
+  started_at: "2026-03-01T10:00:00Z"
+  completed_at: "2026-03-01T10:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "impact"
+    findings:
+      - id: "F-1"
+        title: "Six agent definition files require modification, totaling ~2,700 lines of instruction text"
+        category: "structure"
+        detail: >
+          The behavioral correctness enforcement feature impacts 6 primary agent definition files
+          and 2 shared reference documents. The files and their current sizes are:
+          implementer.agent.md (334 lines), verifier.agent.md (317 lines),
+          adversarial-reviewer.agent.md (336 lines), planner.agent.md (337 lines),
+          orchestrator.agent.md (492 lines), schemas.md (1422 lines),
+          sql-templates.md (699 lines), and global-operating-rules.md (160 lines).
+          The implementer and verifier carry the heaviest modification burden since they own
+          the TDD workflow and verification cascade respectively. The adversarial reviewer's
+          correctness category already covers testing gaps but lacks explicit behavioral
+          validation enforcement. The planner's acceptance criteria mechanism needs tightening
+          to mandate behavioral testability. The orchestrator needs evidence gate threshold
+          adjustments if new behavioral check_names are introduced.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md — 334 lines total"
+          - "NewAgents/.github/agents/verifier.agent.md — 317 lines total"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md — 336 lines total"
+          - "NewAgents/.github/agents/planner.agent.md — 337 lines total"
+          - "NewAgents/.github/agents/orchestrator.agent.md — 492 lines total"
+          - "NewAgents/.github/agents/schemas.md — 1422 lines total"
+          - "NewAgents/.github/agents/sql-templates.md — 699 lines total"
+          - "NewAgents/.github/agents/global-operating-rules.md — 160 lines total"
+        relevance: >
+          The total surface area of ~2,700 lines across 6 agent files plus ~2,100 lines
+          across 2 shared references establishes the blast radius. The planner must decompose
+          changes to respect the 3-file/500-line task size limits already defined in
+          planner.agent.md. This finding drives task count and wave structure.
+
+      - id: "F-2"
+        title: "Implementer TDD workflow has no behavioral validation enforcement — tests can pass without testing acceptance criteria"
+        category: "risk"
+        detail: >
+          The implementer's TDD workflow (implementer.agent.md Steps 4-6) instructs
+          agents to 'Write test(s) that verify the task's acceptance criteria' and states
+          'Tests MUST be meaningful — they should test behavior, not implementation details.'
+          However, these are prose directives with zero structural enforcement. The self-fix
+          loop (Step 6) only checks: (1) get_errors on modified files, (2) build command
+          exit code, (3) test suite pass/fail. There is no mechanism to verify that written
+          tests actually exercise the acceptance criteria from the task schema. An implementer
+          can write trivial passing tests (e.g., testing that a function exists rather than
+          testing its behavior), pass all self-check gates, and report DONE. The baseline
+          capture (Step 3) records pre-state but does not validate test quality. The
+          verification_entries in the implementation report (payload.verification_entries)
+          record only whether checks passed, not what they tested.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md lines 127-142 — Step 4 Write Failing Tests"
+          - "NewAgents/.github/agents/implementer.agent.md lines 150-170 — Step 6 Self-Fix Loop"
+          - "NewAgents/.github/agents/implementer.agent.md lines 85-98 — payload.self_check schema with no behavioral field"
+        relevance: >
+          This is the core gap that the feature addresses. Adding behavioral enforcement
+          here would require: (a) a behavioral test quality check after Step 4 confirming
+          tests map to acceptance criteria, (b) a behavioral pass/fail field in self_check,
+          and (c) potentially a new verification_entry check_name like 'behavioral-coverage'.
+          Changes affect the implementation-report schema (Schema 7 in schemas.md) and the
+          implementer's self-verification checklist.
+
+      - id: "F-3"
+        title: "Adding behavioral verification to implementer increases self-fix loop complexity from 3 checks to 4-5 checks per iteration"
+        category: "risk"
+        detail: >
+          The current self-fix loop runs up to 2 iterations, each executing 3 checks:
+          get_errors, build command, and test suite. Adding behavioral verification would
+          insert 1-2 additional checks per iteration: (1) a behavioral coverage check
+          mapping tests to acceptance criteria, and (2) potentially a behavioral execution
+          check verifying test outputs match expected behavioral specifications. With a
+          max of 2 self-fix iterations, this increases total check executions from a maximum
+          of 9 (3 checks × 3 passes: initial + 2 retries) to 12-15 (4-5 checks × 3 passes).
+          Each additional check requires a tool call (get_errors or run_in_terminal), consuming
+          agent context window budget. The implementer already references 6 shared documents
+          (global-operating-rules.md, sql-templates.md, tool-access-matrix.md,
+          evaluation-schema.md, severity-taxonomy.md, context7-integration.md). Adding
+          behavioral validation logic increases instruction complexity.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md lines 150-170 — Self-Fix Loop pseudocode"
+          - "NewAgents/.github/agents/implementer.agent.md lines 18-19 — 6 shared reference documents"
+        relevance: >
+          Implementation step timing increases by approximately 30-50% per task due to
+          additional behavioral checks. This affects wave execution time and overall pipeline
+          duration. The planner and orchestrator must account for this when estimating task
+          sizes and setting timeout expectations.
+
+      - id: "F-4"
+        title: "Verifier's 4-tier cascade lacks a behavioral correctness tier — behavioral gaps pass through undetected"
+        category: "risk"
+        detail: >
+          The verifier's cascade (verifier.agent.md) executes 4 tiers: Tier 1 (IDE
+          diagnostics + syntax), Tier 2 (build + type-check + lint + tests), Tier 3
+          (import/load + smoke execution), Tier 4 (operational readiness — Large tasks
+          only). None of these tiers validate that tests actually cover the acceptance
+          criteria from the task definition. Tier 2's test check (check_name='tests') only
+          verifies that the test suite passes — not what it tests. Tier 3's smoke execution
+          runs a throwaway 3-5 line script — not a behavioral validation. The minimum
+          signal requirements (2 for Standard, 3 for Large) count passed checks regardless
+          of whether they provide behavioral evidence. An implementation with passing syntax,
+          build, and trivial tests would satisfy the evidence gate (EG-2) without any
+          behavioral validation.
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md lines 100-156 — Tiers 1-4 workflow"
+          - "NewAgents/.github/agents/verifier.agent.md lines 206-212 — Minimum Signal Requirements table"
+          - "NewAgents/.github/agents/verifier.agent.md lines 175-178 — Evidence Gate Summary"
+        relevance: >
+          Adding behavioral verification to the verifier cascade is the highest-impact
+          change. Options include: (a) new Tier 2.5 or Tier 3 check_name
+          'behavioral-coverage' that cross-references test files against acceptance criteria,
+          (b) expanding Tier 2 tests check to include behavioral coverage measurement,
+          (c) raising minimum signal requirements to include at least 1 behavioral check.
+          Any option requires new check_name entries in schemas.md and sql-templates.md,
+          and potentially new evidence gate queries (EG-7+).
+
+      - id: "F-5"
+        title: "Adversarial reviewer correctness category already covers testing gaps but lacks structural enforcement for behavioral validation"
+        category: "structure"
+        detail: >
+          The adversarial-reviewer.agent.md defines three review categories: security,
+          architecture, and correctness. The correctness category scope includes 'Edge cases,
+          logic errors, spec compliance, testing gaps, error handling' (schemas.md line 800,
+          adversarial-reviewer.agent.md Step 3c). The pragmatic-verifier perspective is
+          particularly focused on correctness. However, 'testing gaps' is a subjective
+          assessment — the reviewer examines code and tests through their analytical lens
+          without a structural requirement to verify behavioral test coverage. The review
+          verdict schema (Schema 9) has per-category sub-verdicts (security, architecture,
+          correctness) and corresponding SQL INSERTs. Adding a fourth category (e.g.,
+          'behavioral') would break the 3-INSERT-per-reviewer pattern used throughout
+          the pipeline (evidenced by EG-5 and EG-6 queries expecting exactly 3 categories).
+          Alternatively, expanding the correctness category's guidance to mandate behavioral
+          test verification keeps the existing 3-category structure intact.
+        evidence:
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md lines 130-140 — Step 3c Correctness Analysis"
+          - "NewAgents/.github/agents/schemas.md lines 800-802 — Review Focus Area Details table"
+          - "NewAgents/.github/agents/sql-templates.md lines 445-480 — EG-5 and EG-6 queries expecting 3 categories"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md lines 73-78 — 3 SQL INSERTs per reviewer"
+        relevance: >
+          Expanding the correctness category to include explicit behavioral validation
+          guidance is lower risk than adding a 4th category. Adding a 4th category would
+          require changing: the YAML verdict schema (Schema 9), the SQL INSERT pattern
+          (from 3 to 4 per reviewer), EG-5 query (HAVING cats = 3 to cats = 4), EG-6
+          query, the Markdown findings template (4 sections instead of 3), review-perspectives.md,
+          and the orchestrator's evidence gate logic. This cascading change makes a 4th
+          category high-risk.
+
+      - id: "F-6"
+        title: "Planner acceptance criteria are required but not validated for behavioral testability"
+        category: "risk"
+        detail: >
+          The planner (planner.agent.md) requires every task to have acceptance_criteria
+          (Schema 6 task-schema: 'list of strings, Yes, >= 1 entry; testable acceptance
+          criteria'). The word 'testable' appears in the constraint but there is no
+          structural enforcement mechanism. The planner's self-verification checklist
+          (planner.agent.md Self-Verification) checks for relevant_context pointers,
+          risk classifications, and schema compliance — but does not validate that
+          acceptance criteria are behaviorally testable (e.g., specifying observable
+          outcomes rather than implementation details). The relevant_context mechanism
+          provides pointers to spec requirements, but the mapping from spec to behavioral
+          test expectation is implicit.
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md lines 95-108 — Schema 6 task-schema with acceptance_criteria"
+          - "NewAgents/.github/agents/schemas.md lines 467-476 — task-schema fields: acceptance_criteria 'testable'"
+          - "NewAgents/.github/agents/planner.agent.md lines 307-318 — Self-Verification checklist (no behavioral check)"
+        relevance: >
+          The planner is the entry point for behavioral requirements. If acceptance criteria
+          are not behaviorally specific, downstream agents (implementer, verifier) cannot
+          enforce behavioral correctness. Adding a self-verification item requiring criteria
+          to specify observable behaviors is a low-risk, high-impact change. This would
+          not change schemas but would strengthen the planner's instruction text.
+
+      - id: "F-7"
+        title: "schemas.md at 1422 lines is at risk for agent context window pressure — contains ~286 lines of SQLite DDL duplicated from sql-templates.md"
+        category: "risk"
+        detail: >
+          schemas.md is the largest single file in the agent system at 1422 lines. It is
+          referenced by every agent that produces or consumes typed YAML. The file contains:
+          (1) Common header definition (~60 lines), (2) Producer/Consumer dependency table
+          (~20 lines), (3) 10 YAML schema definitions with examples (~900 lines, schemas 1-10,
+          lines 61-960), (4) SQLite schemas section (~286 lines, lines 961-1246) that
+          duplicates DDL from sql-templates.md, (5) Naming conventions (~40 lines),
+          (6) Routing matrix (~27 lines), (7) Output format classification (~43 lines),
+          (8) Schema evolution strategy (~48 lines).
+
+          The SQLite schemas section (lines 961-1246) contains 4 full CREATE TABLE statements
+          with column reference tables, phase semantics documentation, and sample queries.
+          These are explicitly marked as 'Illustrative reference only. Execute sql-templates.md
+          §1 for the canonical DDL' — yet the full DDL, column reference tables, and queries
+          are still included. The canonical source is sql-templates.md (699 lines) which has
+          identical DDL in §1 (lines 82-175) plus INSERT templates in §2-§5 and evidence gate
+          queries in §6.
+
+          Specific duplication instances: (a) anvil_checks DDL at schemas.md line 987 and
+          sql-templates.md line 99, (b) pipeline_telemetry DDL at schemas.md line 1053 and
+          sql-templates.md line 124, (c) artifact_evaluations DDL at schemas.md line 1123
+          and sql-templates.md existing section, (d) instruction_updates DDL at schemas.md
+          line 1196 and sql-templates.md existing section. Column reference tables for each
+          table are also duplicated across both files.
+
+          The evidence gate queries are NOT duplicated — schemas.md correctly says 'See
+          sql-templates.md §6 for all canonical evidence gate queries'. This inconsistency
+          (DDL duplicated but queries not) suggests the DDL duplication was unintentional
+          or a leftover from an intermediate design stage.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — 1422 lines total, SQLite section lines 961-1246"
+          - "NewAgents/.github/agents/sql-templates.md — 699 lines, canonical DDL at §1 lines 82-175"
+          - "NewAgents/.github/agents/schemas.md line 986 — 'Illustrative reference only' comment for anvil_checks"
+          - "NewAgents/.github/agents/schemas.md line 1052 — 'Illustrative reference only' comment for pipeline_telemetry"
+          - "NewAgents/.github/agents/schemas.md lines 1031-1034 — evidence gate queries say 'See sql-templates.md §6'"
+        relevance: >
+          Adding behavioral correctness fields to schemas would increase schemas.md further
+          beyond 1422 lines.  Before adding content, the ~286 lines of duplicated SQLite
+          DDL/column references should be replaced with cross-references to sql-templates.md
+          (as already done for evidence gate queries). This would reduce schemas.md to ~1136
+          lines, creating headroom for new behavioral fields. The schema examples section
+          (~350-400 lines total across 10 schemas) is valuable for agent understanding and
+          should not be trimmed. The routing matrix (~27 lines) and output format
+          classification (~43 lines) are unique to schemas.md and serve distinct purposes.
+
+      - id: "F-8"
+        title: "Implementation report schema (Schema 7) and verification report schema (Schema 8) need new fields for behavioral evidence"
+        category: "structure"
+        detail: >
+          Schema 7 (implementation-report, schemas.md lines 509-616) defines payload.self_check
+          with ide_diagnostics, build_exit_code, test_summary, self_fix_attempts, and
+          git_staged. There is no field for behavioral test quality or acceptance criteria
+          coverage. Adding a field like payload.self_check.behavioral_coverage (object with
+          criteria_tested/criteria_total counts, or a list of criteria IDs matched to test
+          names) would be an additive schema change (1.0 → 1.1 per evolution strategy).
+
+          Schema 8 (verification-report, schemas.md lines 617-756) defines payload.findings[]
+          with check_name, tier, phase, tool, command, exit_code, passed, output_snippet.
+          Adding a behavioral check would use the existing findings[] structure with a new
+          check_name (e.g., 'behavioral-coverage' or 'acceptance-criteria-check'). The
+          evidence_gate thresholds (total_checks, passed, failed, gate_status) would
+          automatically include behavioral checks without schema changes. However, the
+          minimum signal requirements table in verifier.agent.md would need updating if
+          behavioral checks become required signals.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 509-616 — Schema 7 implementation-report full definition"
+          - "NewAgents/.github/agents/schemas.md lines 617-756 — Schema 8 verification-report full definition"
+          - "NewAgents/.github/agents/schemas.md lines 1375-1422 — Schema Evolution Strategy"
+        relevance: >
+          Schema 7 changes are additive (new optional fields) — safe per evolution strategy.
+          Schema 8 changes use existing structures (new check_name values) — no schema version
+          bump needed. The key design decision is whether behavioral_coverage is a new
+          top-level payload field or a new verification_entries item.
+
+      - id: "F-9"
+        title: "New check_name patterns needed in sql-templates.md and schemas.md check_name reference"
+        category: "structure"
+        detail: >
+          The check_name naming patterns table (schemas.md lines 1265-1303) defines all
+          valid check_name values used in anvil_checks SQL INSERTs. Current patterns cover:
+          baseline-{type}, ide-diagnostics, syntax-check, build, type-check, lint, tests,
+          import-check, smoke-execution, tier3-infeasible, readiness-{type},
+          review-{scope}-{category}, and baseline-discrepancy. Adding behavioral verification
+          requires new check_name entries, e.g.: 'behavioral-coverage' (Tier 2 or new tier),
+          'acceptance-criteria-check' (verifier check), 'behavioral-test-quality'
+          (implementer baseline/after). These must be added to both schemas.md check_name
+          reference AND documented in sql-templates.md if new evidence gate queries are
+          needed (e.g., EG-7: behavioral evidence exists per task).
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 1265-1303 — check_name Naming Patterns table"
+          - "NewAgents/.github/agents/sql-templates.md lines 385-495 — Evidence Gate Queries EG-1 through EG-6"
+          - "NewAgents/.github/agents/verifier.agent.md lines 97-113 — check_name Quick Reference table"
+        relevance: >
+          Adding new check_name patterns is low-risk (additive). The sql-templates.md
+          evidence gate section may need a new EG-7 query for behavioral evidence. The
+          verifier's Quick Reference table also needs the new entry. Three files need
+          coordinated updates: schemas.md, sql-templates.md, and verifier.agent.md.
+
+      - id: "F-10"
+        title: "Pipeline flow risk is moderate — changes are largely additive but evidence gate thresholds and minimum signals may need adjustment"
+        category: "risk"
+        detail: >
+          The current pipeline flow (Steps 0-9) is deterministic with routing driven by
+          completion contracts and SQL evidence gates. The behavioral correctness feature
+          can be implemented as primarily additive changes:
+          (1) New check_name patterns — additive, no existing flow disruption.
+          (2) New schema fields — additive (optional fields with defaults per evolution
+          strategy) — existing agent outputs remain valid.
+          (3) Expanded instruction text — no schema impact, behavioral guidance added to
+          agent instructions.
+
+          However, two changes carry pipeline flow risk:
+          (a) Minimum signal requirements (verifier.agent.md lines 206-212): If behavioral
+          checks become required signals, the threshold changes from 2/3 to 3/4, which
+          means existing implementations that previously passed would now fail. This would
+          trigger NEEDS_REVISION → replan loops that didn't exist before.
+          (b) Evidence gate queries: If new EG queries (e.g., EG-7 behavioral exists) are
+          added as required gates in the orchestrator, they must pass for the pipeline to
+          proceed. Tasks verified before the change would not have behavioral evidence,
+          causing failures on resume (EC-5 pipeline state recovery).
+
+          The orchestrator's decision table (orchestrator.agent.md lines 340-380) would
+          need updating only if new required gates are added. If behavioral checks are
+          advisory (counted in existing EG-2 threshold), no orchestrator changes are needed.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 230-262 — Steps 5-6 Implementation+Verification Loop"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 340-380 — Orchestrator Decision Table"
+          - "NewAgents/.github/agents/verifier.agent.md lines 206-212 — Minimum Signal Requirements"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 385-415 — Evidence Gate Logic"
+        relevance: >
+          The risk mitigation strategy is to make behavioral checks additive (new check_names
+          counted within existing EG-2 thresholds) rather than introducing new required gates.
+          This preserves backward compatibility while raising the effective verification bar.
+          If stronger enforcement is desired, minimum signal thresholds can be raised
+          incrementally (e.g., Standard: 2→3, Large: 3→4) as a separate follow-up change.
+
+      - id: "F-11"
+        title: "schemas.md examples section consumes ~350-400 lines but provides critical agent comprehension value"
+        category: "structure"
+        detail: >
+          Each of the 10 YAML schemas in schemas.md includes a complete example. Approximate
+          line counts per example: Schema 1 completion-contract (~15 lines), Schema 2
+          research-output (~40 lines), Schema 3 spec-output (~45 lines), Schema 4
+          design-output (~50 lines), Schema 5 plan-output (~55 lines), Schema 6 task-schema
+          (~30 lines), Schema 7 implementation-report (~50 lines), Schema 8
+          verification-report (~65 lines), Schema 9 review-findings (~20 lines), Schema 10
+          knowledge-output (~70 lines). Total: ~440 lines of examples.
+
+          These examples serve as the primary mechanism for agents to understand the expected
+          output format. Unlike field definition tables (which define type constraints),
+          examples show real-world structure including nesting, array formats, and field
+          interrelationships. Trimming examples would save lines but increase the risk of
+          agents producing malformed output.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 79-99 — Schema 1 example"
+          - "NewAgents/.github/agents/schemas.md lines 120-166 — Schema 2 example"
+          - "NewAgents/.github/agents/schemas.md lines 579-615 — Schema 7 example"
+          - "NewAgents/.github/agents/schemas.md lines 680-755 — Schema 8 example"
+        relevance: >
+          Examples should NOT be trimmed as a size reduction strategy. The ~286 lines of
+          duplicated SQLite DDL (finding F-7) are a better trimming target. If further
+          reduction is needed, the Schema Evolution Strategy section (~48 lines) could be
+          moved to a separate shared reference since it is rarely consulted during normal
+          pipeline operation. The Output Format Classification section (~43 lines) is also
+          a candidate for extraction.
+
+      - id: "F-12"
+        title: "sql-templates.md §9 Schema Evolution Strategy duplicates schemas.md Schema Evolution Strategy"
+        category: "structure"
+        detail: >
+          sql-templates.md §9 (lines 603-699) contains a Schema Evolution Strategy section
+          focused on SQLite schema evolution (ALTER TABLE, enum expansion, version tracking,
+          migration procedures). schemas.md also has a Schema Evolution Strategy section
+          (lines 1375-1422) focused on YAML schema evolution (additive/breaking/default
+          changes, version policy, change process). While these cover different concerns
+          (SQLite vs YAML), having two 'Schema Evolution Strategy' sections across the system
+          creates naming confusion. The sql-templates.md §9 section is 96 lines covering
+          migration patterns that are only relevant to the orchestrator (Step 0 DDL). This
+          section could be clarified with a more specific title.
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md lines 603-699 — §9 Schema Evolution Strategy"
+          - "NewAgents/.github/agents/schemas.md lines 1375-1422 — Schema Evolution Strategy"
+        relevance: >
+          When adding behavioral correctness fields (both YAML schema fields and potentially
+          new SQLite columns), designers must consult both evolution strategies. The naming
+          overlap could cause confusion during planning and implementation.
+
+    summary: >
+      Behavioral correctness enforcement impacts 6 agent definition files and 2 shared references
+      across the pipeline. The core gap is in the implementer (no behavioral test validation in
+      TDD workflow) and verifier (no behavioral tier in 4-tier cascade). The adversarial reviewer's
+      correctness category can be expanded without structural changes. The planner needs acceptance
+      criteria quality enforcement. schemas.md at 1422 lines contains ~286 lines of SQLite DDL
+      duplicated from sql-templates.md that should be removed before adding new content, reducing
+      it to ~1136 lines. Schema examples (~440 lines) should be preserved for agent comprehension.
+      Pipeline flow risk is moderate — changes can be made as additive (new check_names, optional
+      fields) to preserve backward compatibility, with threshold increases deferred to a follow-up.
+      The 3-category reviewer SQL INSERT pattern (EG-5, EG-6) should not be changed to 4 categories
+      due to cascading impact across schemas, queries, and agent instructions.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+
+completion:
+  status: "DONE"
+  summary: "Impact research complete: 12 findings covering 6 agent files, schema size analysis, and pipeline flow risk assessment"
+  severity: null
+  findings_count: 12
+  risk_level: null
+  output_paths:
+    - "research/impact.yaml"

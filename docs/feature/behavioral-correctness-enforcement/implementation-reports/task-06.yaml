@@ -1,0 +1,77 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-06"
+  step: "step-5"
+  started_at: "2026-03-01T12:00:00Z"
+  completed_at: "2026-03-01T12:25:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-06"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics:
+        errors: 4
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        action: "modified"
+        description: >
+          Added 5 groups of behavioral TDD enforcement content (~42 lines):
+          (1) TDD Structural Rules in Step 4 — production import requirement,
+          observable-behavior assertions, AC traceability, tdd_red_green recording.
+          (2) behavioral_coverage and tdd_red_green fields in YAML Output Structure.
+          (3) Test Selection Strategy subsection with test_method table, principles,
+          UI-specific guidance, and runtime wiring check.
+          (4) Three self-verification checklist items in Implementation Correctness.
+          (5) Edge case handling (EC-1, EC-2, EC-3) in TDD Fallback section.
+          Final line count: 376 (under 400-line NFR-2 budget).
+      - path: "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-06.yaml"
+        action: "created"
+        description: "Implementation report for task-06"
+    self_check:
+      ide_diagnostics:
+        errors: 4
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: false
+    behavioral_coverage:
+      - ac_id: "AC-4"
+        status: "not_applicable"
+        justification: "task_type='documentation' — agent definition file modification verified by content inspection, not automated tests"
+      - ac_id: "AC-5"
+        status: "not_applicable"
+        justification: "test_method='inspection' — verified by inspecting self-verification checklist for all three items"
+      - ac_id: "AC-11"
+        status: "not_applicable"
+        justification: "task_type='documentation' — tdd_red_green field added to output schema template; recording behavior verified by inspection"
+      - ac_id: "AC-15"
+        status: "not_applicable"
+        justification: "test_method='inspection' — verified by inspecting Operating Rules for test selection strategy content"
+      - ac_id: "AC-2-impl"
+        status: "not_applicable"
+        justification: "test_method='inspection' — verified by inspecting YAML Output Structure for behavioral_coverage and tdd_red_green fields"
+      - ac_id: "AC-13"
+        status: "covered"
+        test_file: "N/A"
+        test_name: "grep for TBD|TODO|FIXME returned zero matches; line count 376 < 400"
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+completion:
+  status: "DONE"
+  summary: "task-06 — Added behavioral TDD enforcement to implementer.agent.md: TDD structural rules, output schema fields, test selection strategy, 3 self-verification items, edge case handling. 376 lines (under 400 budget)."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-06.yaml"

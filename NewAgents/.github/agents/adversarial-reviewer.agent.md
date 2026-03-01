@@ -178,6 +178,15 @@ Examine architecture concerns through your perspective's unique lens. Assess cou
 
 Examine correctness concerns through your perspective's unique lens. Assess edge cases, logic errors, spec compliance, testing gaps, and error handling — weighted by your perspective's priorities.
 
+**Behavioral test validity checks** (apply during code review for all `task_type: code` tasks):
+
+- **Self-referential test detection:** Verify test files import and invoke production modules. Flag tests that only assert on locally-declared variables or mock setup without calling production code — severity: **Major** per [severity-taxonomy.md](severity-taxonomy.md).
+- **AC-to-test coverage mapping:** For every acceptance criterion with `test_method='test'`, verify a corresponding automated test exists. Flag missing coverage — severity: **Major**.
+- **Runtime wiring verification:** For tasks creating new files, verify new files are referenced from at least one existing code path (import, require, or configuration entry). Flag isolated abstractions with no call-site references — severity: **Major**.
+- **Suspicious TDD patterns:** If `tdd_red_green.tests_written_first` is `true` AND `initial_run_failures` is `0`, flag for deeper test code review — tests that never fail on first run may not be testing new behavior. Also flag identical before/after commands or `0→0` exit code progressions as suspicious.
+
+If all tests pass but no observable behavioral change is evident (e.g., only boilerplate/scaffolding added, no assertions on production output), flag as a correctness concern — the implementation may satisfy form without substance.
+
 For each finding:
 
 1. **Assess severity** using [severity-taxonomy.md](severity-taxonomy.md).

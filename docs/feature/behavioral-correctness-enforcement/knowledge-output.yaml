@@ -1,0 +1,208 @@
+agent_output:
+  agent: "knowledge-agent"
+  instance: "knowledge-agent"
+  step: "step-8"
+  started_at: "2026-03-01T14:20:00Z"
+  completed_at: "2026-03-01T14:45:00Z"
+  schema_version: "1.0"
+  payload:
+    knowledge_updates:
+      - type: "convention"
+        key: "schema-6-acceptance-criteria-v2"
+        value: >
+          Schema 6 acceptance_criteria is now list-of-objects {id, text, test_method},
+          not list-of-strings. This is a v2.0 breaking change. All producers (Planner) and
+          consumers (Implementer, Verifier) must use the structured format. test_method
+          defaults to 'test' if omitted.
+        stored_via: "store_memory_unavailable"
+
+      - type: "convention"
+        key: "behavioral-coverage-check-names"
+        value: >
+          Two new check_name values exist in the verifier cascade: 'behavioral-coverage'
+          (Tier 2, unconditional for code tasks) and 'runtime-wiring' (Tier 2, conditional
+          on new-file tasks only). Both are registered in schemas.md check_name Naming
+          Patterns, verifier.agent.md Quick Reference, and EG-7 query.
+        stored_via: "store_memory_unavailable"
+
+      - type: "convention"
+        key: "behavioral-tier2-always-run"
+        value: >
+          Behavioral checks (behavioral-coverage Step 3e, runtime-wiring Step 3f) are
+          unconditional Tier 2 checks using always-available workspace tools (grep_search,
+          read_file). They are placed under a distinct 'Always-Run Behavioral Checks (Code
+          Tasks)' sub-heading in verifier.agent.md, separate from the tooling-dependent
+          Tier 2 checks (3a-3d). Do NOT gate them behind external tooling detection.
+        stored_via: "store_memory_unavailable"
+
+      - type: "convention"
+        key: "severity-taxonomy-behavioral-majors"
+        value: >
+          Three behavioral correctness issues are classified as Major severity in
+          severity-taxonomy.md: (1) tests that do not invoke production code (self-referential),
+          (2) business logic code changes with zero test coverage, (3) test_method='test'
+          acceptance criteria lacking automated tests. These trigger needs_revision routing.
+        stored_via: "store_memory_unavailable"
+
+      - type: "lesson"
+        key: "eg7-gap-detection-broken"
+        value: >
+          EG-7 gap-detection companion query in sql-templates.md references non-existent
+          pipeline_telemetry.task_id column. The pipeline_telemetry table has no task_id
+          column — use instance column with pattern matching or anvil_checks self-join
+          instead. Must be fixed before EG-7 promotion to required gate.
+        stored_via: "store_memory_unavailable"
+
+      - type: "lesson"
+        key: "unplanned-file-modifications"
+        value: >
+          Unplanned modifications to files outside task scope (e.g., orchestrator.agent.md)
+          bypass the pipeline's own verification mechanisms (baseline capture, evidence
+          gating, verification cascade). Any out-of-scope change should either be reverted
+          or tracked as a separate task with proper verification.
+        stored_via: "store_memory_unavailable"
+
+      - type: "lesson"
+        key: "yaml-schema-versioning-gap"
+        value: >
+          No YAML schema versioning framework exists. sql-templates.md §9 covers only SQLite
+          table evolution. The common header schema_version: '1.0' does not change when
+          individual schemas bump versions. Future work needed to define how per-schema
+          versions relate to the common header version.
+        stored_via: "store_memory_unavailable"
+
+      - type: "pattern"
+        key: "ddl-deduplication-cross-reference"
+        value: >
+          schemas.md DDL was deduplicated by replacing ~260 lines of inline SQLite DDL with
+          cross-references to sql-templates.md §1. Reduces schemas.md from 1422 to ~1218
+          lines. Creates cross-reference coupling — when sql-templates.md sections change,
+          schemas.md references must be verified. The EG range reference ('EG-1 through EG-6')
+          became stale within the same pipeline run when EG-7 was added.
+        stored_via: "store_memory_unavailable"
+
+      - type: "pattern"
+        key: "design-review-issue-resolution"
+        value: >
+          Design review correctness issues (Tier 2 conditional framing, TDD Fallback enum,
+          D-1 overclaim) were addressed during implementation without a formal design revision
+          loop. The implementer made corrective adjustments: added 'Always-Run' sub-heading,
+          documented not_applicable for TDD Fallback with EC-2 note, included honest caveat
+          about F-3 gap narrowing. This demonstrates that a single design review iteration
+          (max 1 per bounded loop) can be effective when implementers have visibility into
+          review findings.
+        stored_via: "store_memory_unavailable"
+
+      - type: "lesson"
+        key: "cross-reference-staleness-risk"
+        value: >
+          Section-number cross-references (e.g., 'sql-templates.md §6') become stale when
+          target documents are modified. Within this run, schemas.md referenced 'EG-1 through
+          EG-6' while EG-7 was added to sql-templates.md by a concurrent task. Consider using
+          range-free references ('all canonical evidence gate queries') or adding a verifier
+          self-check for cross-reference consistency.
+        stored_via: "store_memory_unavailable"
+
+    decision_log_entries:
+      - id: "DL-001"
+        title: "Schema 6 acceptance_criteria changed from string list to object list (breaking change v2.0)"
+        rationale: >
+          Implementer classified Schema 6 as v2.0 breaking change contrary to design D-1's
+          v1.1 specification. The breaking classification is correct per Schema Evolution Strategy.
+          All consumers updated synchronously. No deviation record filed — this entry serves
+          as the record.
+        confidence: "High"
+
+      - id: "DL-002"
+        title: "Behavioral checks placed as unconditional Tier 2 with distinct sub-heading"
+        rationale: >
+          Design review correctness Finding 1 resolved by adding 'Always-Run Behavioral Checks'
+          sub-heading under Tier 2, explicitly marking Steps 3e/3f as unconditional for code tasks.
+        confidence: "High"
+
+      - id: "DL-003"
+        title: "EG-7 behavioral coverage gate deployed as informational (non-blocking)"
+        rationale: >
+          Conservative rollout per FR-5.1. Promotion criteria documented. Gap-detection query
+          has known defect that must be fixed before promotion.
+        confidence: "High"
+
+      - id: "DL-004"
+        title: "DDL deduplication in schemas.md via cross-references to sql-templates.md"
+        rationale: >
+          ~260 lines removed, schemas.md reduced from 1422 to ~1218 lines. Cross-reference
+          coupling creates staleness risk (demonstrated within this run).
+        confidence: "High"
+
+      - id: "DL-005"
+        title: "YAML schema versioning framework gap identified — not resolved in this run"
+        rationale: >
+          No YAML versioning framework exists. Schema 6 v2.0 label vs common header 1.0
+          creates ambiguity. Deferred to follow-up feature.
+        confidence: "Medium"
+
+    evidence_bundle:
+      overall_confidence: "Medium"
+      verification_summary:
+        tasks_verified: 8
+        total_checks: 29
+        passed: 29
+        failed: 0
+        regressions: 0
+      review_summary:
+        design_review:
+          round: 1
+          verdicts:
+            security: "approve"
+            architecture: "approve"
+            correctness: "needs_revision"
+        code_review:
+          round: 1
+          verdicts:
+            security: "approve"
+            architecture: "needs_revision"
+            correctness: "approve"
+      rollback_command: "git revert --no-commit pipeline-baseline-2026-03-01T12:00:00Z..HEAD"
+      blast_radius:
+        files_modified: 9
+        risk_red_files: 1
+        risk_yellow_files: 8
+        risk_green_files: 0
+        regressions: 0
+      known_issues:
+        - description: "EG-7 gap-detection query references non-existent pipeline_telemetry.task_id column"
+          severity: "Major"
+        - description: "Unplanned orchestrator.agent.md modification bypasses task-scoped verification"
+          severity: "Major"
+        - description: "Schema 6 v2.0 label lacks YAML schema versioning framework"
+          severity: "Major"
+        - description: "Schema 6 version (2.0) deviates from design D-1 (1.1) — no deviation record filed"
+          severity: "Major"
+        - description: "Stale EG cross-reference in schemas.md (says EG-1 through EG-6, EG-7 exists)"
+          severity: "Minor"
+        - description: "Cross-reference coupling fragility between schemas.md and sql-templates.md"
+          severity: "Minor"
+        - description: "Verifier Step 3e exemption list omits demonstration and analysis test_methods"
+          severity: "Minor"
+        - description: "EG-7 gap-detection query false positives for non-code tasks"
+          severity: "Minor"
+        - description: "AC-11 mechanism divergence from spec wording (behavioral_coverage vs tdd_fallback_reason)"
+          severity: "Minor"
+        - description: "New justification free-text field not listed in sql_escape() §0 enumeration"
+          severity: "Minor"
+
+    pipeline_telemetry_summary:
+      total_dispatches: 22
+      total_duration_seconds: 8100
+      error_count: 0
+
+completion:
+  status: "DONE"
+  summary: "Knowledge capture complete: 10 knowledge updates, 5 decision log entries, evidence bundle assembled. Medium confidence (2/3 approve, 29/29 checks passed, 4 Major known issues, 0 blockers)."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "knowledge-output.yaml"
+    - "decisions.yaml"
+    - "evidence-bundle.md"

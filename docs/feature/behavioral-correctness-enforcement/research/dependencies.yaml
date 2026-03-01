@@ -1,0 +1,483 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-dependencies"
+  step: "step-1"
+  started_at: "2026-03-01T12:00:00Z"
+  completed_at: "2026-03-01T12:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "dependencies"
+    findings:
+      - id: "F-1"
+        title: "Cross-Reference Map — All 9 Agents Reference 9 Shared Documents with Varying Depth"
+        category: "dependency"
+        detail: |
+          Every agent definition (.agent.md) references a specific subset of 9 shared reference documents.
+          The dependency graph is:
+
+          Orchestrator (7 refs): global-operating-rules.md (§1-§2,§7), sql-templates.md (§0,§1,§3,§6),
+            tool-access-matrix.md (§1-§2), context7-integration.md, dispatch-patterns.md,
+            review-perspectives.md, schemas.md (routing matrix, completion contract).
+
+          Researcher (4 refs): schemas.md (§Schema 2), global-operating-rules.md (§1-§2,§6),
+            tool-access-matrix.md (§3), context7-integration.md.
+
+          Spec (3 refs): schemas.md (§Schema 2,§3), global-operating-rules.md (§1-§2,§6),
+            tool-access-matrix.md (§4).
+
+          Designer (4 refs): schemas.md (§Schema 4,§9), global-operating-rules.md (§1-§3,§5,§6),
+            tool-access-matrix.md (§5). Does NOT reference sql-templates.md.
+
+          Planner (5 refs): schemas.md (§Schema 5,§6), dispatch-patterns.md (Pattern A),
+            severity-taxonomy.md, global-operating-rules.md (§1-§2,§6), tool-access-matrix.md (§6).
+
+          Implementer (7 refs): global-operating-rules.md (§1-§6), sql-templates.md (§0-§4),
+            tool-access-matrix.md (§7), evaluation-schema.md (§3-§4), severity-taxonomy.md,
+            context7-integration.md, schemas.md (§Schema 7).
+
+          Verifier (5 refs): schemas.md (§Schema 8), sql-templates.md (§0-§2,§6),
+            global-operating-rules.md (§1-§2,§6), evaluation-schema.md (§3-§4),
+            tool-access-matrix.md (§8).
+
+          Adversarial Reviewer (6 refs): review-perspectives.md (§5-§6,§8), severity-taxonomy.md,
+            sql-templates.md (§2), evaluation-schema.md, global-operating-rules.md (§1-§2,§6),
+            tool-access-matrix.md (§9).
+
+          Knowledge Agent (5 refs): schemas.md (§Schema 10), sql-templates.md (§4-§5,§7),
+            global-operating-rules.md (§1-§3,§6,§9), evaluation-schema.md,
+            tool-access-matrix.md (§10).
+
+          Two documents are referenced by ALL agents: global-operating-rules.md and tool-access-matrix.md.
+          schemas.md is referenced by 8 of 9 agents (all except Adversarial Reviewer, which
+          produces review-findings schema indirectly described in its own file and schemas.md §9).
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — references global-operating-rules.md, sql-templates.md, tool-access-matrix.md, dispatch-patterns.md, context7-integration.md, review-perspectives.md"
+          - "NewAgents/.github/agents/researcher.agent.md — references schemas.md, global-operating-rules.md, tool-access-matrix.md, context7-integration.md"
+          - "NewAgents/.github/agents/implementer.agent.md — references global-operating-rules.md, sql-templates.md, tool-access-matrix.md, evaluation-schema.md, severity-taxonomy.md, context7-integration.md, schemas.md"
+          - "NewAgents/.github/agents/verifier.agent.md — references schemas.md, sql-templates.md, global-operating-rules.md, evaluation-schema.md, tool-access-matrix.md"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md — references review-perspectives.md, severity-taxonomy.md, sql-templates.md, evaluation-schema.md, global-operating-rules.md, tool-access-matrix.md"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md — references schemas.md, sql-templates.md, global-operating-rules.md, evaluation-schema.md, tool-access-matrix.md"
+        relevance: "Downstream agents need this dependency map to understand which shared documents must be updated when behavioral validation requirements are added. Any new shared convention (e.g., behavioral check rules) must be propagated to the correct agent subset."
+
+      - id: "F-2"
+        title: "Evidence Chain Implementer→Verifier→Reviewer Has No Acceptance-Criteria-to-Evidence Mapping"
+        category: "risk"
+        detail: |
+          The data flow from Implementer to Verifier to Adversarial Reviewer has a structural
+          gap: no agent systematically maps acceptance criteria to verification evidence.
+
+          The chain works as follows:
+          1. Spec Agent produces acceptance_criteria[] in spec-output.yaml (Schema 3).
+          2. Planner distills these into per-task acceptance_criteria[] in tasks/*.yaml (Schema 6).
+          3. Implementer reads task.acceptance_criteria but only self-reports whether tests pass/fail
+             in implementation-reports/<task-id>.yaml. There is no structured field mapping
+             each AC to a specific test or evidence artifact.
+          4. Verifier runs a 4-tier technical cascade (IDE diagnostics, build, tests, lint, import,
+             smoke, readiness) and records pass/fail per check_name in anvil_checks. But check_names
+             are technical categories (e.g., 'ide-diagnostics', 'build', 'tests') — NOT acceptance
+             criteria identifiers (e.g., 'AC-3'). The verifier checks "did tests pass" not "does
+             the code fulfill AC-3".
+          5. Adversarial Reviewer evaluates correctness through perspective lenses but produces
+             qualitative findings, not systematic AC-by-AC verification.
+          6. Orchestrator evidence gates (EG-1 through EG-6) verify signal counts and blocker
+             absence — they do not verify acceptance criteria coverage.
+
+          Result: An agent can declare success (all tests pass, all checks green) while missing
+          an entire acceptance criterion that was never tested.
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md lines 125-200 — 4-tier cascade uses check_names like 'ide-diagnostics', 'build', 'tests', 'lint', not acceptance criterion IDs"
+          - "NewAgents/.github/agents/implementer.agent.md lines 80-130 — implementation report schema has no acceptance_criteria_mapping field"
+          - "NewAgents/.github/agents/schemas.md lines 460-530 — Schema 6 task-schema defines acceptance_criteria[] as strings but Schema 7 implementation-report has no corresponding AC-result mapping"
+          - "NewAgents/.github/agents/schemas.md lines 700-745 — Schema 8 verification-report has evidence_gate with total_checks/passed/failed but no AC-to-check mapping"
+          - "NewAgents/.github/agents/sql-templates.md lines 400-500 — EG-1 through EG-6 queries filter by phase, passed count, verdict, instance — none filter by acceptance criterion"
+        relevance: "This is the core behavioral correctness gap. Any structural safeguard for behavioral validation must introduce an AC-to-evidence mapping somewhere in this chain — either in the implementer report, the verifier cascade, or a new evidence gate query."
+
+      - id: "F-3"
+        title: "Planner Output Consumed by Implementer and Verifier Via Different Access Patterns"
+        category: "dependency"
+        detail: |
+          The Planner produces three output types consumed differently by downstream agents:
+
+          1. plan-output.yaml (Schema 5) — consumed by:
+             - Orchestrator: reads overall_risk_summary and waves for dispatch routing
+             - Implementer: does NOT read plan-output.yaml directly; reads only tasks/*.yaml
+             - Verifier: reads plan-output.yaml for task risk classification and task size
+
+          2. tasks/*.yaml (Schema 6) — consumed by:
+             - Implementer: primary input; reads acceptance_criteria and relevant_context
+             - Verifier: reads task entry for risk/size; also reads acceptance_criteria from
+               spec-output.yaml (not from the task file)
+
+          3. plan.md — consumed by humans only (no machine consumer)
+
+          The relevant_context mechanism in task-schema bounds implementer reads:
+             relevant_context.design_sections → specific design-output.yaml sections
+             relevant_context.spec_requirements → specific spec-output.yaml sections
+             relevant_context.files_to_modify → file paths with risk levels
+
+          Implementer is BOUND by relevant_context (reads ONLY listed sections).
+          Verifier is NOT bound by relevant_context (has broader read access).
+
+          This asymmetry means the Verifier may discover context the Implementer never saw,
+          but cannot verify whether the Implementer had sufficient context for each AC.
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md lines 47-90 — Schema 6 task-schema with relevant_context"
+          - "NewAgents/.github/agents/implementer.agent.md lines 90-100 — Relevant Context Consumption section: 'Read ONLY what the task's relevant_context specifies'"
+          - "NewAgents/.github/agents/verifier.agent.md lines 45-60 — Input Schema lists plan-output.yaml and spec-output.yaml without relevant_context scoping"
+          - "NewAgents/.github/agents/schemas.md lines 460-530 — Schema 6 relevant_context definition with design_sections, spec_requirements, files_to_modify"
+        relevance: "The read asymmetry between Implementer (bounded) and Verifier (unbounded) creates a gap where the Verifier cannot assess whether the Implementer had adequate context. This matters for behavioral correctness because incomplete relevant_context can cause an Implementer to miss an acceptance criterion entirely."
+
+      - id: "F-4"
+        title: "Schema Duplication Between schemas.md and Individual Agent .agent.md Files Creates Drift Risk"
+        category: "risk"
+        detail: |
+          schemas.md (1422 lines) serves as the centralized schema registry containing 10 YAML
+          schema definitions plus 4 SQLite table schemas. However, each agent's .agent.md file
+          also contains its output schema structure inline:
+
+          - researcher.agent.md has YAML Output Structure for research-output
+          - spec.agent.md has YAML Output Structure for spec-output
+          - designer.agent.md has YAML Output Structure for design-output
+          - planner.agent.md has YAML Output Structure for plan-output and task-schema
+          - implementer.agent.md has YAML Output Structure for implementation-report
+          - verifier.agent.md has YAML Output Structure for verification-report
+          - adversarial-reviewer.agent.md has YAML Verdict Summary Structure
+          - knowledge-agent.agent.md has YAML Output Structure for knowledge-output
+
+          Additionally, sql-templates.md §1 contains the canonical DDL for all 4 SQLite tables,
+          while schemas.md contains illustrative DDL references that note "Execute sql-templates.md §1
+          for the canonical DDL" — creating a dual-source arrangement.
+
+          The Schema Evolution Strategy in schemas.md (end of document) acknowledges this:
+          "Each schema is owned by its producer agent. The producer's agent definition (.agent.md)
+          is the authoritative reference for its output schema. This document (schemas.md) provides
+          the centralized reference."
+
+          Despite this ownership note, there is no automated mechanism to detect when a field
+          in schemas.md diverges from the inline schema in an agent's .agent.md file, or when
+          DDL in sql-templates.md §1 diverges from the illustrative DDL in schemas.md.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 1340-1375 — Schema Evolution Strategy states 'Each schema is owned by its producer agent'"
+          - "NewAgents/.github/agents/schemas.md lines 1000-1010 — SQLite Schemas section notes 'Illustrative reference only. Execute sql-templates.md §1 for the canonical DDL'"
+          - "NewAgents/.github/agents/implementer.agent.md lines 80-130 — inline YAML Output Structure for implementation-report"
+          - "NewAgents/.github/agents/verifier.agent.md lines 50-120 — inline YAML Output Structure for verification-report"
+          - "NewAgents/.github/agents/sql-templates.md lines 50-160 — canonical DDL in §1"
+          - "NewAgents/.github/agents/schemas.md lines 1000-1100 — illustrative DDL for anvil_checks, pipeline_telemetry"
+        relevance: "Schema drift between the centralized registry and individual agent files could cause behavioral validation failures where agents produce output matching their inline schema but violating the registry, or vice versa. Any new behavioral validation fields must be synchronized across all three locations: schemas.md, the producing agent's .agent.md, and the consuming agent's .agent.md."
+
+      - id: "F-5"
+        title: "SQLite verification-ledger.db Is the Primary Evidence Store With 5 Writer Agents"
+        category: "dependency"
+        detail: |
+          The verification-ledger.db SQLite database contains 4 tables and is written to by
+          5 different agents:
+
+          Table: anvil_checks
+            Writers: Orchestrator (DDL only at Step 0), Implementer (phase='baseline'),
+                     Verifier (phase='after'), Adversarial Reviewer (phase='review')
+            Readers: Orchestrator (EG-1 through EG-6), Verifier (baseline cross-check),
+                     Adversarial Reviewer (code review context), Knowledge Agent (post-mortem)
+
+          Table: pipeline_telemetry
+            Writer: Orchestrator only (after each agent dispatch)
+            Readers: Knowledge Agent (post-mortem analysis queries §7)
+
+          Table: artifact_evaluations
+            Writers: Implementer, Verifier, Adversarial Reviewer
+            Readers: Knowledge Agent (evaluation summary queries §7)
+
+          Table: instruction_updates
+            Writer: Knowledge Agent only
+            Readers: Orchestrator (audit queries)
+
+          All tables share the run_id namespace. All queries must filter on run_id (§4 run_id Protocol).
+          WAL mode + busy_timeout=5000 handle concurrent writer contention (§3).
+
+          The sql_escape() function (§0) and stdin piping requirement are mandatory for all
+          SQL-writing agents as shell injection prevention (SEC-2).
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md lines 1-50 — §0 SQL Sanitization Requirements, SEC-1/SEC-2"
+          - "NewAgents/.github/agents/sql-templates.md lines 50-160 — §1 DDL with 4 tables"
+          - "NewAgents/.github/agents/schemas.md lines 5-30 — Producer/Consumer Dependency Table showing Schema 11 (artifact_evaluations) and Schema 12 (instruction_updates)"
+          - "NewAgents/.github/agents/global-operating-rules.md lines 40-65 — §3 SQLITE_BUSY Handling, §4 run_id Protocol"
+          - "NewAgents/.github/agents/tool-access-matrix.md — Master Matrix showing run_in_terminal access: Orch(🔒), Impl(✅), Verif(✅), AdvRev(🔒), Know(🔒)"
+        relevance: "Any behavioral correctness enforcement that requires new evidence columns or new evidence tables must account for the 5-writer concurrency model, the run_id namespace filter, and the sql_escape()/stdin piping security requirements. New behavioral evidence would need INSERT templates in sql-templates.md and evidence gate queries accessible to the Orchestrator."
+
+      - id: "F-6"
+        title: "Artifact Evaluation System (evaluation-schema.md) Creates Cross-Agent Quality Feedback Loop"
+        category: "dependency"
+        detail: |
+          The evaluation-schema.md document defines a cross-agent quality feedback system where
+          Phase 1 agents evaluate upstream artifacts:
+
+          - Implementer evaluates task definitions (tasks/*.yaml) — scores usefulness and clarity
+          - Verifier evaluates implementation reports (implementation-reports/*.yaml)
+          - Adversarial Reviewer evaluates design-output.yaml (Step 3b) or implementation+verification data (Step 7)
+
+          Each evaluation INSERTs into artifact_evaluations with usefulness_score (1-10),
+          clarity_score (1-10), and text fields: missing_information, inaccuracies, impact_on_work.
+
+          Knowledge Agent queries these evaluations via sql-templates.md §7 to produce:
+          - Mean usefulness/clarity scores per evaluator agent
+          - Bottom 5 worst-rated artifacts
+          - Missing information reports
+
+          Phase 2 expansion (future) would add: Spec evaluating research outputs, Designer
+          evaluating spec output, Planner evaluating design output.
+
+          This feedback loop is data-driven but operates post-hoc: evaluations are inserted
+          AFTER the consuming agent has already used the artifact. They do not influence the
+          current pipeline run — they inform future runs via Knowledge Agent post-mortem analysis.
+        evidence:
+          - "NewAgents/.github/agents/evaluation-schema.md — §3 Evaluation Workflow: 'Evaluate after you have used the artifact, not before'"
+          - "NewAgents/.github/agents/evaluation-schema.md — §6 Phase 1 Agents table"
+          - "NewAgents/.github/agents/evaluation-schema.md — §7 Phase 2 Expansion (Future)"
+          - "NewAgents/.github/agents/sql-templates.md lines 530-590 — §7 Post-Mortem Analysis Queries for evaluation data"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 100-130 — Step 3: Query Artifact Evaluations"
+        relevance: "The evaluation system could be extended to capture behavioral correctness metrics — e.g., the Verifier could evaluate whether the Implementer's report accurately mapped acceptance criteria to tests. This would create a feedback signal for the Knowledge Agent's post-mortem analysis."
+
+      - id: "F-7"
+        title: "Orchestrator Evidence Gates (EG-1 through EG-6) Verify Counts and Verdicts, Not Behavioral Coverage"
+        category: "risk"
+        detail: |
+          The Orchestrator uses 6 evidence gate queries (defined in sql-templates.md §6) to
+          make routing decisions:
+
+          EG-1: Baseline Exists — COUNT(*) WHERE phase='baseline' for task. Expected ≥1.
+          EG-2: Verification Sufficient — COUNT(*) WHERE phase='after' AND passed=1. Expected ≥2 (Standard) or ≥3 (Large).
+          EG-3: Review Completion — COUNT(DISTINCT instance) WHERE phase='review'. Expected 3.
+          EG-4: Blocker Check — COUNT(*) WHERE verdict='blocker'. Expected 0.
+          EG-5: Category Coverage — COUNT(DISTINCT check_name) per instance. Expected 3 per.
+          EG-6: Majority Approval — COUNT reviewers with all verdicts='approve'. Expected ≥2.
+
+          All gates are quantitative threshold checks. None verify:
+          - Whether every acceptance criterion has corresponding evidence
+          - Whether behavioral specifications were actually tested
+          - Whether the verifier cascade covered the specific functionality described in the task
+          - Whether the implementer's tests are meaningful (testing behavior vs. testing implementation details)
+
+          The gates prevent false positives at the structural level (e.g., "did enough checks run?")
+          but not at the behavioral level (e.g., "do the checks cover what was specified?").
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md lines 400-500 — §6 Evidence Gate Queries EG-1 through EG-6"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 260-300 — Evidence Gate Logic section references EG-1 through EG-6"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 230-250 — Step 6 Verification evidence gate: 'Baseline exists (EG-1)', 'Verification sufficient (EG-2)'"
+          - "NewAgents/.github/agents/verifier.agent.md lines 215-240 — Minimum Signal Requirements: ≥2 for Standard, ≥3 for Large"
+        relevance: "This is a primary enforcement point for behavioral correctness. New evidence gate queries (e.g., EG-7: Acceptance Criteria Coverage) could be added to sql-templates.md §6 and referenced by the Orchestrator to close the behavioral validation gap."
+
+      - id: "F-8"
+        title: "Shared Document Interaction Topology — 3 Tiers of Reference Dependency"
+        category: "structure"
+        detail: |
+          The 9 shared reference documents form a 3-tier dependency structure:
+
+          Tier 1 — Universal (referenced by all 9 agents):
+            - global-operating-rules.md: Error handling, retry policy, SQLITE_BUSY, run_id protocol,
+              completion routing, self-verification checklist, pipeline recovery, output naming, safety filter.
+            - tool-access-matrix.md: Per-agent tool permissions, scope restrictions, enforcement notes.
+
+          Tier 2 — Multi-Agent (referenced by 3-8 agents):
+            - schemas.md: Central schema registry (8 of 9 agents)
+            - sql-templates.md: SQL DDL/DML templates (5 agents: Orch, Impl, Verif, AdvRev, Know)
+            - severity-taxonomy.md: Unified severity levels (5 agents: AdvRev, Verif, Plan, Spec, Impl)
+            - evaluation-schema.md: Artifact evaluation rubric (4 agents: Impl, Verif, AdvRev, Know)
+
+          Tier 3 — Specialized (referenced by 1-2 agents):
+            - dispatch-patterns.md: Dispatch patterns A/B (2 agents: Orch, Planner)
+            - review-perspectives.md: Adversarial review personas (2 agents: AdvRev, Orch)
+            - context7-integration.md: MCP documentation lookup (2 agents: Impl, Researcher)
+
+          Cross-references between shared docs:
+            - schemas.md references sql-templates.md §1 for canonical DDL
+            - global-operating-rules.md §5 references schemas.md §Routing Matrix
+            - dispatch-patterns.md references sql-templates.md §6 for evidence gates
+            - dispatch-patterns.md references review-perspectives.md for reviewer dispatch
+            - review-perspectives.md §8 references sql-templates.md §2 for INSERT pattern
+            - evaluation-schema.md §2 references schemas.md for table schema
+            - sql-templates.md §6 evidence gates are consumed by dispatch-patterns.md and orchestrator.agent.md
+
+          No shared document references context7-integration.md — it is only referenced by agent definitions.
+        evidence:
+          - "NewAgents/.github/agents/global-operating-rules.md line 78 — §5 references 'schemas.md §Routing Matrix'"
+          - "NewAgents/.github/agents/schemas.md lines 1000-1010 — references 'sql-templates.md §1 for the canonical DDL'"
+          - "NewAgents/.github/agents/dispatch-patterns.md lines 200-260 — Evidence Gating section references 'sql-templates.md §6'"
+          - "NewAgents/.github/agents/dispatch-patterns.md lines 80-120 — References 'review-perspectives.md for full perspective definitions'"
+          - "NewAgents/.github/agents/review-perspectives.md lines 155-180 — §8 references sql-templates.md §2 INSERT template"
+          - "NewAgents/.github/agents/evaluation-schema.md line 10 — §2 references 'schemas.md under SQLite Schemas'"
+        relevance: "Understanding this topology is critical for determining where behavioral validation rules should be placed. Tier 1 documents (global-operating-rules.md) would give maximum exposure across all agents; Tier 2 documents (schemas.md, sql-templates.md) would target the pipeline-active agents; new rules could also go in a new specialized document at Tier 3 if only specific agents need them."
+
+      - id: "F-9"
+        title: "Verifier Baseline Cross-Check Validates File State But Not Behavioral Claims"
+        category: "risk"
+        detail: |
+          The Verifier performs a baseline cross-check using 'git show pipeline-baseline-{run_id}:<filepath>'
+          to independently verify the Implementer's claimed baseline state. However, this cross-check
+          only validates:
+          - That the file existed in the claimed state at baseline time
+          - That the Implementer's baseline claims about file content are accurate
+
+          It does NOT validate:
+          - Whether the baseline IDE diagnostics count was accurate
+          - Whether the baseline test summary (total/passed/failed) was accurate
+          - Whether the Implementer actually ran the baseline checks or fabricated the numbers
+
+          The baseline cross-check is a file-state check, not a behavioral state check. The
+          Implementer self-reports baseline.ide_diagnostics, baseline.build_exit_code, and
+          baseline.test_summary with no independent re-execution by the Verifier.
+
+          The Verifier's workflow (Step 1: Baseline Cross-Check) only runs 'git show' — it does
+          not re-run 'get_errors', build commands, or test commands against the baseline state
+          to validate the Implementer's numeric claims.
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md lines 130-145 — Baseline Cross-Check section: 'For each changed file, run git show pipeline-baseline-{run_id}:<filepath>'"
+          - "NewAgents/.github/agents/verifier.agent.md lines 145-148 — 'Compare against the Implementer''s self-reported baseline data. Discrepancies found: INSERT with check_name=baseline-discrepancy, passed=0'"
+          - "NewAgents/.github/agents/implementer.agent.md lines 130-155 — Baseline Capture Detail table shows IDE diagnostics, build, tests captured by Implementer"
+          - "NewAgents/.github/agents/schemas.md lines 670-700 — Schema 8 verification-report baseline_cross_check object only has method and discrepancies_found fields"
+        relevance: "If the behavioral correctness enforcement includes baseline validation, the Verifier may need an additional cross-check mechanism that independently re-runs some baseline checks rather than comparing only file state via git show."
+
+      - id: "F-10"
+        title: "Completion Contract Is the Universal Routing Interface But Lacks Behavioral Metadata"
+        category: "dependency"
+        detail: |
+          Schema 1 (completion-contract) is embedded in every agent output and is the ONLY
+          interface the Orchestrator reads for routing decisions. Fields:
+            - status: DONE | NEEDS_REVISION | ERROR
+            - summary: ≤200 chars
+            - severity: Blocker|Critical|Major|Minor|null
+            - findings_count: integer ≥0
+            - risk_level: 🟢|🟡|🔴|null
+            - output_paths: list of strings
+            - evidence_summary: object|null (total_checks, passed, failed, security_blockers)
+
+          The Orchestrator reads ONLY this block for routing. The evidence_summary sub-object
+          provides quantitative check results but no behavioral coverage information.
+
+          The Routing Matrix in schemas.md defines per-agent status→action mappings. Only
+          Adversarial Reviewer and Verifier support NEEDS_REVISION. All other agents return
+          DONE or ERROR.
+
+          Adding behavioral metadata to the completion contract (e.g., acceptance_criteria_covered,
+          behavioral_checks_passed) would require updating:
+            1. Schema 1 definition in schemas.md
+            2. Every agent's inline schema structure
+            3. Orchestrator's routing logic
+            4. Evidence gate queries that read the completion contract
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 40-100 — Schema 1 completion-contract full field definition"
+          - "NewAgents/.github/agents/schemas.md lines 1310-1380 — Completion Contract Routing Matrix"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 325-400 — Orchestrator Decision Table using completion contract status"
+          - "NewAgents/.github/agents/global-operating-rules.md lines 72-80 — §5 Completion Contract Routing Matrix reference"
+        relevance: "The completion contract is the single choke-point for pipeline routing. Any behavioral correctness enforcement that needs to influence routing must surface through this contract — either by adding fields to evidence_summary or by adding a new behavioral_coverage sub-object."
+
+      - id: "F-11"
+        title: "Acceptance Criteria Originate in Spec, Flow Through Planner, But Are Consumed as Opaque Strings"
+        category: "dependency"
+        detail: |
+          The acceptance criteria data flow is:
+
+          1. Spec Agent (spec-output.yaml, Schema 3):
+             acceptance_criteria:
+               - id: "AC-1"
+                 text: "Every agent output conforms to its typed YAML schema"
+                 test_method: "inspection"
+             Each AC has an ID, text, and test_method (inspection|demonstration|test|analysis).
+
+          2. Planner (tasks/*.yaml, Schema 6):
+             acceptance_criteria:
+               - "Email validation rejects malformed addresses"
+               - "Rate limiting returns 429 after 5 attempts per minute"
+             Per-task ACs are plain strings with NO IDs and NO test_method. The Planner
+             derives them from spec ACs but the traceability link is lost.
+
+          3. Implementer reads task.acceptance_criteria as guidance but produces
+             implementation-reports/<task-id>.yaml with no AC-to-test mapping.
+
+          4. Verifier reads spec-output.yaml acceptance criteria but runs technical checks,
+             not AC-specific checks.
+
+          The downgrade from structured AC objects (id + text + test_method) in spec-output.yaml
+          to plain strings in task-schema means:
+          - No ID-based traceability from spec AC to task AC to verification evidence
+          - test_method is lost — the Verifier cannot distinguish "test" vs "inspection" ACs
+          - No way to query "show me all evidence for AC-3" across the pipeline
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 130-180 — Schema 3 spec-output acceptance_criteria with id, text, test_method"
+          - "NewAgents/.github/agents/schemas.md lines 460-530 — Schema 6 task-schema acceptance_criteria as list of strings (no id, no test_method)"
+          - "NewAgents/.github/agents/planner.agent.md lines 47-90 — task-schema shows acceptance_criteria as plain string list"
+          - "NewAgents/.github/agents/implementer.agent.md lines 80-130 — implementation-report has no AC mapping"
+          - "NewAgents/.github/agents/verifier.agent.md lines 50-60 — reads spec-output.yaml for acceptance criteria but does not map them to evidence"
+        relevance: "Restoring AC traceability through the pipeline is a prerequisite for behavioral correctness enforcement. The task-schema (Schema 6) would need to carry AC IDs, and the implementation-report and verification-report schemas would need AC-to-evidence mapping fields."
+
+      - id: "F-12"
+        title: "Knowledge Agent Is Terminal — No Downstream Validation of Its Behavioral Quality Analysis"
+        category: "dependency"
+        detail: |
+          Schema 10 (knowledge-output) is explicitly marked as terminal in the Producer/Consumer
+          Dependency Table: "(terminal — no downstream consumers)". The Knowledge Agent operates
+          at Step 8 as a non-blocking agent — its ERROR does not halt the pipeline.
+
+          This means:
+          - No agent validates whether the Knowledge Agent's post-mortem accurately reflects
+            the pipeline's behavioral outcomes
+          - The evidence bundle (evidence-bundle.md) is assembled by the Knowledge Agent with
+            no downstream review
+          - store_memory calls persist cross-session knowledge without verification
+          - instruction_updates proposals are logged but not validated for accuracy
+
+          The Knowledge Agent consumes ALL upstream outputs (research, spec, design, plan,
+          implementation reports, verification reports, review findings, review verdicts,
+          and SQLite data) but its quality is not assessed by any other agent.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 5-30 — Producer/Consumer table: knowledge-output '(terminal — no downstream consumers)'"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 1-20 — 'non-blocking: your ERROR does NOT halt the pipeline'"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 305-310 — Step 8: 'Non-blocking: ERROR does not halt. Retry: 1.'"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 160-180 — 9 responsibilities with no downstream consumer verification"
+        relevance: "If behavioral correctness enforcement relies on the Knowledge Agent for quality metrics and post-mortem analysis, the terminal nature of its output means there is no structural check on whether its analysis correctly identified behavioral gaps."
+
+    summary: |
+      The agent system in NewAgents/.github/agents/ has a well-structured dependency graph
+      across 9 agent definitions and 9 shared reference documents, centered on typed YAML
+      schemas (schemas.md), SQL evidence (sql-templates.md, verification-ledger.db), and
+      universal conventions (global-operating-rules.md, tool-access-matrix.md).
+
+      The critical dependency gap for behavioral correctness enforcement is the evidence chain
+      from Implementer → Verifier → Reviewer. While the chain tracks structural verification
+      (builds pass, tests pass, lint clean), it does not map individual acceptance criteria
+      to specific verification evidence. Acceptance criteria degrade from structured objects
+      (id + text + test_method) in spec-output.yaml to plain strings in task-schema, losing
+      traceability. The Orchestrator's evidence gates (EG-1 through EG-6) verify signal
+      counts and verdicts but not behavioral coverage.
+
+      Schema duplication between schemas.md and individual agent inline schemas creates drift
+      risk that could undermine new behavioral validation fields. The SQLite database has 5
+      writer agents with proper concurrency handling but its evidence model lacks acceptance-
+      criteria-level granularity. The Knowledge Agent is terminal with no downstream validation.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/review-perspectives.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "NewAgents/.github/agents/context7-integration.md"
+
+completion:
+  status: "DONE"
+  summary: "Dependencies research complete: 12 findings on cross-references, evidence chain gaps, schema duplication, and behavioral validation missing links"
+  severity: null
+  findings_count: 12
+  risk_level: null
+  output_paths:
+    - "research/dependencies.yaml"

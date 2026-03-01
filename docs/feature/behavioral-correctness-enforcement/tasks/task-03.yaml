@@ -1,0 +1,41 @@
+task:
+  id: "task-03"
+  title: "sql-templates.md — Add EG-7 behavioral evidence gate query"
+  description: >
+    Add a new evidence gate query EG-7 to sql-templates.md §6 (after the existing EG-6 section,
+    before §7 Post-Mortem Analysis Queries). The query checks that each code task in the current
+    run has at least one anvil_checks record with check_name='behavioral-coverage' AND passed=1.
+    The query is informational initially (logged by orchestrator, not blocking pipeline).
+    Mark as INFORMATIONAL in the section heading and query comment.
+    Include promotion criteria note: "Promote EG-7 to required after 3+ pipeline runs with
+    behavioral-coverage signals present on all code tasks and zero false-positive overrides."
+    This addresses design review Minor finding on undefined promotion criteria.
+    Consider enhancing the query to also detect code tasks MISSING behavioral-coverage records
+    (design review Minor finding on limited diagnostic value) — use a LEFT JOIN or complementary
+    gap-detection query pattern.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: []
+  acceptance_criteria:
+    - id: "AC-10"
+      text: >
+        sql-templates.md §6 contains an EG-7 query section with: (a) heading marked INFORMATIONAL,
+        (b) valid SQL against anvil_checks table schema checking for behavioral-coverage signals
+        per code task, (c) promotion criteria note specifying measurable conditions for
+        upgrading to required gate.
+      test_method: "inspection"
+    - id: "AC-13"
+      text: >
+        No TBD, TODO, FIXME, or placeholder markers exist in sql-templates.md after modification.
+      test_method: "test"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-8']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-10']"
+      - "spec-output.yaml#payload.edge_cases[id='EC-4']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        risk: "🟡"

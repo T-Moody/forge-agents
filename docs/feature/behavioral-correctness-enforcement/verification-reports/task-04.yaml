@@ -1,0 +1,115 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-04"
+  step: "step-6"
+  started_at: "2026-03-01T13:00:00Z"
+  completed_at: "2026-03-01T13:15:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-04"
+    run_id: "2026-03-01T12:00:00Z"
+    evidence_gate:
+      total_checks: 3
+      passed: 3
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          3 errors (all pre-existing broken markdown anchors: #schema-evolution-strategy,
+          #sqlite-schemas, #producerconsumer-dependency-table). Baseline reported 3 errors.
+          No new errors introduced by task-04.
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "manual-inspection"
+        command: "Markdown structural validity check"
+        exit_code: null
+        passed: true
+        output_snippet: >
+          schemas.md is valid Markdown (1219 lines). 10 schema sections with headers,
+          field tables, and examples. All YAML code blocks properly fenced. No structural
+          parse errors.
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: "N/A"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          Tier 3 skipped: task-04 modifies a Markdown documentation file (schemas.md).
+          No runtime import or execution is possible for .md files. Tier 1 IDE diagnostics
+          and syntax checks provide verification signals.
+    content_verification:
+      ac_1_schema6_structured_acs:
+        status: "passed"
+        detail: >
+          Schema 6 field table (lines 471-474) shows acceptance_criteria as 'list of objects'
+          with sub-fields: id (string, Yes), text (string, Yes), test_method (string, Yes,
+          values: inspection|demonstration|test|analysis). Version 2.0 breaking change
+          documented at line 458 with migration plan (Planner=producer, Implementer/Verifier=consumers).
+          Schema 6 example (lines 494-507) shows 4 structured AC objects with all three fields.
+      ac_2_schema7_behavioral_fields:
+        status: "passed"
+        detail: >
+          Schema 7 field table (lines 560-569) includes behavioral_coverage (list of objects,
+          Conditional, required for task_type='code') and tdd_red_green (object, Conditional).
+          behavioral_coverage.status enum (lines 572-577) documents 'covered' and 'not_applicable'
+          with explicit TDD Fallback (EC-2) note: "test_method='test' but tests could not be
+          written (no test framework, bootstrap task, or documented justification per TDD
+          Fallback rules)". Schema 7 example (lines 635-654) shows both fields populated.
+      ac_17_check_name_patterns:
+        status: "passed"
+        detail: >
+          check_name Naming Patterns table (lines 1081-1082) includes 'behavioral-coverage'
+          (phase: after, Verifier, Tier 2: behavioral coverage verification) and 'runtime-wiring'
+          (phase: after, Verifier, Tier 2: runtime wiring verification for new-file tasks).
+      ac_18_example_count:
+        status: "passed"
+        detail: >
+          grep for '### Example' in schemas.md returned exactly 10 matches (lines 81, 124,
+          201, 285, 370, 482, 579, 703, 874, 929). All 10 schema examples intact.
+      ac_7_line_count:
+        status: "passed"
+        detail: >
+          schemas.md has 1218 lines (current) vs 1421 lines (baseline). Under 1300 line
+          limit (FR-7.3 compliance). Net reduction of 203 lines from DDL deduplication
+          (task-01) offset by behavioral field additions (task-04).
+      ac_13_no_placeholders:
+        status: "passed"
+        detail: >
+          Select-String for TBD|TODO|FIXME (case-sensitive) returned zero matches in
+          schemas.md. No placeholder markers present.
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-01T12-00-00Z:<path>"
+      discrepancies_found: false
+      details: >
+        Baseline comparison confirmed: (1) Schema 6 acceptance_criteria was 'list of strings'
+        at baseline line 469, now 'list of objects' at current line 471 — task-04 change verified.
+        (2) Baseline had zero matches for behavioral_coverage, tdd_red_green, behavioral-coverage,
+        runtime-wiring, or 'Version 2.0' — all genuinely new additions from task-04.
+        (3) Task-01 DDL deduplication (sql-templates.md cross-references at lines 1015, 1034, 1038)
+        confirmed present — both task-01 and task-04 changes coexist.
+        (4) Baseline IDE diagnostics: 3 errors. After IDE diagnostics: 3 errors (same anchors).
+        No discrepancy between implementer baseline claims and git show evidence.
+completion:
+  status: "DONE"
+  summary: "Verified task-04: 3 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "verification-reports/task-04.yaml"
+  evidence_summary:
+    total_checks: 3
+    passed: 3
+    failed: 0
+    security_blockers: 0

@@ -1,0 +1,73 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-07"
+  step: "step-5"
+  started_at: "2026-03-01T12:00:00Z"
+  completed_at: "2026-03-01T12:20:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-07"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 2
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        action: "modified"
+        description: >
+          Added behavioral-coverage (Step 3e) and runtime-wiring (Step 3f) as
+          unconditional Tier 2 sub-steps under new 'Always-Run Behavioral Checks
+          (Code Tasks)' sub-heading. Added both check_names to Quick Reference
+          table. Added 2 self-verification checklist items for cascade completeness.
+      - path: "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-07.yaml"
+        action: "created"
+        description: "Implementation report for task-07"
+    behavioral_coverage:
+      AC-3:
+        test_method: "test"
+        status: "covered"
+        evidence: "Step 3e added with behavioral-coverage check: reads behavioral_coverage mapping, verifies test file existence, checks production imports, accepts not_applicable for inspection/TDD Fallback. INSERT uses check_name='behavioral-coverage'."
+      AC-12:
+        test_method: "test"
+        status: "covered"
+        evidence: "Step 3f added with runtime-wiring check: runs only for new-file tasks, uses grep_search for reference verification, skips modification-only tasks (EC-3). INSERT uses check_name='runtime-wiring'."
+      AC-14:
+        test_method: "inspection"
+        status: "not_applicable"
+        justification: "Inspection-only AC. Quick Reference table visually verified to contain both 'behavioral-coverage' (Tier 2) and 'runtime-wiring' (Tier 2) entries."
+      AC-3-unconditional:
+        test_method: "inspection"
+        status: "not_applicable"
+        justification: "Inspection-only AC. Steps 3e/3f placed under distinct 'Always-Run Behavioral Checks (Code Tasks)' sub-heading, separated from 'Run If Tooling Exists' conditional framing (Steps 3a-3d)."
+      AC-13:
+        test_method: "test"
+        status: "covered"
+        evidence: "grep_search for TBD|TODO|FIXME|placeholder returned no matches in verifier.agent.md."
+    self_check:
+      ide_diagnostics:
+        errors: 2
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: true
+completion:
+  status: "DONE"
+  summary: "Added behavioral-coverage (3e) and runtime-wiring (3f) as unconditional Tier 2 checks in verifier.agent.md with Quick Reference and self-verification updates"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-07.yaml"

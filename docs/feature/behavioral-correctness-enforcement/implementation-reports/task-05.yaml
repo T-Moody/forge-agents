@@ -1,0 +1,64 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-05"
+  step: "step-5"
+  started_at: "2026-03-01T12:00:00Z"
+  completed_at: "2026-03-01T12:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-05"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/planner.agent.md"
+        action: "modified"
+        description: >
+          (1) Updated inline Schema 6 example: acceptance_criteria field changed from
+          list-of-strings to list-of-objects with {id, text, test_method} sub-fields.
+          (2) Updated workflow step 3d: added structured AC propagation rule requiring
+          planner to propagate parent spec AC IDs and test_method from spec-output.yaml
+          into task-level ACs, with valid test_method values documented. Includes honest
+          caveat that structured propagation narrows but does not fully close the
+          spec-to-task AC gap (per design review finding).
+          (3) Added self-verification item 9: every AC must specify observable behavior
+          with clear pass/fail definition, no vague terms without measurable qualifiers.
+          (4) Added self-verification item 10: spec AC IDs and test_method propagated
+          to task-level acceptance criteria for all code tasks.
+      - path: "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-05.yaml"
+        action: "created"
+        description: "Implementation report for task-05"
+    self_check:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "after-ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: true
+      - check_name: "after-no-placeholders"
+        phase: "after"
+        tool: "Select-String"
+        passed: true
+
+completion:
+  status: "DONE"
+  summary: "task-05 — planner.agent.md updated with structured AC objects in Schema 6 example, test_method propagation workflow rule, and 2 self-verification checklist items (342 lines, under 400-line budget)"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-05.yaml"

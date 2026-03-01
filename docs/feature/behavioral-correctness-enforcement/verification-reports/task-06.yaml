@@ -1,0 +1,65 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-06"
+  step: "step-6"
+  started_at: "2026-03-01T12:30:00Z"
+  completed_at: "2026-03-01T12:40:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-06"
+    run_id: "2026-03-01T12:00:00Z"
+    evidence_gate:
+      total_checks: 4
+      passed: 4
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "4 errors (all pre-existing markdown link resolution: schemas.md, #mode-documentation, #self-verification, #tdd-fallback). Same as baseline (4 errors, 0 warnings). No new errors introduced."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: "Markdown structure validation"
+        exit_code: null
+        passed: true
+        output_snippet: "File parses as valid markdown. YAML frontmatter present. All headings, tables, code blocks, and lists properly formatted. 376 lines, well-structured."
+      - check_name: "tests"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: "Content verification of AC-4,AC-5,AC-11,AC-15,AC-2-impl,AC-13"
+        exit_code: null
+        passed: true
+        output_snippet: "All 7 content checks passed: (a) TDD Structural Rules at L147-152 with production import, observable behavior, AC traceability, tdd_red_green. (b) Test Selection Strategy table at L274-289. (c) Runtime wiring check at L289. (d) 3 self-verification items at L356-358. (e) behavioral_coverage+tdd_red_green in output schema L87-96. (f) EC-1,EC-2,EC-3 at L311-313. (g) 376 lines < 400."
+      - check_name: "lint"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: "grep TBD|TODO|FIXME in implementer.agent.md"
+        exit_code: null
+        passed: true
+        output_snippet: "Zero matches for TBD, TODO, or FIXME markers in implementer.agent.md. AC-13 satisfied."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-01T12-00-00Z:NewAgents/.github/agents/implementer.agent.md"
+      discrepancies_found: false
+completion:
+  status: "DONE"
+  summary: "Verified task-06: 4 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/verification-reports/task-06.yaml"
+  evidence_summary:
+    total_checks: 4
+    passed: 4
+    failed: 0
+    security_blockers: 0

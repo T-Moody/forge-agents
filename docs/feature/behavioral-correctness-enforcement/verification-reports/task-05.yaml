@@ -1,0 +1,79 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-05"
+  step: "step-6"
+  started_at: "2026-03-01T12:35:00Z"
+  completed_at: "2026-03-01T12:42:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-05"
+    run_id: "2026-03-01T12:00:00Z"
+    evidence_gate:
+      total_checks: 4
+      passed: 4
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "No errors found in planner.agent.md (0 errors, 0 warnings)"
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: "Markdown structural check via IDE"
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file parses correctly. No syntax errors detected. File has valid chatagent frontmatter, proper heading hierarchy, complete code blocks."
+      - check_name: "lint"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: "grep TBD|TODO|FIXME|PLACEHOLDER in planner.agent.md"
+        exit_code: null
+        passed: true
+        output_snippet: "No TBD, TODO, FIXME, or placeholder markers found in planner.agent.md. AC-13 satisfied."
+      - check_name: "import-check"
+        tier: 3
+        phase: "after"
+        tool: "grep_search+read_file"
+        command: "Inspection of AC-1-planner, AC-9, AC-8, AC-13 content in planner.agent.md"
+        exit_code: null
+        passed: true
+        output_snippet: >
+          AC-1-planner: Schema 6 example shows structured {id, text, test_method} objects at lines 96-101.
+          AC-9: Workflow 3d at line 218 contains propagation rule with valid test_method values.
+          AC-8: Self-verification item 9 at line 333 present. Self-verification item 10 at line 334 present.
+          AC-13: No TBD/TODO/FIXME found. File is 343 lines (under 400).
+          F-3 caveat: "narrows but does not fully close" present at line 218.
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-01T12-00-00Z:NewAgents/.github/agents/planner.agent.md"
+      discrepancies_found: false
+      detail: >
+        Baseline file was 253 lines. Current file is 343 lines (delta +90).
+        Diff confirms exactly 4 changes matching implementation report:
+        (1) Lines 96-101: acceptance_criteria changed from list-of-strings to list-of-objects with {id, text, test_method}.
+        (2) Line 218: Workflow step 3d expanded with structured AC propagation rule, test_method values, and narrows-but-doesnt-close caveat.
+        (3) Line 333: Self-verification item 9 added (observable behavior with pass/fail definition).
+        (4) Line 334: Self-verification item 10 added (spec AC IDs and test_method propagated).
+        No unexpected modifications found.
+
+completion:
+  status: "DONE"
+  summary: "Verified task-05: 4 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/verification-reports/task-05.yaml"
+  evidence_summary:
+    total_checks: 4
+    passed: 4
+    failed: 0
+    security_blockers: 0

@@ -1,0 +1,72 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-04"
+  step: "step-5"
+  started_at: "2026-03-01T12:00:00Z"
+  completed_at: "2026-03-01T12:45:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-04"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics:
+        errors: 3
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Schema 6: Changed acceptance_criteria from list-of-strings to list-of-objects
+          with {id, text, test_method} sub-fields (version 2.0 breaking change with
+          migration note). Schema 7: Added behavioral_coverage (list of objects mapping
+          AC to test) and tdd_red_green (object recording TDD cycle) fields with status
+          enum documentation including not_applicable for TDD Fallback (EC-2). check_name
+          Naming Patterns: Added behavioral-coverage and runtime-wiring entries (phase:
+          after, Verifier, Tier 2). Updated Schema 6 and Schema 7 examples with new fields.
+      - path: "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-04.yaml"
+        action: "created"
+        description: "Implementation report for task-04"
+    self_check:
+      ide_diagnostics:
+        errors: 3
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+    behavioral_coverage:
+      - ac_id: "AC-1"
+        status: "not_applicable"
+        justification: "test_method='inspection' — Schema 6 field table verified by visual review"
+      - ac_id: "AC-2"
+        status: "not_applicable"
+        justification: "test_method='inspection' — Schema 7 field table verified by visual review"
+      - ac_id: "AC-17"
+        status: "not_applicable"
+        justification: "test_method='inspection' — check_name table verified by visual review"
+      - ac_id: "AC-18"
+        status: "not_applicable"
+        justification: "test_method='inspection' — Example count verified (10 found)"
+      - ac_id: "AC-7-line-check"
+        test_file: "N/A"
+        test_name: "line count check via terminal"
+        status: "covered"
+      - ac_id: "AC-13"
+        test_file: "N/A"
+        test_name: "TBD/TODO/FIXME regex check via terminal"
+        status: "covered"
+completion:
+  status: "DONE"
+  summary: "task-04: Schema 6 structured ACs (v2.0), Schema 7 behavioral_coverage + tdd_red_green, check_name patterns for behavioral-coverage and runtime-wiring"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-04.yaml"

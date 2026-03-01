@@ -1,0 +1,582 @@
+agent_output:
+  agent: "spec"
+  instance: "spec"
+  step: "step-2"
+  started_at: "2026-03-01T12:10:00Z"
+  completed_at: "2026-03-01T12:55:00Z"
+  schema_version: "1.0"
+  payload:
+    feature_name: "Behavioral Correctness Enforcement"
+    directions:
+      - id: "A"
+        name: "Structural Enforcement Within Existing Architecture"
+        summary: >
+          Keep current agent roles unchanged. Add behavioral verification checks at implementer
+          (production-code invocation check), verifier (behavioral-coverage check_name), and
+          reviewer (severity recalibration) stages. Enhance AC traceability through additive
+          schema fields. Reduce schemas.md bloat by removing duplicated SQLite DDL. Lowest
+          blast radius, highest backward compatibility.
+      - id: "B"
+        name: "Independent Test Validation Agent"
+        summary: >
+          Introduce a new agent role (Test Validator) that independently generates or validates
+          tests from acceptance criteria before the verifier runs. Addresses the root structural
+          conflict of interest (same agent writes tests and code). Highest correctness guarantee
+          but largest blast radius — requires new agent definition, schema, pipeline step,
+          dispatch pattern, and evidence gate queries.
+      - id: "C"
+        name: "Verification-Centric Enhancement"
+        summary: >
+          Focus changes primarily on the verifier agent. Verifier performs behavioral analysis
+          during its cascade (new tier or enhanced Tier 2) by cross-referencing test files
+          against acceptance criteria and checking production-code imports. Minimal schema
+          changes, moderate blast radius, but concentrates behavioral enforcement in a single
+          agent rather than distributing it.
+
+    common_requirements:
+      - id: "CR-1"
+        text: >
+          All schema changes MUST be additive (new optional fields with sensible defaults)
+          to preserve backward compatibility. No existing field may be removed or change type.
+          Follows schemas.md Schema Evolution Strategy for minor version changes.
+        priority: "must"
+      - id: "CR-2"
+        text: >
+          The adversarial reviewer MUST retain exactly 3 review categories (security,
+          architecture, correctness). No 4th category may be added. Behavioral validation
+          enforcement MUST be incorporated within the existing correctness category scope.
+        priority: "must"
+      - id: "CR-3"
+        text: >
+          Test quality enforcement mechanisms MUST be structural (schema fields, check_names,
+          evidence gates, self-verification checklist items) rather than purely instructional
+          (prose directives that an agent can ignore without consequence).
+        priority: "must"
+      - id: "CR-4"
+        text: >
+          The ~286 lines of duplicated SQLite DDL in schemas.md (lines ~961-1246) MUST be
+          replaced with cross-references to sql-templates.md §1 before any new content is
+          added to schemas.md. This creates headroom for behavioral fields without exceeding
+          context window budget.
+        priority: "must"
+      - id: "CR-5"
+        text: >
+          All schema examples in schemas.md (~440 lines across 10 schemas) MUST be preserved.
+          Examples are the primary mechanism for agents to understand expected output format
+          and MUST NOT be trimmed as a size reduction strategy.
+        priority: "must"
+      - id: "CR-6"
+        text: >
+          All changes MUST follow YAGNI, KISS, DRY principles. No over-engineered abstractions.
+          No test-only hooks or exposed internals. Prefer functional programming patterns.
+          Maintain lint compatibility.
+        priority: "must"
+      - id: "CR-7"
+        text: >
+          Bounded feedback loop iteration limits (design: 1, implementation-verification: 3,
+          code review: 2) MUST NOT be increased. Behavioral enforcement MUST catch
+          problems earlier (at implementation and verification time) rather than relying on
+          additional review loop iterations.
+        priority: "must"
+      - id: "CR-8"
+        text: >
+          No final code artifact may contain TBD, TODO, FIXME, or placeholder markers.
+          All requirements must be fully specified before implementation begins.
+        priority: "must"
+      - id: "CR-9"
+        text: >
+          New check_name values MUST be additive and counted within the existing EG-2
+          evidence gate threshold initially. Raising minimum signal thresholds (e.g.,
+          Standard 2→3, Large 3→4) MAY be done as a separate follow-up change after
+          behavioral checks are proven stable.
+        priority: "should"
+
+    functional_requirements:
+      - id: "FR-1"
+        text: "Acceptance Criteria Traceability — Structured AC flow from spec through task to evidence"
+        sub_requirements:
+          - id: "FR-1.1"
+            text: >
+              The task schema (Schema 6) MUST include an acceptance_criteria field that
+              carries structured objects with at minimum: the parent spec AC ID, the
+              criterion text, and the test_method from the spec. This replaces the
+              current plain-string list.
+          - id: "FR-1.2"
+            text: >
+              The implementation report schema (Schema 7) MUST include a
+              behavioral_coverage field mapping each task-level AC ID to either:
+              (a) the test file path and test name that verifies it, or
+              (b) "not_applicable" with a justification string (for inspection/
+              documentation-only criteria).
+          - id: "FR-1.3"
+            text: >
+              The verification report schema (Schema 8) MUST include at least one
+              finding with check_name containing 'behavioral' for every task with
+              task_type='code' that has test_method='test' acceptance criteria.
+          - id: "FR-1.4"
+            text: >
+              The spec-level test_method field (inspection | demonstration | test |
+              analysis) MUST be propagated through the planner to the task schema
+              and consumed by the implementer to select appropriate verification
+              approach. Criteria with test_method='inspection' are exempt from
+              automated test requirements.
+
+      - id: "FR-2"
+        text: "Implementer Behavioral Test Enforcement — Structural safeguards against self-referential and hollow tests"
+        sub_requirements:
+          - id: "FR-2.1"
+            text: >
+              Every test file written by the implementer for task_type='code' MUST
+              contain at least one import/require/using statement referencing a
+              production module modified or created by the same task. The implementer's
+              self-verification checklist MUST include a check for this.
+          - id: "FR-2.2"
+            text: >
+              Tests MUST NOT assert on local variables that replicate production logic.
+              Assertions MUST reference values obtained by calling production code
+              (method return values, property values after production method invocation,
+              or observable side effects of production method calls). The implementer's
+              self-verification checklist MUST include an explicit check for this.
+          - id: "FR-2.3"
+            text: >
+              The implementer's self-verification checklist MUST include a behavioral
+              coverage item: "Every acceptance criterion with test_method='test' has
+              a corresponding test that invokes production code and asserts on its
+              observable output."
+          - id: "FR-2.4"
+            text: >
+              When a task with task_type='code' modifies business logic and the
+              baseline test_summary is null (no pre-existing tests), the implementer
+              MUST either: (a) write tests (standard TDD path), or (b) explicitly
+              document in the implementation report WHY tests are not possible (with
+              TDD Fallback justification). A null baseline AND null after test_summary
+              for business logic code tasks MUST trigger a self-fix attempt focused
+              on adding tests, not silently pass.
+          - id: "FR-2.5"
+            text: >
+              The TDD red-green cycle MUST be structurally verified: after writing
+              test(s), the implementer MUST run them and confirm at least one FAILS
+              before writing production code. The test run result (exit code, failure
+              count) MUST be recorded in the implementation report. If tests pass
+              before production code is written, the implementer MUST rewrite them
+              as specified in existing TDD rules, and this rewrite MUST also be
+              recorded.
+
+      - id: "FR-3"
+        text: "Verifier Behavioral Verification — New verification checks for test quality and production wiring"
+        sub_requirements:
+          - id: "FR-3.1"
+            text: >
+              The verifier cascade MUST include a behavioral-coverage check
+              (check_name='behavioral-coverage') for task_type='code' tasks.
+              This check MUST verify that: (a) test files import production modules,
+              (b) the implementer's behavioral_coverage mapping in the implementation
+              report is present and complete for all test_method='test' criteria, and
+              (c) the mapping references files that actually exist in the workspace.
+          - id: "FR-3.2"
+            text: >
+              The verifier MUST cross-reference the implementation report's
+              behavioral_coverage field against the task's acceptance criteria.
+              Any acceptance criterion with test_method='test' that lacks a
+              corresponding entry in behavioral_coverage MUST result in the
+              behavioral-coverage check failing (passed=0).
+          - id: "FR-3.3"
+            text: >
+              For tasks that create new source files (not modifying existing ones),
+              the verifier MUST include a runtime-wiring check
+              (check_name='runtime-wiring') verifying that at least one pre-existing
+              source file references the new file (via import, require, or project
+              file inclusion). This check prevents isolated abstractions that are
+              tested but not connected to runtime.
+          - id: "FR-3.4"
+            text: >
+              The behavioral-coverage check MUST be included in the minimum signal
+              requirements count. For code tasks, it counts as one of the required
+              passed signals within the existing EG-2 threshold.
+
+      - id: "FR-4"
+        text: "Severity Taxonomy Recalibration — Ensure correctness problems trigger remediation"
+        sub_requirements:
+          - id: "FR-4.1"
+            text: >
+              The severity taxonomy (severity-taxonomy.md) MUST classify "tests that
+              do not invoke production code" (self-referential tests) as Major severity,
+              not Minor. This ensures the adversarial reviewer's verdict logic triggers
+              needs_revision when self-referential tests are detected.
+          - id: "FR-4.2"
+            text: >
+              The severity taxonomy MUST classify "business logic code changes with
+              zero test coverage (null baseline AND null after)" as Major severity.
+          - id: "FR-4.3"
+            text: >
+              The severity taxonomy MUST classify "acceptance criterion with
+              test_method='test' that has no corresponding automated test" as Major
+              severity.
+
+      - id: "FR-5"
+        text: "Evidence Gate Enhancement — Behavioral evidence integrated into pipeline routing"
+        sub_requirements:
+          - id: "FR-5.1"
+            text: >
+              A new evidence gate query (EG-7) MUST be defined in sql-templates.md §6
+              that checks: for each code task in the current run, at least one
+              anvil_checks record exists with check_name='behavioral-coverage' AND
+              passed=1. This query is informational initially (logged but not blocking).
+          - id: "FR-5.2"
+            text: >
+              The verifier's check_name Quick Reference table MUST be updated to
+              include 'behavioral-coverage' and 'runtime-wiring' entries with their
+              tier assignment, description, and expected pass conditions.
+          - id: "FR-5.3"
+            text: >
+              The schemas.md check_name Naming Patterns table MUST be updated to
+              include the new check_name values with their naming convention and
+              usage context.
+
+      - id: "FR-6"
+        text: "Runtime Wiring Verification — Prevent isolated abstractions"
+        sub_requirements:
+          - id: "FR-6.1"
+            text: >
+              The implementer's self-verification checklist MUST include: "New source
+              files are imported/referenced by at least one existing source file in
+              the project." This check applies to task_type='code' tasks that create
+              new files (not modify existing ones).
+          - id: "FR-6.2"
+            text: >
+              The verifier's runtime-wiring check (FR-3.3) MUST use workspace search
+              tools (grep_search or semantic_search) to verify that new files are
+              referenced from existing code. A new file with zero references from
+              existing files MUST fail the check unless the task explicitly creates
+              an entry point.
+
+      - id: "FR-7"
+        text: "Schema Size Reduction — Eliminate duplication in schemas.md"
+        sub_requirements:
+          - id: "FR-7.1"
+            text: >
+              The SQLite Schemas section of schemas.md (~lines 961-1246) MUST be
+              replaced with a concise cross-reference section pointing to
+              sql-templates.md §1 for canonical DDL. The replacement section MUST
+              list table names with one-line descriptions and a reference to
+              sql-templates.md, but MUST NOT contain inline DDL, column reference
+              tables, or sample queries (which already reference sql-templates.md §6).
+          - id: "FR-7.2"
+            text: >
+              The check_name Naming Patterns table and phase semantics documentation
+              in schemas.md MUST be preserved (these are unique to schemas.md and
+              not duplicated in sql-templates.md).
+          - id: "FR-7.3"
+            text: >
+              After DDL removal and behavioral field additions, schemas.md MUST
+              remain under 1300 lines total to maintain context window headroom.
+
+      - id: "FR-8"
+        text: "Planner Acceptance Criteria Quality — Behavioral testability at the planning stage"
+        sub_requirements:
+          - id: "FR-8.1"
+            text: >
+              The planner's self-verification checklist MUST include: "Every
+              acceptance criterion specifies an observable behavior with a clear
+              pass/fail definition. No criterion uses vague terms like 'works
+              correctly', 'performs well', or 'is user-friendly' without measurable
+              qualifiers."
+          - id: "FR-8.2"
+            text: >
+              The planner MUST propagate spec AC IDs into task-level acceptance
+              criteria so traceability is maintained from spec through implementation
+              to verification.
+          - id: "FR-8.3"
+            text: >
+              The planner MUST propagate test_method from spec acceptance criteria
+              to task-level criteria. Tasks with only test_method='inspection'
+              criteria SHOULD be flagged as visual/manual verification tasks.
+
+      - id: "FR-9"
+        text: "Principled Test Selection Strategy — Codified rules for what to test and how"
+        sub_requirements:
+          - id: "FR-9.1"
+            text: >
+              The implementer's Operating Rules MUST include a codified test
+              selection strategy: (a) test behavior, not implementation details,
+              (b) do NOT write tests for what the type system guarantees,
+              (c) use only public interface methods — do NOT expose internals or
+              add test-only hooks, (d) avoid brittle tests tied to implementation
+              structure.
+          - id: "FR-9.2"
+            text: >
+              The implementer's instructions MUST include a test_method-based
+              selection guide: test_method='test' → automated unit/integration test
+              required; test_method='inspection' → no automated test, verification
+              by code/output review; test_method='demonstration' → runtime execution
+              evidence required (screenshot, log output, Playwright trace for UI);
+              test_method='analysis' → static analysis or metric check.
+          - id: "FR-9.3"
+            text: >
+              For UI behavior validation, the test selection strategy MUST specify:
+              (a) Playwright/E2E tests ONLY for cross-component navigation, JS
+              interop, and gesture-driven flows where unit tests cannot verify
+              behavior, (b) unit/integration tests for component logic, state
+              management, and data binding, (c) inspection for pure visual/CSS
+              changes. This prevents both under-use and over-use of expensive
+              E2E tests.
+
+      - id: "FR-10"
+        text: "Reviewer Correctness Enhancement — Strengthen behavioral detection within existing structure"
+        sub_requirements:
+          - id: "FR-10.1"
+            text: >
+              The adversarial reviewer's correctness analysis guidance (within the
+              existing correctness category) MUST include explicit instructions to
+              verify: (a) tests invoke production code (not local variable replications),
+              (b) every test_method='test' acceptance criterion has a corresponding
+              automated test, (c) new files are referenced from existing code paths.
+          - id: "FR-10.2"
+            text: >
+              The pragmatic-verifier perspective priorities in review-perspectives.md
+              MUST explicitly include "Self-referential test detection" and "Runtime
+              wiring verification" as named priority items.
+
+    acceptance_criteria:
+      - id: "AC-1"
+        text: >
+          Task schema (Schema 6) contains an acceptance_criteria field with structured
+          objects carrying: parent spec AC ID, criterion text, and test_method. Verified
+          by inspecting schemas.md Schema 6 field table and the planner's inline schema —
+          both must show the structured object definition. A task file produced by the
+          planner for any code task must contain at least one AC object with all three
+          sub-fields populated.
+        test_method: "inspection"
+      - id: "AC-2"
+        text: >
+          Implementation report (Schema 7) contains a behavioral_coverage field.
+          For a code task with test_method='test' criteria, the field maps each AC ID
+          to a test file path and test name. The field is populated (not null/empty) in
+          the implementation report. Verified by inspecting Schema 7 definition and
+          checking a sample implementation report output — the behavioral_coverage
+          mapping must have entries for every test_method='test' criterion.
+        test_method: "inspection"
+      - id: "AC-3"
+        text: >
+          Verification report for a code task contains at least one finding with
+          check_name='behavioral-coverage'. The check has passed=1 when all
+          test_method='test' criteria are mapped, or passed=0 when any are missing.
+          Verified by inspecting a sample verification report and confirming the check
+          exists with correct pass/fail logic.
+        test_method: "test"
+      - id: "AC-4"
+        text: >
+          Every test file produced for a code task imports at least one production
+          module that was modified or created by the same task. Verified by: for each
+          test file, grep for import/require/using statements referencing production
+          modules listed in the task's files_to_modify. Zero production imports = check
+          failure.
+        test_method: "test"
+      - id: "AC-5"
+        text: >
+          Implementer self-verification checklist contains all of: (a) "Tests invoke
+          production code, not local variable replications", (b) "Every test_method='test'
+          AC has a corresponding automated test", (c) "New source files are referenced by
+          existing code". Verified by inspecting implementer.agent.md Self-Verification
+          section — all three items must be present as explicit checklist entries.
+        test_method: "inspection"
+      - id: "AC-6"
+        text: >
+          severity-taxonomy.md contains an entry classifying "tests that do not invoke
+          production code" as Major severity. The entry must be explicitly named (not
+          subsumed under a vague umbrella category). Verified by inspecting the taxonomy
+          file for the exact entry.
+        test_method: "inspection"
+      - id: "AC-7"
+        text: >
+          schemas.md SQLite DDL section (previously ~lines 961-1246) is replaced with
+          a cross-reference section of ≤30 lines pointing to sql-templates.md §1.
+          schemas.md total line count is reduced by at least 200 lines compared to the
+          pre-change baseline of 1422 lines. Verified by line count comparison.
+        test_method: "test"
+      - id: "AC-8"
+        text: >
+          Planner self-verification checklist contains: "Every acceptance criterion
+          specifies an observable behavior with a clear pass/fail definition." Verified
+          by inspecting planner.agent.md Self-Verification section for the exact item.
+        test_method: "inspection"
+      - id: "AC-9"
+        text: >
+          test_method field from spec acceptance criteria appears in task schema objects.
+          A planner-produced task file for a code task preserves the test_method value
+          from the parent spec AC. Verified by tracing an AC through spec-output.yaml →
+          tasks/*.yaml — test_method must match.
+        test_method: "inspection"
+      - id: "AC-10"
+        text: >
+          sql-templates.md §6 contains an EG-7 query that checks for behavioral-coverage
+          evidence per code task. The query syntax is valid SQL against the anvil_checks
+          table schema. Verified by inspecting sql-templates.md for the query text and
+          validating SQL syntax.
+        test_method: "inspection"
+      - id: "AC-11"
+        text: >
+          A code task modifying business logic with baseline test_summary=null does NOT
+          silently pass implementation self-check. The implementer either writes tests
+          (test_summary shows passed>0) or documents a TDD Fallback justification in a
+          new tdd_fallback_reason field. Verified by: if baseline test_summary is null
+          AND after test_summary is null AND task_type='code', the implementer's
+          self-check must record the justification or the self-fix loop must attempt to
+          add tests.
+        test_method: "test"
+      - id: "AC-12"
+        text: >
+          For tasks creating new source files, the verifier includes a finding with
+          check_name='runtime-wiring'. The check passes only when at least one
+          pre-existing source file references the new file. Verified by: create a new
+          file task scenario — if no existing file imports the new file, the runtime-wiring
+          check must show passed=0.
+        test_method: "test"
+      - id: "AC-13"
+        text: >
+          No TBD, TODO, FIXME, or placeholder markers exist in any modified agent
+          definition file after implementation. Verified by running grep for
+          'TBD|TODO|FIXME' across all modified .agent.md and shared reference files —
+          zero matches required.
+        test_method: "test"
+      - id: "AC-14"
+        text: >
+          Verifier check_name Quick Reference table includes 'behavioral-coverage' and
+          'runtime-wiring' entries with tier, description, and pass conditions. Verified
+          by inspecting verifier.agent.md for both entries in the reference table.
+        test_method: "inspection"
+      - id: "AC-15"
+        text: >
+          Implementer Operating Rules contain a codified test selection strategy
+          covering: (a) test behavior not implementation, (b) no type-system tests,
+          (c) public interface only, (d) test_method-based guide. Verified by
+          inspecting implementer.agent.md Operating Rules for all four sub-items.
+        test_method: "inspection"
+      - id: "AC-16"
+        text: >
+          Adversarial reviewer correctness analysis guidance explicitly mentions:
+          self-referential test detection, AC-to-test coverage check, and runtime wiring
+          verification. Verified by inspecting adversarial-reviewer.agent.md correctness
+          analysis section or review-perspectives.md pragmatic-verifier priorities for
+          all three items.
+        test_method: "inspection"
+      - id: "AC-17"
+        text: >
+          schemas.md check_name Naming Patterns table includes 'behavioral-coverage' and
+          'runtime-wiring' with naming convention and usage context. Verified by
+          inspecting the table for both entries.
+        test_method: "inspection"
+      - id: "AC-18"
+        text: >
+          All schema examples in schemas.md are preserved after changes. Schema example
+          count remains at 10. Verified by counting example blocks in schemas.md — must
+          equal 10 (one per schema).
+        test_method: "inspection"
+
+    edge_cases:
+      - id: "EC-1"
+        text: >
+          CSS/visual-only tasks where all acceptance criteria have test_method='inspection'.
+          The behavioral-coverage check must recognize these as exempt from automated test
+          requirements. The check should pass with a "not_applicable" mapping rather than
+          failing due to missing test files.
+      - id: "EC-2"
+        text: >
+          TDD Fallback scenarios (no test framework exists, task creates the framework,
+          documentation/configuration tasks). Behavioral coverage check must accept the
+          TDD Fallback justification as a valid mapping. The check fails only if no
+          justification is provided AND no tests exist.
+      - id: "EC-3"
+        text: >
+          Tasks that modify existing files exclusively (no new files created). The
+          runtime-wiring check is not applicable — it must not be run or must auto-pass
+          for modification-only tasks. Only tasks creating new source files trigger this check.
+      - id: "EC-4"
+        text: >
+          Pipeline resume after behavioral enforcement is enabled. Tasks verified in a
+          previous pipeline run before behavioral checks existed will not have
+          behavioral-coverage or runtime-wiring records in anvil_checks. Evidence gate
+          EG-7 must handle this gracefully — either skip tasks with pre-existing verification
+          or accept their existing evidence.
+      - id: "EC-5"
+        text: >
+          Spec acceptance criteria where the planner deliberately scopes out a criterion
+          from a specific task (criterion will be covered by a different task in the same
+          wave or a later wave). The task's behavioral_coverage mapping must handle partial
+          coverage without failing — only criteria assigned to THIS task must be mapped.
+      - id: "EC-6"
+        text: >
+          Languages/frameworks where import analysis is difficult (e.g., dynamic imports
+          in Python, implicit includes in C/C++, XAML code-behind references). The
+          production-import check must support language-specific detection patterns or
+          allow a manual override with justification.
+      - id: "EC-7"
+        text: >
+          Agent context window pressure from additional behavioral checks, new schema
+          fields, and expanded self-verification checklists. The total instruction footprint
+          increase for any single agent definition must not exceed ~50 lines to remain
+          within context budget.
+      - id: "EC-8"
+        text: >
+          Tasks with mixed test_methods (some criteria are 'test', some are 'inspection').
+          The behavioral-coverage check must verify only the 'test' criteria have automated
+          tests, while 'inspection' criteria are mapped as 'not_applicable'. The check must
+          not require automated tests for inspection-only criteria.
+
+    constraints:
+      - "Windows environment, VS Code GitHub Copilot agent framework"
+      - "SQLite verification-ledger.db with WAL mode + busy_timeout=5000 for concurrent writes from 5 agents"
+      - "All SQL must use stdin piping (echo ... | sqlite3) and sql_escape() per SEC-2"
+      - "run_id namespace filter required on all SQL queries per §4 run_id Protocol"
+      - "Adversarial reviewer restricted to 3 review categories — no 4th category"
+      - "Bounded feedback loops: design max 1 iter, impl-verify max 3 iter, code review max 2 rounds"
+      - "Planner task size limits: max 3 files, ~500 lines per task"
+      - "Schema changes must be additive per schemas.md Schema Evolution Strategy"
+
+    pushback_log:
+      concerns_identified: 3
+      mode: "autonomous"
+      auto_selected: true
+      selected_option: "proceed"
+      concerns:
+        - severity: "Major"
+          title: "Implementation complexity increase"
+          description: >
+            Adding behavioral verification to the implementer self-fix loop increases
+            per-task check count from 3 to 4-5, extending task execution time by an
+            estimated 30-50%. This affects wave execution time and overall pipeline
+            duration.
+          recommendation: >
+            Accept as necessary cost for correctness improvement. Keep behavioral checks
+            lightweight (static analysis of imports and AC mapping, not runtime execution
+            or mutation testing). The check is a file-content analysis, not a test execution.
+        - severity: "Major"
+          title: "Schema change cascade requires synchronized updates"
+          description: >
+            AC traceability through task schema (Schema 6), implementation report
+            (Schema 7), and verification report (Schema 8) requires synchronized changes
+            across schemas.md plus 3 agent definition files. Drift risk between centralized
+            registry and inline schemas.
+          recommendation: >
+            Make all changes additive (new optional fields). Update schemas.md first as
+            the central registry, then update each agent's inline schema to match. Include
+            the schemas.md cross-reference hash or version note so drift is detectable.
+        - severity: "Minor"
+          title: "schemas.md context window pressure"
+          description: >
+            schemas.md at 1422 lines is the largest file referenced by 8 of 9 agents.
+            Behavioral fields will add content. Without DDL reduction, the file would
+            approach or exceed practical context window limits for some agent invocations.
+          recommendation: >
+            Remove ~286 lines of duplicated SQLite DDL first (CR-4 makes this mandatory).
+            Net effect after additions should keep schemas.md under 1300 lines.
+
+completion:
+  status: "DONE"
+  summary: "Specification complete: 9 CR, 10 FR groups (27 sub-requirements), 18 AC, 8 edge cases, 3 directions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "spec-output.yaml"
+    - "feature.md"

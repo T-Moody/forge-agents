@@ -1,0 +1,56 @@
+task:
+  id: "task-08"
+  title: "adversarial-reviewer.agent.md — Correctness analysis guidance expansion"
+  description: >
+    Update the adversarial-reviewer.agent.md Correctness Analysis section (Step 3c, ~line 177)
+    with expanded guidance for behavioral correctness detection:
+
+    Add explicit instructions within the Correctness Analysis section for reviewers to verify:
+    (a) Tests invoke production code — check that test files import production modules and
+        assertions reference values from calling production code, not local variable replications.
+        Flag self-referential tests (tests asserting on locally-declared state without production
+        invocation) as Major severity per severity-taxonomy.md.
+    (b) AC-to-test coverage — for every acceptance criterion with test_method='test', verify
+        a corresponding automated test exists. Flag missing coverage as Major severity.
+    (c) Runtime wiring — for tasks creating new files, verify new files are referenced from
+        at least one existing code path. Flag isolated abstractions as Major severity.
+
+    Additionally, add guidance to flag suspicious tdd_red_green patterns: if
+    tdd_red_green.tests_written_first is true AND initial_run_failures is 0, this is a
+    suspicious combination suggesting tests were NOT written before production code.
+    Flag for deeper test code review. This addresses Correctness Minor 6 review finding
+    about unverified TDD ordering.
+
+    Total estimated addition: ~15 lines.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["task-02"]
+  acceptance_criteria:
+    - id: "AC-16"
+      text: >
+        Adversarial reviewer Correctness Analysis section (Step 3c) explicitly mentions:
+        (a) self-referential test detection (tests not invoking production code → Major),
+        (b) AC-to-test coverage check (test_method='test' without automated test → Major),
+        (c) runtime wiring verification (new files not referenced → Major).
+      test_method: "inspection"
+    - id: "AC-16-tdd"
+      text: >
+        Correctness Analysis guidance includes a note to flag suspicious tdd_red_green
+        patterns (tests_written_first=true with initial_run_failures=0) for deeper review.
+      test_method: "inspection"
+    - id: "AC-13"
+      text: >
+        No TBD, TODO, FIXME, or placeholder markers exist in adversarial-reviewer.agent.md
+        after modification.
+      test_method: "test"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-4']"
+      - "design-output.yaml#payload.decisions[id='D-2']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-10']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-16']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        risk: "🟡"

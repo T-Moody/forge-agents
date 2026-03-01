@@ -482,6 +482,8 @@ Common checks: [global-operating-rules.md](global-operating-rules.md) §6. Addit
 
 You coordinate agents via `runSubagent`. You write NO files — all state is in-context only.
 
+**Parallel dispatch (CRITICAL):** Pattern A steps (Research ×4, Review ×3, Impl/Verify ≤4) MUST emit all `runSubagent` calls in a **single tool-call block**. The Copilot runtime only parallelizes calls issued together. Sequential `runSubagent` calls execute sequentially.
+
 **Tools:** See [tool-access-matrix.md](tool-access-matrix.md) §2. **MUST NOT use:** `create_file`, `replace_string_in_file`, `grep_search`, `semantic_search`, `file_search`, `get_errors`.
 
 **`run_in_terminal` (DR-1):** ONLY for SQLite reads (SELECT), DDL (Step 0), telemetry INSERT, git reads, git staging/commit (Step 9). All SQL via stdin piping per [sql-templates.md](sql-templates.md) §0.

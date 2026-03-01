@@ -1,0 +1,88 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-07"
+  step: "step-6"
+  started_at: "2026-03-01T12:00:00Z"
+  completed_at: "2026-03-01T12:25:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-07"
+    run_id: "2026-03-01T12:00:00Z"
+    evidence_gate:
+      total_checks: 3
+      passed: 3
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "2 pre-existing errors (broken schemas.md links at lines 47, 224) — same as baseline. No new errors introduced."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "manual-inspection"
+        command: "Markdown structural validation"
+        exit_code: null
+        passed: true
+        output_snippet: "verifier.agent.md: valid Markdown structure. YAML frontmatter present, all headings/tables/code blocks properly closed. 330 lines, well under 400-line limit."
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: "N/A"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Tier 3 infeasible: modified file is a Markdown agent definition (verifier.agent.md). No runtime import or smoke execution possible. Tier 1 IDE diagnostics + syntax check provide structural validation. Content correctness verified by diff-based inspection of all 3 addition hunks."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-01T12-00-00Z:NewAgents/.github/agents/verifier.agent.md"
+      discrepancies_found: false
+    content_verification:
+      description: "Detailed content inspection of all acceptance criteria via git diff and file reading"
+      results:
+        - id: "AC-3"
+          status: "pass"
+          detail: "Step 3e exists under Tier 2 'Always-Run Behavioral Checks (Code Tasks)'. Reads behavioral_coverage from implementation report, verifies test file existence (a), production imports (b), completeness for test_method='test' criteria (c). Accepts not_applicable for inspection/TDD Fallback (EC-2). INSERT with check_name='behavioral-coverage'."
+        - id: "AC-12"
+          status: "pass"
+          detail: "Step 3f exists under Tier 2. Runs only for new-file tasks, explicitly skips modification-only tasks per EC-3. Uses grep_search. INSERT with check_name='runtime-wiring'."
+        - id: "AC-14"
+          status: "pass"
+          detail: "Quick Reference table contains 'behavioral-coverage' (Tier 2, 'Behavioral coverage verification') and 'runtime-wiring' (Tier 2, 'Runtime wiring for new files')."
+        - id: "AC-3-unconditional"
+          status: "pass"
+          detail: "Steps 3e/3f placed under distinct sub-heading '#### Always-Run Behavioral Checks (Code Tasks)' with explicit text: 'unconditional for task_type=code tasks — not gated by external tooling detection'. Clearly separated from 'Run If Tooling Exists' (Steps 3a-3d)."
+        - id: "AC-13"
+          status: "pass"
+          detail: "grep_search for TBD|TODO|FIXME|placeholder returned no matches in verifier.agent.md."
+      additional_checks:
+        - name: "check_name values correct"
+          status: "pass"
+          detail: "behavioral-coverage and runtime-wiring match naming convention."
+        - name: "INSERT into anvil_checks"
+          status: "pass"
+          detail: "Both steps explicitly state 'INSERT with check_name=...' per SQL evidence recording rules."
+        - name: "self-verification items"
+          status: "pass"
+          detail: "Two items added to Cascade Completeness: behavioral-coverage for code tasks and runtime-wiring for new-file tasks."
+        - name: "file under 400 lines"
+          status: "pass"
+          detail: "Current file is 330 lines (baseline was 316 lines, +14 lines added)."
+completion:
+  status: "DONE"
+  summary: "Verified task-07: 3 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/verification-reports/task-07.yaml"
+  evidence_summary:
+    total_checks: 3
+    passed: 3
+    failed: 0
+    security_blockers: 0

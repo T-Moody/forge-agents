@@ -1,0 +1,50 @@
+task:
+  id: "task-02"
+  title: "severity-taxonomy.md & review-perspectives.md — Add behavioral Major entries and pragmatic-verifier priorities"
+  description: >
+    Two independent shared reference document updates:
+    (1) severity-taxonomy.md: Add 3 explicit named entries to the Major section (after existing
+    Major examples, before the Minor section). The 3 entries are:
+    - "Tests that do not invoke production code (self-referential tests)"
+    - "Business logic code changes with zero test coverage (null baseline AND null after test_summary)"
+    - "Acceptance criterion with test_method='test' lacking corresponding automated test"
+    Each entry must be a distinct bullet point in the Major examples list, explicitly named
+    (not subsumed under a vague umbrella).
+    (2) review-perspectives.md: Add 2 priority items to §4 Pragmatic Verifier review priorities:
+    - "Self-referential test detection" (tests that don't invoke production code)
+    - "Runtime wiring verification" (new files referenced by existing code)
+    These are added to the existing numbered priority list in the pragmatic-verifier section.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: []
+  acceptance_criteria:
+    - id: "AC-6"
+      text: >
+        severity-taxonomy.md Major section contains 3 new explicitly named entries:
+        (a) tests not invoking production code, (b) zero test coverage for business logic,
+        (c) test_method='test' AC without automated test. Each is a distinct bullet point.
+      test_method: "inspection"
+    - id: "AC-16-partial"
+      text: >
+        review-perspectives.md §4 Pragmatic Verifier priorities list includes
+        "Self-referential test detection" and "Runtime wiring verification" as named items.
+      test_method: "inspection"
+    - id: "AC-13"
+      text: >
+        No TBD, TODO, FIXME, or placeholder markers exist in either modified file.
+      test_method: "test"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-4']"
+      - "design-output.yaml#payload.decisions[id='D-6']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-10']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-6']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-16']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/severity-taxonomy.md"
+        risk: "🟡"
+      - path: "NewAgents/.github/agents/review-perspectives.md"
+        risk: "🟢"

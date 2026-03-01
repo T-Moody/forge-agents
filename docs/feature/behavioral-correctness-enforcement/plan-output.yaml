@@ -1,0 +1,96 @@
+agent_output:
+  agent: "planner"
+  instance: "planner"
+  step: "step-4"
+  started_at: "2026-03-01T14:20:00Z"
+  completed_at: "2026-03-01T14:55:00Z"
+  schema_version: "1.0"
+  payload:
+    overall_risk_summary: "🟡"
+    total_tasks: 8
+    waves:
+      - id: "wave-1"
+        tasks: ["task-01", "task-02", "task-03"]
+        max_concurrent: 3
+      - id: "wave-2"
+        tasks: ["task-04", "task-08"]
+        max_concurrent: 2
+      - id: "wave-3"
+        tasks: ["task-05", "task-06", "task-07"]
+        max_concurrent: 3
+    tasks:
+      - id: "task-01"
+        title: "schemas.md DDL Deduplication — Replace SQLite Schemas section with cross-references"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-02"
+        title: "severity-taxonomy.md & review-perspectives.md — Add behavioral Major entries and pragmatic-verifier priorities"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-03"
+        title: "sql-templates.md — Add EG-7 behavioral evidence gate query"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-04"
+        title: "schemas.md — Schema 6 structured ACs, Schema 7 behavioral fields, check_name patterns"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-01"]
+        agent: "implementer"
+      - id: "task-05"
+        title: "planner.agent.md — Structured AC propagation, test_method workflow rules, self-verification"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-04"]
+        agent: "implementer"
+      - id: "task-06"
+        title: "implementer.agent.md — Behavioral TDD rules, test selection strategy, output schema, self-verification"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-04"]
+        agent: "implementer"
+      - id: "task-07"
+        title: "verifier.agent.md — Behavioral-coverage and runtime-wiring Tier 2 checks"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-04"]
+        agent: "implementer"
+      - id: "task-08"
+        title: "adversarial-reviewer.agent.md — Correctness analysis guidance expansion"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-02"]
+        agent: "implementer"
+    dependency_graph:
+      task-01: []
+      task-02: []
+      task-03: []
+      task-04: ["task-01"]
+      task-05: ["task-04"]
+      task-06: ["task-04"]
+      task-07: ["task-04"]
+      task-08: ["task-02"]
+
+completion:
+  status: "DONE"
+  summary: "8 tasks created, 3 waves, overall risk 🟡"
+  severity: null
+  findings_count: 0
+  risk_level: "🟡"
+  output_paths:
+    - "plan-output.yaml"
+    - "plan.md"
+    - "tasks/task-01.yaml"
+    - "tasks/task-02.yaml"
+    - "tasks/task-03.yaml"
+    - "tasks/task-04.yaml"
+    - "tasks/task-05.yaml"
+    - "tasks/task-06.yaml"
+    - "tasks/task-07.yaml"
+    - "tasks/task-08.yaml"

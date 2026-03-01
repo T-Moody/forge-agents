@@ -117,6 +117,8 @@ Every verification check — regardless of tier, result, or significance — MUS
 | 2    | `type-check`              | Type checker                         |
 | 2    | `lint`                    | Linter                               |
 | 2    | `tests`                   | Test execution                       |
+| 2    | `behavioral-coverage`     | Behavioral coverage verification     |
+| 2    | `runtime-wiring`          | Runtime wiring for new files         |
 | 3    | `import-check`            | Import/load test                     |
 | 3    | `smoke-execution`         | Smoke execution                      |
 | 3    | `tier3-infeasible`        | Tier 3 cannot be performed           |
@@ -178,6 +180,15 @@ Run **only if** corresponding tooling exists. Detect dynamically from config fil
 - **3b. Type Check** — e.g., `tsc --noEmit`, `mypy .`, `pyright`. INSERT with `check_name='type-check'`.
 - **3c. Lint** — e.g., `npx eslint <files>`, `ruff check <files>`. INSERT with `check_name='lint'`.
 - **3d. Tests** — e.g., `npm test`, `pytest`, `dotnet test`, `go test ./...`. INSERT with `check_name='tests'`.
+
+#### Always-Run Behavioral Checks (Code Tasks)
+
+The following checks use workspace analysis tools (`read_file`, `grep_search`) that are always available. They are **unconditional for `task_type='code'` tasks** — not gated by external tooling detection.
+
+- **3e. Behavioral Coverage** — Read `behavioral_coverage` mapping from `implementation-reports/<task-id>.yaml`. For each acceptance criterion with `test_method='test'`: (a) verify the mapped test file exists, (b) verify the test file imports/references the production module, (c) confirm mapping is complete for all `test_method='test'` criteria. Accept `not_applicable` with justification for `test_method='inspection'` criteria and TDD Fallback scenarios (EC-2). INSERT with `check_name='behavioral-coverage'`.
+- **3f. Runtime Wiring** — Only for tasks that create new source files (skip for modification-only tasks per EC-3). Use `grep_search` to verify at least one pre-existing file imports or references each newly created file. INSERT with `check_name='runtime-wiring'`.
+
+Both checks count toward the EG-2 minimum signal threshold (FR-3.4).
 
 ### 4. Tier 3 — Required When Tiers 1–2 Produce No Runtime Verification
 
@@ -294,6 +305,8 @@ Before returning, run the common checklist from [global-operating-rules.md §6](
 
 - [ ] Tier 1 executed (always required)
 - [ ] Tier 2 executed if tooling detected (or documented as absent)
+- [ ] Behavioral-coverage check executed for all code tasks with `test_method='test'` criteria
+- [ ] Runtime-wiring check executed for tasks creating new files (or documented as N/A for modification-only tasks)
 - [ ] Tier 3 executed if Tiers 1–2 produced no runtime verification (or `tier3-infeasible` recorded)
 - [ ] Tier 4 executed if task is Large (or skipped for Standard)
 

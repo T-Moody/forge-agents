@@ -1,0 +1,86 @@
+task:
+  id: "task-04"
+  title: "schemas.md — Schema 6 structured ACs, Schema 7 behavioral fields, check_name patterns"
+  description: >
+    Update schemas.md with three groups of changes (all in different sections of the file):
+
+    (1) Schema 6 (task-schema, ~line 453): Change acceptance_criteria field from
+    'list of strings' to 'list of objects' with sub-fields {id, text, test_method}.
+    Update the field table to show the new object structure. Update the Schema 6 example
+    to show structured AC objects. CRITICAL: This is a BREAKING change per the Schema
+    Evolution Strategy — the schema version must bump to "2.0" (not "1.1"). Document
+    the synchronized update of Planner (producer) and Implementer/Verifier (consumers)
+    as the migration plan. This addresses the Architecture Major review finding about
+    misclassified type change.
+
+    (2) Schema 7 (implementation-report, ~line 509): Add behavioral_coverage field
+    (list of objects with ac_id, test_file, test_name, status, justification) and
+    tdd_red_green field (object with tests_written_first, initial_run_failures,
+    initial_run_exit_code) to the field table. Update Schema 7 example to include these
+    fields. For behavioral_coverage status, explicitly document that 'not_applicable' with
+    justification covers BOTH test_method='inspection' ACs AND TDD Fallback scenarios
+    where test_method='test' but tests could not be written for valid reasons (EC-2).
+    This addresses Correctness Major 2 review finding about TDD Fallback status enum gap.
+
+    (3) check_name Naming Patterns table (~line 1265): Add 'behavioral-coverage' and
+    'runtime-wiring' entries with phase 'after', used by Verifier, Tier 2.
+
+    Verify all 10 schema examples remain after changes. Confirm total line count stays
+    under 1300 lines (FR-7.3).
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["task-01"]
+  acceptance_criteria:
+    - id: "AC-1"
+      text: >
+        Schema 6 field table shows acceptance_criteria as 'list of objects' with sub-fields
+        id (string, required), text (string, required), test_method (string, required,
+        values: inspection|demonstration|test|analysis). Schema version referenced as "2.0"
+        (breaking change). Schema 6 example shows structured AC objects with all three fields.
+      test_method: "inspection"
+    - id: "AC-2"
+      text: >
+        Schema 7 field table includes behavioral_coverage (list of objects, required for
+        task_type='code') and tdd_red_green (object, conditional). behavioral_coverage
+        status field documents 'covered' and 'not_applicable' with explicit note that
+        'not_applicable' with justification covers TDD Fallback (EC-2) scenarios.
+        Schema 7 example shows both fields populated.
+      test_method: "inspection"
+    - id: "AC-17"
+      text: >
+        check_name Naming Patterns table includes 'behavioral-coverage' (phase: after,
+        Verifier, Tier 2: behavioral coverage verification) and 'runtime-wiring' (phase:
+        after, Verifier, Tier 2: runtime wiring verification for new-file tasks).
+      test_method: "inspection"
+    - id: "AC-18"
+      text: >
+        All 10 schema examples in schemas.md remain intact after field additions.
+        Example count equals 10.
+      test_method: "inspection"
+    - id: "AC-7-line-check"
+      text: >
+        schemas.md total line count remains under 1300 lines after all additions
+        (FR-7.3 compliance).
+      test_method: "test"
+    - id: "AC-13"
+      text: >
+        No TBD, TODO, FIXME, or placeholder markers exist in schemas.md after modification.
+      test_method: "test"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-1']"
+      - "design-output.yaml#payload.decisions[id='D-2']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-1']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-2']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-17']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-18']"
+      - "spec-output.yaml#payload.common_requirements[id='CR-1']"
+      - "spec-output.yaml#payload.edge_cases[id='EC-2']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/schemas.md"
+        risk: "🟡"

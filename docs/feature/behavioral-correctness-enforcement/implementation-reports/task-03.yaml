@@ -1,0 +1,71 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-03"
+  step: "step-5"
+  started_at: "2026-03-01T12:00:00Z"
+  completed_at: "2026-03-01T12:15:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-03"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        action: "modified"
+        description: >
+          Added EG-7 Behavioral Coverage Evidence (INFORMATIONAL) query section after
+          EG-6 in §6 Evidence Gate Queries. Includes: (a) INFORMATIONAL status heading
+          with FR-5.1/D-8 references, (b) primary SQL query checking for behavioral-coverage
+          records per task, (c) gap-detection companion query using LEFT JOIN to find
+          code tasks missing behavioral-coverage records, (d) promotion criteria note
+          specifying measurable conditions (>=90% tasks with records over 3+ runs, zero
+          false-positive overrides).
+      - path: "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-03.yaml"
+        action: "created"
+        description: "Implementation report for task-03"
+    self_check:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "baseline-build"
+        phase: "baseline"
+        tool: "N/A"
+        passed: true
+        note: "No build system — Markdown documentation file"
+      - check_name: "baseline-tests"
+        phase: "baseline"
+        tool: "N/A"
+        passed: true
+        note: "TDD Fallback: no test framework detected; task is documentation-style Markdown edit"
+      - check_name: "after-ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: true
+      - check_name: "after-no-placeholders"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        note: "AC-13 verified: no TBD, TODO, FIXME, or placeholder markers in sql-templates.md"
+
+completion:
+  status: "DONE"
+  summary: "task-03 — Added EG-7 informational behavioral coverage evidence gate query to sql-templates.md §6 with promotion criteria and gap-detection companion query"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-03.yaml"

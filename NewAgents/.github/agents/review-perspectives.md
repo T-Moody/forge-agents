@@ -53,6 +53,8 @@ Perspectives are dispatched as parallel instances of `adversarial-reviewer.agent
   4. Resource lifecycle — cleanup, connection pooling, memory management
   5. Test coverage gaps — untested paths, missing negative tests
   6. Race conditions and timing-dependent behavior
+  7. Self-referential test detection — verify that test assertions exercise production code, not just mock setup or test infrastructure; flag tests whose only assertions check values produced entirely within the test file itself
+  8. Runtime wiring verification — confirm that newly created files are imported, registered, or referenced by at least one existing module; flag new code that is never wired into the application entry points or dependency graph
 - **Severity Bias:** Lenient on style, strict on behavior — only blocks on functional defects. A missing edge case is Major; a typo is Minor.
 - **When reviewing Security:** Focus on logical errors that create security holes, functional gaps that expose unintended access paths.
 - **When reviewing Architecture:** Focus on naming consistency, path matching, schema field accuracy, contract violations between producer and consumer.

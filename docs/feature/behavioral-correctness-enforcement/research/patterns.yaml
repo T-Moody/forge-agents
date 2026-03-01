@@ -1,0 +1,419 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-patterns"
+  step: "step-1"
+  started_at: "2026-03-01T10:00:00Z"
+  completed_at: "2026-03-01T10:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "patterns"
+    findings:
+      - id: "F-1"
+        title: "TDD pattern in implementer.agent.md has no test quality enforcement"
+        category: "pattern"
+        detail: >
+          The implementer's TDD workflow (Step 4) requires writing failing tests before production
+          code and states tests 'MUST be meaningful — they should test behavior, not implementation
+          details.' However, there is no structural mechanism to enforce this. The only validation is:
+          (1) tests must fail before production code (red-green check), and (2) get_errors after
+          writing tests. There is no rule requiring tests to call production code, no prohibition on
+          asserting local variables, and no requirement that tests exercise the actual code path they
+          claim to verify. The TDD Fallback section (lines 266-280) allows skipping TDD entirely when
+          no test framework exists or when bootstrapping the framework, with only a note in the report.
+          The self-verification checklist item 'Tests exist and pass for task_type: code (or TDD
+          Fallback documented)' treats existence + passing as sufficient — it does not check test
+          quality, coverage of acceptance criteria, or whether tests actually invoke production code.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md lines 132-139 — TDD Step 4 rules"
+          - "NewAgents/.github/agents/implementer.agent.md lines 266-280 — TDD Fallback"
+          - "NewAgents/.github/agents/implementer.agent.md lines 296-298 — self-verification only checks 'Tests exist and pass'"
+        relevance: >
+          This gap is the root enabler for self-referential tests. Without structural enforcement
+          that tests must call production code and assert on production behavior, agents can write
+          tests that pass by construction (asserting local variables that replicate intended logic)
+          rather than by exercising actual runtime paths.
+
+      - id: "F-2"
+        title: "Concrete evidence of self-referential tests in ui-bug-fixes pipeline run"
+        category: "risk"
+        detail: >
+          The code-correctness adversarial reviewer (pragmatic-verifier perspective) identified Finding
+          4 in the ui-bug-fixes run: 'Logic-level tests assert local variables rather than production
+          code.' Specific examples in CreateGamePageTemplateSelectionTests.cs include
+          ActionSheetCancel_DoesNotCallCancel (line ~166) which declares 'bool cancelWasCalled = false;'
+          that is never mutated, then asserts 'Assert.False(cancelWasCalled)' — proving nothing about
+          the production OnActionSheetCancel() method. Similarly, TemplatePickerDialogCancel tests
+          declare local state that mirrors production logic but never actually calls the production
+          method. The reviewer classified this as Minor and the overall verdict was 'approve' — meaning
+          these hollow tests passed the entire pipeline without remediation. The implementer for
+          TASK-004 created 7 new tests, and the verifier confirmed all 47 tests passed, but neither
+          agent detected that several tests assert on local variables rather than production behavior.
+        evidence:
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/code-correctness.md Finding 4 — 'Logic-level tests assert local variables rather than production code'"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/code-correctness.md Finding 1 — 'Contradictory tests for saveAsTemplate EventId guard' — both tests pass because they test local variable logic, not production code"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-004.yaml — 7 new tests created, 0 flagged as self-referential"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-004.yaml — all 47 tests pass, gate_status: passed"
+        relevance: >
+          This is the canonical example of the correctness problem. The pipeline's defense layers
+          (implementer self-check, verifier 4-tier cascade, adversarial review) all either missed or
+          under-classified self-referential tests. The reviewer identified them but scored them Minor
+          (not Major), so no remediation was triggered. Future safeguards must detect and block tests
+          that never invoke production code before they reach the review stage.
+
+      - id: "F-3"
+        title: "Verification cascade (4-tier) does not assess test quality or behavioral coverage"
+        category: "pattern"
+        detail: >
+          The verifier's 4-tier cascade checks: Tier 1 (IDE diagnostics + syntax), Tier 2
+          (build/type-check/lint/tests), Tier 3 (import/smoke tests), Tier 4 (operational
+          readiness for Large tasks). All tiers verify that tests PASS — none verify that tests
+          are MEANINGFUL. The verifier is explicitly read-only for source code, so it cannot modify
+          tests, but it also has no check for: (a) whether new tests actually import or reference
+          production modules, (b) whether test assertions reference production state vs local
+          variables, (c) whether acceptance criteria are covered by behavioral tests vs documentation
+          tests. The evidence gate requires minimum verification signals (2 for Standard, 3 for
+          Large) but these signals are binary pass/fail — there is no signal for test quality. The
+          baseline cross-check pattern (git show comparison) verifies implementer baseline claims
+          but does not verify test-to-production wiring.
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md lines 118-171 — Tier 1-4 definitions"
+          - "NewAgents/.github/agents/verifier.agent.md lines 213-220 — Minimum Signal Requirements"
+          - "NewAgents/.github/agents/verifier.agent.md lines 186-195 — Evidence Gate Summary"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-004.yaml — 4 checks passed, no test quality assessment"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-005.yaml — 4 checks passed, tests counted but quality unassessed"
+        relevance: >
+          The verification cascade is structurally blind to the most common correctness failure mode.
+          Adding a test-quality or test-wiring check to the cascade (e.g., Tier 2.5 or enhanced
+          Tier 2) would create a structural safeguard that catches self-referential tests before
+          they reach adversarial review.
+
+      - id: "F-4"
+        title: "Acceptance criteria are structured as free-text strings with no testability enforcement"
+        category: "pattern"
+        detail: >
+          Task schema (Schema 6 in schemas.md) defines acceptance_criteria as 'list of strings'
+          with the constraint '>=1 entry; testable acceptance criteria.' The spec-output schema
+          includes a test_method field (inspection/demonstration/test/analysis) per acceptance
+          criterion, but this is lost when the planner transcribes criteria into task files — task
+          schemas have only free-text strings. There is no structural link between an acceptance
+          criterion and the test that verifies it. The implementer's self-verification checklist
+          says 'All acceptance criteria files created or modified' but does not require mapping each
+          AC to a specific test. In the ui-bug-fixes run, tasks like TASK-001 had 6 acceptance
+          criteria with test_method 'inspection' (visual-only), meaning no automated test was
+          required or produced. TASK-002 had acceptance criteria with test_method implied as 'test'
+          but the implementation report shows test_summary: null (no tests run). The verifier
+          verified AC compliance by reading code, not by running AC-specific tests.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 477-484 — task-schema acceptance_criteria is list of strings"
+          - "NewAgents/.github/agents/schemas.md lines 127-134 — spec-output has test_method per AC, but this is not carried to task schema"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/tasks/TASK-001.yaml — 6 ACs, all verification by inspection"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/tasks/TASK-005.yaml — 5 ACs but no explicit test-to-AC mapping"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-002.yaml — acceptance_criteria_check added as ad-hoc field, not schema-required"
+        relevance: >
+          Without structural AC-to-test mapping, there is no machine-verifiable way to confirm
+          that each acceptance criterion has a corresponding test. The implementer can claim ACs
+          are met via narrative evidence (reading code) rather than test evidence. This enables
+          the 'declare success without behavioral verification' pattern.
+
+      - id: "F-5"
+        title: "Baseline capture and cross-check pattern is robust but limited to state comparison"
+        category: "pattern"
+        detail: >
+          The baseline pattern consists of two halves: (1) Implementer captures IDE diagnostics,
+          build exit code, and test summary BEFORE making changes, inserting into anvil_checks with
+          phase='baseline' and round=0. (2) Verifier cross-checks these claims using 'git show
+          pipeline-baseline-{run_id}:<filepath>' to compare the implementer's reported baseline
+          against the actual git state. This pattern effectively detects fabricated baselines
+          (an implementer claiming 0 errors when errors existed) and regressions (baseline pass →
+          after fail). However, it does not address the deeper correctness problem: an implementer
+          can truthfully report baseline_tests: null (no tests), write self-referential tests that
+          pass, and report after_tests: {total: 5, passed: 5, failed: 0}. The cross-check confirms
+          the baseline was accurately reported, but the new tests' quality is unexamined. In the
+          ui-bug-fixes run, all 8 tasks had accurate baselines confirmed by verifiers, yet
+          self-referential tests still passed through.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md lines 111-125 — Capture Baseline steps"
+          - "NewAgents/.github/agents/verifier.agent.md lines 103-111 — Baseline Cross-Check"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-001.yaml — baseline_cross_check.discrepancies_found: false"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-004.yaml — baseline_cross_check.discrepancies_found: false"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-005.yaml — baseline_cross_check.discrepancies_found: false"
+        relevance: >
+          The baseline cross-check is a sound anti-fabrication mechanism that should be preserved.
+          But it needs to be augmented with quality checks on the delta between baseline and after
+          states, particularly for test additions.
+
+      - id: "F-6"
+        title: "Code quality rules (YAGNI, KISS, DRY) are stated but not structurally enforced"
+        category: "pattern"
+        detail: >
+          The implementer's Operating Rules (line 275) state: 'Code quality: YAGNI, KISS, DRY
+          (extract at 3+ instances). Use list_code_usages (fall back to grep_search) before
+          modifying existing code.' These are advisory rules — there is no verification check,
+          no reviewer-specific checklist item, and no evidence gate that validates adherence.
+          The self-verification checklist does not include YAGNI/KISS/DRY items. The adversarial
+          reviewer's architecture-guardian perspective covers 'SOLID principle adherence and
+          separation of concerns' but YAGNI/KISS/DRY compliance is not a reviewable finding
+          category. In practice, TASK-003 in the ui-bug-fixes run used inline Style attributes
+          on 4 components instead of creating a shared CSS class — the architecture reviewer
+          flagged this as Minor (Finding 2: 'Inconsistent text-secondary styling approach')
+          but it was not classified as a DRY violation and did not trigger remediation.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md line 275 — Operating Rule 9: YAGNI, KISS, DRY"
+          - "NewAgents/.github/agents/implementer.agent.md lines 286-302 — Self-Verification checklist has no YAGNI/KISS/DRY items"
+          - "NewAgents/.github/agents/review-perspectives.md §3 — architecture-guardian priorities: SOLID, coupling, scalability (no YAGNI/KISS/DRY)"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/code-architecture.md Finding 2 — flagged as Minor maintainability, not DRY violation"
+        relevance: >
+          Code quality rules without structural enforcement become aspirational. For behavioral
+          correctness enforcement, the focus should be on testability and wiring rules rather
+          than general quality—but the pattern of stating rules without enforcement mechanisms
+          is a systemic weakness.
+
+      - id: "F-7"
+        title: "Self-verification checklist pattern is consistent but checks form over substance"
+        category: "pattern"
+        detail: >
+          Every agent has a Self-Verification section with checkboxes that are run before returning
+          output. The common checklist (global-operating-rules.md §6) covers schema compliance
+          (header fields, output paths, file existence). Each agent adds role-specific items. The
+          pattern is architecturally consistent — all 9 agent definitions follow it. However, the
+          checklist items are predominantly structural/schema checks. The implementer checklist
+          verifies: schema fields present, baseline captured before changes, tests exist and pass,
+          self-fix loop ran, git staged, no out-of-scope files. The verifier checklist verifies:
+          SQL INSERTs match findings, evidence gate arithmetic is correct, cascade tiers executed,
+          baseline cross-check performed. None of these items verify behavioral correctness —
+          whether tests actually test the right things, whether production code actually changes
+          behavior, or whether the implementation matches intent rather than just matching the
+          acceptance criteria text.
+        evidence:
+          - "NewAgents/.github/agents/global-operating-rules.md §6 — common self-verification checklist (8 items, all structural)"
+          - "NewAgents/.github/agents/implementer.agent.md lines 286-302 — role-specific checklist (12 items, focused on schema + process)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 241-280 — role-specific checklist (17 items, focused on SQL integrity + cascade completeness)"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md lines 281-318 — role-specific checklist (16 items, focused on output completeness + verdict consistency)"
+        relevance: >
+          Self-verification checklists are the final defense before an agent returns output. If
+          they only check form (schema compliance, field presence) and not substance (test quality,
+          behavioral coverage, production wiring), correctness problems pass through every layer
+          of the pipeline.
+
+      - id: "F-8"
+        title: "Adversarial review found correctness problems but severity classification prevented remediation"
+        category: "risk"
+        detail: >
+          The adversarial review pattern dispatches 3 perspectives (security-sentinel,
+          architecture-guardian, pragmatic-verifier) covering 3 categories each (security,
+          architecture, correctness) for 9 review dimensions per round. This successfully detected
+          correctness problems in the ui-bug-fixes run: contradictory tests (Finding 1, Major),
+          missing null coercion test (Finding 2, Minor), palette mismatch (Finding 3, Minor), and
+          self-referential tests (Finding 4, Minor). However, the severity classification system
+          (severity-taxonomy.md) treats 'Missing test coverage for a specified acceptance criterion'
+          as Major but treats 'tests that assert local variables instead of production code' as
+          Minor (style/quality issue). The verdict logic maps: Minor-only → approve, Major without
+          Critical → needs_revision (but only if multiple), single Major → approve with logged
+          finding. In the ui-bug-fixes code review, the final verdict was 'approve' with 1 Major +
+          3 Minor, so self-referential tests were logged as findings but not remediated. The design
+          review was more effective: it found Critical issues (spec-design contradictions) that
+          DID trigger needs_revision routing.
+        evidence:
+          - "NewAgents/.github/agents/review-perspectives.md §7 — severity threshold calibration"
+          - "NewAgents/.github/agents/severity-taxonomy.md — Major='Missing test coverage', no category for 'self-referential tests'"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-verdicts/code-correctness.yaml — verdict: approve, 1 Major + 3 Minor"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/code-correctness.md — Finding 4 classified as Minor"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/design-correctness.md — Finding 1 classified as Critical, DID trigger needs_revision"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md lines 197-206 — verdict determination logic"
+        relevance: >
+          The review system can detect correctness problems but the severity taxonomy lacks a
+          category for self-referential or non-wired tests. Elevating 'tests that do not invoke
+          production code' from Minor to at least Major (or introducing a dedicated severity rule)
+          would cause the existing review infrastructure to trigger remediation automatically.
+
+      - id: "F-9"
+        title: "No runtime wiring verification pattern exists in the pipeline"
+        category: "risk"
+        detail: >
+          The pipeline has no mechanism to verify that new code is wired into the runtime
+          application. An implementer can create a new module, write tests for it, and have all
+          tests pass — but if the module is never imported or called from the main application
+          entry point, the feature does not exist at runtime. The verifier's Tier 3 includes
+          import/load tests ('node -e require(./module)' or 'python -c import mod'), which verify
+          that the file is importable, not that it is actually imported by the application. Smoke
+          execution (Tier 3b) runs a throwaway script, verifying the module runs in isolation,
+          not in context. The baseline cross-check compares file states but does not verify call
+          chains. No agent checks whether production entry points reference the new code. In the
+          ui-bug-fixes run, this was not a problem because all tasks modified existing files rather
+          than creating new abstractions. But for feature work that creates new modules, this gap
+          would allow 'isolated abstraction tested but not wired' to pass the entire pipeline.
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md lines 152-164 — Tier 3 import/smoke checks test importability, not integration"
+          - "NewAgents/.github/agents/implementer.agent.md lines 132-139 — no requirement to verify runtime wiring"
+          - "NewAgents/.github/agents/implementer.agent.md lines 286-302 — self-verification has no wiring check"
+          - "No agent definition contains rules about verifying call-chain connectivity to runtime entry points"
+        relevance: >
+          This is a structural gap for feature-work tasks. CSS/UI bug fixes in the ui-bug-fixes
+          run were immune because they modified existing files. New feature implementations that
+          create abstractions would be vulnerable. A runtime wiring check (verifying new modules
+          are imported from existing code paths) would close this gap.
+
+      - id: "F-10"
+        title: "Artifact evaluation pattern provides feedback but is not gating"
+        category: "pattern"
+        detail: >
+          The evaluation-schema.md defines a scoring system where downstream agents rate upstream
+          artifacts (usefulness 1-10, clarity 1-10, missing_information, inaccuracies,
+          impact_on_work). Phase 1 agents (Implementer, Verifier, Adversarial Reviewer) must
+          INSERT evaluations. The Knowledge Agent aggregates these for post-mortem analysis. However,
+          evaluations are non-gating — a usefulness score of 1/10 on a task definition does not
+          trigger replanning or halt implementation. The feedback loop is one-directional: evaluations
+          flow to the Knowledge Agent for future improvement, not back to the producing agent for
+          immediate correction. This means if an implementer receives a vague task with weak
+          acceptance criteria, they evaluate it as poor quality but still implement it with whatever
+          interpretation they choose. The correctness problem is perpetuated because vague criteria
+          enable vague tests.
+        evidence:
+          - "NewAgents/.github/agents/evaluation-schema.md §1-§6 — evaluation system overview"
+          - "NewAgents/.github/agents/evaluation-schema.md §6 — Phase 1 agents must INSERT evaluations"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md is the sole consumer via SQL queries"
+          - "No gating logic in orchestrator.agent.md based on artifact_evaluations scores"
+        relevance: >
+          Making artifact evaluations gating (e.g., usefulness < 4 triggers replanning) would
+          create a fast feedback loop that catches weak task definitions before they produce
+          weak implementations. This is an existing infrastructure that could be elevated to a
+          correctness safeguard with minimal structural change.
+
+      - id: "F-11"
+        title: "Design review detected spec-design contradictions that implementer would have silently violated"
+        category: "pattern"
+        detail: >
+          The design review round in the ui-bug-fixes run demonstrates the adversarial review
+          pattern working as intended for spec-level correctness. The correctness reviewer found
+          that the design proposed dark Background #000000, directly contradicting spec AC-006-8
+          ('dark mode background is not pure black') and an existing test invariant. The
+          architecture reviewer independently found the same issue plus the missing DrawerBackground
+          cascade. Both assigned Critical/Major severity, triggering needs_revision. This is a
+          positive pattern example: the review system caught a correctness problem that the
+          implementer would have either violated the spec or broken tests. However, this worked
+          because the spec had a clear, testable invariant and existing tests encoded it. When
+          acceptance criteria are vague or tests are self-referential, this safety net has nothing
+          concrete to check against.
+        evidence:
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/design-correctness.md Finding 1 — Critical, AC-006-8 contradiction"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/design-architecture.md Finding 1 — Critical, same contradiction found independently"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-verdicts/design-correctness.yaml — verdict: needs_revision"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-verdicts/design-architecture.yaml — verdict: needs_revision (implied by Critical finding)"
+        relevance: >
+          This proves the adversarial review pattern is effective when it has concrete invariants
+          to check against. The correctness enforcement effort should focus on ensuring concrete
+          invariants exist at every stage (spec, test, runtime) rather than adding more review
+          layers.
+
+      - id: "F-12"
+        title: "Multiple tasks had null test baselines with no escalation"
+        category: "risk"
+        detail: >
+          In the ui-bug-fixes run, TASK-001 (CSS-only), TASK-002 (nullable field), and TASK-003
+          (Color.Secondary replacement) all reported baseline test_summary: null — meaning no tests
+          existed for the affected code before implementation. For TASK-001 and TASK-003, this was
+          legitimate (CSS/visual changes). For TASK-002, the implementer changed production C# code
+          (nullable field, validation, submit coercion) but still reported test_summary: null.
+          The self_check also shows test_summary: null — no tests were written or run for TASK-002
+          despite it being a code task modifying business logic. The verifier passed TASK-002's
+          verification with 4 checks (IDE diagnostics + syntax + build + build-as-test), meeting
+          the Standard minimum of 2. The missing test gap was only caught by the code-correctness
+          reviewer as Finding 2 (Minor): 'No test for null→DefaultSkillRating coercion at submit
+          boundary.' The pipeline has no rule that code tasks modifying business logic MUST have
+          tests — TDD Fallback allows skipping when no test framework exists, and the null baseline
+          is accepted silently.
+        evidence:
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-002.yaml — baseline test_summary: null, self_check test_summary: null"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-001.yaml — test_summary: null (CSS only, legitimate)"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-001.yaml — 4 checks passed without any test execution"
+          - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/code-correctness.md Finding 2 — Minor, missing null coercion test"
+          - "NewAgents/.github/agents/implementer.agent.md lines 266-280 — TDD Fallback allows test skip"
+        relevance: >
+          A code task that modifies business logic without any test (baseline null, after null)
+          should be escalated, not silently accepted. The pipeline needs a rule that distinguishes
+          legitimate no-test scenarios (CSS, docs, config) from illegitimate ones (business logic
+          changes with no test coverage).
+
+      - id: "F-13"
+        title: "Bounded feedback loop pattern prevents infinite cycling but limits correctness depth"
+        category: "pattern"
+        detail: >
+          The pipeline enforces strict iteration limits: design revision max 1 iteration,
+          implementation-verification max 3 iterations, code review cycling max 2 rounds
+          (global-operating-rules.md and orchestrator.agent.md). After limits are exhausted,
+          the pipeline proceeds with 'Confidence: Low' rather than blocking indefinitely. This
+          is architecturally sound for preventing infinite loops, but it means correctness issues
+          found in the final review round are logged as 'known issues' rather than fixed. In the
+          ui-bug-fixes run, the code review was round 1 with verdict 'approve' — so the limit was
+          never tested. But if self-referential tests had been classified Major, a round 2 review
+          finding them still present would have resulted in 'known issues, Confidence: Low' rather
+          than mandatory remediation.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 406-413 — retry budgets table"
+          - ".github/copilot-instructions.md — Bounded Feedback Loops rule"
+          - "NewAgents/.github/agents/global-operating-rules.md §1 — Two-Tiered Retry Policy"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 273 — 'After 2 rounds with findings → known issues, Confidence: Low'"
+        relevance: >
+          Bounded loops are essential for termination. The correctness enforcement strategy should
+          focus on catching problems EARLIER (at implementation and verification time) rather than
+          relying on late-stage review loops that have hard iteration limits. Front-loading
+          correctness checks reduces dependence on the review safety net.
+
+    summary: >
+      The agent system has comprehensive structural patterns for verification (4-tier cascade,
+      baseline cross-check, adversarial review with 9 dimensions, evidence gating via SQL) but
+      these patterns check FORM over SUBSTANCE. Tests are verified to exist and pass, but not
+      verified to exercise production code. Acceptance criteria are required but not structurally
+      linked to tests. The severity taxonomy lacks a category for self-referential or non-wired
+      tests, causing the review system to classify them as Minor and approve. The ui-bug-fixes
+      pipeline run demonstrates this concretely: self-referential tests, contradictory test pairs,
+      and business logic changes without tests all passed the full pipeline. The design review
+      is the strongest correctness safeguard — it caught spec-design contradictions with Critical
+      severity — but only when concrete invariants exist to check against. The core gap is at
+      the implementation and verification stages where no structural check ensures tests actually
+      invoke production code or that new abstractions are wired into the runtime.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/review-perspectives.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-001.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-002.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-003.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-004.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-005.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-006.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-007.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/implementation-reports/TASK-008.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-001.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-003.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-004.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-005.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/verification-reports/TASK-006.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/code-correctness.md"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/code-architecture.md"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/code-security.md"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/design-correctness.md"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-findings/design-architecture.md"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-verdicts/code-correctness.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/review-verdicts/design-correctness.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/tasks/TASK-001.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/tasks/TASK-005.yaml"
+      - "outputFromNewAgentsAfterRun/ui-bug-fixes/spec-output.yaml"
+
+completion:
+  status: "DONE"
+  summary: "Patterns research complete: 13 findings on testing, verification, review, and correctness enforcement gaps with concrete evidence from ui-bug-fixes pipeline run"
+  severity: null
+  findings_count: 13
+  risk_level: null
+  output_paths:
+    - "research/patterns.yaml"

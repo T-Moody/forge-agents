@@ -1,0 +1,53 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-08"
+  step: "step-5"
+  started_at: "2026-03-01T12:00:00Z"
+  completed_at: "2026-03-01T12:20:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-08"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 1
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        action: "modified"
+        description: >
+          Expanded Step 3c Correctness Analysis section with behavioral test validity
+          checks: self-referential test detection, AC-to-test coverage mapping, runtime
+          wiring verification, suspicious TDD pattern flagging, and guidance for flagging
+          implementations where all tests pass but no observable behavioral change occurred.
+          Added 9 lines of content (336→345 lines, within 400-line budget).
+      - path: "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-08.yaml"
+        action: "created"
+        description: "Implementation report for task-08"
+    self_check:
+      ide_diagnostics:
+        errors: 1
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "after-ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: true
+completion:
+  status: "DONE"
+  summary: "task-08 — Added behavioral test validity checks (self-referential test detection, AC-to-test coverage, runtime wiring, suspicious TDD patterns) to adversarial-reviewer.agent.md Step 3c Correctness Analysis. 336→345 lines, within 400-line budget."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/behavioral-correctness-enforcement/implementation-reports/task-08.yaml"

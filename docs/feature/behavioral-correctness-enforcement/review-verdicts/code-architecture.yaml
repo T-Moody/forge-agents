@@ -1,0 +1,10 @@
+reviewer_model: "claude-opus-4.6"
+review_focus: "architecture"
+scope: "code"
+verdict: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 0
+  major: 3
+  minor: 2
+summary: "3 Major architecture findings: (1) EG-7 gap-detection query references non-existent pipeline_telemetry.task_id column — runtime SQL failure, (2) undocumented orchestrator.agent.md change bypasses task-scoped verification pipeline, (3) YAML schema versioning gap — Schema 6 v2.0 label vs common header schema_version 1.0 with no evolution framework. 2 Minor: stale EG cross-reference, section-number coupling fragility."

@@ -1,0 +1,10 @@
+reviewer_model: "claude-opus-4.6"
+review_focus: "security"
+scope: "code"
+verdict: "approve"
+findings_count:
+  blocker: 0
+  critical: 0
+  major: 0
+  minor: 2
+summary: "No security blockers. 2 Minor findings: (1) EG-7 gap-detection query references non-existent pipeline_telemetry.task_id column, weakening audit observability; (2) new free-text field justification not explicitly listed in sql_escape() enumeration. Both low-risk — existing safety mechanisms (stdin piping, sql_escape on output_snippet, CHECK constraints) provide adequate coverage. All changes are Markdown documentation only."
