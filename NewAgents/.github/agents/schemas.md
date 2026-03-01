@@ -459,25 +459,25 @@ completion:
 
 ### Fields
 
-| Field                                              | Type            | Required    | Constraint / Allowed Values                                                                   |
-| -------------------------------------------------- | --------------- | ----------- | --------------------------------------------------------------------------------------------- |
-| `task.id`                                          | string          | Yes         | Task identifier assigned by Planner (e.g., `task-03`)                                         |
-| `task.title`                                       | string          | Yes         | Task title                                                                                    |
-| `task.description`                                 | string          | Yes         | Detailed description of work to be done                                                       |
-| `task.agent`                                       | string          | Yes         | Assigned agent (e.g., `implementer`)                                                          |
-| `task.size`                                        | string          | Yes         | `Standard` \| `Large`                                                                         |
-| `task.risk`                                        | string          | Yes         | `"🟢"` \| `"🟡"` \| `"🔴"`                                                                    |
-| `task.depends_on`                                  | list of strings | No          | Task IDs this task depends on                                                                 |
-| `task.acceptance_criteria`                         | list of objects | Yes         | ≥ 1 entry; structured acceptance criteria (v2.0)                                              |
-| `task.acceptance_criteria[].id`                    | string          | Yes         | AC identifier from spec (e.g., `AC-1`)                                                        |
-| `task.acceptance_criteria[].text`                  | string          | Yes         | Testable acceptance criterion text                                                            |
-| `task.acceptance_criteria[].test_method`           | string          | Yes         | `inspection` \| `demonstration` \| `test` \| `analysis`                                       |
-| `task.relevant_context`                            | object          | Yes         | Pointers to specific upstream sections (bounds read amplification)                            |
-| `task.relevant_context.design_sections`            | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `design-output.yaml`                              |
-| `task.relevant_context.spec_requirements`          | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `spec-output.yaml`                                |
-| `task.relevant_context.files_to_modify`            | list of objects | No          | Files to create or modify                                                                     |
-| `task.relevant_context.files_to_modify[].path`     | string          | Conditional | Relative file path                                                                            |
-| `task.relevant_context.files_to_modify[].risk`     | string          | Conditional | `"🟢"` \| `"🟡"` \| `"🔴"`                                                                    |
+| Field                                          | Type            | Required    | Constraint / Allowed Values                                        |
+| ---------------------------------------------- | --------------- | ----------- | ------------------------------------------------------------------ |
+| `task.id`                                      | string          | Yes         | Task identifier assigned by Planner (e.g., `task-03`)              |
+| `task.title`                                   | string          | Yes         | Task title                                                         |
+| `task.description`                             | string          | Yes         | Detailed description of work to be done                            |
+| `task.agent`                                   | string          | Yes         | Assigned agent (e.g., `implementer`)                               |
+| `task.size`                                    | string          | Yes         | `Standard` \| `Large`                                              |
+| `task.risk`                                    | string          | Yes         | `"🟢"` \| `"🟡"` \| `"🔴"`                                         |
+| `task.depends_on`                              | list of strings | No          | Task IDs this task depends on                                      |
+| `task.acceptance_criteria`                     | list of objects | Yes         | ≥ 1 entry; structured acceptance criteria (v2.0)                   |
+| `task.acceptance_criteria[].id`                | string          | Yes         | AC identifier from spec (e.g., `AC-1`)                             |
+| `task.acceptance_criteria[].text`              | string          | Yes         | Testable acceptance criterion text                                 |
+| `task.acceptance_criteria[].test_method`       | string          | Yes         | `inspection` \| `demonstration` \| `test` \| `analysis`            |
+| `task.relevant_context`                        | object          | Yes         | Pointers to specific upstream sections (bounds read amplification) |
+| `task.relevant_context.design_sections`        | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `design-output.yaml`   |
+| `task.relevant_context.spec_requirements`      | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `spec-output.yaml`     |
+| `task.relevant_context.files_to_modify`        | list of objects | No          | Files to create or modify                                          |
+| `task.relevant_context.files_to_modify[].path` | string          | Conditional | Relative file path                                                 |
+| `task.relevant_context.files_to_modify[].risk` | string          | Conditional | `"🟢"` \| `"🟡"` \| `"🔴"`                                         |
 
 ### Example
 
@@ -558,7 +558,7 @@ task:
 | `payload.verification_entries[].tool`         | string          | Conditional | Tool used (e.g., `ide-get_diagnostics`, `dotnet build`)                 |
 | `payload.verification_entries[].passed`       | boolean         | Conditional | Whether the check passed                                                |
 | `payload.behavioral_coverage`                 | list of objects | Conditional | Required for `task_type='code'`; maps each AC to its verifying test     |
-| `payload.behavioral_coverage[].ac_id`         | string          | Yes         | AC identifier (e.g., `AC-1`)                                           |
+| `payload.behavioral_coverage[].ac_id`         | string          | Yes         | AC identifier (e.g., `AC-1`)                                            |
 | `payload.behavioral_coverage[].test_file`     | string          | Conditional | Relative path to test file; required when `status='covered'`            |
 | `payload.behavioral_coverage[].test_name`     | string          | Conditional | Test function/method name; required when `status='covered'`             |
 | `payload.behavioral_coverage[].status`        | string          | Yes         | `covered` \| `not_applicable`                                           |
@@ -570,6 +570,7 @@ task:
 | `completion` (contract)                       | object          | Yes         | See Schema 1                                                            |
 
 > **`behavioral_coverage.status` values:**
+>
 > - `covered` — AC has a corresponding automated test that invokes production code. Requires `test_file` and `test_name`.
 > - `not_applicable` — AC does not require an automated test. Requires `justification`. Valid reasons include:
 >   - `test_method='inspection'` or `test_method='analysis'` — criterion verified by review, not automation
@@ -1014,12 +1015,12 @@ completion:
 >
 > **Canonical DDL:** See [sql-templates.md](sql-templates.md) §1 for all table CREATE statements, indexes, and PRAGMA settings. Do not duplicate DDL here to prevent drift.
 
-| Table | Purpose |
-| ----- | ------- |
-| `anvil_checks` | Verification ledger — baseline, after-implementation, and review check results |
-| `pipeline_telemetry` | Pipeline metrics — dispatch timing, status, and retry counts per agent |
-| `artifact_evaluations` | Artifact quality — usefulness/clarity scores and qualitative feedback |
-| `instruction_updates` | Instruction governance — Knowledge Agent modifications to instruction files |
+| Table                  | Purpose                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `anvil_checks`         | Verification ledger — baseline, after-implementation, and review check results |
+| `pipeline_telemetry`   | Pipeline metrics — dispatch timing, status, and retry counts per agent         |
+| `artifact_evaluations` | Artifact quality — usefulness/clarity scores and qualitative feedback          |
+| `instruction_updates`  | Instruction governance — Knowledge Agent modifications to instruction files    |
 
 ### `anvil_checks` Phase Semantics
 

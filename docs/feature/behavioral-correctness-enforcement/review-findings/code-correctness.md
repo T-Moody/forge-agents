@@ -52,26 +52,26 @@
 
 ## AC-by-AC Compliance Summary
 
-| AC | Status | Evidence |
-|----|--------|----------|
-| AC-1 | **Satisfied** | schemas.md lines 471-474: Schema 6 `acceptance_criteria` as list of objects with {id, text, test_method}. planner.agent.md lines 96-101: inline schema example shows structured objects. |
-| AC-2 | **Satisfied** | schemas.md lines 560-569: `behavioral_coverage` and `tdd_red_green` fields in Schema 7. implementer.agent.md lines 87-96: output schema template includes both fields. |
-| AC-3 | **Satisfied** | verifier.agent.md Step 3e: behavioral-coverage check reads mapping, verifies test file existence, checks imports, confirms completeness. INSERT with `check_name='behavioral-coverage'`. |
-| AC-4 | **Satisfied** | implementer.agent.md TDD Structural Rules (lines 147-152): "Test files MUST import at least one production module modified/created by the task." |
-| AC-5 | **Satisfied** | implementer.agent.md Self-Verification (lines 356-358): all 3 items present — production code invocation, test_method='test' AC coverage, new file references. |
-| AC-6 | **Satisfied** | severity-taxonomy.md lines 66-68: 3 explicit Major entries — self-referential tests, zero test coverage, test_method='test' without automated test. |
-| AC-7 | **Satisfied** | schemas.md: 1218 lines (was 1422 baseline → 204-line reduction ≥ 200; under 1300 limit). 0 CREATE TABLE statements (DDL fully removed). Cross-reference section at lines 1015-1038 points to sql-templates.md §1. |
-| AC-8 | **Satisfied** | planner.agent.md self-verification item 9 (line 333): "Every acceptance criterion specifies an observable behavior with a clear pass/fail definition." |
-| AC-9 | **Satisfied** | planner.agent.md workflow step 3d (line 218): propagation rule for spec AC IDs and test_method. Self-verification item 10 (line 334) confirms propagation. |
-| AC-10 | **Satisfied** | sql-templates.md lines 476-507: EG-7 query with INFORMATIONAL status, valid SQL against anvil_checks, promotion criteria, gap-detection companion. |
-| AC-11 | **Partially satisfied** | Functional intent achieved through behavioral_coverage per-AC mapping. No explicit tdd_fallback_reason field or null+null self-fix trigger. See Finding 4. |
-| AC-12 | **Satisfied** | verifier.agent.md Step 3f: runtime-wiring check for new-file tasks only, skips modification-only (EC-3). INSERT with `check_name='runtime-wiring'`. |
-| AC-13 | **Satisfied** | Select-String across all 8 files: zero matches for TBD/TODO/FIXME. |
-| AC-14 | **Satisfied** | verifier.agent.md Quick Reference table: `behavioral-coverage` (Tier 2) and `runtime-wiring` (Tier 2) both present with descriptions. |
-| AC-15 | **Satisfied** | implementer.agent.md Operating Rules: Test Selection Strategy table with all 4 test_method entries, principles (behavior not implementation, no type-system tests, public interface), UI-specific guidance. |
-| AC-16 | **Satisfied** | adversarial-reviewer.agent.md Step 3c (lines 183-188): self-referential detection, AC-to-test coverage, runtime wiring, suspicious TDD patterns. review-perspectives.md items 7-8: self-referential test detection, runtime wiring verification. |
-| AC-17 | **Satisfied** | schemas.md check_name Naming Patterns table (lines 1081-1082): `behavioral-coverage` and `runtime-wiring` with phase, tier, and description. |
-| AC-18 | **Satisfied** | 10 `### Example` headings confirmed in schemas.md (lines 81, 124, 201, 285, 370, 482, 579, 703, 874, 929). |
+| AC    | Status                  | Evidence                                                                                                                                                                                                                                         |
+| ----- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AC-1  | **Satisfied**           | schemas.md lines 471-474: Schema 6 `acceptance_criteria` as list of objects with {id, text, test_method}. planner.agent.md lines 96-101: inline schema example shows structured objects.                                                         |
+| AC-2  | **Satisfied**           | schemas.md lines 560-569: `behavioral_coverage` and `tdd_red_green` fields in Schema 7. implementer.agent.md lines 87-96: output schema template includes both fields.                                                                           |
+| AC-3  | **Satisfied**           | verifier.agent.md Step 3e: behavioral-coverage check reads mapping, verifies test file existence, checks imports, confirms completeness. INSERT with `check_name='behavioral-coverage'`.                                                         |
+| AC-4  | **Satisfied**           | implementer.agent.md TDD Structural Rules (lines 147-152): "Test files MUST import at least one production module modified/created by the task."                                                                                                 |
+| AC-5  | **Satisfied**           | implementer.agent.md Self-Verification (lines 356-358): all 3 items present — production code invocation, test_method='test' AC coverage, new file references.                                                                                   |
+| AC-6  | **Satisfied**           | severity-taxonomy.md lines 66-68: 3 explicit Major entries — self-referential tests, zero test coverage, test_method='test' without automated test.                                                                                              |
+| AC-7  | **Satisfied**           | schemas.md: 1218 lines (was 1422 baseline → 204-line reduction ≥ 200; under 1300 limit). 0 CREATE TABLE statements (DDL fully removed). Cross-reference section at lines 1015-1038 points to sql-templates.md §1.                                |
+| AC-8  | **Satisfied**           | planner.agent.md self-verification item 9 (line 333): "Every acceptance criterion specifies an observable behavior with a clear pass/fail definition."                                                                                           |
+| AC-9  | **Satisfied**           | planner.agent.md workflow step 3d (line 218): propagation rule for spec AC IDs and test_method. Self-verification item 10 (line 334) confirms propagation.                                                                                       |
+| AC-10 | **Satisfied**           | sql-templates.md lines 476-507: EG-7 query with INFORMATIONAL status, valid SQL against anvil_checks, promotion criteria, gap-detection companion.                                                                                               |
+| AC-11 | **Partially satisfied** | Functional intent achieved through behavioral_coverage per-AC mapping. No explicit tdd_fallback_reason field or null+null self-fix trigger. See Finding 4.                                                                                       |
+| AC-12 | **Satisfied**           | verifier.agent.md Step 3f: runtime-wiring check for new-file tasks only, skips modification-only (EC-3). INSERT with `check_name='runtime-wiring'`.                                                                                              |
+| AC-13 | **Satisfied**           | Select-String across all 8 files: zero matches for TBD/TODO/FIXME.                                                                                                                                                                               |
+| AC-14 | **Satisfied**           | verifier.agent.md Quick Reference table: `behavioral-coverage` (Tier 2) and `runtime-wiring` (Tier 2) both present with descriptions.                                                                                                            |
+| AC-15 | **Satisfied**           | implementer.agent.md Operating Rules: Test Selection Strategy table with all 4 test_method entries, principles (behavior not implementation, no type-system tests, public interface), UI-specific guidance.                                      |
+| AC-16 | **Satisfied**           | adversarial-reviewer.agent.md Step 3c (lines 183-188): self-referential detection, AC-to-test coverage, runtime wiring, suspicious TDD patterns. review-perspectives.md items 7-8: self-referential test detection, runtime wiring verification. |
+| AC-17 | **Satisfied**           | schemas.md check_name Naming Patterns table (lines 1081-1082): `behavioral-coverage` and `runtime-wiring` with phase, tier, and description.                                                                                                     |
+| AC-18 | **Satisfied**           | 10 `### Example` headings confirmed in schemas.md (lines 81, 124, 201, 285, 370, 482, 579, 703, 874, 929).                                                                                                                                       |
 
 ## Summary
 

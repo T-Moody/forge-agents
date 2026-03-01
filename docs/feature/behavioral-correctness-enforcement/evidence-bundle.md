@@ -26,24 +26,25 @@ All 8 tasks passed all evidence gates with zero failures and zero regressions.
 
 ### Design Review (Step 3b)
 
-| Model           | Round | Verdict        | Issues Found | Max Severity |
-| --------------- | ----- | -------------- | ------------ | ------------ |
-| claude-opus-4.6 (security)      | 1     | approve        | 0            | —            |
-| claude-opus-4.6 (architecture)  | 1     | approve        | 4            | Major (1)    |
-| claude-opus-4.6 (correctness)   | 1     | needs_revision | 6            | Major (3)    |
+| Model                          | Round | Verdict        | Issues Found | Max Severity |
+| ------------------------------ | ----- | -------------- | ------------ | ------------ |
+| claude-opus-4.6 (security)     | 1     | approve        | 0            | —            |
+| claude-opus-4.6 (architecture) | 1     | approve        | 4            | Major (1)    |
+| claude-opus-4.6 (correctness)  | 1     | needs_revision | 6            | Major (3)    |
 
 **Design review majority:** 2/3 approve. Key design-review issues addressed during implementation:
+
 - Tier 2 conditional framing (correctness Major #1) → Implementer added "Always-Run Behavioral Checks" sub-heading in verifier.agent.md
 - behavioral_coverage TDD Fallback enum (correctness Major #2) → Schema 7 explicitly documents not_applicable for TDD Fallback scenarios with EC-2 note
 - D-1 overclaim of closing F-3 gap (correctness Major #3) → Planner implementation includes honest caveat: "narrows but does not fully close"
 
 ### Code Review (Step 7)
 
-| Model           | Round | Verdict        | Issues Found | Max Severity |
-| --------------- | ----- | -------------- | ------------ | ------------ |
-| claude-opus-4.6 (security)      | 1     | approve        | 2            | Minor        |
-| claude-opus-4.6 (architecture)  | 1     | needs_revision | 5            | Major (3)    |
-| claude-opus-4.6 (correctness)   | 1     | approve        | 4            | Major (1)    |
+| Model                          | Round | Verdict        | Issues Found | Max Severity |
+| ------------------------------ | ----- | -------------- | ------------ | ------------ |
+| claude-opus-4.6 (security)     | 1     | approve        | 2            | Minor        |
+| claude-opus-4.6 (architecture) | 1     | needs_revision | 5            | Major (3)    |
+| claude-opus-4.6 (correctness)  | 1     | approve        | 4            | Major (1)    |
 
 **Code review majority:** 2/3 approve. Remaining architecture Major findings documented in Known Issues below.
 
@@ -76,18 +77,18 @@ Replace the tag name if the baseline tag uses a different format (e.g., with hyp
 
 ## Known Issues
 
-| #   | Description                                                                                       | Severity | Source              |
-| --- | ------------------------------------------------------------------------------------------------- | -------- | ------------------- |
-| 1   | EG-7 gap-detection query references non-existent `pipeline_telemetry.task_id` column — runtime SQL error | Major    | Code review (security Finding 1, architecture Finding A-1) |
-| 2   | Unplanned orchestrator.agent.md modification bypasses task-scoped verification pipeline            | Major    | Code review (architecture Finding A-2)  |
-| 3   | Schema 6 v2.0 label lacks YAML schema versioning framework — common header still `schema_version: "1.0"` | Major    | Code review (architecture Finding A-3)  |
-| 4   | Schema 6 version (2.0 breaking) deviates from design D-1 (1.1 additive) and CR-1 — no deviation record filed | Major    | Code review (correctness Finding 1), design review (architecture Finding 1) |
-| 5   | Stale EG cross-reference in schemas.md says "EG-1 through EG-6" but EG-7 now exists              | Minor    | Code review (architecture Finding A-4)  |
-| 6   | Cross-reference coupling fragility between schemas.md §-references and sql-templates.md sections  | Minor    | Code review (architecture Finding A-5)  |
-| 7   | Verifier Step 3e exemption list omits `test_method='demonstration'` and `test_method='analysis'`  | Minor    | Code review (correctness Finding 2)     |
-| 8   | EG-7 gap-detection query produces false positives for non-code tasks (no task_type filter)         | Minor    | Code review (correctness Finding 3)     |
-| 9   | AC-11 implementation uses behavioral_coverage per-AC mapping instead of dedicated `tdd_fallback_reason` field | Minor    | Code review (correctness Finding 4)     |
-| 10  | New `justification` free-text field not explicitly listed in sql_escape() §0 enumeration           | Minor    | Code review (security Finding 2)        |
+| #   | Description                                                                                                   | Severity | Source                                                                      |
+| --- | ------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------- |
+| 1   | EG-7 gap-detection query references non-existent `pipeline_telemetry.task_id` column — runtime SQL error      | Major    | Code review (security Finding 1, architecture Finding A-1)                  |
+| 2   | Unplanned orchestrator.agent.md modification bypasses task-scoped verification pipeline                       | Major    | Code review (architecture Finding A-2)                                      |
+| 3   | Schema 6 v2.0 label lacks YAML schema versioning framework — common header still `schema_version: "1.0"`      | Major    | Code review (architecture Finding A-3)                                      |
+| 4   | Schema 6 version (2.0 breaking) deviates from design D-1 (1.1 additive) and CR-1 — no deviation record filed  | Major    | Code review (correctness Finding 1), design review (architecture Finding 1) |
+| 5   | Stale EG cross-reference in schemas.md says "EG-1 through EG-6" but EG-7 now exists                           | Minor    | Code review (architecture Finding A-4)                                      |
+| 6   | Cross-reference coupling fragility between schemas.md §-references and sql-templates.md sections              | Minor    | Code review (architecture Finding A-5)                                      |
+| 7   | Verifier Step 3e exemption list omits `test_method='demonstration'` and `test_method='analysis'`              | Minor    | Code review (correctness Finding 2)                                         |
+| 8   | EG-7 gap-detection query produces false positives for non-code tasks (no task_type filter)                    | Minor    | Code review (correctness Finding 3)                                         |
+| 9   | AC-11 implementation uses behavioral_coverage per-AC mapping instead of dedicated `tdd_fallback_reason` field | Minor    | Code review (correctness Finding 4)                                         |
+| 10  | New `justification` free-text field not explicitly listed in sql_escape() §0 enumeration                      | Minor    | Code review (security Finding 2)                                            |
 
 **Blockers:** None
 **Critical:** None

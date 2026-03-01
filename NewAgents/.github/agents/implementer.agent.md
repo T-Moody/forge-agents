@@ -26,12 +26,12 @@ You NEVER modify files outside your assigned task's scope. You NEVER skip baseli
 
 ### Required Inputs
 
-| Input                            | Source    | Description                                                                         |
-| -------------------------------- | --------- | ----------------------------------------------------------------------------------- |
-| `tasks/<task-id>.yaml`           | Planner   | Assigned task with `relevant_context` pointers, risk level, and acceptance criteria |
-| `design-output.yaml` (targeted)  | Designer  | Only sections listed in task's `relevant_context.design_sections`                   |
-| `spec-output.yaml` (targeted)    | Spec      | Only sections listed in task's `relevant_context.spec_requirements`                 |
-| Codebase access                  | Workspace | Full read/write access within task scope                                            |
+| Input                           | Source    | Description                                                                         |
+| ------------------------------- | --------- | ----------------------------------------------------------------------------------- |
+| `tasks/<task-id>.yaml`          | Planner   | Assigned task with `relevant_context` pointers, risk level, and acceptance criteria |
+| `design-output.yaml` (targeted) | Designer  | Only sections listed in task's `relevant_context.design_sections`                   |
+| `spec-output.yaml` (targeted)   | Spec      | Only sections listed in task's `relevant_context.spec_requirements`                 |
+| Codebase access                 | Workspace | Full read/write access within task scope                                            |
 
 ### Orchestrator-Provided Parameters
 
@@ -73,7 +73,11 @@ agent_output:
       build_exit_code: <int | null>
       test_summary: { total: <int>, passed: <int>, failed: <int> } # null if no tests
     changes:
-      - { path: "<file>", action: "created|modified|deleted", description: "..." }
+      - {
+          path: "<file>",
+          action: "created|modified|deleted",
+          description: "...",
+        }
     self_check:
       ide_diagnostics: { errors: <int>, warnings: <int> }
       build_exit_code: <int | null>
@@ -81,15 +85,30 @@ agent_output:
       self_fix_attempts: <0-2>
       git_staged: true
     verification_entries:
-      - { check_name: "baseline-ide-diagnostics", phase: "baseline", tool: "get_errors", passed: <bool> }
-      - { check_name: "baseline-build", phase: "baseline", tool: "<cmd>", passed: <bool> }
-      - { check_name: "baseline-tests", phase: "baseline", tool: "<cmd>", passed: <bool> }
+      - {
+          check_name: "baseline-ide-diagnostics",
+          phase: "baseline",
+          tool: "get_errors",
+          passed: <bool>,
+        }
+      - {
+          check_name: "baseline-build",
+          phase: "baseline",
+          tool: "<cmd>",
+          passed: <bool>,
+        }
+      - {
+          check_name: "baseline-tests",
+          phase: "baseline",
+          tool: "<cmd>",
+          passed: <bool>,
+        }
     behavioral_coverage: # Required for task_type='code'
       - ac_id: "<AC-id>"
-        test_file: "<path>"       # required when status='covered'
-        test_name: "<name>"       # required when status='covered'
+        test_file: "<path>" # required when status='covered'
+        test_name: "<name>" # required when status='covered'
         status: "covered|not_applicable"
-        justification: "..."     # required when status='not_applicable'
+        justification: "..." # required when status='not_applicable'
     tdd_red_green: # Required for task_type='code' when TDD applies
       tests_written_first: <bool>
       initial_run_failures: <int>
@@ -275,12 +294,12 @@ The Implementer does **not** return `NEEDS_REVISION`. If blocked after max self-
 
 Choose the testing approach based on the behavior being verified:
 
-| `test_method`    | Testing approach                                                         |
-| ---------------- | ------------------------------------------------------------------------ |
-| `test`           | Automated unit/integration test required — assert on observable behavior |
-| `inspection`     | No automated test — verified by code/output review                       |
-| `demonstration`  | Runtime evidence required (screenshot, log output, Playwright trace)     |
-| `analysis`       | Static analysis or metric check                                          |
+| `test_method`   | Testing approach                                                         |
+| --------------- | ------------------------------------------------------------------------ |
+| `test`          | Automated unit/integration test required — assert on observable behavior |
+| `inspection`    | No automated test — verified by code/output review                       |
+| `demonstration` | Runtime evidence required (screenshot, log output, Playwright trace)     |
+| `analysis`      | Static analysis or metric check                                          |
 
 **Principles:** Test behavior through the public interface, not implementation details. Do NOT write tests for what the type system already guarantees. Do NOT expose internals or add test-only hooks/backdoors to production code.
 

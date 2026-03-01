@@ -34,11 +34,11 @@ The SQL `anvil_checks` table is the **source of truth**. Your YAML report is a s
 
 ### Orchestrator-Provided Parameters
 
-| Parameter | Type    | Required | Description                                                                 |
-| --------- | ------- | -------- | --------------------------------------------------------------------------- |
-| `task_id` | string  | Yes      | Planner-assigned task identifier (e.g., `task-03`)                          |
-| `run_id`  | string  | Yes      | Pipeline run identifier (ISO 8601 timestamp)                                |
-| `round`   | integer | No       | Verification iteration (default `1`; incremented on re-verification)        |
+| Parameter | Type    | Required | Description                                                          |
+| --------- | ------- | -------- | -------------------------------------------------------------------- |
+| `task_id` | string  | Yes      | Planner-assigned task identifier (e.g., `task-03`)                   |
+| `run_id`  | string  | Yes      | Pipeline run identifier (ISO 8601 timestamp)                         |
+| `round`   | integer | No       | Verification iteration (default `1`; incremented on re-verification) |
 
 ---
 
@@ -109,23 +109,23 @@ Every verification check — regardless of tier, result, or significance — MUS
 
 ### `check_name` Quick Reference
 
-| Tier | `check_name`              | Description                          |
-| ---- | ------------------------- | ------------------------------------ |
+| Tier | `check_name`              | Description                           |
+| ---- | ------------------------- | ------------------------------------- |
 | 1    | `ide-diagnostics`         | IDE diagnostic check via `get_errors` |
-| 1    | `syntax-check`            | Syntax/parse verification            |
-| 2    | `build`                   | Build/compile                        |
-| 2    | `type-check`              | Type checker                         |
-| 2    | `lint`                    | Linter                               |
-| 2    | `tests`                   | Test execution                       |
-| 2    | `behavioral-coverage`     | Behavioral coverage verification     |
-| 2    | `runtime-wiring`          | Runtime wiring for new files         |
-| 3    | `import-check`            | Import/load test                     |
-| 3    | `smoke-execution`         | Smoke execution                      |
-| 3    | `tier3-infeasible`        | Tier 3 cannot be performed           |
-| 4    | `readiness-observability` | Observability hooks present          |
-| 4    | `readiness-degradation`   | Graceful degradation paths           |
-| 4    | `readiness-secrets`       | No hardcoded secrets                 |
-| —    | `baseline-discrepancy`    | Baseline claims mismatch `git show`  |
+| 1    | `syntax-check`            | Syntax/parse verification             |
+| 2    | `build`                   | Build/compile                         |
+| 2    | `type-check`              | Type checker                          |
+| 2    | `lint`                    | Linter                                |
+| 2    | `tests`                   | Test execution                        |
+| 2    | `behavioral-coverage`     | Behavioral coverage verification      |
+| 2    | `runtime-wiring`          | Runtime wiring for new files          |
+| 3    | `import-check`            | Import/load test                      |
+| 3    | `smoke-execution`         | Smoke execution                       |
+| 3    | `tier3-infeasible`        | Tier 3 cannot be performed            |
+| 4    | `readiness-observability` | Observability hooks present           |
+| 4    | `readiness-degradation`   | Graceful degradation paths            |
+| 4    | `readiness-secrets`       | No hardcoded secrets                  |
+| —    | `baseline-discrepancy`    | Baseline claims mismatch `git show`   |
 
 ---
 
@@ -165,6 +165,7 @@ Run `get_errors` on all changed files plus files that import/reference them. `ge
 #### 2b. Syntax/Parse Check
 
 Verify all changed files parse correctly:
+
 - **TypeScript/JavaScript:** Check for syntax errors in `get_errors` output
 - **Python:** `python -m py_compile <file>` via `run_in_terminal`
 - **Markdown/YAML/JSON:** Structural validity check
