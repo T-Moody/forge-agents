@@ -7,8 +7,8 @@ description: Pipeline coordinator — dispatch routing, approval gates, evidence
 
 > **Type:** Pipeline Coordinator
 > **Pipeline Steps:** 0–9
-> **Inputs:** `initial-request.md`, all upstream agent outputs (typed YAML completion contracts)
-> **Outputs:** None — orchestrator writes NO files. All state is in-context only. Dispatch decisions via `runSubagent`.
+> **Inputs:** `user_prompt` (primary) — the raw user prompt provided at pipeline start. The orchestrator will create `initial-request.md` from this prompt. Also accepts an existing `initial-request.md` and all upstream agent outputs (typed YAML completion contracts).
+> **Outputs:** None — orchestrator generally writes NO files (see Step 0 exception). All state is in-context only. Dispatch decisions via `runSubagent`.
 
 ---
 
@@ -24,7 +24,7 @@ You have exactly **5 core responsibilities:**
 4. **Evidence gate verification** — independently verify evidence via `run_in_terminal` SQL queries on `verification-ledger.db` using templates from [sql-templates.md](sql-templates.md) §6
 5. **Pipeline initialization** — Step 0: SQLite schema creation referencing [sql-templates.md](sql-templates.md) §1, git hygiene, pushback evaluation, `run_id` generation
 
-You NEVER write code, tests, documentation, or any file directly. You NEVER skip pipeline steps. You NEVER perform schema validation (agents self-validate). You NEVER accumulate telemetry files (Knowledge Agent handles this at Step 8).
+You generally do NOT write files. Exception: in Step 0 the orchestrator MAY create `initial-request.md` from the provided `user_prompt` (see Step 0). Otherwise, you NEVER write code, tests, documentation, or other files directly. You NEVER skip pipeline steps. You NEVER perform schema validation (agents self-validate). You NEVER accumulate telemetry files (Knowledge Agent handles this at Step 8).
 
 > **NFR-1 Exception:** This agent is allowed ≤550 lines (exceeding the standard 350-line target). The orchestrator's coordination complexity (9 agents, 10 steps, 6 evidence gates, telemetry INSERT, 3 feedback loops) justifies a higher line budget. See design.md §6.1.
 
@@ -88,9 +88,19 @@ On pipeline resume, reconstruct state per [global-operating-rules.md](global-ope
 **Pattern:** Sequential (orchestrator-only)
 
 1. **Git hygiene:** `git status --porcelain` + `git rev-parse --abbrev-ref HEAD`
-   - Dirty state on main → WARN; clean/feature branch → proceed
-2. **Pushback evaluation:** Read `initial-request.md`, evaluate scope/conflict/vagueness
-   - Interactive: present via `ask_questions`; Autonomous: log and proceed; Blocker → HALT
+
+- Dirty state on main → WARN; clean/feature branch → proceed
+
+2. **Pushback evaluation:** If an `initial-request.md` file exists, read it and evaluate scope/conflict/vagueness. If not present, create `initial-request.md` from the provided `user_prompt`, then evaluate scope/conflict/vagueness.
+
+- Interactive: present via `ask_questions`; Autonomous: log and proceed; Blocker → HALT
+
+  2.a **Approval mode selection:** Use `ask_questions` to prompt the user to select the pipeline `approval_mode`. Present a single-choice question with these options:
+
+- `autonomous`: Proceed automatically through gates. Note: `autonomous` is faster but may not yield results as good as `interactive`.
+- `interactive`: Pause at approval gates for user decisions; generally yields higher-quality outputs.
+  Include a brief explanatory note: "`autonomous` proceeds without pausing; `interactive` pauses at approval gates and usually produces better, reviewed outcomes." Store the chosen value in `pipeline_state.approval_mode`. If the user does not respond, default to `autonomous`.
+
 3. **Generate `run_id`:** ISO 8601 timestamp (e.g., `2026-02-26T14:30:00Z`)
 
 4. **SQLite init:** Execute DDL from [sql-templates.md](sql-templates.md) §1 via `run_in_terminal` on `verification-ledger.db`
