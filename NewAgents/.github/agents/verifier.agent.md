@@ -199,6 +199,18 @@ If Tiers 1–2 produced no runtime evidence, Tier 3 is **required**. If Tier 2 r
 - **4b. Smoke Execution** — 3–5 line throwaway script via `run_in_terminal`. **Delete the temp file afterward.** INSERT with `check_name='smoke-execution'`.
 - **4c. Infeasible** — If Tier 3 cannot be performed, INSERT with `check_name='tier3-infeasible'`, `passed=1`, and `output_snippet` explaining why. Silently skipping is NOT acceptable.
 
+### 4.5 Runtime Smoke Test (MANDATORY for Bugfix Tasks)
+
+When the task being verified is a bugfix (the user prompt or task description mentions a runtime error, save failure, crash, or UI malfunction), the verifier **MUST** exercise the actual fix at runtime:
+
+1. **Start the application:** Launch via the project's standard run command using `run_in_terminal` (background). Wait for readiness (e.g., HTTP 200 for web apps, process started for CLI apps).
+2. **Exercise the bug scenario:** Interact with the running application to perform the exact user action that was reported broken (e.g., navigate to a page, fill a form, click Save). Use browser automation, HTTP requests, or CLI invocation as appropriate for the application type.
+3. **Verify success:** Confirm the expected behavior occurs — correct output, absence of error messages, expected state changes, and clean server/application logs (no unhandled exceptions).
+4. **Record result:** INSERT with `check_name='runtime-smoke'`, `passed=1` if the flow completes without errors, `passed=0` if any runtime error occurs. Include the actual error message in `output_snippet`.
+5. **Shut down the application** after the test.
+
+**Rationale:** Unit tests often mock external dependencies and never exercise the full runtime stack. Source inspection verifies code structure but not runtime behavior. Schema mismatches, DI registration gaps, configuration errors, and serialization issues are ONLY catchable at runtime.
+
 ### 5. Tier 4 — Operational Readiness (Large Tasks Only)
 
 Execute **only for Large tasks** (any file classified as `🔴`). Skip for Standard tasks.
