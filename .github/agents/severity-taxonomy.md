@@ -1,3 +1,8 @@
+---
+name: severity-taxonomy
+description: Severity classification reference for all pipeline agents
+---
+
 # Severity Taxonomy — Reference
 
 This is a reference document for all agents. Defines the unified severity taxonomy used
@@ -58,6 +63,9 @@ across all pipeline stages. No agent may use a different severity vocabulary.
 - Inconsistent naming or API convention violation
 - Missing input validation on non-security boundary
 - Incomplete documentation for a public interface
+- Tests that do not invoke production code (self-referential tests) — test files whose assertions only verify mock setup, fixture state, or other test infrastructure rather than exercising actual production code paths
+- Business logic code changes with zero test coverage — implementation modifies or adds behavioral code yet both baseline and post-implementation `test_summary` are null, meaning no automated tests exist or were executed
+- Acceptance criterion with `test_method='test'` lacking a corresponding automated test — a task acceptance criterion explicitly requires automated verification but no test targets that criterion's observable behavior
 
 **Resolution:** Fix during current iteration if replan budget allows. If iteration limit reached, log as known issue with `confidence: Low`.
 

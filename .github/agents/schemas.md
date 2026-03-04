@@ -41,18 +41,20 @@ The orchestrator reads ONLY the typed YAML for routing decisions. The Markdown c
 
 ## Producer/Consumer Dependency Table
 
-| #   | Schema                  | Producer                   | Consumers                                          | Purpose                                                                                   |
-| --- | ----------------------- | -------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 1   | `completion-contract`   | All agents (shared header) | Orchestrator                                       | Three-state completion signal; embedded in every agent output                             |
-| 2   | `research-output`       | Researcher                 | Spec, Designer                                     | Structured research findings                                                              |
-| 3   | `spec-output`           | Spec                       | Designer, Planner, Implementer, Verifier           | Structured requirements + acceptance criteria                                             |
-| 4   | `design-output`         | Designer                   | Planner, Implementer, Adversarial Reviewer         | Structured design decisions + justifications                                              |
-| 5   | `plan-output`           | Planner                    | Orchestrator (risk summary), Implementer, Verifier | Task list + risk classifications + wave assignments + `overall_risk_summary`              |
-| 6   | `task-schema`           | Planner                    | Implementer, Verifier                              | Per-task spec with risk level + `relevant_context` pointers (sub-schema of `plan-output`) |
-| 7   | `implementation-report` | Implementer                | Verifier                                           | Baseline records + change summary + self-check + verification ledger entries              |
-| 8   | `verification-report`   | Verifier                   | Orchestrator (gate_status), Adversarial Reviewer   | Cascade results + evidence gate summary + regression analysis (complements SQL ledger)    |
-| 9   | `review-findings`       | Adversarial Reviewer       | Orchestrator (verdict routing), Knowledge Agent    | Per-model findings in Markdown + YAML verdict summary + SQL INSERT of verdict record      |
-| 10  | `knowledge-output`      | Knowledge Agent            | (terminal — no downstream consumers)               | Knowledge updates + decision log entries + store_memory calls                             |
+| #   | Schema                  | Producer                                          | Consumers                                          | Purpose                                                                                    |
+| --- | ----------------------- | ------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 1   | `completion-contract`   | All agents (shared header)                        | Orchestrator                                       | Three-state completion signal; embedded in every agent output                              |
+| 2   | `research-output`       | Researcher                                        | Spec, Designer                                     | Structured research findings                                                               |
+| 3   | `spec-output`           | Spec                                              | Designer, Planner, Implementer, Verifier           | Structured requirements + acceptance criteria                                              |
+| 4   | `design-output`         | Designer                                          | Planner, Implementer, Adversarial Reviewer         | Structured design decisions + justifications                                               |
+| 5   | `plan-output`           | Planner                                           | Orchestrator (risk summary), Implementer, Verifier | Task list + risk classifications + wave assignments + `overall_risk_summary`               |
+| 6   | `task-schema`           | Planner                                           | Implementer, Verifier                              | Per-task spec with risk level + `relevant_context` pointers (sub-schema of `plan-output`)  |
+| 7   | `implementation-report` | Implementer                                       | Verifier                                           | Baseline records + change summary + self-check + verification ledger entries               |
+| 8   | `verification-report`   | Verifier                                          | Orchestrator (gate_status), Adversarial Reviewer   | Cascade results + evidence gate summary + regression analysis (complements SQL ledger)     |
+| 9   | `review-findings`       | Adversarial Reviewer                              | Orchestrator (verdict routing), Knowledge Agent    | Per-perspective findings in Markdown + YAML verdict summary + SQL INSERT of verdict record |
+| 10  | `knowledge-output`      | Knowledge Agent                                   | (terminal — no downstream consumers)               | Knowledge updates + decision log entries + store_memory calls                              |
+| 11  | `artifact_evaluations`  | Implementer, Verifier, Adversarial Reviewer (SQL) | Knowledge Agent (SQL query)                        | SQLite table — per-artifact usefulness/clarity scores + qualitative feedback               |
+| 12  | `instruction_updates`   | Knowledge Agent (SQL)                             | Orchestrator (audit query)                         | SQLite table — governed instruction file change tracking                                   |
 
 ---
 
@@ -100,7 +102,7 @@ completion:
 
 > Produced by each Researcher instance (×4 parallel). One output per focus area.
 > **Output path:** `research/<focus>.yaml` (e.g., `research/architecture.yaml`)
-> **Companion:** `research/<focus>.md` (human-readable)
+> **Format:** YAML-only (no MD companion — per DP-2 rationalization)
 
 ### Fields
 
@@ -160,7 +162,6 @@ completion:
   risk_level: null
   output_paths:
     - "research/architecture.yaml"
-    - "research/architecture.md"
 ```
 
 ---
@@ -453,6 +454,8 @@ completion:
 
 > Produced by the Planner as sub-output of `plan-output`. One file per task. Contains per-task specification with risk classification and `relevant_context` pointers to bound downstream agent reads.
 > **Output path:** `tasks/<task-id>.yaml` (e.g., `tasks/task-03.yaml`)
+>
+> **Version 2.0 (breaking change):** `acceptance_criteria` changed from `list of strings` to `list of objects` with structured sub-fields `{id, text, test_method}`. This enables AC-to-test traceability and test_method propagation from spec through task to implementation. **Migration:** Planner (producer) must emit structured AC objects; Implementer and Verifier (consumers) must consume the object format. Existing string-format ACs are not forward-compatible.
 
 ### Fields
 
@@ -465,7 +468,10 @@ completion:
 | `task.size`                                    | string          | Yes         | `Standard` \| `Large`                                              |
 | `task.risk`                                    | string          | Yes         | `"🟢"` \| `"🟡"` \| `"🔴"`                                         |
 | `task.depends_on`                              | list of strings | No          | Task IDs this task depends on                                      |
-| `task.acceptance_criteria`                     | list of strings | Yes         | ≥ 1 entry; testable acceptance criteria                            |
+| `task.acceptance_criteria`                     | list of objects | Yes         | ≥ 1 entry; structured acceptance criteria (v2.0)                   |
+| `task.acceptance_criteria[].id`                | string          | Yes         | AC identifier from spec (e.g., `AC-1`)                             |
+| `task.acceptance_criteria[].text`              | string          | Yes         | Testable acceptance criterion text                                 |
+| `task.acceptance_criteria[].test_method`       | string          | Yes         | `inspection` \| `demonstration` \| `test` \| `analysis`            |
 | `task.relevant_context`                        | object          | Yes         | Pointers to specific upstream sections (bounds read amplification) |
 | `task.relevant_context.design_sections`        | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `design-output.yaml`   |
 | `task.relevant_context.spec_requirements`      | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `spec-output.yaml`     |
@@ -486,10 +492,18 @@ task:
   depends_on:
     - "task-01"
   acceptance_criteria:
-    - "Email validation rejects malformed addresses"
-    - "Password strength check enforces minimum 12 characters"
-    - "Rate limiting returns 429 after 5 attempts per minute"
-    - "All validation errors return structured JSON error responses"
+    - id: "AC-1"
+      text: "Email validation rejects malformed addresses"
+      test_method: "test"
+    - id: "AC-2"
+      text: "Password strength check enforces minimum 12 characters"
+      test_method: "test"
+    - id: "AC-3"
+      text: "Rate limiting returns 429 after 5 attempts per minute"
+      test_method: "test"
+    - id: "AC-4"
+      text: "All validation errors return structured JSON error responses"
+      test_method: "inspection"
   relevant_context:
     design_sections:
       - "design-output.yaml#payload.decisions[id='D-8']" # Risk classification
@@ -543,7 +557,25 @@ task:
 | `payload.verification_entries[].phase`        | string          | Conditional | Always `baseline` for Implementer entries                               |
 | `payload.verification_entries[].tool`         | string          | Conditional | Tool used (e.g., `ide-get_diagnostics`, `dotnet build`)                 |
 | `payload.verification_entries[].passed`       | boolean         | Conditional | Whether the check passed                                                |
+| `payload.behavioral_coverage`                 | list of objects | Conditional | Required for `task_type='code'`; maps each AC to its verifying test     |
+| `payload.behavioral_coverage[].ac_id`         | string          | Yes         | AC identifier (e.g., `AC-1`)                                            |
+| `payload.behavioral_coverage[].test_file`     | string          | Conditional | Relative path to test file; required when `status='covered'`            |
+| `payload.behavioral_coverage[].test_name`     | string          | Conditional | Test function/method name; required when `status='covered'`             |
+| `payload.behavioral_coverage[].status`        | string          | Yes         | `covered` \| `not_applicable`                                           |
+| `payload.behavioral_coverage[].justification` | string          | Conditional | Required when `status='not_applicable'`; explains why no test exists    |
+| `payload.tdd_red_green`                       | object          | Conditional | Required for `task_type='code'` when TDD applies; records TDD cycle     |
+| `payload.tdd_red_green.tests_written_first`   | boolean         | Yes         | `true` if tests were written before production code                     |
+| `payload.tdd_red_green.initial_run_failures`  | integer         | Yes         | Number of test failures on initial (red) run                            |
+| `payload.tdd_red_green.initial_run_exit_code` | integer         | Yes         | Exit code of the initial (red) test run                                 |
 | `completion` (contract)                       | object          | Yes         | See Schema 1                                                            |
+
+> **`behavioral_coverage.status` values:**
+>
+> - `covered` — AC has a corresponding automated test that invokes production code. Requires `test_file` and `test_name`.
+> - `not_applicable` — AC does not require an automated test. Requires `justification`. Valid reasons include:
+>   - `test_method='inspection'` or `test_method='analysis'` — criterion verified by review, not automation
+>   - `test_method='demonstration'` — criterion verified by runtime evidence (screenshot, log)
+>   - TDD Fallback (EC-2) — `test_method='test'` but tests could not be written (no test framework, bootstrap task, or documented justification per TDD Fallback rules)
 
 ### Example
 
@@ -601,6 +633,26 @@ agent_output:
         phase: "baseline"
         tool: "dotnet test"
         passed: true
+    behavioral_coverage:
+      - ac_id: "AC-1"
+        test_file: "tests/auth/validator.test.ts"
+        test_name: "rejects malformed email addresses"
+        status: "covered"
+      - ac_id: "AC-2"
+        test_file: "tests/auth/validator.test.ts"
+        test_name: "enforces minimum 12 character password"
+        status: "covered"
+      - ac_id: "AC-3"
+        test_file: "tests/auth/validator.test.ts"
+        test_name: "returns 429 after 5 attempts per minute"
+        status: "covered"
+      - ac_id: "AC-4"
+        status: "not_applicable"
+        justification: "test_method='inspection' — JSON response structure verified by code review"
+    tdd_red_green:
+      tests_written_first: true
+      initial_run_failures: 3
+      initial_run_exit_code: 1
 completion:
   status: DONE
   summary: "Implemented task-03: input validation for auth handler, 7 new tests, 0 self-fixes"
@@ -755,28 +807,40 @@ completion:
 
 ## Schema 9: `review-findings`
 
-> Produced by each Adversarial Reviewer instance (×3 parallel). Each reviewer produces three outputs:
+> Produced by each Adversarial Reviewer instance (×3 parallel, one per perspective). Each reviewer produces three outputs:
 >
-> 1. **Markdown findings file** — detailed human-readable findings at `review-findings/<scope>-<model>.md`
-> 2. **YAML verdict summary** — machine-readable verdict at `review-verdicts/<scope>.yaml`
+> 1. **Markdown findings file** — detailed human-readable findings at `review-findings/<scope>-<perspective>.md`
+> 2. **YAML verdict summary** — machine-readable verdict at `review-verdicts/<scope>-<perspective>.yaml`
 > 3. **SQL INSERT** — verdict record into `anvil_checks` with `phase='review'`
 >
 > This schema defines the YAML verdict summary. The Markdown findings file is free-form prose. The SQL INSERT follows the `anvil_checks` schema defined in [SQLite Schemas](#sqlite-schemas).
+>
+> **Verdict File Naming Convention:**
+>
+> - Path: `review-verdicts/<scope>-<perspective>.yaml`
+> - `scope`: `"design"` or `"code"`
+> - `perspective`: `"security-sentinel"`, `"architecture-guardian"`, or `"pragmatic-verifier"`
+> - Examples: `review-verdicts/design-security-sentinel.yaml`, `review-verdicts/code-pragmatic-verifier.yaml`
+> - Findings follow same pattern: `review-findings/<scope>-<perspective>.md`
+> - Consumers use `list_dir` on `review-verdicts/` then filter by scope prefix (e.g., `design-*` for all design verdicts)
 
 ### YAML Verdict Summary Fields
 
-| Field                     | Type    | Required | Constraint / Allowed Values                                                         |
-| ------------------------- | ------- | -------- | ----------------------------------------------------------------------------------- |
-| `reviewer_model`          | string  | Yes      | Model identifier (e.g., `gpt-5.3-codex`, `gemini-3-pro-preview`, `claude-opus-4.6`) |
-| `review_focus`            | string  | Yes      | `security` \| `architecture` \| `correctness`                                       |
-| `scope`                   | string  | Yes      | `design` \| `code`                                                                  |
-| `verdict`                 | string  | Yes      | `approve` \| `needs_revision` \| `blocker`                                          |
-| `findings_count`          | object  | Yes      | Breakdown by severity                                                               |
-| `findings_count.blocker`  | integer | Yes      | ≥ 0                                                                                 |
-| `findings_count.critical` | integer | Yes      | ≥ 0                                                                                 |
-| `findings_count.major`    | integer | Yes      | ≥ 0                                                                                 |
-| `findings_count.minor`    | integer | Yes      | ≥ 0                                                                                 |
-| `summary`                 | string  | Yes      | ≤ 500 characters; one-paragraph summary of review outcome                           |
+| Field                     | Type    | Required | Constraint / Allowed Values                                                     |
+| ------------------------- | ------- | -------- | ------------------------------------------------------------------------------- |
+| `reviewer_perspective`    | string  | Yes      | `security-sentinel` \| `architecture-guardian` \| `pragmatic-verifier`          |
+| `scope`                   | string  | Yes      | `design` \| `code`                                                              |
+| `verdicts`                | object  | Yes      | Per-category verdicts (one per review category)                                 |
+| `verdicts.security`       | string  | Yes      | `approve` \| `needs_revision` \| `blocker`                                      |
+| `verdicts.architecture`   | string  | Yes      | `approve` \| `needs_revision` \| `blocker`                                      |
+| `verdicts.correctness`    | string  | Yes      | `approve` \| `needs_revision` \| `blocker`                                      |
+| `overall`                 | string  | Yes      | `approve` \| `needs_revision` \| `blocker` — aggregate of per-category verdicts |
+| `findings_count`          | object  | Yes      | Breakdown by severity                                                           |
+| `findings_count.blocker`  | integer | Yes      | ≥ 0                                                                             |
+| `findings_count.critical` | integer | Yes      | ≥ 0                                                                             |
+| `findings_count.major`    | integer | Yes      | ≥ 0                                                                             |
+| `findings_count.minor`    | integer | Yes      | ≥ 0                                                                             |
+| `summary`                 | string  | Yes      | ≤ 500 characters; one-paragraph summary of review outcome                       |
 
 ### Review Focus Area Details
 
@@ -788,30 +852,36 @@ completion:
 
 ### SQL INSERT Convention for Review Records
 
+> Each reviewer INSERTs **3 rows** — one per category (`security`, `architecture`, `correctness`) — with the `instance` column set to the reviewer's perspective ID. This 3-INSERT-per-reviewer pattern enables per-category evidence gate queries in [sql-templates.md](sql-templates.md) §6 (EG-5, EG-6).
+
 When `phase='review'` in `anvil_checks`:
 
-| Column           | Value                                                              |
-| ---------------- | ------------------------------------------------------------------ |
-| `task_id`        | Per `task_id` convention (see below)                               |
-| `phase`          | `'review'`                                                         |
-| `check_name`     | `'review-{scope}-{model}'` (e.g., `'review-design-gpt-5.3-codex'`) |
-| `tool`           | `'adversarial-review'`                                             |
-| `command`        | `'adversarial-review'`                                             |
-| `exit_code`      | `NULL`                                                             |
-| `output_snippet` | First 500 chars of summary                                         |
-| `passed`         | `1` if `verdict='approve'`, else `0`                               |
-| `verdict`        | The reviewer's verdict                                             |
-| `severity`       | Highest finding severity (`NULL` if clean approve)                 |
-| `round`          | Current review round (1 or 2)                                      |
-| `run_id`         | Current pipeline run ID                                            |
+| Column           | Value                                                                                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task_id`        | Per `task_id` convention (see below)                                                                                                                                                      |
+| `phase`          | `'review'`                                                                                                                                                                                |
+| `check_name`     | `'review-{scope}-{category}'` where category is `security` \| `architecture` \| `correctness` (e.g., `'review-code-security'`, `'review-code-architecture'`, `'review-code-correctness'`) |
+| `instance`       | Reviewer perspective ID (e.g., `'security-sentinel'`, `'architecture-guardian'`, `'pragmatic-verifier'`)                                                                                  |
+| `tool`           | `'adversarial-review'`                                                                                                                                                                    |
+| `command`        | `'adversarial-review'`                                                                                                                                                                    |
+| `exit_code`      | `NULL`                                                                                                                                                                                    |
+| `output_snippet` | First 500 chars of summary                                                                                                                                                                |
+| `passed`         | `1` if category verdict is `'approve'`, else `0`                                                                                                                                          |
+| `verdict`        | The category-level verdict (`approve` \| `needs_revision` \| `blocker`)                                                                                                                   |
+| `severity`       | Highest finding severity for the category (`NULL` if clean approve)                                                                                                                       |
+| `round`          | Current review round (1 or 2)                                                                                                                                                             |
+| `run_id`         | Current pipeline run ID                                                                                                                                                                   |
 
 ### Example (YAML Verdict Summary)
 
 ```yaml
-reviewer_model: "gpt-5.3-codex"
-review_focus: "security"
+reviewer_perspective: "security-sentinel"
 scope: "design"
-verdict: "approve"
+verdicts:
+  security: "needs_revision"
+  architecture: "approve"
+  correctness: "approve"
+overall: "needs_revision"
 findings_count:
   blocker: 0
   critical: 1
@@ -941,65 +1011,18 @@ completion:
 
 ## SQLite Schemas
 
-> SQLite is the PRIMARY verification ledger. All agents use `run_in_terminal` for SQL operations. The database files are created in the feature directory. Schema initialization is centralized in Step 0 by the orchestrator.
+> All tables reside in `verification-ledger.db` within the feature directory (per D-1 database consolidation). SQLite is the PRIMARY verification ledger. All agents use `run_in_terminal` for SQL operations. Schema initialization is centralized in Step 0 by the orchestrator.
+>
+> **Canonical DDL:** See [sql-templates.md](sql-templates.md) §1 for all table CREATE statements, indexes, and PRAGMA settings. Do not duplicate DDL here to prevent drift.
 
-### Initialization (Step 0 — Orchestrator via `run_in_terminal`)
+| Table                  | Purpose                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `anvil_checks`         | Verification ledger — baseline, after-implementation, and review check results |
+| `pipeline_telemetry`   | Pipeline metrics — dispatch timing, status, and retry counts per agent         |
+| `artifact_evaluations` | Artifact quality — usefulness/clarity scores and qualitative feedback          |
+| `instruction_updates`  | Instruction governance — Knowledge Agent modifications to instruction files    |
 
-```sql
--- MANDATORY: Set before any table creation or data operations
-PRAGMA journal_mode=WAL;
-PRAGMA busy_timeout=5000;
-```
-
-**Why these are mandatory:**
-
-- `journal_mode=WAL` — allows concurrent reads with one writer; prevents `SQLITE_BUSY` errors when up to 4 agents write in parallel
-- `busy_timeout=5000` — queues concurrent writers for up to 5 seconds instead of failing immediately
-
-### `anvil_checks` Table (Verification Ledger)
-
-> **Canonical definition** — from design.md §Decision 6. If this differs from §Data Storage, §Decision 6 takes precedence.
-> **Database file:** `verification-ledger.db` in the feature directory.
-
-```sql
-CREATE TABLE IF NOT EXISTS anvil_checks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id TEXT NOT NULL,
-    task_id TEXT NOT NULL,
-    phase TEXT NOT NULL CHECK(phase IN ('baseline', 'after', 'review')),
-    check_name TEXT NOT NULL,
-    tool TEXT NOT NULL,
-    command TEXT,
-    exit_code INTEGER,
-    output_snippet TEXT CHECK(LENGTH(output_snippet) <= 500),
-    passed INTEGER NOT NULL CHECK(passed IN (0, 1)),
-    verdict TEXT CHECK(verdict IN ('approve', 'needs_revision', 'blocker')),
-    severity TEXT CHECK(severity IN ('Blocker', 'Critical', 'Major', 'Minor')),
-    round INTEGER NOT NULL DEFAULT 1,
-    ts DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-#### Column Reference
-
-| Column           | Type     | Nullable | Constraint / Notes                                                                         |
-| ---------------- | -------- | -------- | ------------------------------------------------------------------------------------------ |
-| `id`             | INTEGER  | No       | Auto-increment primary key                                                                 |
-| `run_id`         | TEXT     | No       | Pipeline run identifier (ISO 8601 timestamp, e.g., `2026-02-26T14:30:00Z`)                 |
-| `task_id`        | TEXT     | No       | See [task_id Naming Convention](#task_id-naming-convention)                                |
-| `phase`          | TEXT     | No       | `baseline` \| `after` \| `review`                                                          |
-| `check_name`     | TEXT     | No       | See [check_name Naming Patterns](#check_name-naming-patterns)                              |
-| `tool`           | TEXT     | No       | Tool or command used for the check                                                         |
-| `command`        | TEXT     | Yes      | Full command string; `NULL` for non-command checks (e.g., IDE diagnostics)                 |
-| `exit_code`      | INTEGER  | Yes      | Command exit code; `NULL` for non-command checks and review records                        |
-| `output_snippet` | TEXT     | Yes      | ≤ 500 characters; first 500 chars of output (Anvil truncation rule)                        |
-| `passed`         | INTEGER  | No       | `0` (failed) or `1` (passed); for reviews: `1` if `verdict='approve'`, else `0`            |
-| `verdict`        | TEXT     | Yes      | `approve` \| `needs_revision` \| `blocker`; `NULL` for `phase='baseline'`/`'after'`        |
-| `severity`       | TEXT     | Yes      | `Blocker` \| `Critical` \| `Major` \| `Minor`; `NULL` for baseline/after and clean approve |
-| `round`          | INTEGER  | No       | Review round (1 or 2); defaults to `1`; used to prevent stale record accumulation          |
-| `ts`             | DATETIME | No       | Auto-set to `CURRENT_TIMESTAMP`                                                            |
-
-#### Phase Semantics
+### `anvil_checks` Phase Semantics
 
 | Phase      | Written By           | When                                             | `verdict`/`severity` |
 | ---------- | -------------------- | ------------------------------------------------ | -------------------- |
@@ -1007,171 +1030,13 @@ CREATE TABLE IF NOT EXISTS anvil_checks (
 | `after`    | Verifier             | After implementation (full verification cascade) | Always `NULL`        |
 | `review`   | Adversarial Reviewer | During adversarial review (verdict insertion)    | Set per review       |
 
-#### Required Indexes
+### Evidence Gate Queries
 
-```sql
--- Composite indexes for evidence gate query performance
-CREATE INDEX IF NOT EXISTS idx_anvil_task_phase ON anvil_checks(task_id, phase);
-CREATE INDEX IF NOT EXISTS idx_anvil_run_round ON anvil_checks(run_id, round);
-```
-
-#### Key Evidence Gate Queries
-
-```sql
--- Baseline exists check (before Step 6)
-SELECT COUNT(*) FROM anvil_checks
-  WHERE run_id = '{run_id}' AND task_id = '{task_id}' AND phase = 'baseline';
--- Must be > 0
-
--- Verification sufficient check (after Step 6)
-SELECT COUNT(*) FROM anvil_checks
-  WHERE run_id = '{run_id}' AND task_id = '{task_id}' AND phase = 'after' AND passed = 1;
--- Must be >= 2 (Standard) or >= 3 (Large/🔴)
-
--- Design review approval check (after Step 3b)
-SELECT COUNT(*) FROM anvil_checks
-  WHERE run_id = '{run_id}' AND task_id = '{task_id}' AND phase = 'review'
-    AND check_name LIKE 'review-design-%' AND round = {current_round} AND verdict = 'approve';
--- Must be >= 2 (majority of 3)
-
--- Design review security blocker check (after Step 3b)
-SELECT COUNT(*) FROM anvil_checks
-  WHERE run_id = '{run_id}' AND task_id = '{task_id}' AND phase = 'review'
-    AND check_name LIKE 'review-design-%' AND round = {current_round} AND verdict = 'blocker';
--- Must be = 0 (any blocker → pipeline ERROR)
-
--- Code review approval check (after Step 7)
-SELECT COUNT(*) FROM anvil_checks
-  WHERE run_id = '{run_id}' AND task_id = '{task_id}' AND phase = 'review'
-    AND check_name LIKE 'review-code-%' AND round = {current_round} AND verdict = 'approve';
--- Must be >= 2 (majority of 3)
-
--- Code review security blocker check (after Step 7)
-SELECT COUNT(*) FROM anvil_checks
-  WHERE run_id = '{run_id}' AND task_id = '{task_id}' AND phase = 'review'
-    AND check_name LIKE 'review-code-%' AND round = {current_round} AND verdict = 'blocker';
--- Must be = 0 (any blocker → pipeline ERROR)
-
--- Review completion check (all 3 submitted for current round)
-SELECT COUNT(*) FROM anvil_checks
-  WHERE run_id = '{run_id}' AND task_id = '{task_id}' AND phase = 'review'
-    AND check_name LIKE 'review-{scope}-%' AND round = {current_round} AND verdict IS NOT NULL;
--- Must be >= 3 (all reviewers submitted)
-```
-
-### `pipeline_telemetry` Table
-
-> **Database file:** `pipeline-telemetry.db` in the feature directory.
-
-```sql
-CREATE TABLE IF NOT EXISTS pipeline_telemetry (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id TEXT NOT NULL,
-    step TEXT NOT NULL,
-    agent TEXT NOT NULL,
-    instance TEXT,
-    started_at TEXT NOT NULL,
-    completed_at TEXT,
-    status TEXT CHECK(status IN ('DONE', 'NEEDS_REVISION', 'ERROR', 'running')),
-    dispatch_count INTEGER DEFAULT 1,
-    retry_count INTEGER DEFAULT 0,
-    notes TEXT,
-    ts DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-#### Column Reference
-
-| Column           | Type     | Nullable | Constraint / Notes                                                        |
-| ---------------- | -------- | -------- | ------------------------------------------------------------------------- |
-| `id`             | INTEGER  | No       | Auto-increment primary key                                                |
-| `run_id`         | TEXT     | No       | Pipeline run identifier (ISO 8601)                                        |
-| `step`           | TEXT     | No       | Pipeline step (e.g., `step-1`, `step-5`)                                  |
-| `agent`          | TEXT     | No       | Agent name                                                                |
-| `instance`       | TEXT     | Yes      | Instance identifier (e.g., `researcher-architecture`); `NULL` if singular |
-| `started_at`     | TEXT     | No       | ISO 8601 timestamp                                                        |
-| `completed_at`   | TEXT     | Yes      | ISO 8601 timestamp; `NULL` if `status='running'`                          |
-| `status`         | TEXT     | Yes      | `DONE` \| `NEEDS_REVISION` \| `ERROR` \| `running`                        |
-| `dispatch_count` | INTEGER  | No       | Number of times this agent was dispatched (≥ 1)                           |
-| `retry_count`    | INTEGER  | No       | Number of retries (≥ 0)                                                   |
-| `notes`          | TEXT     | Yes      | Free-form notes (e.g., error details)                                     |
-| `ts`             | DATETIME | No       | Auto-set to `CURRENT_TIMESTAMP`                                           |
-
-#### Required Indexes
-
-```sql
-CREATE INDEX IF NOT EXISTS idx_telemetry_step ON pipeline_telemetry(step);
-```
-
-#### Key Telemetry Queries
-
-```sql
--- Total dispatch count for the pipeline run
-SELECT COUNT(*) FROM pipeline_telemetry WHERE run_id = '{run_id}';
-
--- Average step duration
-SELECT step, AVG(JULIANDAY(completed_at) - JULIANDAY(started_at)) * 86400 AS avg_seconds
-FROM pipeline_telemetry WHERE run_id = '{run_id}' GROUP BY step;
-
--- Failed steps
-SELECT step, agent, status, notes FROM pipeline_telemetry
-WHERE run_id = '{run_id}' AND status = 'ERROR';
-```
+> **See [sql-templates.md](sql-templates.md) §6 for all canonical evidence gate queries (EG-1 through EG-6).** Do not duplicate queries here to prevent drift. Evidence gate logic uses `instance`-based grouping and per-category `check_name` matching — do not use `LIKE`-based counting for review approval checks.
 
 ### Full Step 0 Initialization Script
 
-**Verification Ledger** (`verification-ledger.db`):
-
-```sql
--- Execute via orchestrator run_in_terminal on verification-ledger.db at Step 0
-PRAGMA journal_mode=WAL;
-PRAGMA busy_timeout=5000;
-
-CREATE TABLE IF NOT EXISTS anvil_checks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id TEXT NOT NULL,
-    task_id TEXT NOT NULL,
-    phase TEXT NOT NULL CHECK(phase IN ('baseline', 'after', 'review')),
-    check_name TEXT NOT NULL,
-    tool TEXT NOT NULL,
-    command TEXT,
-    exit_code INTEGER,
-    output_snippet TEXT CHECK(LENGTH(output_snippet) <= 500),
-    passed INTEGER NOT NULL CHECK(passed IN (0, 1)),
-    verdict TEXT CHECK(verdict IN ('approve', 'needs_revision', 'blocker')),
-    severity TEXT CHECK(severity IN ('Blocker', 'Critical', 'Major', 'Minor')),
-    round INTEGER NOT NULL DEFAULT 1,
-    ts DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_anvil_task_phase ON anvil_checks(task_id, phase);
-CREATE INDEX IF NOT EXISTS idx_anvil_run_round ON anvil_checks(run_id, round);
-```
-
-**Pipeline Telemetry** (`pipeline-telemetry.db`):
-
-```sql
--- Execute via orchestrator run_in_terminal on pipeline-telemetry.db at Step 0
-PRAGMA journal_mode=WAL;
-PRAGMA busy_timeout=5000;
-
-CREATE TABLE IF NOT EXISTS pipeline_telemetry (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id TEXT NOT NULL,
-    step TEXT NOT NULL,
-    agent TEXT NOT NULL,
-    instance TEXT,
-    started_at TEXT NOT NULL,
-    completed_at TEXT,
-    status TEXT CHECK(status IN ('DONE', 'NEEDS_REVISION', 'ERROR', 'running')),
-    dispatch_count INTEGER DEFAULT 1,
-    retry_count INTEGER DEFAULT 0,
-    notes TEXT,
-    ts DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_telemetry_step ON pipeline_telemetry(step);
-```
+> **See [sql-templates.md](sql-templates.md) §1 for the canonical DDL.** Do not duplicate DDL here to prevent drift. The orchestrator executes sql-templates.md §1 DDL via `run_in_terminal` at Step 0. All tables consolidated in `verification-ledger.db` (per D-1).
 
 ---
 
@@ -1199,22 +1064,23 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_step ON pipeline_telemetry(step);
 
 ### Patterns
 
-| Pattern                 | Phase      | Used By              | Description                                                                                        |
-| ----------------------- | ---------- | -------------------- | -------------------------------------------------------------------------------------------------- |
-| `baseline-{type}`       | `baseline` | Implementer          | Baseline capture checks (e.g., `baseline-ide-diagnostics`, `baseline-build`, `baseline-tests`)     |
-| `ide-diagnostics`       | `after`    | Verifier             | Tier 1: IDE diagnostic check                                                                       |
-| `syntax-check`          | `after`    | Verifier             | Tier 1: Syntax/parse check                                                                         |
-| `build`                 | `after`    | Verifier             | Tier 2: Build/compile                                                                              |
-| `type-check`            | `after`    | Verifier             | Tier 2: Type checker (tsc, mypy, pyright)                                                          |
-| `lint`                  | `after`    | Verifier             | Tier 2: Linter (eslint, ruff, clippy)                                                              |
-| `tests`                 | `after`    | Verifier             | Tier 2: Test execution                                                                             |
-| `import-check`          | `after`    | Verifier             | Tier 3: Import/load test                                                                           |
-| `smoke-execution`       | `after`    | Verifier             | Tier 3: Smoke execution (throwaway script)                                                         |
-| `tier3-infeasible`      | `after`    | Verifier             | Tier 3: Recorded when Tier 3 cannot be performed                                                   |
-| `readiness-{type}`      | `after`    | Verifier             | Tier 4: Operational readiness (Large tasks only). Types: `observability`, `degradation`, `secrets` |
-| `review-design-{model}` | `review`   | Adversarial Reviewer | Design review verdict per model (e.g., `review-design-gpt-5.3-codex`)                              |
-| `review-code-{model}`   | `review`   | Adversarial Reviewer | Code review verdict per model (e.g., `review-code-claude-opus-4.6`)                                |
-| `baseline-discrepancy`  | `after`    | Verifier             | Flagged when Implementer baseline claims don't match `git show`                                    |
+| Pattern                     | Phase      | Used By              | Description                                                                                                                                                                                                                                     |
+| --------------------------- | ---------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `baseline-{type}`           | `baseline` | Implementer          | Baseline capture checks (e.g., `baseline-ide-diagnostics`, `baseline-build`, `baseline-tests`)                                                                                                                                                  |
+| `ide-diagnostics`           | `after`    | Verifier             | Tier 1: IDE diagnostic check                                                                                                                                                                                                                    |
+| `syntax-check`              | `after`    | Verifier             | Tier 1: Syntax/parse check                                                                                                                                                                                                                      |
+| `build`                     | `after`    | Verifier             | Tier 2: Build/compile                                                                                                                                                                                                                           |
+| `type-check`                | `after`    | Verifier             | Tier 2: Type checker (tsc, mypy, pyright)                                                                                                                                                                                                       |
+| `lint`                      | `after`    | Verifier             | Tier 2: Linter (eslint, ruff, clippy)                                                                                                                                                                                                           |
+| `tests`                     | `after`    | Verifier             | Tier 2: Test execution                                                                                                                                                                                                                          |
+| `import-check`              | `after`    | Verifier             | Tier 3: Import/load test                                                                                                                                                                                                                        |
+| `smoke-execution`           | `after`    | Verifier             | Tier 3: Smoke execution (throwaway script)                                                                                                                                                                                                      |
+| `tier3-infeasible`          | `after`    | Verifier             | Tier 3: Recorded when Tier 3 cannot be performed                                                                                                                                                                                                |
+| `readiness-{type}`          | `after`    | Verifier             | Tier 4: Operational readiness (Large tasks only). Types: `observability`, `degradation`, `secrets`                                                                                                                                              |
+| `review-{scope}-{category}` | `review`   | Adversarial Reviewer | Review verdict per category where `{scope}` is `design` or `code` and `{category}` is `security`, `architecture`, or `correctness` (e.g., `review-code-security`, `review-design-architecture`). Reviewer identity stored in `instance` column. |
+| `baseline-discrepancy`      | `after`    | Verifier             | Flagged when Implementer baseline claims don't match `git show`                                                                                                                                                                                 |
+| `behavioral-coverage`       | `after`    | Verifier             | Tier 2: Behavioral coverage verification — confirms each `test_method='test'` AC has a corresponding automated test that invokes production code                                                                                                |
+| `runtime-wiring`            | `after`    | Verifier             | Tier 2: Runtime wiring verification — confirms new source files are imported/referenced by at least one pre-existing source file (new-file tasks only)                                                                                          |
 
 ### SQL LIKE Filter Usage
 
@@ -1231,6 +1097,76 @@ WHERE check_name LIKE 'baseline-%' AND phase = 'baseline'
 -- All Tier 4 readiness checks
 WHERE check_name LIKE 'readiness-%'
 ```
+
+---
+
+## Completion Contract Routing Matrix
+
+> **Canonical location** (per AC-13.1, CORR-4). `global-operating-rules.md` §5 references this table — do not duplicate there.
+>
+> This table defines which agents return which completion statuses and what routing action the orchestrator takes. Only Adversarial Reviewer and Verifier support `NEEDS_REVISION`. All other agents either succeed (`DONE`) or fail (`ERROR`) — revision routing is handled by the orchestrator's decision table.
+
+| Agent                | `DONE`                    | `NEEDS_REVISION`          | `ERROR`                         |
+| -------------------- | ------------------------- | ------------------------- | ------------------------------- |
+| Researcher           | → Spec (Step 2)           | N/A (not returned)        | Retry once, then pipeline ERROR |
+| Spec                 | → Design (Step 3)         | N/A (not returned)        | Retry once, then pipeline ERROR |
+| Designer             | → Design Review (Step 3b) | N/A (not returned)        | Retry once, then pipeline ERROR |
+| Adversarial Reviewer | → Next step               | → Route to revision agent | Pipeline ERROR if blocker       |
+| Planner              | → Approval Gate (Step 4a) | N/A (not returned)        | Retry once, then pipeline ERROR |
+| Implementer          | → Verification (Step 6)   | N/A (not returned)        | Retry once, then pipeline ERROR |
+| Verifier             | → Code Review (Step 7)    | → Replan (Step 4)         | Retry once, then pipeline ERROR |
+| Knowledge Agent      | → Auto-Commit (Step 9)    | N/A (not returned)        | Non-blocking, proceed to commit |
+
+### Routing Rules
+
+1. **Retry policy:** All agents get at most 1 retry on `ERROR` (transient). Deterministic failures are not retried.
+2. **NEEDS_REVISION routing:** Only Adversarial Reviewer and Verifier return this. The orchestrator routes revision to the appropriate upstream agent (Designer for design review, Implementer for code review/verification).
+3. **Knowledge Agent isolation:** `ERROR` from Knowledge Agent does not halt the pipeline — it is non-blocking.
+4. **Blocker escalation:** Any `verdict='blocker'` from Adversarial Reviewer escalates to pipeline `ERROR`.
+5. **Review round limit:** Maximum 2 review rounds. If still `NEEDS_REVISION` after round 2, pipeline `ERROR`.
+
+---
+
+## Output Format Classification
+
+> Per DP-2 (YAML+MD Output Rationalization, AC-4.1). Each artifact is classified as **YAML-only**, **YAML+MD**, or **MD-only** based on whether it has machine consumers, human consumers, or both.
+
+### YAML-only (machine-consumed)
+
+No MD companion file. Consumed by downstream agents or orchestrator for routing/data.
+
+| Artifact                                     | Producer             | Consumer(s)                            |
+| -------------------------------------------- | -------------------- | -------------------------------------- |
+| `research/<focus>.yaml`                      | Researcher           | Spec, Designer                         |
+| `tasks/<task-id>.yaml`                       | Planner              | Implementer, Verifier                  |
+| `implementation-reports/<task-id>.yaml`      | Implementer          | Verifier                               |
+| `verification-reports/<task-id>.yaml`        | Verifier             | Orchestrator, Adversarial Reviewer     |
+| `review-verdicts/<scope>-<perspective>.yaml` | Adversarial Reviewer | Orchestrator, Designer (revision mode) |
+| `knowledge-output.yaml`                      | Knowledge Agent      | (terminal — no downstream)             |
+| `decisions.yaml`                             | Knowledge Agent      | (terminal — append-only log)           |
+
+### YAML+MD (human-facing specifications)
+
+YAML is the machine-readable primary; MD companion is for human approval gates and auditability.
+
+| Artifact      | Producer | YAML File            | MD Companion |
+| ------------- | -------- | -------------------- | ------------ |
+| Specification | Spec     | `spec-output.yaml`   | `feature.md` |
+| Design        | Designer | `design-output.yaml` | `design.md`  |
+| Plan          | Planner  | `plan-output.yaml`   | `plan.md`    |
+
+### MD-only (human audit trail)
+
+No YAML companion. Narrative documents for human consumption.
+
+| Artifact                                   | Producer             | Purpose                                    |
+| ------------------------------------------ | -------------------- | ------------------------------------------ |
+| `review-findings/<scope>-<perspective>.md` | Adversarial Reviewer | Detailed review narrative with code blocks |
+| `evidence-bundle.md`                       | Knowledge Agent      | End-of-pipeline human audit document       |
+
+### Net Change from Previous Design
+
+Researcher drops 4 MD files per run (one per focus area). No other agent output format changes. Implementation reports, verification reports, and review verdicts were already YAML-only; review findings were already MD-only.
 
 ---
 

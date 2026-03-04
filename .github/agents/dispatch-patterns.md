@@ -1,7 +1,17 @@
+---
+name: dispatch-patterns
+description: Dispatch pattern definitions for pipeline agent coordination
+---
+
 # Dispatch Patterns — Reference
 
 This is a reference document for the orchestrator. Contains full definitions of reusable
 dispatch patterns for subagent invocations and the replan loop.
+
+The orchestrator uses the VS Code Copilot `runSubagent` tool. When multiple `runSubagent`
+calls are issued within the same orchestration step, they are dispatched concurrently by
+the Copilot runtime (subject to the concurrency cap defined below). Pattern A relies on
+this native parallel execution capability.
 
 ---
 
@@ -9,14 +19,25 @@ dispatch patterns for subagent invocations and the replan loop.
 
 Used by: Research (Step 1), Design Review (Step 3b), Implementation waves (Step 5), Verification waves (Step 6), Code Review (Step 7).
 
-1. Dispatch N subagents in parallel (N ≤ concurrency cap of 4).
-2. Wait for all N to return.
-3. Handle individual errors: retry once per failed agent (1 retry per agent, orchestrator-level).
-4. Evaluate gate condition: **≥M of N must return `status: DONE`** (M varies by step — see Pattern Usage Table).
-5. If gate condition met → pattern DONE; orchestrator proceeds.
-6. If gate condition NOT met after retries → pattern ERROR for that step.
+**Fact:** When Pattern A is executed, all subagents in the wave are dispatched concurrently.
+The orchestrator emits multiple `runSubagent` calls in the same step, and the Copilot
+runtime executes them in parallel (up to the concurrency cap).
 
-### Gate Condition Details
+### Execution Model
+
+1. Dispatch N subagents concurrently (N ≤ concurrency cap of 4).
+2. The runtime executes them in parallel.
+3. Wait for all N to return (implicit Promise.all behavior).
+4. Handle individual errors: retry once per failed agent (1 retry per agent, orchestrator-level).
+5. Evaluate gate condition: **≥M of N must return `status: DONE`** (M varies by step — see Pattern Usage Table).
+6. If gate condition met → pattern DONE; orchestrator proceeds.
+7. If gate condition NOT met after retries → pattern ERROR for that step.
+
+Parallelism is native to the dispatch mechanism — no additional configuration is required.
+
+---
+
+## Gate Condition Details
 
 | Dispatch         | N (total) | M (required DONE) | Gate Expression              |
 | ---------------- | --------- | ----------------- | ---------------------------- |
@@ -26,37 +47,60 @@ Used by: Research (Step 1), Design Review (Step 3b), Implementation waves (Step 
 | Verifiers        | ≤4/wave   | all               | all DONE (per-task gate)     |
 | Code Review ×3   | 3         | 2                 | ≥2 of 3 approve + 0 blockers |
 
-### Retry Policy
+---
+
+## Retry Policy
 
 - **Budget:** 1 retry per failed subagent (orchestrator-level).
 - **Trigger:** Agent returns `status: ERROR` or fails to return within timeout.
 - **Schema violation:** Treated as transient — retry once. Second schema violation → ERROR.
 - **No retry on:** Security Blocker verdicts (immediate pipeline ERROR — see severity-taxonomy.md).
 
-### Examples
+Retries are dispatched as a new parallel wave (≤ concurrency cap).
 
-**Researchers ×4 (Step 1):**
+---
+
+## Examples
+
+### Researchers ×4 (Step 1)
 
 ```
 Dispatch: researcher ×4 (architecture, impact, dependencies, patterns)
 Concurrency: 4 concurrent (at cap)
+Execution: All four subagents run in parallel.
 Gate: ≥2 of 4 DONE
-Retry: Failed researchers retried once
+Retry: Failed researchers retried once (parallel retry wave)
 Result: 2–4 research outputs forwarded to Spec agent
 ```
 
-**Adversarial Reviewers ×3 (Steps 3b, 7):**
+---
+
+### Adversarial Reviewers ×3 (Steps 3b, 7) — Perspective-Based
+
+Each reviewer reviews **all** categories (security, architecture, correctness) through a distinct perspective lens. 3 perspectives × 3 categories = 9 review dimensions per round. See [review-perspectives.md](review-perspectives.md) for full perspective definitions.
 
 ```
-Dispatch: adversarial-reviewer ×3 with distinct review_focus
-  Reviewer 1: review_focus='security'
-  Reviewer 2: review_focus='architecture'
-  Reviewer 3: review_focus='correctness'
+Dispatch: adversarial-reviewer ×3 with distinct review_perspective
+  Instance 1: review_perspective = "security-sentinel"
+  Instance 2: review_perspective = "architecture-guardian"
+  Instance 3: review_perspective = "pragmatic-verifier"
+
+  Parameters per instance:
+    review_scope: "design" (Step 3b) or "code" (Step 7)
+    review_perspective: <perspective-id>
+    run_id: {run_id}
+    round: {round}
+    feature_slug: {feature_slug}
+
 Concurrency: 3 concurrent (within cap)
-Gate: ≥2 of 3 verdict='approve' AND 0 verdict='blocker'
-Retry: Failed reviewers retried once
+Execution: All three reviewers run in parallel.
+Gate: All 3 reviewers submitted (9 SQL rows) AND 0 verdict='blocker'
+      AND ≥2 of 3 reviewers fully approve across all categories
+Retry: Failed reviewers retried once (parallel retry wave)
 Result: Review verdicts + findings forwarded; any blocker → pipeline ERROR
 ```
+
+> **Note:** Each reviewer produces 3 SQL INSERT records (one per category) and 1 verdict YAML file with per-category sub-verdicts. The evidence gate validates all-category coverage, not single-category verdicts.
 
 ---
 
@@ -155,23 +199,75 @@ Sub-wave 3: Task 9             (1 concurrent)  → wait
 
 ## Evidence Gating (SQL)
 
-Review steps (3b, 7) use SQL-based evidence gates. The orchestrator verifies verdicts independently via queries on the `anvil_checks` table:
+Review steps (3b, 7) use SQL-based evidence gates. The orchestrator verifies verdicts independently via queries on the `anvil_checks` table. With perspective-based review, each reviewer produces **3 SQL records** (one per category), yielding **9 total records per round**. See [sql-templates.md](sql-templates.md) §6 for the full query templates.
 
 ```sql
--- All reviewers submitted (round-specific)
-SELECT COUNT(*) FROM anvil_checks
-WHERE run_id = '{run_id}' AND round = {r} AND verdict IS NOT NULL;
--- Expected: >= 3
+-- (1) All reviewers submitted: 3 distinct perspective instances
+SELECT COUNT(DISTINCT instance) FROM anvil_checks
+WHERE run_id = '{run_id}' AND task_id = '{task_id}'
+  AND phase = 'review' AND round = {round};
+-- Expected: 3 (security-sentinel, architecture-guardian, pragmatic-verifier)
 
--- No security blockers
-SELECT COUNT(*) FROM anvil_checks
-WHERE run_id = '{run_id}' AND round = {r} AND verdict = 'blocker';
--- Expected: = 0
+-- (2) Each reviewer covered all 3 categories
+SELECT instance, COUNT(DISTINCT check_name) AS cats
+FROM anvil_checks
+WHERE run_id = '{run_id}' AND task_id = '{task_id}'
+  AND phase = 'review' AND round = {round}
+  AND check_name IN (
+    'review-{scope}-security',
+    'review-{scope}-architecture',
+    'review-{scope}-correctness'
+  )
+GROUP BY instance HAVING cats = 3;
+-- Expected: 3 rows (one per reviewer)
 
--- Majority approve
+-- (3) Zero blockers
 SELECT COUNT(*) FROM anvil_checks
-WHERE run_id = '{run_id}' AND round = {r} AND verdict = 'approve';
+WHERE run_id = '{run_id}' AND task_id = '{task_id}'
+  AND phase = 'review' AND round = {round}
+  AND verdict = 'blocker';
+-- Expected: 0
+
+-- (4) Majority fully-approving reviewers (≥2 of 3 approve ALL categories)
+SELECT COUNT(*) FROM (
+  SELECT instance FROM anvil_checks
+  WHERE run_id = '{run_id}' AND task_id = '{task_id}'
+    AND phase = 'review' AND round = {round}
+    AND check_name IN (
+      'review-{scope}-security',
+      'review-{scope}-architecture',
+      'review-{scope}-correctness'
+    )
+  GROUP BY instance
+  HAVING COUNT(CASE WHEN verdict != 'approve' THEN 1 END) = 0
+);
 -- Expected: >= 2
 ```
 
-All gate queries filter on `run_id` and `round` to prevent cross-contamination between pipeline runs and review rounds.
+All gate queries filter on `run_id`, `task_id`, and `round` to prevent cross-contamination between pipeline runs, review scopes (design vs code), and review rounds.
+
+---
+
+## Parallel Dispatch Notes
+
+Pattern A expresses **parallel intent** — all N subagents are logically dispatched concurrently. However, true runtime concurrency depends on the VS Code Copilot platform:
+
+- **VS Code `runSubagent` API:** As of the current platform version, `runSubagent` calls may be serialized by the runtime even when dispatched in parallel from the orchestrator.
+- **Impact:** Wall-clock time may equal the sum of individual agent durations rather than the maximum. The dispatch pattern is correct regardless — it expresses the desired parallelism, and the platform will execute it as efficiently as it can.
+- **Optimization:** When execution is serialized, the orchestrator should dispatch the fastest-expected agents first to minimize blocking time for downstream dependencies.
+- **No orchestrator changes needed:** The dispatch pattern remains the same whether the platform runs agents in parallel or sequentially. If future VS Code versions enable true concurrency, the pipeline benefits automatically.
+
+---
+
+## Phase 2 Enhancement Path — Model Diversity
+
+The current review design achieves diversity through **prompt perspectives** (security-sentinel, architecture-guardian, pragmatic-verifier). Each reviewer uses the same underlying model but applies a distinct persona that shapes its analysis across all categories.
+
+If future research (FR-1) discovers a working VS Code API mechanism for model routing (e.g., specifying different models per `runSubagent` call), model diversity can be **layered on top of** prompt diversity without changing the dispatch pattern:
+
+1. **Dispatch pattern unchanged:** 3 reviewers with `review_perspective` parameter remain the same.
+2. **Add `model` parameter:** Each reviewer additionally receives a model identifier (e.g., `model: 'gpt-4o'`, `model: 'claude-sonnet'`, `model: 'gemini-pro'`).
+3. **Multiplicative diversity:** Prompt perspective × model = stronger coverage. A security-sentinel on GPT-4o catches different vulnerabilities than a security-sentinel on Claude.
+4. **Graceful degradation:** If model routing fails or is unavailable, the pipeline falls back to prompt-only diversity — no functional regression.
+
+This is a Phase 2 enhancement. Phase 1 ships with prompt diversity only, which is sufficient for meaningful adversarial coverage.

@@ -1,7 +1,6 @@
 ---
 name: Feature Development Pipeline
 agent: orchestrator
-description: "Entry point for the multi-agent feature development pipeline. Requires USER_FEATURE variable. Optional APPROVAL_MODE (default: autonomous)."
 ---
 
 # Feature Development Pipeline
@@ -10,30 +9,10 @@ description: "Entry point for the multi-agent feature development pipeline. Requ
 
 {{USER_FEATURE}}
 
-## Execution Mode
-
-{{APPROVAL_MODE}}
-
-## Key Artifacts Reference
-
-| Artifact             | Path                                           |
-| -------------------- | ---------------------------------------------- |
-| Orchestrator         | `.github/agents/orchestrator.agent.md`         |
-| Schema reference     | `.github/agents/schemas.md`                    |
-| Dispatch patterns    | `.github/agents/dispatch-patterns.md`          |
-| Severity taxonomy    | `.github/agents/severity-taxonomy.md`          |
-| Researcher           | `.github/agents/researcher.agent.md`           |
-| Spec writer          | `.github/agents/spec.agent.md`                 |
-| Designer             | `.github/agents/designer.agent.md`             |
-| Planner              | `.github/agents/planner.agent.md`              |
-| Implementer          | `.github/agents/implementer.agent.md`          |
-| Verifier             | `.github/agents/verifier.agent.md`             |
-| Adversarial reviewer | `.github/agents/adversarial-reviewer.agent.md` |
-| Knowledge agent      | `.github/agents/knowledge-agent.agent.md`      |
-
 ## Pipeline Execution Rules
 
-1. Execute the pipeline defined in `orchestrator.agent.md` (Steps 0–9).
-2. Follow `APPROVAL_MODE` for gate behavior — `autonomous` skips approval gates, `interactive` pauses after research and planning.
-3. All agent outputs use typed YAML schemas defined in `schemas.md`.
-4. The orchestrator validates every agent output before routing to the next step.
+1. Execute the pipeline defined in `orchestrator.agent.md` All steps.
+2. The orchestrator MUST immediately begin Step 0 on invocation and must NOT attempt to perform substantive work itself. It may create `initial-request.md` only as permitted in Step 0 and otherwise must restrict actions to coordination and evidence verification.
+3. Follow `APPROVAL_MODE` for gate behavior — `autonomous` skips approval gates, `interactive` pauses after research and planning.
+4. All agent outputs use typed YAML schemas defined in `schemas.md`.
+5. The orchestrator validates every agent output before routing to the next step.
