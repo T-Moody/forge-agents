@@ -95,6 +95,40 @@ Execute these steps in order:
 - Read `initial-request.md` to understand the feature being requested.
 - Note the assigned focus area from the orchestrator dispatch prompt.
 
+### 1.5. E2E Skill File Generation (D-19)
+
+> **Skip condition:** If the task has `e2e_required=false` or no `e2e_contract_path` is provided, skip this step entirely — produce no skill output.
+
+When the task has `e2e_required=true` AND an `e2e_contract_path`, generate project-specific skill YAML files before the main research workflow:
+
+**Playwright CLI Skills Integration:**
+- **Built-in skills** (`playwright-cli install --skills`): Teach agents HOW to use playwright-cli commands (`open`, `goto`, `click`, `fill`, `screenshot`, `snapshot`, etc.). Installed into `skills/playwright-cli/` and `.claude/skills/dev/`.
+- **Custom skills** (Step 1.5 output): Define WHAT to test — project-specific interaction procedures expressed as sequences of playwright-cli commands. Complement built-in skills with domain knowledge.
+
+**Procedure:**
+
+1. Read the E2E contract YAML at `e2e_contract_path`.
+2. Parse the contract to identify required interaction patterns (endpoints, routes, forms).
+3. Check the `browser.tool` field — if `"playwright-cli"`, generate skills using playwright-cli commands.
+4. For each endpoint/route in the contract, generate a skill YAML file conforming to the skills schema in [e2e-integration.md](e2e-integration.md) §2.
+5. Map skill steps to playwright-cli commands:
+   - `navigate` → `goto <url>`
+   - `click` → `click {ref}` (where `{ref}` is a deterministic selector)
+   - `fill` → `fill {ref} {text}`
+   - `assert` → `snapshot` + verify element presence in accessibility tree
+   - `evidence` → `screenshot`
+6. Place generated skill YAML files in `.e2e/skills/` directory.
+
+**Naming convention:** `<interaction-type>-<target>.skill.yaml` (e.g., `exploratory-login.skill.yaml`, `adversarial-search.skill.yaml`).
+
+**Skill Generation Rules:**
+- **Deterministic selectors:** Prefer `data-testid`, `aria-label`, `role` attributes over CSS classes or positional selectors.
+- **Playwright CLI commands:** Use `goto`, `click`, `fill`, `type`, `press`, `screenshot`, `snapshot` — no raw Playwright API calls.
+- **Assertion format:** `snapshot` → parse accessibility tree → verify element presence/text content.
+- **Step ordering:** `navigate` → `interact` → `assert` (logical flow per skill).
+- **Adversarial variations:** Include at least one per skill (empty input, XSS attempt `<script>alert(1)</script>`, boundary values, etc.).
+- **Session awareness:** All steps assume a named session context — prefix commands with `playwright-cli -s=verify-{task-id}` for session isolation.
+
 ### 2. Discover
 
 Use a discovery-first approach — do NOT skip to reading files directly.

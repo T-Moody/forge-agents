@@ -1,0 +1,117 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-001"
+  step: "step-6"
+  started_at: "2026-03-04T01:00:00Z"
+  completed_at: "2026-03-04T01:15:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-001"
+    run_id: "2026-03-04T00:00:00Z"
+    evidence_gate:
+      total_checks: 10
+      passed: 10
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-discrepancy"
+        tier: 0
+        phase: "after"
+        tool: "git show"
+        command: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/schemas.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline tag exists (1065 lines). No Schema 13/14, no workflow_lane/e2e_required/verify_phase/tdd_fallback_reason/e2e_results in baseline. Implementer baseline claims consistent."
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "3 errors (all pre-existing md link resolution: #schema-evolution-strategy, #sqlite-schemas, #producerconsumer-dependency-table). No new errors introduced."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file structurally valid. 1630 lines. Headers, tables, fenced code blocks all properly formed."
+      - check_name: "schema-13-complete"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Schema 13 e2e-contract at L1042. All required field groups present: App Lifecycle (start_command structured per D-21), Port Mgmt, Runner, Parallelism (inc db_isolation_strategy), Interaction, Browser Tool Config (playwright-cli), Skills, Evidence, Trust Level."
+      - check_name: "schema-14-complete"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Schema 14 e2e-skill at L1232. Metadata with type (test-suite|exploratory|adversarial), interaction (browser|api|cli|test-command). Steps with all action types. Assert types: status_code, text_contains, element_visible, element_not_visible, url_matches, response_body_contains, exit_code_equals. adversarial_variations with overrides."
+      - check_name: "task-schema-extension"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Schema 6 at L455. Three new fields: task.workflow_lane (unit-only|unit-integration|full-tdd-e2e), task.e2e_required (boolean, default false), task.e2e_contract_path (string|null, default null). All original fields preserved."
+      - check_name: "impl-report-extension"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Schema 7 at L527. verify_phase object under tdd_red_green: get_errors_clean, typecheck_clean, tests_passing (all boolean). tdd_fallback_reason (string|null) added. Original fields preserved."
+      - check_name: "verify-report-extension"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Schema 8 at L678. e2e_results section: suite_passed, exploratory_passed, adversarial_passed, interaction_logs with per-step results (order, action, target, result, actual_behavior, evidence_path, duration_ms). artifact_paths and evidence_manifest_path present."
+      - check_name: "design-alignment"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "D-15: Schema 6 extended per design. D-16: check_name patterns support EG-8/9/10. D-21: start_command uses structured format. D-26: e2e-adversarial-{variation} documented. Producer/Consumer table updated."
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "All 7 ACs use test_method=inspection (documentation task). behavioral_coverage maps all ACs to not_applicable with justifications. No test_method=test ACs — coverage complete."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/schemas.md"
+      discrepancies_found: false
+    e2e_results: null
+
+completion:
+  status: "DONE"
+  summary: "Verified TASK-001: 10 checks passed, 0 failed, no regressions"
+  verdict: "pass"
+  confidence: "High"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "verification-reports/TASK-001.yaml"
+  evidence_summary:
+    total_checks: 10
+    passed: 10
+    failed: 0
+    security_blockers: 0

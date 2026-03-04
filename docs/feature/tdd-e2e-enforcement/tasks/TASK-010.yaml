@@ -1,0 +1,98 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-010"
+  title: "planner.agent.md — Workflow Lane Derivation + E2E Task Fields"
+  target_file: "NewAgents/.github/agents/planner.agent.md"
+  action: "modify"
+  risk: "🟡"
+  size: "Standard"
+  wave: 3
+  depends_on: ["TASK-001"]
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 45
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-8']" # 3 workflow lanes based on risk
+      - "design-output.yaml#payload.decisions[id='D-15']" # Task schema extension
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-6']" # FR-6.2, FR-6.3: Lane derivation
+    files_to_modify:
+      - path: "NewAgents/.github/agents/planner.agent.md"
+        risk: "🟡"
+    files_to_read:
+      - path: "NewAgents/.github/agents/planner.agent.md"
+        reason: "Understand existing Task Size Limits, Risk Classification, and workflow sections"
+      - path: "NewAgents/.github/agents/schemas.md"
+        reason: "After TASK-001: Schema 6 task-schema now includes workflow_lane, e2e_required, e2e_contract_path"
+
+  description: |
+    Add workflow lane derivation logic and E2E task field propagation to the planner.
+
+    **Changes required:**
+
+    1. **Workflow Lane Derivation Table (D-8):**
+       Add to the "Risk Classification System" section (after Per-File Classification):
+
+       | Task Risk | workflow_lane      | e2e_required |
+       | --------- | ------------------ | ------------ |
+       | 🟢        | unit-only          | false        |
+       | 🟡        | unit-integration   | false        |
+       | 🔴        | full-tdd-e2e       | *derived*    |
+
+       For 🔴 tasks, e2e_required is derived:
+       - If an E2E contract exists at the documented path → e2e_required=true
+       - If no E2E contract exists → e2e_required=false
+       - The planner checks for the contract path and records it in e2e_contract_path
+
+    2. **Task Schema Field Propagation:**
+       In the "Sub-Output: tasks/*.yaml (Schema 6)" section, add the new fields:
+       - workflow_lane: "<derived from table above>"
+       - e2e_required: true | false
+       - e2e_contract_path: "<relative path or null>"
+
+    3. **E2E Contract Path Discovery:**
+       Add a brief note that the planner should look for E2E contracts in common locations:
+       - Documented in the design specification
+       - At standard paths: .e2e/contract.yaml, e2e-contract.yaml
+       - Referenced from feature.md or design-output.yaml
+
+    4. **Update Self-Verification Checklist:**
+       Add: "[ ] Every 🔴 task has workflow_lane='full-tdd-e2e' and e2e_required is explicitly set"
+
+  acceptance_criteria:
+    - id: "AC-23"
+      text: "planner.agent.md contains a workflow_lane derivation table mapping 🟢→unit-only, 🟡→unit-integration, 🔴→full-tdd-e2e"
+      test_method: "inspection"
+    - id: "AC-24"
+      text: "Tasks with 🔴 risk produce full-tdd-e2e lane assignment. e2e_required is derived from contract existence, not assumed true"
+      test_method: "inspection"
+    - id: "AC-T10-3"
+      text: "Sub-Output section shows workflow_lane, e2e_required, e2e_contract_path in the tasks/*.yaml template"
+      test_method: "inspection"
+    - id: "AC-T10-4"
+      text: "Self-verification checklist includes a workflow_lane + e2e_required check for 🔴 tasks"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - grep planner.agent.md for 'workflow_lane' → expect absent
+      - grep for 'e2e_required' → expect absent
+      - grep for 'unit-only' / 'unit-integration' / 'full-tdd-e2e' → expect absent
+    green_phase: |
+      1. Add workflow lane derivation table in Risk Classification section (~12 lines)
+      2. Add new fields to the task YAML template in Sub-Output section (~5 lines)
+      3. Add E2E contract path discovery note (~8 lines)
+      4. Add self-verification checklist item (~1-2 lines)
+      Reference Schema 6 from schemas.md for field definitions
+    verify_phase: |
+      - grep for all three lane names: unit-only, unit-integration, full-tdd-e2e
+      - grep for e2e_required and e2e_contract_path in template
+      - grep for the new self-verification checklist item
+      - Verify existing planner content is intact (spot-check key sections)
+      - Count total added lines (~45)

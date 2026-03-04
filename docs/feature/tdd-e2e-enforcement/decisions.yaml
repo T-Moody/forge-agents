@@ -1,0 +1,159 @@
+# Decision Log — tdd-e2e-enforcement
+# Pipeline run: 2026-03-04T00:00:00Z
+# Append-only — do NOT modify or delete existing entries
+
+- id: "DL-001"
+  title: "Direction C — Hybrid Extended Verifier + Reference Document"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    Chosen over Direction A (extend verifier only — SRP violation, 700+ line verifier) and
+    Direction B (dedicated E2E agent — adds 10th agent, new dispatch complexity, new schema).
+    Direction C extends the existing verifier with Tier 5 E2E Verification using internal
+    sub-roles (Lifecycle Manager, Executor, Evidence Collector) while extracting ~697 lines
+    of E2E coordination rules into e2e-integration.md. Keeps agent count at 9. Approved
+    unanimously in design review Round 2 after revision.
+  alternatives:
+    - "A: Extend existing verifier only (rejected — SRP overload)"
+    - "B: Dedicated E2E agent (rejected — adds 10th agent type)"
+  confidence: "High"
+  source: "design-output.yaml (revision_round: 2)"
+
+- id: "DL-002"
+  title: "Playwright CLI as primary E2E tool (not @playwright/mcp)"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    Playwright CLI (github.com/microsoft/playwright-cli) provides session isolation via
+    -s=name flag, built-in skills system (playwright-cli install --skills), and 16+
+    interaction commands (goto, click, fill, screenshot, etc.). @playwright/mcp was
+    rejected because MCP tool access is not available in the agent system's tool-access-matrix.
+    Plan revision R2 integrated Playwright CLI throughout 5 tasks.
+  alternatives:
+    - "@playwright/mcp (rejected — MCP tool access unavailable)"
+    - "Generic script-generation (rejected — less structured than CLI skills)"
+  confidence: "High"
+  source: "plan-output.yaml (revision: Playwright CLI integration)"
+
+- id: "DL-003"
+  title: "Max 1 E2E task per wave for resource isolation"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    E2E tests require exclusive browser sessions, port ranges, and process management.
+    A concurrency cap of 1 E2E task per wave prevents port collisions, browser session
+    interference, and resource exhaustion. Sub-wave queuing handles overflow when multiple
+    E2E tasks exist in one wave. Originally inconsistent across documents (2-4 in
+    orchestrator vs 1 in dispatch-patterns) — resolved by code review Round 1 fix.
+  alternatives:
+    - "Cap of 2-4 (rejected — resource collision risk too high)"
+  confidence: "High"
+  source: "code review R1 findings (architecture-guardian, pragmatic-verifier)"
+
+- id: "DL-004"
+  title: "TDD RED-GREEN-VERIFY as mandatory implementation cycle"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    Every implementation task must demonstrate: RED phase (write failing test first),
+    GREEN phase (implement to make test pass), VERIFY phase (IDE diagnostics clean,
+    typecheck clean, all tests passing). Added as immutable rule in global-operating-rules.md
+    §9. Fallback allowed ONLY with documented tdd_fallback_reason in Schema 7.
+  alternatives:
+    - "Advisory TDD (rejected — insufficient enforcement)"
+    - "No fallback (rejected — documentation-only tasks can't write tests)"
+  confidence: "High"
+  source: "spec-output.yaml, design-output.yaml (D-10)"
+
+- id: "DL-005"
+  title: "TDD compliance as BLOCKING evidence gate (EG-7)"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    EG-7 tdd-compliance promoted from advisory to blocking. Verifier must verify
+    test-before-code evidence in implementation reports. Non-compliance blocks pipeline
+    progression unless documented fallback. Prevents regression to code-first development
+    anti-pattern. Added behavioral coverage promotion logic for secondary heuristics.
+  alternatives:
+    - "Advisory gate (rejected — non-blocking allows bypass)"
+  confidence: "High"
+  source: "design-output.yaml (D-5), TASK-006 implementation"
+
+- id: "DL-006"
+  title: "3 workflow lanes — risk-based E2E gating"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    unit-only (🟢 documentation tasks): Tiers 0-3 only.
+    unit-integration (🟡 standard tasks): Tiers 0-4, integration checks.
+    full-tdd-e2e (🔴 high-risk or e2e_required): Tiers 0-5 including E2E lifecycle.
+    Derived from risk classification + e2e_required flag. Reduces pipeline wall-clock
+    time by 60-80% for non-E2E tasks while ensuring high-risk changes get full coverage.
+  alternatives:
+    - "Single lane for all (rejected — excessive verification cost for low-risk tasks)"
+    - "Binary E2E/no-E2E (rejected — misses integration testing middle ground)"
+  confidence: "High"
+  source: "design-output.yaml (D-3), TASK-010 implementation"
+
+- id: "DL-007"
+  title: "Script-generation execution model for E2E interaction"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    Playwright CLI's built-in skills system provides step-by-step interaction mapping,
+    but for complex multi-step flows, skill steps are translated into temporary framework
+    scripts and executed via run_in_terminal. This was the Critical finding from
+    architecture-guardian in design review R1 — the original design did not specify
+    HOW step-by-step interaction would work. Revision R2 added the script-generation model.
+  alternatives:
+    - "Direct CLI commands only (rejected — insufficient for complex multi-step flows)"
+  confidence: "Medium"
+  source: "design-output.yaml R2, architecture-guardian design review R1"
+
+- id: "DL-008"
+  title: "E2E contract structured command format ({executable, args})"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    Prevents shell injection by separating executable from arguments in a typed structure.
+    The contract start_command field uses {executable: string, args: string[], env: object}
+    format instead of raw shell strings. Validation rules prohibit path separators, spaces,
+    and shell metacharacters in the executable field. Addresses Critical security-sentinel
+    finding from design review R1 about unvalidated execution input.
+  alternatives:
+    - "Shell string commands (rejected — injection risk)"
+  confidence: "High"
+  source: "design-output.yaml (D-21), security-sentinel design review R1"
+
+- id: "DL-009"
+  title: "Evidence sanitization pipeline for E2E artifacts"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    E2E verification generates potentially sensitive artifacts (HAR files with response
+    bodies, screenshots with rendered secrets, console logs with API keys). Six-stage
+    sanitization pipeline: (1) sql_escape(), (2) HAR request/response body stripping,
+    (3) 10KB body size limit, (4) 5KB console output cap, (5) secret pattern scrubbing
+    (API_KEY, SECRET, TOKEN, PASSWORD, CREDENTIAL), (6) SHA-256 manifest hash for
+    integrity verification. Documented in e2e-integration.md §6.
+  alternatives:
+    - "No sanitization (rejected — credential leakage risk)"
+    - "Full artifact redaction (rejected — loses debugging value)"
+  confidence: "High"
+  source: "design-output.yaml, TASK-004 implementation (§6 at L388-457)"
+
+- id: "DL-010"
+  title: "Accept TASK-004 line count overage as cosmetic"
+  date: "2026-03-04"
+  status: "accepted"
+  rationale: >
+    e2e-integration.md is 697 lines vs 500±50 target (147 lines over). All 9 sections
+    contain valid, necessary content. Extra lines from §8 timeout budget, parallel isolation
+    rules, and API/CLI app testing subsections. Accepted as cosmetic by all 3 code reviewers
+    in Round 2. Content quality and completeness outweigh line count compliance. The
+    document serves as the single reference for E2E coordination across 5+ agents.
+  alternatives:
+    - "Trim to 550 lines (rejected — would remove necessary content)"
+    - "Split into 2 documents (rejected — unnecessary fragmentation)"
+  confidence: "High"
+  source: "verification-reports/TASK-004.yaml, code review R2 (all 3 approve)"

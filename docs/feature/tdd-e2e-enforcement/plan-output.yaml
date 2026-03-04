@@ -1,0 +1,322 @@
+agent_output:
+  agent: "planner"
+  instance: "planner"
+  step: "step-4"
+  started_at: "2026-03-04T08:20:00Z"
+  completed_at: "2026-03-04T10:30:00Z"
+  schema_version: "1.0"
+  run_id: "2026-03-04T00:00:00Z"
+  feature_slug: "tdd-e2e-enforcement"
+
+  payload:
+    overall_risk_summary: "🔴"
+    total_tasks: 16
+    planning_mode: "revision"
+    revision:
+      type: "targeted"
+      reason: "User feedback — integrate @playwright/cli (github.com/microsoft/playwright-cli) with built-in SKILLS system for browser-based E2E testing. Replaces generic script-generation model with specific Playwright CLI commands and session isolation."
+      date: "2026-03-04T10:30:00Z"
+      affected_tasks:
+        ["TASK-001", "TASK-004", "TASK-008", "TASK-009", "TASK-013"]
+      changes_summary: |
+        - TASK-001: E2E contract schema adds playwright-cli browser tool fields (tool, install, skills_install, session_prefix, config)
+        - TASK-004: e2e-integration.md updated throughout for @playwright/cli — installation, skills install, CLI commands (open/goto/click/fill/screenshot), session isolation (-s=name), .playwright/cli.config.json, command allowlist expanded to 8 patterns
+        - TASK-008: Command allowlist expands from 7 to 8 patterns — adds ^playwright-cli .+ for all CLI browser interaction commands
+        - TASK-009: Verifier Tier 5 E2E lifecycle uses playwright-cli session commands instead of script generation — -s=verify-{task-id} sessions, direct CLI interaction, session cleanup via close-all/kill-all
+        - TASK-013: Researcher skill creation aligns with Playwright CLI built-in skills system (playwright-cli install --skills), custom skills as YAML procedures that map to playwright-cli command sequences
+
+    # ═══════════════════════════════════════════════════════
+    # WAVE DEFINITIONS
+    # ═══════════════════════════════════════════════════════
+    waves:
+      - id: "wave-1"
+        tasks: ["TASK-001", "TASK-002", "TASK-003", "TASK-004"]
+        max_concurrent: 4
+        description: "Foundation — schemas, SQL templates, global rules, E2E reference document. No dependencies."
+
+      - id: "wave-2"
+        tasks: ["TASK-005", "TASK-006", "TASK-007", "TASK-008"]
+        max_concurrent: 4
+        description: "Core agents — implementer TDD enforcement, verifier TDD compliance, orchestrator E2E gates, tool access matrix."
+
+      - id: "wave-3"
+        tasks: ["TASK-009", "TASK-010", "TASK-011", "TASK-012"]
+        max_concurrent: 4
+        description: "Extended agents — verifier Tier 5 E2E lifecycle, planner workflow lanes, dispatch concurrency, adversarial review dimensions."
+
+      - id: "wave-4"
+        tasks: ["TASK-013", "TASK-014", "TASK-015", "TASK-016"]
+        max_concurrent: 4
+        description: "Supplemental — researcher skill creation, evaluation criteria, review perspectives, severity examples."
+
+    # ═══════════════════════════════════════════════════════
+    # TASK INDEX
+    # ═══════════════════════════════════════════════════════
+    tasks:
+      # ── Wave 1: Foundation ──
+      - id: "TASK-001"
+        title: "schemas.md — E2E Contract Schema, Skills Schema, Task Schema Extension"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/schemas.md"
+        action: "modify"
+        wave: 1
+        workflow_lane: "unit-integration"
+        e2e_required: false
+        estimated_lines: 290
+
+      - id: "TASK-002"
+        title: "sql-templates.md — E2E Evidence Gates, TDD Compliance Gate, Per-Variation SQL"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/sql-templates.md"
+        action: "modify"
+        wave: 1
+        workflow_lane: "unit-integration"
+        e2e_required: false
+        estimated_lines: 155
+
+      - id: "TASK-003"
+        title: "global-operating-rules.md — TDD Immutable Rule, E2E Safety Rules, Context Governance"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/global-operating-rules.md"
+        action: "modify"
+        wave: 1
+        workflow_lane: "unit-integration"
+        e2e_required: false
+        estimated_lines: 40
+
+      - id: "TASK-004"
+        title: "e2e-integration.md — NEW E2E Coordination Reference Document"
+        size: "Large"
+        risk: "🔴"
+        depends_on: []
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/e2e-integration.md"
+        action: "create"
+        wave: 1
+        workflow_lane: "full-tdd-e2e"
+        e2e_required: false
+        estimated_lines: 500
+
+      # ── Wave 2: Core Agents ──
+      - id: "TASK-005"
+        title: "implementer.agent.md — Mandatory RED-GREEN-VERIFY TDD Cycle"
+        size: "Large"
+        risk: "🔴"
+        depends_on: ["TASK-001", "TASK-003"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/implementer.agent.md"
+        action: "modify"
+        wave: 2
+        workflow_lane: "full-tdd-e2e"
+        e2e_required: false
+        estimated_lines: 100
+
+      - id: "TASK-006"
+        title: "verifier.agent.md — TDD Compliance Verification + Behavioral Coverage Promotion"
+        size: "Large"
+        risk: "🔴"
+        depends_on: ["TASK-001", "TASK-002"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/verifier.agent.md"
+        action: "modify"
+        wave: 2
+        workflow_lane: "full-tdd-e2e"
+        e2e_required: false
+        estimated_lines: 60
+
+      - id: "TASK-007"
+        title: "orchestrator.agent.md — E2E Contract Discovery, Lane-Aware Evidence Gates, Concurrency"
+        size: "Large"
+        risk: "🔴"
+        depends_on: ["TASK-002", "TASK-004"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/orchestrator.agent.md"
+        action: "modify"
+        wave: 2
+        workflow_lane: "full-tdd-e2e"
+        e2e_required: false
+        estimated_lines: 27
+
+      - id: "TASK-008"
+        title: "tool-access-matrix.md — Verifier Tier 5 Command Allowlist"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["TASK-004"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/tool-access-matrix.md"
+        action: "modify"
+        wave: 2
+        workflow_lane: "unit-integration"
+        e2e_required: false
+        estimated_lines: 45
+
+      # ── Wave 3: Extended Agents ──
+      - id: "TASK-009"
+        title: "verifier.agent.md — Tier 5 E2E Verification Lifecycle (5-Phase)"
+        size: "Large"
+        risk: "🔴"
+        depends_on: ["TASK-004", "TASK-006"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/verifier.agent.md"
+        action: "modify"
+        wave: 3
+        workflow_lane: "full-tdd-e2e"
+        e2e_required: false
+        estimated_lines: 180
+
+      - id: "TASK-010"
+        title: "planner.agent.md — Workflow Lane Derivation + E2E Task Fields"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["TASK-001"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/planner.agent.md"
+        action: "modify"
+        wave: 3
+        workflow_lane: "unit-integration"
+        e2e_required: false
+        estimated_lines: 45
+
+      - id: "TASK-011"
+        title: "dispatch-patterns.md — E2E Concurrency Cap + Sub-Wave Queuing + Port Protocol"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["TASK-004"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/dispatch-patterns.md"
+        action: "modify"
+        wave: 3
+        workflow_lane: "unit-integration"
+        e2e_required: false
+        estimated_lines: 50
+
+      - id: "TASK-012"
+        title: "adversarial-reviewer.agent.md — TDD Compliance + E2E Interaction Quality Review"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["TASK-001"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        action: "modify"
+        wave: 3
+        workflow_lane: "unit-integration"
+        e2e_required: false
+        estimated_lines: 50
+
+      # ── Wave 4: Supplemental ──
+      - id: "TASK-013"
+        title: "researcher.agent.md — Skill Creation Workflow (Step 0.5)"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["TASK-004"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/researcher.agent.md"
+        action: "modify"
+        wave: 4
+        workflow_lane: "unit-integration"
+        e2e_required: false
+        estimated_lines: 30
+
+      - id: "TASK-014"
+        title: "evaluation-schema.md — E2E Evaluation Criteria"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: []
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/evaluation-schema.md"
+        action: "modify"
+        wave: 4
+        workflow_lane: "unit-only"
+        e2e_required: false
+        estimated_lines: 20
+
+      - id: "TASK-015"
+        title: "review-perspectives.md — E2E Review Guidance Per Perspective"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: ["TASK-012"]
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/review-perspectives.md"
+        action: "modify"
+        wave: 4
+        workflow_lane: "unit-only"
+        e2e_required: false
+        estimated_lines: 30
+
+      - id: "TASK-016"
+        title: "severity-taxonomy.md — E2E Failure Severity Examples"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: []
+        agent: "implementer"
+        target_file: "NewAgents/.github/agents/severity-taxonomy.md"
+        action: "modify"
+        wave: 4
+        workflow_lane: "unit-only"
+        e2e_required: false
+        estimated_lines: 20
+
+    # ═══════════════════════════════════════════════════════
+    # DEPENDENCY GRAPH
+    # ═══════════════════════════════════════════════════════
+    dependency_graph:
+      TASK-001: []
+      TASK-002: []
+      TASK-003: []
+      TASK-004: []
+      TASK-005: ["TASK-001", "TASK-003"]
+      TASK-006: ["TASK-001", "TASK-002"]
+      TASK-007: ["TASK-002", "TASK-004"]
+      TASK-008: ["TASK-004"]
+      TASK-009: ["TASK-004", "TASK-006"]
+      TASK-010: ["TASK-001"]
+      TASK-011: ["TASK-004"]
+      TASK-012: ["TASK-001"]
+      TASK-013: ["TASK-004"]
+      TASK-014: []
+      TASK-015: ["TASK-012"]
+      TASK-016: []
+
+    # ═══════════════════════════════════════════════════════
+    # VALIDATION RESULTS
+    # ═══════════════════════════════════════════════════════
+    validation:
+      circular_dependency_check: "PASSED — DAG has no cycles"
+      task_size_check: "PASSED — all tasks within limits (≤3 files, ≤2 deps, ≤500 lines)"
+      dependency_existence_check: "PASSED — all depends_on references exist"
+      risk_consistency_check: "PASSED — all 🔴 tasks sized Large"
+      overall_risk_matches: "PASSED — 🔴 matches highest task risk"
+
+completion:
+  status: "DONE"
+  summary: "16 tasks created, 4 waves, overall risk 🔴 (revision: Playwright CLI integration)"
+  started_at: "2026-03-04T08:20:00Z"
+  completed_at: "2026-03-04T10:30:00Z"
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/plan-output.yaml"
+    - "docs/feature/tdd-e2e-enforcement/plan.md"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-001.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-002.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-003.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-004.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-005.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-006.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-007.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-008.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-009.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-010.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-011.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-012.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-013.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-014.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-015.yaml"
+    - "docs/feature/tdd-e2e-enforcement/tasks/TASK-016.yaml"

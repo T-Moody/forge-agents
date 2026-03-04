@@ -1,0 +1,91 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-002"
+  step: "step-5"
+  started_at: "2026-03-04T00:10:00Z"
+  completed_at: "2026-03-04T00:25:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-002"
+    task_type: "code"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        action: "modified"
+        description: >
+          Added §2a TDD & E2E Evidence INSERT Templates with 12 new check_name patterns:
+          tdd-compliance, tdd-fallback, e2e-contract-found, e2e-contract-validation,
+          e2e-instance-start, e2e-readiness, e2e-suite-execution, e2e-exploratory,
+          e2e-adversarial (per-variation with D-26 validation), e2e-adversarial-composite,
+          e2e-instance-shutdown, e2e-test-execution. Replaced EG-2 with parameterized
+          EG-10 (three lane variants: unit-only, unit-integration, full-tdd-e2e per D-16).
+          Promoted EG-7 from INFORMATIONAL to BLOCKING for code tasks per FR-1.5/FR-12.2.
+          Added EG-8 (TDD Compliance Gate, blocking for code tasks) and EG-9 (E2E Completion
+          Gate, blocking when e2e_required=true) with sub-phase cross-check queries.
+          Added composite index recommendation per architecture-guardian A-6. Documented
+          gate evaluation order: EG-1 → EG-10 → EG-7 → EG-8 → EG-9 → EG-3..EG-6.
+          All INSERT templates reference sql_escape() per D-25. output_snippet max 500
+          chars per FR-7.3. Per-variation adversarial INSERT includes variation_id validation
+          (alphanumeric + hyphens, max 50 chars) per D-26.
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+    behavioral_coverage:
+      - ac_id: "AC-2"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — verification by reading sql-templates.md for tdd-compliance INSERT template with check_name='tdd-compliance' and blocking semantics"
+      - ac_id: "AC-14"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — verification by grep for all 12 E2E lifecycle check_names in INSERT templates"
+      - ac_id: "AC-25"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — EG-10(full-tdd-e2e) query requires >= 4 passed checks including e2e-test-execution"
+      - ac_id: "AC-33"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — EG-9 blocks when e2e_required=true unless e2e-test-execution passed=1"
+      - ac_id: "AC-34"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — EG-7 header updated to BLOCKING for code tasks"
+      - ac_id: "AC-T2-6"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — per-variation adversarial INSERT includes variation_id in output_snippet with sql_escape() and validation (alphanumeric+hyphens, max 50 chars)"
+      - ac_id: "AC-T2-7"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — EG-2 section removed, replaced by parameterized EG-10 with three lane variants (no standalone EG-2 remains)"
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+completion:
+  status: "DONE"
+  summary: "TASK-002 — Added TDD compliance gate, E2E evidence INSERT templates, EG-8/EG-9/EG-10 queries, promoted EG-7 to blocking, composite index in sql-templates.md"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "implementation-reports/TASK-002.yaml"

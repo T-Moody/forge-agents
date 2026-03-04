@@ -1,0 +1,183 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-004"
+  step: "step-6"
+  started_at: "2026-03-04T13:00:00Z"
+  completed_at: "2026-03-04T13:25:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-004"
+    run_id: "2026-03-04T00:00:00Z"
+    evidence_gate:
+      total_checks: 13
+      passed: 11
+      failed: 2
+      gate_status: "failed"
+    findings:
+      # ── Step 1: Baseline Cross-Check ──
+      - check_name: "baseline-discrepancy"
+        tier: 1
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/e2e-integration.md"
+        exit_code: 1
+        passed: false
+        output_snippet: "File confirmed NEW (not in baseline). However, implementer claimed 546 lines but actual file is 697 lines — 151 lines over self-reported count."
+
+      # ── Tier 1: Always Run ──
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "No errors found for NewAgents/.github/agents/e2e-integration.md"
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file parses without errors. 9 section headers (§0-§8) detected, all code fences properly closed, table formatting valid."
+
+      # ── Tier 2: Behavioral Checks ──
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "All 9 sections present: §0(L10) §1(L23) §2(L151) §3(L228) §4(L314) §5(L354) §6(L388) §7(L459) §8(L634). Reading guide maps correct. AC-T4-1 thru AC-T4-6 verified. AC-T4-7 FAILED (697 > 550)."
+
+      - check_name: "runtime-wiring"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "New file in wave-1 foundation. 60+ references across pipeline docs. Agent-file wiring planned in TASK-007/008/009 (waves 2-3). Expected for wave-1."
+
+      # ── Content-Specific Checks ──
+      - check_name: "section-completeness"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "All 9 required sections verified: §0 Per-Agent Reading Guide (L10), §1 E2E Contract Spec (L23), §2 Skills Schema (L151), §3 Playwright CLI Protocol (L228), §4 Command Sanitization (L314), §5 Command Allowlist (L354), §6 Evidence Sanitization (L388), §7 Reference Examples (L459), §8 Timeout Budget (L634)."
+
+      - check_name: "playwright-cli-accuracy"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Playwright CLI commands documented: open, goto, click, fill, type, press, check, select, hover, screenshot, snapshot, console, network, tracing-start/stop, video-start/stop. Session isolation: -s=verify-{task-id}. Installation and skills install present. Config documented."
+
+      - check_name: "allowlist-complete"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "8 regex patterns at L360-367: ^playwright-cli .+, ^npx playwright test .+, ^npm (run|start|test), ^node .+, ^dotnet (run|test), ^python -m (pytest|uvicorn|flask), ^curl -s .+, ^(kill|taskkill). Enforcement and audit documented."
+
+      - check_name: "examples-present"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "4 reference examples: Ex1=SKILL-001 browser login (exploratory, 5 steps + 3 adversarial variations + CLI lifecycle), Ex2=SKILL-002 API CRUD probe (5 steps), Ex3=SKILL-003 CLI input testing (4 steps), Ex4=ADV-011 adversarial SQL injection variation."
+
+      - check_name: "line-count-range"
+        tier: 2
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "Get-Content | Measure-Object"
+        exit_code: null
+        passed: false
+        output_snippet: "Actual: 697 lines. Target: 500 ± 50 (450-550). Delta: +147 lines over upper bound (550). Implementer claimed 546. Excess from §8 timeout budget, parallel isolation, API/CLI app testing subsections."
+
+      # ── Tier 4: Operational Readiness (Large task) ──
+      - check_name: "readiness-observability"
+        tier: 4
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Document describes timeout enforcement with force-kill semantics, per-phase logging to anvil_checks, audit trail fields, evidence manifest SHA-256 hash."
+
+      - check_name: "readiness-degradation"
+        tier: 4
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Graceful degradation documented: on_failure modes (fail/continue/skip_remaining), timeout force-kill + teardown, per-step defaults, 600s hard cap. Phase 5 always executes."
+
+      - check_name: "readiness-secrets"
+        tier: 4
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "password123 is example test data in skill examples. API_KEY/SECRET/TOKEN/PASSWORD/CREDENTIAL are pattern names for scrubbing rules. No real hardcoded secrets."
+
+    regressions: []
+    # No regressions — this is a newly created file. The only implementer baseline
+    # check (baseline-ide-diagnostics: passed) has a matching after check (ide-diagnostics: passed).
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/e2e-integration.md"
+      discrepancies_found: true
+      detail: "File correctly absent from baseline (new file). However, implementer self-reported 546 lines while actual file is 697 lines — 27% discrepancy in line count claim."
+
+    acceptance_criteria_results:
+      - id: "AC-T4-1"
+        result: "PASS"
+        detail: "§0 reading guide present at L10 with correct agent-section mapping: Orchestrator(§1,§6), Verifier(§2,§3,§4,§5), Planner(§1), Reviewer(§4,§5)"
+      - id: "AC-T4-2"
+        result: "PASS"
+        detail: "§1 specifies structured command format {executable, args[], env{}} at L120. Validation rules at L64-70: no path separators, spaces, shell metacharacters."
+      - id: "AC-T4-3"
+        result: "PASS"
+        detail: "§3 (L228-312) covers full Playwright CLI protocol: installation, skills install, session isolation (-s=verify-{task-id}), 16+ CLI commands, session management (list/close/close-all/kill-all), step-to-CLI mapping, fallback script generation."
+      - id: "AC-T4-4"
+        result: "PASS"
+        detail: "§5 (L354-386) contains all 8 command allowlist regex patterns including ^playwright-cli .+ at position 1. Enforcement and audit trail documented."
+      - id: "AC-T4-5"
+        result: "PASS"
+        detail: "§6 (L388-457) specifies complete pipeline: sql_escape() at L394, HAR stripping at L401-405, 10KB body limit, 5KB console cap at L411, secret scrubbing at L417-418, SHA-256 hash at L422."
+      - id: "AC-T4-6"
+        result: "PASS"
+        detail: "§7 (L459-632) contains 4 reference examples: SKILL-001 browser login, SKILL-002 API CRUD, SKILL-003 CLI input, ADV-011 SQL injection. Plus Playwright CLI session lifecycle demo."
+      - id: "AC-T4-7"
+        result: "FAIL"
+        detail: "Document is 697 lines. Target was 500 ± 50 (450-550). Exceeds upper bound by 147 lines. Implementer claimed 546 lines — incorrect self-report."
+
+completion:
+  status: "NEEDS_REVISION"
+  summary: "TASK-004: 11/13 checks passed, 2 failed (line-count-range: 697 vs 450-550 target; baseline-discrepancy: claimed 546 lines), 0 regressions"
+  severity: null
+  findings_count: 2
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/verification-reports/TASK-004.yaml"
+  evidence_summary:
+    total_checks: 13
+    passed: 11
+    failed: 2
+    security_blockers: 0

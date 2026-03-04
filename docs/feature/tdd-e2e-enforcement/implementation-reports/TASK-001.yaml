@@ -1,0 +1,92 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-001"
+  step: "step-5"
+  started_at: "2026-03-04T00:10:00Z"
+  completed_at: "2026-03-04T00:25:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-001"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics:
+        errors: 3  # Pre-existing markdown link resolution warnings (#sqlite-schemas, #schema-evolution-strategy, #producerconsumer-dependency-table)
+        warnings: 0
+      build_exit_code: null  # No build system for markdown files
+      test_summary: null  # No test framework for markdown files
+    changes:
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Added Schema 13 (E2E Contract Schema) with all required field groups: app lifecycle
+          (structured start_command with executable/args/env per D-21), port management, runner,
+          parallelism (including db_isolation_strategy per D-17), interaction (browser/api/cli with
+          readiness_checks and evidence_capture), browser tool config (@playwright/cli with tool,
+          install, skills_install, session_prefix, config), skills, evidence, and trust level
+          annotation (project-trusted|pipeline-generated per D-3). Added Schema 14 (E2E Skills
+          Schema) with skill metadata, step fields (all action types including navigate, click,
+          fill, submit, http_request, run_command), machine-checkable assert types (status_code,
+          text_contains, element_visible, element_not_visible, url_matches, response_body_contains,
+          exit_code_equals per FR-3.3), and adversarial_variations with step overrides per FR-3.4.
+          Extended Schema 6 (task-schema) with workflow_lane, e2e_required, e2e_contract_path
+          fields per D-15. Extended Schema 7 (implementation-report) with verify_phase object
+          (get_errors_clean, typecheck_clean, tests_passing) and tdd_fallback_reason. Extended
+          Schema 8 (verification-report) with e2e_results section including interaction_logs
+          with per-step results. Added 13 new check_name patterns (tdd-compliance, tdd-fallback,
+          e2e-contract-found, e2e-contract-validation, e2e-instance-start, e2e-readiness,
+          e2e-suite-execution, e2e-exploratory, e2e-adversarial, e2e-adversarial-{variation},
+          e2e-instance-shutdown, e2e-test-execution). Updated Producer/Consumer table with
+          Schema 13 and 14 entries. Added E2E SQL LIKE filter examples. All changes are additive
+          — no existing fields removed or renamed.
+    self_check:
+      ide_diagnostics:
+        errors: 3  # Same 3 pre-existing markdown link resolution warnings — no new issues
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true  # 3 pre-existing warnings are markdown link resolution, not real errors
+      - check_name: "baseline-build"
+        phase: "baseline"
+        tool: "N/A"
+        passed: true  # No build system — null baseline
+      - check_name: "baseline-tests"
+        phase: "baseline"
+        tool: "N/A"
+        passed: true  # No test framework — null baseline
+    behavioral_coverage:
+      - ac_id: "AC-5"
+        status: "not_applicable"
+        justification: "test_method='inspection' — E2E contract schema completeness verified by content review"
+      - ac_id: "AC-9"
+        status: "not_applicable"
+        justification: "test_method='inspection' — E2E skills schema completeness verified by content review"
+      - ac_id: "AC-23"
+        status: "not_applicable"
+        justification: "test_method='inspection' — Schema 6 extension fields verified by content review"
+      - ac_id: "AC-T1-4"
+        status: "not_applicable"
+        justification: "test_method='inspection' — Schema 7 verify_phase fields verified by content review"
+      - ac_id: "AC-T1-5"
+        status: "not_applicable"
+        justification: "test_method='inspection' — Schema 8 e2e_results with interaction_log verified by content review"
+      - ac_id: "AC-T1-6"
+        status: "not_applicable"
+        justification: "test_method='inspection' — All 13 new check_name patterns documented in reference section"
+      - ac_id: "AC-T1-7"
+        status: "not_applicable"
+        justification: "test_method='inspection' — Additive changes verified: no existing fields removed or renamed, all new fields have defaults"
+
+completion:
+  status: "DONE"
+  summary: "TASK-001: Added E2E Contract Schema (13), Skills Schema (14), extended Schemas 6/7/8, documented 13 new check_name patterns"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "implementation-reports/TASK-001.yaml"

@@ -84,6 +84,7 @@ On pipeline resume, reconstruct state per [global-operating-rules.md](global-ope
 ## Pipeline Steps (0–9)
 
 > Dispatch patterns: [dispatch-patterns.md](dispatch-patterns.md). Concurrency cap: 4 agents per wave.
+> E2E coordination: [e2e-integration.md](e2e-integration.md). Contract schema, concurrency, safety rules.
 
 ### Step 0: Setup & Initialization
 
@@ -115,12 +116,16 @@ On pipeline resume, reconstruct state per [global-operating-rules.md](global-ope
    - Runs `PRAGMA integrity_check` on existing DB
 5. **Scan feature directory** for existing outputs (resume — EC-5)
 6. **Begin tracking pipeline state in-context**
+7. **E2E contract discovery (D-23):** Check for `e2e-contract.yaml` (project root) or `.e2e/contract.yaml`.
+   - Found: validate structure per [e2e-integration.md](e2e-integration.md) §1 (schema, port range `[1024, 65535]`, `max_concurrent_instances ≤ 4`, skill files exist, executable in allowlist D-22). Record `check_name='e2e-contract-found'` and `'e2e-contract-validation'` in `anvil_checks`. Propagate contract path to downstream dispatch context.
+   - Not found + autonomous mode: skip E2E, record reason in `pipeline_telemetry`, all tasks proceed as unit-only/unit-integration.
+   - Not found + interactive mode + 🔴 risk tasks: prompt user via `ask_questions` to provide/create E2E contract.
 
 Note: At no point in Step 0 or afterward should the orchestrator autonomously perform or dispatch work that is not defined by the pipeline. All tasking must go through the dispatch patterns and `runSubagent` calls in their respective steps.
 
 > All test execution across the pipeline uses `run_in_terminal` with CLI commands per `.github/copilot-instructions.md` (FR-7).
 
-**Gate:** SQLite initialized + WAL set + git hygiene clean + pushback complete → Step 1.
+**Gate:** SQLite initialized + WAL set + git hygiene clean + pushback complete + E2E contract discovered/skipped → Step 1.
 
 ---
 
@@ -283,10 +288,12 @@ When dispatching multiple verifiers, invoke them concurrently using separate `ru
 
 **Evidence gate** (per task, via [sql-templates.md](sql-templates.md) §6):
 
-| Gate                    | Query | Expected                       |
-| ----------------------- | ----- | ------------------------------ |
-| Baseline exists         | EG-1  | ≥1                             |
-| Verification sufficient | EG-2  | ≥2 (Standard) or ≥3 (Large/🔴) |
+| Gate               | Query | Expected                                           |
+| ------------------ | ----- | -------------------------------------------------- |
+| Baseline exists    | EG-1  | ≥1                                                 |
+| Lane verification  | EG-10 | unit-only ≥2, unit-integration ≥3, full-tdd-e2e ≥4 |
+| TDD compliance     | EG-8  | passed=1 (code tasks) — BLOCKING                   |
+| E2E completion     | EG-9  | passed=1 when e2e_required=true — BLOCKING         |
 
 **Telemetry:** INSERT per §3 for each verifier.
 
@@ -421,10 +428,13 @@ All evidence gates use SQL queries from [sql-templates.md](sql-templates.md) §6
 
 ### Verification Gates (Step 6)
 
-2 conditions using EG-1 and EG-2:
+Gate evaluation order: EG-1 → EG-10 → EG-7 → EG-8 → EG-9. Queries: [sql-templates.md](sql-templates.md) §6.
 
 1. **EG-1 — Baseline exists:** ≥1 baseline record per `task_id`
-2. **EG-2 — Verification sufficient:** ≥2 passed checks (Standard) or ≥3 (Large/🔴)
+2. **EG-10 — Lane-aware verification (replaces EG-2, D-16):** Select variant by `workflow_lane`: unit-only ≥2 passed, unit-integration ≥3, full-tdd-e2e ≥4 (including `e2e-test-execution`). Unit-only tasks never trigger E2E checks.
+3. **EG-7 — Behavioral coverage:** BLOCKING for code tasks. All `test_method='test'` ACs must have coverage.
+4. **EG-8 — TDD compliance:** BLOCKING for code tasks. `check_name='tdd-compliance'` with `passed=1` required.
+5. **EG-9 — E2E completion:** BLOCKING when `e2e_required=true`. `check_name='e2e-test-execution'` with `passed=1`. Cross-checks sub-phases per [sql-templates.md](sql-templates.md) §6.
 
 ---
 
@@ -473,6 +483,8 @@ See [dispatch-patterns.md](dispatch-patterns.md) for full sub-wave partitioning 
 
 **Maximum 4 concurrent subagents per wave.** Sub-wave partitioning when >4 dispatches.
 
+**E2E concurrency (D-17):** Within a wave, **maximum 1 E2E-enabled task runs at a time** (sequential sub-wave queuing per [dispatch-patterns.md](dispatch-patterns.md) §E2E Concurrency). The contract's `max_concurrent_instances` field (default 2, cap 4) controls how many browser contexts a **single** verifier task may spawn — it does NOT control cross-task dispatch concurrency. Non-E2E verifiers are dispatched normally. See [e2e-integration.md](e2e-integration.md) §8 and [dispatch-patterns.md](dispatch-patterns.md) §E2E Concurrency for sub-wave queuing and DB isolation strategy propagation.
+
 ---
 
 ## Operating Rules
@@ -502,7 +514,7 @@ The orchestrator NEVER returns `NEEDS_REVISION` — it handles revision routing 
 Common checks: [global-operating-rules.md](global-operating-rules.md) §6. Additionally:
 
 1. [ ] All pipeline steps (0–9) executed or explicitly skipped with justification
-2. [ ] All evidence gates passed (EG-1 through EG-6 for applicable steps)
+2. [ ] All evidence gates passed (EG-1, EG-3–EG-10 for applicable steps)
 3. [ ] No unhandled ERROR statuses in completed_steps
 4. [ ] Security blocker policy enforced (no `verdict='blocker'`)
 5. [ ] Retry budgets respected (no infinite loops)

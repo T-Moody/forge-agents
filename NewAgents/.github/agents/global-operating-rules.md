@@ -129,6 +129,7 @@ These rules are permanently protected and cannot be modified, weakened, or remov
 - **Agent boundary integrity** — No agent may modify another agent's definition at runtime
 - **Bounded loop invariants** — All feedback loops have hard iteration limits
 - **Evidence-first principle** — Record SQL evidence before claiming verification
+- **Mandatory TDD for code tasks** — The implementer MUST execute RED-GREEN-VERIFY for all tasks where `task_type='code'`. TDD is skippable ONLY when ALL of: (a) `task_type` is NOT `'code'`, AND (b) no production source files are modified, AND (c) only documentation, configuration, or non-runtime files change. The implementer MUST record `tdd_fallback_reason` when TDD is skipped.
 
 #### 2. Protected Phrase Patterns
 
@@ -150,6 +151,7 @@ Updates are **automatically rejected** if they match any of these patterns:
 - Increasing loop/retry limits beyond spec-defined bounds → **REJECTED**
 - Removing `CHECK` constraints or validation rules → **REJECTED**
 - Adding `runtime`, `dynamic`, or `self-modify` in the context of agent definitions → **REJECTED**
+- Weakening TDD skip criteria (e.g., removing condition (a), (b), or (c)) → **REJECTED**
 
 #### 4. Evaluator Separation
 
@@ -157,3 +159,53 @@ Updates are **automatically rejected** if they match any of these patterns:
 - The **user** (interactive mode) or **orchestrator** (autonomous logging) evaluates changes.
 - `.github/copilot-instructions.md` is **immutable at runtime** — only modifiable via feature implementation PRs, never by any agent at runtime.
 - `.github/instructions/pipeline-conventions.md` is **governed-mutable** — updatable by Knowledge Agent with safety filters applied; all changes logged to the `instruction_updates` table.
+
+## §10 E2E Safety Rules
+
+These rules apply to all agents involved in End-to-End (E2E) verification.
+
+### 10.1 Process Cleanup
+
+All E2E-spawned processes (app instances, browser instances, interaction tools) MUST be terminated on verification completion — whether success or failure. Orphaned processes are a **Blocker-severity** issue. The verifier MUST track spawned PIDs and issue kill commands during teardown.
+
+### 10.2 Timeout Enforcement
+
+All E2E external calls MUST have hard timeouts. No E2E operation may run indefinitely.
+
+| Scope              | Maximum Duration |
+| ------------------ | ---------------- |
+| Total E2E per task | 600 seconds      |
+| App startup        | 60 seconds       |
+| Single interaction | 30 seconds       |
+
+If any timeout is exceeded, the E2E run MUST be aborted, processes cleaned up (§10.1), and a timeout failure recorded.
+
+### 10.3 Evidence Sanitization
+
+All E2E evidence MUST pass through the sanitization pipeline before storage:
+
+- **SQL fields:** Apply `sql_escape` (replace `'` with `''`) for all values inserted into `output_snippet` or other text columns.
+- **HAR files:** Strip `Set-Cookie`, `Authorization`, and other sensitive headers before storage.
+- **Response bodies:** Mask tokens, session identifiers, and PII patterns.
+
+No raw, unsanitized application output may be stored in SQL fields.
+
+### 10.4 Source Code Read-Only
+
+The verifier MUST remain **read-only** for application source code during E2E execution. Only evidence artifacts (screenshots, traces, logs, interaction records) are written. The verifier MUST NOT modify production code, test code, or configuration files during E2E.
+
+## §11 Context Governance Rules
+
+These rules govern how agents consume context to prevent context window exhaustion and ensure efficient operation.
+
+### 11.1 read_file Line Limit (Mandatory)
+
+All agents MUST limit `read_file` calls to **≤ 200 lines** per invocation. This is a mandatory rule, not advisory. Agents requiring more context MUST make multiple targeted calls with specific line ranges rather than reading entire files.
+
+### 11.2 Discovery-First Search Strategy
+
+Agents MUST prefer `semantic_search` and `grep_search` for discovery before using `read_file`. Agents MUST NOT read entire repositories or large files (>500 lines) without targeted line ranges.
+
+### 11.3 E2E Evidence Summarization
+
+E2E evidence MUST be summarized (≤ 500 chars) before inclusion in SQL `output_snippet` fields. Full artifacts (traces, screenshots, interaction logs, response bodies) MUST be stored as files in the `evidence_output_dir` and referenced by path in the verification report. The verification report MUST reference artifact paths and the evidence manifest rather than inlining full evidence.

@@ -1,0 +1,104 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-008"
+  step: "step-6"
+  started_at: "2026-03-04T00:00:00Z"
+  completed_at: "2026-03-04T00:00:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-008"
+    run_id: "2026-03-04T00:00:00Z"
+    evidence_gate:
+      total_checks: 4
+      passed: 4
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "No errors found in NewAgents/.github/agents/tool-access-matrix.md"
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown structurally valid: sections 8.1-8.4 properly nested under section 8, tables use correct pipe syntax, no broken formatting"
+
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          All 5 ACs verified by inspection: AC-30 in §8.1 (e2e_required=true conditional),
+          AC-T8-2 in §8.2 (8 regex patterns matching e2e-integration.md §5 canonical copy),
+          AC-T8-3 in §8.3 (audit trail with 4 required fields), AC-T8-4 in §8.1 (phase gating
+          restricts Tier 5 to E2E phases only), AC-T8-5 in §8.4 (session lifecycle with create,
+          interact, close, close-all, kill-all, list commands).
+
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: "verifier"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Documentation-only task (task_type=documentation). No code to import/load or smoke-execute. Tier 3 not applicable for Markdown modifications."
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/tool-access-matrix.md"
+      discrepancies_found: false
+      details: >
+        Baseline §8 Verifier section contained only 2 bullet points (9 allowed tools and
+        create_file scope restriction). No §8.1–§8.4 subsections existed. Sections §1–§7
+        and §9–§11 remain unchanged in the after version. Implementer's self-reported
+        modification is consistent with the baseline.
+
+    acceptance_criteria_verification:
+      - id: "AC-30"
+        result: "pass"
+        evidence: "§8.1 states: 'When e2e_required=true in the task definition, the verifier''s run_in_terminal access is expanded to Tier 5 scope.' Constrained by tier5_command_allowlist."
+      - id: "AC-T8-2"
+        result: "pass"
+        evidence: "§8.2 lists all 8 regex patterns: npx playwright test, playwright-cli, npm, node, dotnet, python -m, curl -s, kill/taskkill. Cross-referenced against e2e-integration.md §5 — all 8 patterns match."
+      - id: "AC-T8-3"
+        result: "pass"
+        evidence: "§8.3 documents audit trail with required fields: command_text, matched_pattern (or REJECTED), timestamp (ISO 8601), exit_code (integer|null)."
+      - id: "AC-T8-4"
+        result: "pass"
+        evidence: "§8.1 para 2: 'Tier 5 commands are permitted only during E2E verification phases (Phases 1–5 per FR-4.2). During Tiers 1–4...run_in_terminal remains restricted to standard verifier commands.'"
+      - id: "AC-T8-5"
+        result: "pass"
+        evidence: "§8.4 documents full session lifecycle: creation (-s=verify-{task-id} open), interaction (-s=verify-{task-id} <command>), cleanup (close), emergency cleanup (close-all, kill-all), listing (list). Session isolation via -s= naming documented."
+
+    artifact_evaluation:
+      artifact: "docs/feature/tdd-e2e-enforcement/implementation-reports/TASK-008.yaml"
+      usefulness_score: 8
+      clarity_score: 9
+      notes: "Clear report. All required fields present. Behavioral coverage mapped all 5 ACs with valid inspection justifications for documentation task."
+
+completion:
+  status: "DONE"
+  summary: "Verified TASK-008: 4 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 4
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/verification-reports/TASK-008.yaml"
+  evidence_summary:
+    total_checks: 4
+    passed: 4
+    failed: 0
+    security_blockers: 0

@@ -1,0 +1,225 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-004"
+  title: "e2e-integration.md — NEW E2E Coordination Reference Document"
+  target_file: "NewAgents/.github/agents/e2e-integration.md"
+  action: "create"
+  risk: "🔴"
+  size: "Large"
+  wave: 1
+  depends_on: []
+  workflow_lane: "full-tdd-e2e"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 500
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-2']" # Extraction rationale + per-agent reading guide
+      - "design-output.yaml#payload.decisions[id='D-3']" # Contract location + trust levels
+      - "design-output.yaml#payload.decisions[id='D-4']" # Skills storage
+      - "design-output.yaml#payload.decisions[id='D-6']" # Port allocation
+      - "design-output.yaml#payload.decisions[id='D-9']" # Timeout architecture
+      - "design-output.yaml#payload.decisions[id='D-17']" # Concurrency management + DB isolation
+      - "design-output.yaml#payload.decisions[id='D-18']" # Interaction determinism
+      - "design-output.yaml#payload.decisions[id='D-20']" # Script generation execution model
+      - "design-output.yaml#payload.decisions[id='D-21']" # Command sanitization
+      - "design-output.yaml#payload.decisions[id='D-22']" # Command allowlist
+      - "design-output.yaml#payload.decisions[id='D-25']" # Evidence sanitization pipeline
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2']" # E2E contract schema
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3']" # Skills schema
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4']" # Live app testing
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']" # Parallel safety
+      - "spec-output.yaml#payload.functional_requirements[id='FR-13']" # Performance guardrails
+    files_to_modify:
+      - path: "NewAgents/.github/agents/e2e-integration.md"
+        risk: "🔴"
+    files_to_read:
+      - path: "NewAgents/.github/agents/schemas.md"
+        reason: "Understand reference document conventions used in the agent system"
+      - path: "NewAgents/.github/agents/dispatch-patterns.md"
+        reason: "Understand existing reference document style and cross-referencing conventions"
+      - path: "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+        section: "decisions D-2, D-3, D-4, D-6, D-9, D-17, D-18, D-20, D-21, D-22, D-25"
+        reason: "All E2E coordination decisions that this document must capture"
+      - path: "docs/feature/tdd-e2e-enforcement/spec-output.yaml"
+        section: "FR-2, FR-3, FR-4, FR-5"
+        reason: "Complete field-level requirements for contract, skills, interaction, and safety"
+      - path: "docs/feature/tdd-e2e-enforcement/feature.md"
+        section: "Skill Example"
+        reason: "Browser exploratory skill example to include as reference"
+
+  description: |
+    Create the new E2E coordination reference document (~500 lines). This is the foundational
+    reference consumed by multiple agents. Must include a per-agent reading guide at the top.
+
+    **CRITICAL SECURITY CONTENT:** This file contains command sanitization rules, command
+    allowlist patterns, and evidence sanitization pipeline — errors here create injection
+    vulnerabilities. Follow D-21, D-22, D-25 precisely.
+
+    **Document Structure (per D-2):**
+
+    **§0 Per-Agent Reading Guide:**
+    - Orchestrator: read §1, §6
+    - Verifier: read §2, §3, §4, §5
+    - Planner: read §1 only
+    - Adversarial Reviewer: read §4, §5
+    This enables conditional loading — agents read only relevant sections.
+
+    **§1 E2E Contract Specification:**
+    - Contract file location: e2e-contract.yaml at project root OR .e2e/contract.yaml (D-3)
+    - Trust levels: project-trusted (same trust as source code) vs pipeline-generated (D-3)
+    - Complete contract field reference (matching schemas.md E2E contract schema)
+    - Structured command format: {executable, args, env} — NOT raw shell (D-21)
+    - Port allocation: port = port_range_start + task_ordinal_index (D-6)
+    - Port validation: range [1024, 65535], privileged ports rejected at Step 0
+    - DB isolation strategies: per-instance-db, transaction-rollback, shared-with-locking (D-17)
+    - Contract validation: structural at Step 0, runtime at Tier 5 (D-23)
+    - **Playwright CLI browser tool configuration (@playwright/cli):**
+      - Installation: `npm install -g @playwright/cli@latest`
+      - Skills installation: `playwright-cli install --skills` (installs agent-discoverable skill guides)
+      - Per-project config: `.playwright/cli.config.json`
+      - Session isolation: `-s=verify-{task-id}` (named sessions per verifier instance)
+      - Token efficiency: CLI commands are purpose-built, avoid dumping page data into LLM context
+      - Explicitly recommended by Microsoft for coding agents (over MCP)
+
+    **§2 Skills Schema & Storage:**
+    - Complete skills field reference (matching schemas.md E2E skills schema)
+    - Skill types: test-suite, exploratory, adversarial — interaction modes
+    - Step action reference: navigate, click, fill, submit, http_request, run_command, etc.
+    - Assertion types: status_code, text_contains, element_visible, url_matches, etc.
+    - Adversarial variations: step overrides, severity_if_missed, expected_behavior
+    - Storage: inline in contract OR separate files in skill_discovery_path (D-4)
+    - Organization: test-suite/, exploratory/, adversarial/ directories
+
+    **§3 Playwright CLI Interaction Protocol (D-20, revised):**
+    - **Primary browser interaction tool:** `@playwright/cli` (`playwright-cli` binary)
+    - Installation: `npm install -g @playwright/cli@latest`
+    - Skills installation: `playwright-cli install --skills` — installs skill guides into
+      `skills/playwright-cli/` and `.claude/skills/dev/` (also read by GitHub Copilot)
+    - Configuration: `.playwright/cli.config.json` per project
+    - **Session isolation:** `playwright-cli -s=verify-{task-id} <command>` — named sessions per verifier
+    - **CLI command reference for browser interaction:**
+      - Open: `playwright-cli -s=<session> open [url]` — launch browser
+      - Navigate: `playwright-cli -s=<session> goto <url>`
+      - Click: `playwright-cli -s=<session> click <ref>` — click element by accessibility ref
+      - Fill: `playwright-cli -s=<session> fill <ref> <text>` — fill form field
+      - Type: `playwright-cli -s=<session> type <text>` — type text
+      - Press: `playwright-cli -s=<session> press <key>` — press keyboard key
+      - Check: `playwright-cli -s=<session> check <ref>` — check checkbox
+      - Select: `playwright-cli -s=<session> select <ref> <value>` — select dropdown
+      - Screenshot: `playwright-cli -s=<session> screenshot` — capture screenshot evidence
+      - Snapshot: `playwright-cli -s=<session> snapshot` — capture accessibility snapshot
+      - Console: `playwright-cli -s=<session> console [min-level]` — get console messages
+      - Network: `playwright-cli -s=<session> network` — get network requests
+      - Tracing: `playwright-cli -s=<session> tracing-start` / `tracing-stop` — record traces
+      - Video: `playwright-cli -s=<session> video-start` / `video-stop` — record video
+    - **Session management:**
+      - List: `playwright-cli list` — show active sessions
+      - Close: `playwright-cli -s=<session> close` — close specific session
+      - Close all: `playwright-cli close-all` — close all sessions
+      - Kill all: `playwright-cli kill-all` — force-kill all sessions
+      - Show: `playwright-cli show` — visual dashboard for observing agents
+    - **Skill step → CLI command mapping:**
+      navigate→goto, click→click {ref}, fill→fill {ref} {text}, submit→click {ref},
+      assert→snapshot + verify element presence, evidence→screenshot
+    - **Fallback for complex test suites (retained from D-20):**
+      skill YAML → generated .spec.ts → `npx playwright test <path> --reporter=json`
+      (used for test-suite type skills requiring full Playwright Test runner)
+    - Interaction determinism (D-18): follow steps exactly, no agent improvisation
+    - Token efficiency: CLI commands avoid dumping page/accessibility data into LLM context
+    - All commands executed via `run_in_terminal`, validated against command allowlist
+
+    **§4 Command Sanitization Rules (D-21):**
+    - Structured command format: executable matched against allowlist, args as array, env validated
+    - Executable validation: no path separators, spaces, or shell metacharacters
+    - Env value pattern: alphanumeric + common path chars, no shell metacharacters ;|&`$
+    - {port} placeholder: validated as integer in [1024, 65535] before substitution
+    - Secret pattern list for env scrubbing: API_KEY, SECRET, TOKEN, PASSWORD, CREDENTIAL
+
+    **§5 Command Allowlist (canonical copy, D-22):**
+    - tier5_command_allowlist regex patterns (8 patterns):
+      ^playwright-cli .+, ^npx playwright test .+, ^npm (run|start|test), ^node .+,
+      ^dotnet (run|test), ^python -m (pytest|uvicorn|flask), ^curl -s .+, ^(kill|taskkill)
+    - `^playwright-cli .+` matches all Playwright CLI commands (open, goto, click, fill, screenshot, etc.)
+    - Commands not matching → REJECTED with error in interaction_log
+    - Audit trail: command_text, matched_pattern, timestamp, exit_code
+
+    **§6 Evidence Sanitization Pipeline (D-25):**
+    - SQL escaping: all strings use sql_escape() before INSERT (mandatory)
+    - HAR stripping: Authorization, Cookie, Set-Cookie → [REDACTED]; body > 10KB → [TRUNCATED]
+    - Response masking: screenshot paths validated (within .e2e/evidence/, no path traversal)
+    - Console output cap: 5KB per step
+    - start_env scrubbing: values matching secret patterns → [REDACTED]
+    - Evidence manifest SHA-256 hash for integrity verification
+
+    **§7 Reference Examples (FR-3.9):**
+    - Browser login flow skill (exploratory) with 5 steps using playwright-cli commands
+      (goto login page, fill username, fill password, click submit, screenshot result)
+      and 3 adversarial variations
+    - API CRUD probe skill (exploratory) with POST/GET/PUT/DELETE steps
+    - CLI input testing skill with valid/invalid input scenarios
+    - Adversarial SQL injection variation example
+    - Playwright CLI session lifecycle example: open → goto → interact → screenshot → close
+
+    **§8 E2E Timeout Budget (D-9):**
+    - Total: 600s per task
+    - Per-phase: startup 60s, suite 300s, exploratory 180s/skill, adversarial 120s/skill, shutdown 30s
+    - Realistic budget example: 30s + 180s + 2×90s + 1×60s + 10s = 460s
+    - Timeout triggers force-kill of app + playwright-cli sessions via tracked PIDs and `playwright-cli kill-all`
+
+  acceptance_criteria:
+    - id: "AC-T4-1"
+      text: "e2e-integration.md exists at NewAgents/.github/agents/e2e-integration.md with §0 per-agent reading guide listing Orchestrator (§1,§6), Verifier (§2,§3,§4,§5), Planner (§1), Reviewer (§4,§5)"
+      test_method: "inspection"
+    - id: "AC-T4-2"
+      text: "§1 specifies structured command format {executable, args, env} with executable validation rules (no path separators, spaces, shell metacharacters)"
+      test_method: "inspection"
+    - id: "AC-T4-3"
+      text: "§3 describes the Playwright CLI interaction protocol: @playwright/cli installation, skills installation (playwright-cli install --skills), session isolation (-s=verify-{task-id}), complete CLI command reference (open/goto/click/fill/type/press/screenshot/snapshot/console/network/tracing/video), session management (list/close/close-all/kill-all), skill step→CLI command mapping, and fallback script-generation for complex suites"
+      test_method: "inspection"
+    - id: "AC-T4-4"
+      text: "§5 contains all 8 command allowlist regex patterns including ^playwright-cli .+ for browser CLI interaction"
+      test_method: "inspection"
+    - id: "AC-T4-5"
+      text: "§6 specifies the complete evidence sanitization pipeline: sql_escape(), HAR stripping (Authorization/Cookie/Set-Cookie), 10KB body limit, 5KB console cap, secret pattern env scrubbing, SHA-256 manifest hash"
+      test_method: "inspection"
+    - id: "AC-T4-6"
+      text: "§7 contains at least 4 reference skill examples: browser exploratory, API CRUD probe, CLI interaction, adversarial SQL injection variation"
+      test_method: "inspection"
+    - id: "AC-T4-7"
+      text: "Document is approximately 500 lines (±50). No section exceeds what agents need to read per the reading guide"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Verify file does NOT exist yet:
+      - Check NewAgents/.github/agents/e2e-integration.md → expect file not found
+    green_phase: |
+      Create the file with all 8 sections in order:
+      1. Write §0 reading guide first (agent must see this at top)
+      2. Write §1 contract spec with Playwright CLI config section (~120 lines)
+      3. Write §2 skills schema (~80 lines)
+      4. Write §3 Playwright CLI interaction protocol (~100 lines)
+      5. Write §4 command sanitization (~40 lines)
+      6. Write §5 command allowlist with 8 patterns incl. playwright-cli (~35 lines)
+      7. Write §6 evidence sanitization (~50 lines)
+      8. Write §7 reference examples with playwright-cli commands (~100 lines)
+      9. Write §8 timeout budget (~20 lines)
+      Follow existing reference document style from dispatch-patterns.md
+    verify_phase: |
+      - Verify file exists and has all 9 sections (§0-§8)
+      - grep for 'per-agent reading guide' in §0
+      - grep for '{executable, args, env}' structured format in §1
+      - grep for '@playwright/cli' and 'playwright-cli install --skills' in §1
+      - grep for 'playwright-cli -s=' session isolation pattern in §3
+      - grep for all playwright-cli commands: open, goto, click, fill, screenshot, snapshot in §3
+      - grep for 'close-all' and 'kill-all' session management in §3
+      - grep for all 8 allowlist patterns in §5 (including ^playwright-cli .+)
+      - grep for 'sql_escape()' in §6
+      - grep for 'SKILL-' example IDs in §7
+      - Count total lines — should be 450-550
+      - Verify no shell injection vectors remain (no raw shell command examples)

@@ -1,0 +1,83 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-015"
+  title: "review-perspectives.md — E2E Review Guidance Per Perspective"
+  target_file: "NewAgents/.github/agents/review-perspectives.md"
+  action: "modify"
+  risk: "🟢"
+  size: "Standard"
+  wave: 4
+  depends_on: ["TASK-012"]
+  workflow_lane: "unit-only"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 30
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-13']" # TDD compliance checks
+      - "design-output.yaml#payload.decisions[id='D-25']" # Evidence sanitization
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1']" # FR-1.6: TDD guidelines
+      - "spec-output.yaml#payload.functional_requirements[id='FR-10']" # FR-10.1, FR-10.3: Best practices
+    files_to_modify:
+      - path: "NewAgents/.github/agents/review-perspectives.md"
+        risk: "🟢"
+    files_to_read:
+      - path: "NewAgents/.github/agents/review-perspectives.md"
+        reason: "Understand existing perspective sections (security-sentinel, architecture-guardian, pragmatic-verifier)"
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        reason: "After TASK-012: TDD/E2E review dimensions that perspectives must support"
+
+  description: |
+    Add E2E-specific guidance to each review perspective in review-perspectives.md.
+
+    **Changes required:**
+
+    1. **Security Sentinel Perspective — E2E Additions:**
+       - Review adversarial variation coverage: do adversarial skills test meaningful security
+         scenarios (XSS, injection, auth bypass)?
+       - Verify evidence sanitization: are credentials/tokens redacted in HAR logs?
+       - Check command audit trail: every executed command matches allowlist
+
+    2. **Architecture Guardian Perspective — E2E Additions:**
+       - E2E test isolation: does each E2E task get its own port, its own app instance?
+       - No cross-task pollution: verify teardown kills all processes before next task
+       - Skill schema adherence: do skills follow the canonical schema from e2e-integration.md?
+       - Context governance: no full-document reads where targeted reads would suffice
+
+    3. **Pragmatic Verifier Perspective — E2E Additions:**
+       - Interaction completeness: are all contract-defined endpoints actually tested?
+       - Real vs mocked: verify evidence shows actual browser/API interaction
+       - Test effectiveness: do tests assert on meaningful outcomes, not just status codes?
+       - TDD discipline: RED phase test must exist and fail before GREEN phase code
+
+  acceptance_criteria:
+    - id: "AC-T15-1"
+      text: "Security sentinel guidance includes adversarial coverage review, evidence sanitization checks, and command audit trail verification"
+      test_method: "inspection"
+    - id: "AC-T15-2"
+      text: "Architecture guardian guidance includes E2E isolation (port/process per task), teardown verification, skill schema adherence"
+      test_method: "inspection"
+    - id: "AC-T15-3"
+      text: "Pragmatic verifier guidance includes interaction completeness, real vs mocked evidence, test effectiveness, TDD discipline"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - grep review-perspectives.md for 'adversarial variation' or 'adversarial coverage' → expect absent
+      - grep for 'E2E isolation' or 'port.*per task' → expect absent
+      - grep for 'interaction completeness' → expect absent
+    green_phase: |
+      1. Add security sentinel E2E guidance (~8 lines)
+      2. Add architecture guardian E2E guidance (~10 lines)
+      3. Add pragmatic verifier E2E guidance (~10 lines)
+      Append to each existing perspective section, maintaining consistent formatting
+    verify_phase: |
+      - grep for 'adversarial variation' in security sentinel section
+      - grep for 'E2E isolation' in architecture guardian section
+      - grep for 'interaction completeness' in pragmatic verifier section
+      - Verify existing perspective content is intact

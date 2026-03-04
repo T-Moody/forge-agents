@@ -1,0 +1,97 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-003"
+  title: "global-operating-rules.md — TDD Immutable Rule, E2E Safety Rules, Context Governance"
+  target_file: "NewAgents/.github/agents/global-operating-rules.md"
+  action: "modify"
+  risk: "🟡"
+  size: "Standard"
+  wave: 1
+  depends_on: []
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 40
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-10']" # TDD fallback tightening
+      - "design-output.yaml#payload.decisions[id='D-14']" # Context governance enforcement
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1']" # FR-1.3: TDD fallback
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7']" # Context governance
+    files_to_modify:
+      - path: "NewAgents/.github/agents/global-operating-rules.md"
+        risk: "🟡"
+    files_to_read:
+      - path: "NewAgents/.github/agents/global-operating-rules.md"
+        reason: "Understand existing rule structure, immutable rules section (§9.1), advisory vs mandatory conventions"
+      - path: "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+        section: "decisions D-10, D-14"
+        reason: "TDD fallback tightening criteria, context governance elevation"
+
+  description: |
+    Add three rule categories to global-operating-rules.md:
+
+    1. **TDD Immutable Rule (add to §9 Immutable Rules section):**
+       Add a new immutable rule: "Mandatory TDD for code tasks — the implementer MUST execute
+       RED-GREEN-VERIFY for all tasks where task_type='code'. TDD is skippable ONLY when ALL of:
+       (a) task_type is NOT 'code', AND (b) no production source files are modified, AND
+       (c) only documentation, configuration, or non-runtime files change. The implementer MUST
+       record tdd_fallback_reason when TDD is skipped."
+       This rule MUST be in the Immutable Rules list (never removable or weakened).
+
+    2. **E2E Safety Rules (add new §10 or subsection):**
+       Add E2E-specific safety rules:
+       - Process cleanup: "All E2E-spawned processes (app instances, browser instances, interaction
+         tools) MUST be terminated on verification completion (success or failure). Orphaned
+         processes are a Blocker-severity issue."
+       - Timeout enforcement: "All E2E external calls MUST have hard timeouts. No E2E operation
+         may run indefinitely. Total E2E per task: max 600s. App startup: max 60s."
+       - Evidence sanitization: "All E2E evidence MUST pass through the sanitization pipeline
+         (sql_escape for SQL, HAR stripping, response masking) before storage. No raw app output
+         in SQL fields."
+       - Source code read-only: "The verifier MUST remain read-only for application source code
+         during E2E execution. Only evidence artifacts are written."
+
+    3. **Context Governance Elevation (update existing advisory text):**
+       Elevate the read_file limit from advisory ('SHOULD') to mandatory ('MUST'):
+       "All agents MUST limit read_file calls to ≤ 200 lines per invocation."
+       Move/add this to the mandatory rules section (not advisory).
+       Add: "Agents MUST prefer semantic_search and grep_search for discovery before read_file."
+       Add: "E2E evidence MUST be summarized (≤ 500 chars) before SQL insertion. Full artifacts
+       stored as files, referenced by path."
+
+  acceptance_criteria:
+    - id: "AC-3"
+      text: "global-operating-rules.md §9 Immutable Rules contains 'Mandatory TDD for code tasks' rule with exact skip criteria: task_type NOT 'code' AND no production source files AND only docs/config"
+      test_method: "inspection"
+    - id: "AC-27"
+      text: "global-operating-rules.md contains a MANDATORY rule (not advisory) limiting read_file to <= 200 lines per invocation"
+      test_method: "inspection"
+    - id: "AC-T3-3"
+      text: "E2E safety rules exist covering: process cleanup (orphans = Blocker), timeout enforcement (600s total, 60s startup), evidence sanitization (sql_escape mandatory), source code read-only"
+      test_method: "inspection"
+    - id: "AC-T3-4"
+      text: "E2E evidence summary rule exists: output_snippet <= 500 chars, full artifacts stored as files referenced by path"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - Verify §9 Immutable Rules does NOT contain 'Mandatory TDD' → expect absent
+      - Verify no E2E safety rules section exists → expect absent
+      - Verify read_file limit uses 'SHOULD' not 'MUST' → expect advisory wording
+    green_phase: |
+      1. Add TDD immutable rule to §9 Immutable Rules list
+      2. Add E2E Safety Rules section (§10 or subsection of existing section)
+      3. Change read_file limit from 'SHOULD' to 'MUST' and move to mandatory section
+      4. Add E2E evidence summary rule
+    verify_phase: |
+      - grep for 'Mandatory TDD' in Immutable Rules section
+      - grep for 'MUST limit read_file' (not 'SHOULD')
+      - grep for '600s' and 'orphaned processes' in E2E safety section
+      - grep for '500 char' evidence summary limit
+      - Verify no existing rules were removed or weakened

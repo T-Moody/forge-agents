@@ -1,0 +1,116 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-013"
+  title: "researcher.agent.md — Step 0.5 Skill Creation Workflow"
+  target_file: "NewAgents/.github/agents/researcher.agent.md"
+  action: "modify"
+  risk: "🟡"
+  size: "Standard"
+  wave: 4
+  depends_on: ["TASK-004"]
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 30
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-19']" # Skill creation ownership (researcher)
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3']" # FR-3.6: Skill generation
+    files_to_modify:
+      - path: "NewAgents/.github/agents/researcher.agent.md"
+        risk: "🟡"
+    files_to_read:
+      - path: "NewAgents/.github/agents/researcher.agent.md"
+        reason: "Understand existing workflow steps and where Step 0.5 fits"
+      - path: "NewAgents/.github/agents/e2e-integration.md"
+        reason: "After TASK-004: Skills schema definition (§2) for skill file format"
+
+  description: |
+    Add Step 0.5 skill creation workflow to the researcher agent, aligned with the
+    Playwright CLI built-in skills system (@playwright/cli).
+
+    **DESIGN DISCREPANCY NOTE:** The design-output.yaml file_inventory lists researcher.agent.md
+    under "files_unchanged" with reason "No changes — researcher performs read-only codebase
+    investigation". However, the agent_modification_map explicitly includes researcher changes
+    for D-19. Decision D-19 says "the researcher agent examines the E2E contract, identifies
+    required skills, and generates skill YAML files." Follow the modification_map and D-19 —
+    the file_inventory appears to not have been updated for the D-19 addition in R2.
+
+    **Playwright CLI Skills Integration:**
+    The Playwright CLI has a built-in skills system (installed via `playwright-cli install --skills`)
+    that provides reference guides agents read to learn CLI usage. The researcher's Step 0.5
+    creates PROJECT-SPECIFIC custom skills that complement these built-in skills:
+    - Built-in skills: teach agents HOW to use playwright-cli commands (open, goto, click, etc.)
+    - Custom skills (Step 0.5 output): define WHAT to test — project-specific interaction procedures
+      that translate to sequences of playwright-cli commands
+
+    **Changes required:**
+
+    1. **Step 0.5 — E2E Skill File Generation (D-19):**
+       Add as a new step BEFORE the main research workflow (hence "0.5"):
+       - Trigger: When the task has e2e_required=true AND an e2e_contract_path
+       - Input: Read the E2E contract YAML at e2e_contract_path
+       - Process:
+         a. Parse the E2E contract to identify required interaction patterns
+         b. Check browser.tool field — if "playwright-cli", generate skills using playwright-cli commands
+         c. For each endpoint/route in the contract, generate a skill YAML file
+         d. Each skill follows the skills schema defined in e2e-integration.md §2
+         e. Skill steps map to playwright-cli commands: navigate→goto, click→click {ref},
+            fill→fill {ref} {text}, assert→snapshot+verify, evidence→screenshot
+       - Output: Skill YAML files placed in .e2e/skills/ directory
+       - Naming: <interaction-type>-<target>.skill.yaml (e.g., exploratory-login.skill.yaml)
+       - Skills reference Playwright CLI session pattern: each step prefixed with
+         `playwright-cli -s=verify-{task-id}` for session isolation
+
+    2. **Skill File Generation Rules:**
+       - Deterministic selectors: prefer data-testid, aria-label, role over CSS classes
+       - Playwright CLI commands: use goto/click/fill/type/press/screenshot/snapshot
+       - Assertion format: snapshot → parse accessibility tree → verify element presence
+       - Step ordering: navigate → interact → assert (logical flow)
+       - Adversarial variations: include at least one per skill (empty input, XSS attempt, etc.)
+       - Session awareness: all steps assume a named session context (-s=verify-{task-id})
+
+    3. **Skip condition:** If e2e_required=false, Step 0.5 is entirely skipped with no output.
+
+  acceptance_criteria:
+    - id: "AC-T13-1"
+      text: "Step 0.5 documented in researcher.agent.md: reads E2E contract, generates skill YAML files per skills schema"
+      test_method: "inspection"
+    - id: "AC-T13-2"
+      text: "Skill generation rules specify deterministic selectors (data-testid, aria-label, role), playwright-cli commands (goto, click, fill, screenshot, snapshot), step ordering (navigate→interact→assert), and session awareness (-s=verify-{task-id})"
+      test_method: "inspection"
+    - id: "AC-T13-3"
+      text: "Skip condition: Step 0.5 is skipped when e2e_required=false"
+      test_method: "inspection"
+    - id: "AC-T13-4"
+      text: "Output path documented as .e2e/skills/ with naming convention <type>-<target>.skill.yaml"
+      test_method: "inspection"
+    - id: "AC-T13-5"
+      text: "Playwright CLI skills integration documented: built-in skills (playwright-cli install --skills) teach CLI usage, custom skills (Step 0.5 output) define project-specific interaction procedures as playwright-cli command sequences"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - grep researcher.agent.md for 'Step 0.5' or 'skill creation' → expect absent
+      - grep for '.skill.yaml' or 'skill YAML' → expect absent
+      - grep for 'e2e_contract_path' → expect absent
+      - grep for 'playwright-cli' → expect absent
+    green_phase: |
+      1. Add Step 0.5 section before main research workflow (~20 lines)
+      2. Add Playwright CLI skills integration preamble (~5 lines)
+      3. Add skill generation rules with playwright-cli commands (~12 lines)
+      4. Add skip condition (~3 lines)
+      Reference e2e-integration.md §2 for canonical skills schema — don't duplicate
+    verify_phase: |
+      - grep for 'Step 0.5' in researcher.agent.md
+      - grep for 'playwright-cli' and 'playwright-cli install --skills'
+      - grep for 'data-testid' or 'deterministic selectors'
+      - grep for 'e2e_required=false' skip condition
+      - grep for '.e2e/skills/' output path
+      - grep for '-s=verify-{task-id}' session pattern
+      - Verify existing researcher workflow is intact

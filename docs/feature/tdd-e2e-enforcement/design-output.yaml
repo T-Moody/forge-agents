@@ -1,0 +1,1358 @@
+agent_output:
+  agent: "designer"
+  instance: "designer"
+  step: "step-3"
+  started_at: "2026-03-04T04:30:00Z"
+  completed_at: "2026-03-04T08:15:00Z"
+  schema_version: "1.0"
+  run_id: "2026-03-04T00:00:00Z"
+  feature_slug: "tdd-e2e-enforcement"
+  revision_round: 2
+
+  payload:
+    architecture: >
+      Direction C — Hybrid Extended Verifier + Reference Document (Revised R2). The verifier gains
+      Tier 5 E2E Verification using a script-generation execution model: skill steps are translated
+      into temporary framework scripts (Playwright, fetch, CLI) and executed via run_in_terminal.
+      E2E contract commands use a structured format ({executable, args}) to prevent shell injection.
+      The verifier uses internal sub-roles (Lifecycle Manager, Executor, Evidence Collector) with
+      conditional Tier 5 loading via tiers_required parameter. Contract structural validation
+      occurs at Step 0 (orchestrator). E2E coordination rules, execution protocol, command
+      sanitization, and evidence sanitization are extracted into e2e-integration.md (~500 lines).
+      Orchestrator line budget maintained at ~543/550 via EG-2/EG-10 consolidation and reference
+      extraction. Agent count remains at 9. File count: 18 → 19 (+1 new reference document).
+
+    # ═══════════════════════════════════════════════════════
+    # FILE INVENTORY
+    # ═══════════════════════════════════════════════════════
+    file_inventory:
+      files_created:
+        - path: "NewAgents/.github/agents/e2e-integration.md"
+          purpose: "New reference document — E2E coordination rules, contract schema, skills schema, script-generation execution protocol, command sanitization rules, evidence sanitization pipeline, safety rules, per-agent reading guide, example skills"
+          estimated_lines: 500
+          risk: "🟢"
+
+      files_modified:
+        - path: "NewAgents/.github/agents/verifier.agent.md"
+          purpose: "Add Tier 5 E2E with internal sub-roles (Lifecycle Manager, Executor, Evidence Collector), conditional loading via tiers_required, lane-aware tier gating, script-generation execution model, PID persistence in SQL, TDD compliance with secondary heuristics, evidence sanitization pipeline"
+          estimated_lines_added: 200
+          estimated_lines_modified: 40
+          risk: "🔴"
+        - path: "NewAgents/.github/agents/implementer.agent.md"
+          purpose: "Mandatory RED-GREEN-VERIFY TDD cycle, tightened TDD Fallback, verify_phase evidence fields, E2E execution prohibition"
+          estimated_lines_added: 60
+          estimated_lines_modified: 40
+          risk: "🔴"
+        - path: "NewAgents/.github/agents/orchestrator.agent.md"
+          purpose: "E2E contract discovery + structural validation at Step 0, workflow lane enforcement, EG-10 lane-aware gate (consolidates EG-2), reference to e2e-integration.md and dispatch-patterns.md for E2E concurrency"
+          estimated_lines_added: 15
+          estimated_lines_modified: 12
+          risk: "🔴"
+        - path: "NewAgents/.github/agents/planner.agent.md"
+          purpose: "Add workflow_lane, e2e_required, e2e_contract_path fields to task generation; lane derivation logic from risk classification"
+          estimated_lines_added: 30
+          estimated_lines_modified: 15
+          risk: "🟡"
+        - path: "NewAgents/.github/agents/schemas.md"
+          purpose: "Add E2E contract schema, E2E skills schema, extend task-schema (Schema 6) with workflow_lane/e2e fields, extend implementation-report (Schema 7) with verify_phase, extend verification-report (Schema 8) with E2E results and interaction_log, add new check_name patterns"
+          estimated_lines_added: 250
+          estimated_lines_modified: 40
+          risk: "🟡"
+        - path: "NewAgents/.github/agents/sql-templates.md"
+          purpose: "Add E2E evidence INSERT templates with mandatory sql_escape(), evidence gate queries EG-8/EG-9/EG-10 (parameterized per lane), composite index recommendation, per-variation adversarial INSERT template, EG-7 promotion note"
+          estimated_lines_added: 140
+          estimated_lines_modified: 15
+          risk: "🟡"
+        - path: "NewAgents/.github/agents/tool-access-matrix.md"
+          purpose: "Expand verifier tool access with Tier 5 command allowlist regex pattern (matching Knowledge Agent §10 precedent), add command audit trail requirement"
+          estimated_lines_added: 25
+          estimated_lines_modified: 10
+          risk: "🟡"
+        - path: "NewAgents/.github/agents/global-operating-rules.md"
+          purpose: "Elevate 200-line read_file limit to mandatory, add E2E safety rules (process cleanup, timeout enforcement), add TDD immutable rule"
+          estimated_lines_added: 30
+          estimated_lines_modified: 10
+          risk: "🟡"
+        - path: "NewAgents/.github/agents/dispatch-patterns.md"
+          purpose: "Add E2E parallel safety rules, port allocation protocol, E2E concurrency cap enforcement, sub-wave queuing for E2E overflow"
+          estimated_lines_added: 40
+          estimated_lines_modified: 10
+          risk: "🟡"
+        - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+          purpose: "Add TDD compliance review dimension, E2E interaction quality checks, test writing guideline enforcement (behavior-not-implementation, no internals exposure)"
+          estimated_lines_added: 35
+          estimated_lines_modified: 15
+          risk: "🟡"
+        - path: "NewAgents/.github/agents/evaluation-schema.md"
+          purpose: "Add E2E evaluation criteria for artifact quality scoring (interaction log quality, evidence completeness)"
+          estimated_lines_added: 15
+          estimated_lines_modified: 5
+          risk: "🟢"
+        - path: "NewAgents/.github/agents/review-perspectives.md"
+          purpose: "Add E2E review guidance per perspective (security-sentinel checks adversarial coverage, architecture-guardian checks E2E isolation, pragmatic-verifier checks interaction completeness)"
+          estimated_lines_added: 20
+          estimated_lines_modified: 10
+          risk: "🟢"
+        - path: "NewAgents/.github/agents/severity-taxonomy.md"
+          purpose: "Add E2E failure severity examples (orphaned process = Blocker, flaky test = Major, stale skill = Minor)"
+          estimated_lines_added: 15
+          estimated_lines_modified: 5
+          risk: "🟢"
+
+      files_unchanged:
+        - path: "NewAgents/.github/agents/knowledge-agent.agent.md"
+          reason: "Consumes new E2E evidence naturally via existing SQL query patterns; post-mortem templates already extensible"
+        - path: "NewAgents/.github/agents/spec.agent.md"
+          reason: "No changes — spec agent produces requirements, does not consume E2E or TDD artifacts"
+        - path: "NewAgents/.github/agents/designer.agent.md"
+          reason: "No changes — designer produces technical designs, does not interact with E2E or TDD"
+        - path: "NewAgents/.github/agents/researcher.agent.md"
+          reason: "No changes — researcher performs read-only codebase investigation"
+        - path: "NewAgents/.github/agents/context7-integration.md"
+          reason: "No changes — optional MCP integration is independent of TDD/E2E enforcement"
+        - path: "NewAgents/.github/prompts/feature-workflow.prompt.md"
+          reason: "No changes — workflow prompt template is parameterized, no E2E-specific content needed"
+
+    # ═══════════════════════════════════════════════════════
+    # DESIGN DECISIONS
+    # ═══════════════════════════════════════════════════════
+    decisions:
+      # ────────────────────────────────────────────────
+      # D-1: Architecture Selection
+      # ────────────────────────────────────────────────
+      - id: "D-1"
+        title: "Architecture Selection — Direction C (Hybrid Extended Verifier + Reference Document)"
+        risk: "🟡"
+        rationale: >
+          Direction C balances complexity, agent count, and maintainability. Extending the verifier
+          with Tier 5 E2E avoids a new agent type while extracting coordination rules into
+          e2e-integration.md manages the verifier's increased responsibility. Keeps agent count at 9
+          (within 4-15 range per CR-2 analog), avoids new schema types for dispatch, and keeps the
+          orchestrator within its 550-line budget by referencing the new document rather than
+          inlining E2E coordination logic.
+        alternatives_rejected:
+          - name: "Direction A — Extend Existing Verifier (No Reference Extraction)"
+            reason: >
+              Inlines all E2E coordination into verifier.agent.md and orchestrator.agent.md. The
+              verifier would grow by ~250 lines (from 343 to ~593) and the orchestrator would
+              exceed its 550-line cap. No separation of coordination rules from execution rules.
+            confidence: "High"
+          - name: "Direction B — Dedicated E2E Agent"
+            reason: >
+              Adds a 10th agent type (e2e-tester.agent.md) requiring a new schema, new dispatch
+              pattern, new evidence gate queries, and orchestrator routing changes. Cleanest
+              separation but the orchestrator would need significant expansion to coordinate
+              a new Step 6b dispatch. The E2E agent's scope would overlap with the verifier's
+              existing Tier 3-4 checks, creating ambiguous verification responsibility boundaries.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-2: E2E Coordination Extraction (updated R2)
+      # ────────────────────────────────────────────────
+      - id: "D-2"
+        title: "E2E Coordination Extraction into e2e-integration.md Reference Document"
+        risk: "🟢"
+        rationale: >
+          The orchestrator is at 528/550 lines. E2E coordination rules cannot be inlined.
+          e2e-integration.md (~500 lines) follows the established reference document pattern.
+          R2 adds: script-generation execution protocol (D-20), command sanitization rules (D-21),
+          evidence sanitization pipeline (D-25), and a per-agent reading guide at the top:
+          "Orchestrator: §1, §6. Verifier: §2, §3, §4, §5. Planner: §1 only. Reviewer: §4, §5."
+          This addresses context pressure (arch-guardian A-4) by enabling agents to load only
+          relevant sections.
+        alternatives_rejected:
+          - name: "Inline E2E coordination in orchestrator.agent.md"
+            reason: >
+              Would push orchestrator past 550-line cap. E2E rules consumed by multiple agents.
+            confidence: "High"
+          - name: "Split into multiple reference documents"
+            reason: >
+              Over-fragmentation. One document with clear sections and per-agent reading guide
+              follows existing single-document pattern (schemas.md).
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-3: E2E Contract Location (updated R2)
+      # ────────────────────────────────────────────────
+      - id: "D-3"
+        title: "E2E Contract Location — Project-Level Discoverable File with Trust Level"
+        risk: "🟢"
+        rationale: >
+          The E2E contract resides at the project root (e2e-contract.yaml or .e2e/contract.yaml).
+          R2 adds trust level concept per sec-sentinel A-1: project-root contracts are
+          "project-trusted" (same trust as source code). Contracts generated in interactive mode
+          are "pipeline-generated" and require user approval via ask_questions before commands
+          execute. Contract structural validation occurs at Step 0 (D-23).
+        alternatives_rejected:
+          - name: "Pipeline-level contract in the feature directory"
+            reason: >
+              E2E contracts describe application behavior, not pipeline behavior.
+              Projects may be tested by multiple features — the contract belongs with the app.
+            confidence: "High"
+          - name: "Auto-generated contract from project analysis"
+            reason: >
+              Unreliable for interaction_type and interaction_tools configuration. The contract
+              requires human intent about how to test the app (which URLs to visit, which API
+              endpoints to probe, which CLI commands to test). Auto-generation would produce
+              incomplete or incorrect contracts. Interactive mode already handles guided creation.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-4: E2E Skills Storage
+      # ────────────────────────────────────────────────
+      - id: "D-4"
+        title: "E2E Skills Storage — Referenced Skill Directory Alongside Contract"
+        risk: "🟢"
+        rationale: >
+          Skills are stored as separate YAML files in a directory referenced by the contract's
+          skill_discovery_path field, organized by type (test-suite/, exploratory/, adversarial/).
+          This separates concerns (contract defines app lifecycle; skills define interaction
+          procedures), enables per-skill version control, and allows skills to be added/removed
+          without modifying the contract itself. Inline skills (embedded in the contract) are
+          supported as a simpler alternative for small projects. The contract's skills field
+          accepts both inline skill objects and path references.
+        alternatives_rejected:
+          - name: "All skills inline in the E2E contract"
+            reason: >
+              A contract with 10+ skills (each containing 5-15 steps) would become a 500+ line
+              file — unwieldy for version control, review, and maintenance. Inline is supported
+              for simple cases but directory-based is the primary pattern.
+            confidence: "Medium"
+          - name: "Skills in a separate database or registry"
+            reason: >
+              Over-engineering. Skills are static YAML definitions — they don't need query
+              capabilities or a runtime registry. File-based storage is sufficient for the
+              deterministic execution model (NFR-8).
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-5: Verifier Tier 5 (updated R2 — ordering + lifecycle)
+      # ────────────────────────────────────────────────
+      - id: "D-5"
+        title: "Verifier Tier 5 — 5-Phase E2E Verification with Ordering Guarantees"
+        risk: "🔴"
+        rationale: >
+          Adding Tier 5 to the verifier's cascade. R2 adds critical guarantees per sec-sentinel A-2
+          and pragmatic A-1: (1) Tier 5 MUST execute AFTER Tiers 1-4 complete and SQL committed —
+          never interleaved. (2) PIDs persisted in anvil_checks output_snippet via e2e-instance-start
+          (survives agent crashes). (3) Browser lifecycle explicit per phase: Phase 2 (Suite) manages
+          own browsers via test runner children; cleanup sub-step confirms termination before Phase 3.
+          Phase 1 launches browser ONLY for Phases 3-4. (4) Tier execution is lane-aware per D-8.
+        alternatives_rejected:
+          - name: "Merge E2E into existing Tier 3 (Import/Smoke)"
+            reason: >
+              Tier 3 performs quick smoke checks (< 10s). E2E verification can take up to 600s.
+              Merging would destroy the fast-fail cascade property where early tiers catch simple
+              problems before expensive checks run. Tier 3 should remain a lightweight checkpoint.
+            confidence: "High"
+          - name: "Single-phase E2E (monolithic execution)"
+            reason: >
+              A single E2E check_name='e2e-test-execution' with no phase decomposition would
+              prevent diagnosis of where failures occur (startup? suite? exploratory? adversarial?).
+              The 5-phase model enables targeted re-runs and granular evidence gates.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-6: Port Allocation Strategy
+      # ────────────────────────────────────────────────
+      - id: "D-6"
+        title: "Port Allocation — Deterministic Offset with Range Validation and DB Isolation"
+        risk: "🟡"
+        rationale: >
+          Port = port_range_start + task_ordinal_index. R2 adds per sec-sentinel S-6 and pragmatic
+          C-4: (1) port_range_start MUST be in [1024, 65535 - max_concurrent_instances]; default_port
+          in [1024, 65535]. Privileged ports rejected at Step 0, (2) New db_isolation_strategy field:
+          'per-instance' (append _task_ordinal), 'shared-with-cleanup' (reset DB between runs), or
+          'none'. Warns if supports_parallel=true with no DB isolation, (3) Port exhaustion check
+          at contract validation.
+        alternatives_rejected:
+          - name: "Random port allocation"
+            reason: >
+              Non-deterministic. Harder to debug. Risk of collision on randomly selected ports,
+              especially in environments with many services. Collision resolution requires probing.
+            confidence: "High"
+          - name: "OS-assigned ephemeral ports (port 0)"
+            reason: >
+              Some frameworks don't support port 0 for dynamic assignment. The assigned port would
+              need to be discovered after startup (parsing stdout), adding fragile parsing logic.
+              Deterministic allocation is simpler and more predictable.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-7: SQL Evidence Strategy for E2E
+      # ────────────────────────────────────────────────
+      - id: "D-7"
+        title: "SQL Evidence Strategy — New check_names with Per-Variation Adversarial Records"
+        risk: "🟡"
+        rationale: >
+          E2E evidence as new check_name values in existing anvil_checks table. R2 adds per pragmatic
+          C-2 and AC-11: each adversarial variation produces its own check_name='e2e-adversarial'
+          INSERT with variation_id in output_snippet. Composite check_name='e2e-adversarial-composite'
+          aggregates results. All E2E output_snippets MUST pass through sql_escape() per D-25.
+          Recommended composite index: idx_anvil_checks_lookup ON anvil_checks(run_id, task_id,
+          check_name, passed) per arch-guardian A-6.
+        alternatives_rejected:
+          - name: "New dedicated e2e_runs table"
+            reason: >
+              Requires DDL changes (table creation, indexes, schema_meta versioning). Splits evidence
+              across two tables, complicating evidence gate queries that need to join checks from
+              both standard verification and E2E. The existing anvil_checks schema already supports
+              arbitrary check_name values — adding new patterns is the simpler approach.
+            confidence: "High"
+          - name: "E2E evidence in YAML only (no SQL)"
+            reason: >
+              Violates CR-3 (all errors and outcomes MUST be SQL INSERTs). Evidence gates require
+              SQL queries to make routing decisions. YAML-only evidence would require the orchestrator
+              to parse YAML files instead of querying SQL, breaking the SQLite-as-primary-ledger model.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-8: Workflow Lane Mapping (updated R2 — lane-to-tier gating)
+      # ────────────────────────────────────────────────
+      - id: "D-8"
+        title: "Workflow Lane Mapping — Risk-Derived Three-Lane System with Explicit Tier Gating"
+        risk: "🟡"
+        rationale: >
+          Three lanes derived from risk (🟢→unit-only, 🟡→unit-integration, 🔴→full-tdd-e2e).
+          R2 adds explicit lane-to-tier execution mapping per pragmatic C-3 and FR-6.1:
+          unit-only: Tiers 1-2 mandatory, Tier 3 only if no runtime verification in Tiers 1-2.
+          unit-integration: Tiers 1-3 mandatory (Tier 3 always runs), Tier 4 if any 🔴 file.
+          full-tdd-e2e: Tiers 1-4 mandatory, Tier 5 when e2e_required=true.
+          Lane SUPERSEDES previous size-based tier gating. Step 6a skipped when Tier 5 passes
+          (Tier 5 subsumes runtime smoke test per updated DR-1).
+        alternatives_rejected:
+          - name: "Manual lane assignment by planner (independent of risk)"
+            reason: >
+              Introduces subjective judgment into lane selection. The existing risk classification
+              already captures the relevant dimensions (auth/crypto/public API = 🔴, business logic = 🟡,
+              additive = 🟢). Duplicating this analysis as a separate lane decision would be redundant.
+            confidence: "High"
+          - name: "Two-lane system (unit-only, full-tdd-e2e)"
+            reason: >
+              Too coarse. Business logic changes (🟡) benefit from integration tests but don't need
+              full E2E with browser interaction. A two-lane system either under-tests 🟡 tasks
+              (no integration tests) or over-tests them (full E2E for every business logic change).
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-9: E2E Timeout Architecture
+      # ────────────────────────────────────────────────
+      - id: "D-9"
+        title: "E2E Timeout Architecture — 600s Total Budget with Per-Phase Limits"
+        risk: "🟡"
+        rationale: >
+          Hard timeout of 600s (10 minutes) total E2E per task aligns with NFR-1 and FR-13.1.
+          Per-phase sub-budgets: app startup 60s, suite execution 300s, exploratory interaction
+          180s per skill, adversarial interaction 120s per skill, shutdown 30s. The total budget
+          acts as a hard cap even if individual phases are within their limits. Timeout triggers
+          force-kill of app process + browser/interaction tools via tracked PIDs (FR-5.6).
+          The 600s budget was selected based on research analysis: typical E2E suites for medium
+          projects complete in 60-180s, leaving headroom for exploratory and adversarial phases.
+          R2 note per pragmatic C-6: per-phase maximums sum to 690s > 600s. For tasks with skills
+          in all phases, effective time per phase is reduced. Realistic budget: startup 30s + suite
+          180s + 2 exploratory × 90s + 1 adversarial × 60s + shutdown 10s = 460s.
+        alternatives_rejected:
+          - name: "300s total budget"
+            reason: >
+              Too tight. A suite (120s) + 3 exploratory skills (60s each) would exceed 300s without
+              any adversarial testing. Would force projects to choose between suite and exploratory.
+            confidence: "Medium"
+          - name: "No per-phase limits (only total budget)"
+            reason: >
+              A single skill could consume the entire budget, leaving no time for other skills.
+              Per-phase limits ensure balanced coverage across suite, exploratory, and adversarial.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-10: TDD Fallback Tightening
+      # ────────────────────────────────────────────────
+      - id: "D-10"
+        title: "TDD Fallback Tightening — Strict Criteria with SQL Evidence"
+        risk: "🟡"
+        rationale: >
+          Current TDD Fallback allows skipping too easily. The tightened criteria require ALL of:
+          (a) task_type is NOT 'code', (b) no production source files are modified, (c) only docs/
+          config/non-runtime files change. When TDD is skipped, the implementer MUST record
+          tdd_fallback_reason (string) in the implementation report AND record a
+          check_name='tdd-fallback' SQL INSERT with the reason in output_snippet. The verifier
+          cross-checks: if any production file was modified but TDD was skipped, tdd-compliance
+          fails. This creates an auditable trail preventing silent TDD bypass.
+        alternatives_rejected:
+          - name: "Remove TDD Fallback entirely (TDD for all tasks)"
+            reason: >
+              Documentation-only tasks (task_type='documentation') cannot meaningfully use TDD —
+              there are no tests to write for a README change. Configuration tasks similarly have
+              no production code to test. Forcing TDD would produce meaningless tests or constant
+              fallback overrides.
+            confidence: "High"
+          - name: "Keep existing fallback (advisory, no SQL evidence)"
+            reason: >
+              The current fallback is too permissive — implementers can skip TDD with minimal
+              justification and no auditable record. The spec requires tightening (FR-1.3) and
+              verifier cross-checking (FR-1.4). Advisory-only does not satisfy these requirements.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-11: Verifier Tool Access (CRITICAL UPDATE R2)
+      # ────────────────────────────────────────────────
+      - id: "D-11"
+        title: "Verifier Tool Access — Script-Generation Model with Command Allowlist"
+        risk: "🔴"
+        rationale: >
+          R2 fundamentally revises per sec-sentinel S-1/S-5 and arch-guardian A-3. The verifier's
+          Tier 5 run_in_terminal scope is constrained by: (1) Regex command allowlist in
+          tool-access-matrix.md (like Knowledge Agent §10): allows npx playwright, node temp-e2e-*,
+          common app executables, curl/wget, kill/taskkill, sqlite3. (2) Script-generation execution
+          model (D-20): browser/API/CLI interaction uses generated temp scripts, not raw shell
+          commands. (3) Audit trail: every Tier 5 run_in_terminal logged in interaction_log with
+          command, source_type, source_ref, exit_code. (4) Phase gating: Tier 5 commands only
+          when e2e_required=true (D-24).
+        alternatives_rejected:
+          - name: "Unrestricted run_in_terminal during Tier 5 (R1 design)"
+            reason: >
+              No command boundary enforcement. All three reviewers flagged this gap. Regex patterns
+              provide auditable boundaries.
+            confidence: "High"
+          - name: "MCP browser tool for browser interaction"
+            reason: >
+              Not reliably available. Script generation via CLI is universally available.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-12: E2E Retry Policy
+      # ────────────────────────────────────────────────
+      - id: "D-12"
+        title: "E2E Retry Policy — Max 1 Retry Per Task"
+        risk: "🟡"
+        rationale: >
+          E2E retries are limited to 1 re-attempt per task (total 2 attempts max). Retryable
+          conditions: port conflict, startup timeout, browser crash, transient network error.
+          Non-retryable: contract invalid, runner not installed, interaction tool missing,
+          assertion failure (deterministic). After 1 retry, the failure is final and enters the
+          existing replan loop (Pattern B). This balances flakiness tolerance against the pushback
+          concern about E2E amplifying feedback loops. The verifier can retry the entire Tier 5
+          E2E sequence (not individual phases) once — partial retries would leave the app in an
+          inconsistent state.
+        alternatives_rejected:
+          - name: "No E2E retries (fail immediately)"
+            reason: >
+              E2E tests have inherent transient failure modes (port conflicts, startup races, browser
+              rendering timing). Zero retries would cause unnecessary replan cycles for problems that
+              would resolve on a second attempt. The pushback log identified flakiness amplification
+              as a Major concern — zero retries makes this worse.
+            confidence: "High"
+          - name: "2 E2E retries per task"
+            reason: >
+              Two retries means 3 total attempts, consuming up to 1800s (30 minutes) of E2E time
+              for a single task. This violates NFR-1 (pipeline wall-clock under 60 minutes) for
+              features with multiple High Risk tasks. One retry provides adequate flakiness tolerance.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-13: TDD Compliance Verification (R2: secondary heuristics)
+      # ────────────────────────────────────────────────
+      - id: "D-13"
+        title: "TDD Compliance Verification — Verifier Cross-Check via Structural Analysis with Secondary Heuristics"
+        risk: "🟡"
+        rationale: >
+          The verifier independently verifies TDD compliance through structural analysis, not
+          trust of the implementer's self-reported tdd_red_green fields. Primary checks:
+          (a) test files exist and contain import statements referencing production modules
+          (grep for import/require patterns), (b) implementation report has
+          tdd_red_green.initial_run_failures > 0 and initial_run_exit_code != 0,
+          (c) behavioral_coverage maps every AC with test_method='test' to a specific test function.
+
+          R2 addition — secondary heuristics for RED phase plausibility (addresses S-1
+          pragmatic-verifier: "self-attested RED phase"):
+          (d) test count comparison: number of test functions in test files ≥ number of ACs with
+          test_method='test' (prevents empty test files passing),
+          (e) exit code plausibility: initial_run_exit_code must be non-zero AND differ from
+          final exit code (prevents fabricated "both zero" reports),
+          (f) runner consistency: test runner name in report matches detected test framework
+          in the project (e.g., pytest vs jest vs dotnet test).
+
+          Known limitation: within a single-commit model, the verifier cannot distinguish whether
+          the implementer truly wrote tests first vs. wrote them alongside production code. The
+          structural checks verify that TDD artifacts exist and are plausible, not that the exact
+          temporal order was followed. This is documented in DR-2 and is an accepted limitation
+          given the commit model constraint.
+
+          The verifier records check_name='tdd-compliance' with passed=1 only when all primary
+          checks (a-c) pass. Secondary heuristics (d-f) are logged as warnings but do not block —
+          they provide audit evidence for adversarial review to examine.
+        alternatives_rejected:
+          - name: "Trust implementer self-report (current behavior)"
+            reason: >
+              Self-attestation is insufficient per FR-1.4. The implementer could claim
+              tests_written_first=true without actually writing tests first. Independent cross-checking
+              by the verifier provides a second authority, consistent with the existing baseline
+              cross-check pattern (verifier uses git show to verify implementer baseline claims).
+            confidence: "High"
+          - name: "Git commit timestamp analysis for test-before-code ordering"
+            reason: >
+              The implementer typically commits all changes in a single git add -A, so commit
+              timestamps don't distinguish test-first vs code-first authoring order. Git diff can
+              show that both tests and production code were modified, but not the temporal order
+              within a single commit. Structural analysis (tests exist + tests import production
+              modules + red phase recorded) is more reliable.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-14: Context Governance Enforcement
+      # ────────────────────────────────────────────────
+      - id: "D-14"
+        title: "Context Governance — Elevate 200-Line read_file Limit to Mandatory"
+        risk: "🟢"
+        rationale: >
+          The current 200-line read_file limit is advisory in global-operating-rules.md. FR-7.1
+          requires elevation to mandatory. This is a documentation change — the rule text changes
+          from 'SHOULD' to 'MUST' and is moved from an advisory section to the immutable rules
+          section. Enforcement is via adversarial review (the reviewer flags violations) rather than
+          runtime tooling (VS Code doesn't restrict read_file line counts). E2E evidence must be
+          summarized (≤500 chars in SQL, full artifacts in files) per FR-7.3.
+        alternatives_rejected:
+          - name: "Keep advisory (current behavior)"
+            reason: >
+              FR-7.1 explicitly requires elevation to mandatory. Advisory rules are routinely
+              ignored under context pressure. The pushback log did not identify context governance
+              as a concern, suggesting stakeholders expect enforcement.
+            confidence: "High"
+          - name: "Runtime enforcement via tool wrapper"
+            reason: >
+              VS Code's read_file tool doesn't support custom line count limits. Runtime enforcement
+              would require a tool wrapper or MCP proxy — significant infrastructure not justified
+              for a documentation rule. Rule-based enforcement (documented + reviewed) is sufficient.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-15: Task Schema Extension
+      # ────────────────────────────────────────────────
+      - id: "D-15"
+        title: "Task Schema Extension — Additive Fields to Existing Schema 6"
+        risk: "🟢"
+        rationale: >
+          Three new optional fields added to the existing task-schema (Schema 6):
+          workflow_lane ('unit-only'|'unit-integration'|'full-tdd-e2e', required),
+          e2e_required (boolean, required, derived from workflow_lane + contract existence),
+          e2e_contract_path (string|null, required when e2e_required=true).
+          All fields have sensible defaults for backward compatibility (workflow_lane default
+          derived from risk, e2e_required default false, e2e_contract_path default null).
+          This is an additive schema change (minor version bump) per CR-5 and the schema
+          evolution policy in schemas.md. Existing tasks without these fields are treated
+          as unit-only verification.
+        alternatives_rejected:
+          - name: "New Schema 13 (e2e-task-schema)"
+            reason: >
+              Creating a separate schema for E2E-enabled tasks would split the task definition
+              across two schemas. The planner would need to choose which schema to use per task,
+              and the implementer/verifier would need to handle both formats. A single extended
+              schema is simpler.
+            confidence: "High"
+          - name: "Metadata file alongside task YAML"
+            reason: >
+              A separate e2e-metadata.yaml per task doubles the file count and adds discovery
+              overhead. The task YAML already contains risk classification, acceptance criteria,
+              and relevant_context — workflow lane and E2E fields are natural extensions.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-16: Evidence Gate Architecture (R2: EG-2/EG-10 consolidation)
+      # ────────────────────────────────────────────────
+      - id: "D-16"
+        title: "Evidence Gate Architecture — EG-2/EG-10 Consolidation with Parameterized Lane Gates"
+        risk: "🟡"
+        rationale: >
+          R2 revision addresses A-2 (architecture-guardian) and C-2 (pragmatic-verifier): the R1
+          design added EG-8, EG-9, EG-10 on top of existing EG-1 through EG-7, risking
+          orchestrator line budget overrun. R2 consolidates EG-2 (verification sufficient) and
+          EG-10 (lane-aware verification) into a single parameterized EG-10 with three lane
+          variants, eliminating the old EG-2 entirely:
+
+          EG-10(unit-only): check_name='verification-sufficient' with baseline_verified=1 AND
+          tdd_compliance=1. Replaces old EG-2 for green-risk tasks.
+
+          EG-10(unit-integration): check_name='verification-sufficient' with baseline_verified=1
+          AND tdd_compliance=1 AND integration_tests_passed=1 (Tier 3). For yellow-risk tasks.
+
+          EG-10(full-tdd-e2e): check_name='verification-sufficient' with baseline_verified=1
+          AND tdd_compliance=1 AND integration_tests_passed=1 AND e2e_completed=1 (Tier 5).
+          For red-risk tasks with E2E contracts.
+
+          Gate evaluation order becomes: EG-1 (baseline) → EG-10 (lane-aware, parameterized) →
+          EG-7 (behavioral coverage, blocking) → EG-8 (TDD compliance) → EG-9 (E2E completion,
+          when e2e_required) → EG-3 through EG-6 (review gates, unchanged).
+
+          EG-9 is enhanced with cross-checking sub-phases: suite_run_verified (Tier 5 Phase 2
+          completed), exploratory_coverage_verified (Phase 3 completed), adversarial_records_inserted
+          (Phase 4 records in DB). This addresses C-7 (pragmatic-verifier: EG-10 variants).
+
+          Orchestrator line budget analysis (addresses A-2 architecture-guardian, A-2
+          pragmatic-verifier): current orchestrator is 528 lines. Consolidating EG-2 into EG-10
+          saves ~5 lines (remove EG-2 block, replace with EG-10 parameterized dispatch). Adding
+          EG-8 costs ~4 lines, EG-9 costs ~6 lines (with sub-phases). Net addition: ~15 lines →
+          543/550 (7-line margin). The sub-wave queuing logic (D-17) adds ~8 lines but replaces
+          ~6 lines of removed sequential dispatch, net +2. Final estimate: 545/550 (5-line margin).
+          This is tight but achievable. If implementation reveals budget pressure, EG-9 sub-phase
+          checks can be moved to the verifier output (verifier reports phase completion, orchestrator
+          just reads the summary field) — saving ~3 lines.
+        alternatives_rejected:
+          - name: "Keep EG-2 separate + add EG-8/9/10 (R1 approach)"
+            reason: >
+              R1 approach adds 3 new gates without removing any, potentially consuming ~25 lines
+              in orchestrator (EG-8: 4 lines, EG-9: 6 lines, EG-10: 15 lines = 25). At 528+25=553,
+              this exceeds the 550-line cap. Consolidation is necessary. Architecture-guardian and
+              pragmatic-verifier both flagged this as Major.
+            confidence: "High"
+          - name: "Single composite gate (pass/fail only)"
+            reason: >
+              A single 'all-checks-passed' gate would not provide diagnosis of which specific
+              requirement failed. Granular gates enable the orchestrator to provide specific
+              feedback when routing NEEDS_REVISION (e.g., 'TDD compliance failed' vs 'E2E
+              suite execution failed'). Lane parameterization provides the consolidation benefit
+              without losing diagnostic granularity.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-17: E2E Concurrency Management (R2: DB isolation)
+      # ────────────────────────────────────────────────
+      - id: "D-17"
+        title: "E2E Concurrency Management — Orchestrator Sub-Wave Enforcement with DB Isolation"
+        risk: "🟡"
+        rationale: >
+          The orchestrator enforces max_concurrent_instances from the E2E contract (default 2, hard
+          cap 4) by splitting waves that exceed the E2E concurrency limit into sub-waves. Within
+          a wave of N tasks where M require E2E, if M > max_concurrent_instances, the orchestrator
+          dispatches max_concurrent_instances E2E verifiers first, then dispatches remaining E2E
+          verifiers as prior ones complete. Non-E2E verifiers are dispatched normally (up to the
+          existing 4-agent concurrency cap). E2E dispatch decisions are recorded in pipeline_telemetry.
+          This uses the existing Pattern A (parallel ≤4) framework with an additional E2E-specific
+          sub-limit.
+
+          R2 addition (addresses C-4 pragmatic-verifier: DB isolation): the E2E contract must
+          include a db_isolation_strategy field (enum: 'per-instance-db' | 'transaction-rollback' |
+          'shared-with-locking'). The dispatched verifier applies this strategy at Tier 5 Phase 1
+          (Setup). The orchestrator propagates this field in dispatch context but does NOT
+          implement isolation itself — the verifier is responsible. The e2e-integration.md
+          reference doc specifies each strategy's requirements. Default when field is absent:
+          'per-instance-db' (safest). See also D-6 (port allocation) and D-20 (browser execution).
+        alternatives_rejected:
+          - name: "Sequential E2E execution (one at a time)"
+            reason: >
+              Unnecessarily slow. If a project supports parallel instances (supports_parallel=true
+              in the contract), limiting to 1 concurrent E2E wastes the isolation infrastructure.
+              The contract's max_concurrent_instances exists specifically to allow parallel E2E.
+            confidence: "High"
+          - name: "Ignore E2E concurrency (let OS handle conflicts)"
+            reason: >
+              Port conflicts, shared database state, and file system collisions would cause
+              unpredictable failures. The pushback log identified parallel safety as a key concern.
+              Explicit concurrency management is required for reliability.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-18: Interaction Determinism Model
+      # ────────────────────────────────────────────────
+      - id: "D-18"
+        title: "Interaction Determinism — Pre-Defined Skills with No Agent Improvisation"
+        risk: "🟢"
+        rationale: >
+          All interaction steps are pre-defined in skills (NFR-8). The verifier follows steps
+          exactly as written — navigate to specific URLs, click specific selectors, fill specific
+          values, assert specific outcomes. The verifier does NOT improvise new navigation paths,
+          invent form inputs, or explore unspecified pages. This ensures reproducibility across
+          pipeline runs, prevents non-deterministic behavior, and makes failures diagnosable (the
+          failing step is identified by its order number in the skill definition). Machine-checkable
+          assertions (assert field) provide deterministic pass/fail evaluation without subjective
+          agent judgment. Human-readable expectations (expect field) are logged for human review
+          but do not determine pass/fail.
+        alternatives_rejected:
+          - name: "Agent-driven exploratory testing (agent improvises based on page content)"
+            reason: >
+              Non-deterministic. Different LLM invocations would explore different paths, making
+              failures unreproducible. An agent might miss critical paths or focus on irrelevant
+              areas. Pre-defined skills ensure consistent coverage across runs. NFR-8 explicitly
+              prohibits agent improvisation during interaction.
+            confidence: "High"
+          - name: "Hybrid (pre-defined + agent-extended exploration)"
+            reason: >
+              Adds complexity without clear benefit. If the pre-defined skills miss a path, the
+              correct response is to update the skill definition (in interactive mode) — not to
+              have the agent guess at new paths during execution. Hybrid approaches make failure
+              analysis harder because it's unclear whether a failure came from a pre-defined step
+              or an agent-improvised step.
+            confidence: "Medium"
+
+      # ════════════════════════════════════════════════
+      # NEW DECISIONS (R2) — D-19 through D-26
+      # ════════════════════════════════════════════════
+
+      # ────────────────────────────────────────────────
+      # D-19: Skill Creation Workflow
+      # ────────────────────────────────────────────────
+      - id: "D-19"
+        title: "Skill Creation Workflow — Researcher-Mediated at Step 0.5"
+        risk: "🟡"
+        rationale: >
+          Addresses C-1 (architecture-guardian: skill creation responsibility undefined).
+          Skills referenced in e2e-contract.yaml must exist before Tier 5 execution. Creation
+          happens at Step 0.5 (between spec and plan): the researcher agent examines the E2E
+          contract, identifies required skills, and generates skill YAML files in .e2e/skills/.
+          The researcher is chosen because it already has codebase analysis capability and runs
+          before planning. Skill files are version-controlled alongside the contract. The planner
+          at Step 1 can then reference existing skills when assigning workflow_lane. Skill
+          validation (schema conformance, selector existence) occurs at Step 0 contract validation
+          (see D-23). If skills are missing at Tier 5, the verifier reports NEEDS_REVISION with
+          skill_missing=true and the orchestrator re-dispatches the researcher for skill creation.
+        alternatives_rejected:
+          - name: "Implementer creates skills during implementation"
+            reason: >
+              The implementer is prohibited from E2E-related activities (FR-2.3). Skill creation
+              requires understanding of the UI structure and test objectives, which is a research
+              concern, not an implementation concern. Also, skills must exist before the verifier
+              runs Tier 5, which happens after implementation completes.
+            confidence: "High"
+          - name: "Manual skill creation by the user"
+            reason: >
+              Violates the automation goal. The pipeline should be able to operate with minimal
+              human intervention. Researcher-mediated creation keeps skills within the automated
+              pipeline while leveraging the researcher's existing codebase analysis capabilities.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-20: Browser Automation Execution Model (CRITICAL)
+      # ────────────────────────────────────────────────
+      - id: "D-20"
+        title: "Browser Automation Execution Model — Script Generation from Skill Steps"
+        risk: "🔴"
+        rationale: >
+          Addresses A-3 (architecture-guardian CRITICAL: browser execution model undefined).
+          The verifier does NOT directly invoke Playwright/Cypress APIs. Instead, it generates
+          a self-contained test script from the skill steps and executes it via run_in_terminal.
+          The execution protocol:
+          1. Verifier reads skill YAML and contract metadata.
+          2. Verifier generates a test script file (.e2e/generated/<skill-name>.spec.ts) that
+             translates each skill step into Playwright calls (navigate→page.goto, click→
+             page.click, fill→page.fill, assert→expect).
+          3. Verifier executes the generated script via the command allowlist (D-22):
+             npx playwright test <script-path> --reporter=json.
+          4. Verifier parses JSON reporter output for pass/fail per step.
+          5. Verifier captures evidence: screenshots per step, HAR network log, console output.
+
+          This script-generation model means the verifier's run_in_terminal usage is limited to
+          executing the test runner CLI — it never constructs arbitrary shell commands from skill
+          content. The generated script is a deterministic translation; the verifier does not
+          improvise beyond what the skill defines (per D-18). The script file itself serves as
+          an audit artifact.
+        alternatives_rejected:
+          - name: "Direct Playwright API calls via run_in_terminal"
+            reason: >
+              Would require the verifier to construct shell commands containing selectors,
+              URLs, and form values — creating injection surface. The script-generation model
+              isolates user-provided content inside a generated source file rather than shell
+              arguments. Security-sentinel S-1 flagged this as Critical.
+            confidence: "High"
+          - name: "MCP browser tool (e.g., Playwright MCP server)"
+            reason: >
+              MCP browser tools are not in the current tool-access-matrix and adding them would
+              require infrastructure changes (MCP server setup, protocol integration). The
+              script-generation approach uses existing run_in_terminal capability. An MCP approach
+              could be a future enhancement but is not justified for the initial implementation.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-21: E2E Contract Command Sanitization (CRITICAL)
+      # ────────────────────────────────────────────────
+      - id: "D-21"
+        title: "E2E Contract Command Sanitization — Structured Command Format"
+        risk: "🔴"
+        rationale: >
+          Addresses S-1 (security-sentinel CRITICAL: command injection via start_command).
+          The E2E contract's start_command, health_check, and teardown_command fields MUST use
+          a structured format instead of raw shell strings:
+            start_command:
+              executable: "npm"
+              args: ["run", "dev", "--", "--port", "{port}"]
+              env: { "NODE_ENV": "test" }
+          The verifier constructs the command array and passes it to run_in_terminal as a
+          single quoted command with arguments — never through shell interpolation. The {port}
+          placeholder is validated as integer in range [1024, 65535] (D-6) before substitution.
+          Additional field: start_env values are validated against a pattern allowlist
+          (alphanumeric + common path chars, no shell metacharacters ;|&`$).
+
+          This structured format eliminates shell injection because: (a) executable is matched
+          against the command allowlist (D-22), (b) args are passed as array elements (no shell
+          parsing), (c) env values are pattern-validated. The verifier MUST reject any contract
+          where executable contains path separators, spaces, or shell metacharacters.
+        alternatives_rejected:
+          - name: "Raw shell string with escaping (R1 approach)"
+            reason: >
+              Shell escaping is error-prone and varies across platforms (PowerShell vs bash vs cmd).
+              Security-sentinel S-1 rated this Critical because a malicious or malformed contract
+              could execute arbitrary commands. Structured format eliminates the class of attack.
+            confidence: "High"
+          - name: "Docker-based isolation for all E2E commands"
+            reason: >
+              Docker is not available in the VS Code agent environment. The agents run as VS Code
+              extensions with access to run_in_terminal — there is no container runtime. Structured
+              command format provides defense-in-depth without infrastructure requirements.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-22: Verifier Tier 5 Command Allowlist (CRITICAL)
+      # ────────────────────────────────────────────────
+      - id: "D-22"
+        title: "Verifier Tier 5 Command Allowlist — Regex Patterns in tool-access-matrix.md"
+        risk: "🔴"
+        rationale: >
+          Addresses S-5 (security-sentinel CRITICAL: tool access boundary undefined).
+          The verifier's run_in_terminal usage during Tier 5 is restricted to commands matching
+          a regex allowlist defined in tool-access-matrix.md §5:
+            tier5_command_allowlist:
+              - pattern: "^npx playwright test .+"
+                purpose: "Execute generated E2E test scripts"
+              - pattern: "^npm (run|start|test)"
+                purpose: "Application lifecycle management"
+              - pattern: "^node .+"
+                purpose: "Direct Node.js script execution"
+              - pattern: "^dotnet (run|test)"
+                purpose: ".NET application lifecycle"
+              - pattern: "^python -m (pytest|uvicorn|flask)"
+                purpose: "Python application lifecycle"
+              - pattern: "^curl -s .+"
+                purpose: "Health check HTTP requests"
+              - pattern: "^(kill|taskkill)"
+                purpose: "Process cleanup during teardown"
+          Commands not matching any pattern are rejected with an error logged to the interaction
+          log. The allowlist is evaluated at design time (documented) and referenced by the
+          verifier at runtime (the verifier checks its command against patterns before execution).
+          Every Tier 5 command execution is recorded in the interaction_log with: command_text,
+          matched_pattern (or 'REJECTED'), timestamp, exit_code. This provides a complete
+          audit trail per D-11.
+        alternatives_rejected:
+          - name: "Unrestricted run_in_terminal during Tier 5"
+            reason: >
+              Allows arbitrary command execution, violating the principle of least privilege.
+              Security-sentinel S-5 rated this Critical. The verifier should only execute
+              commands necessary for E2E testing — app lifecycle, test runner, health checks.
+            confidence: "High"
+          - name: "Hardcoded command list (exact match, no regex)"
+            reason: >
+              Too rigid. Commands include variable arguments (script paths, ports, project names).
+              Regex patterns allow matching the command structure while permitting necessary
+              variation in arguments. The allowlist patterns are broad enough for legitimate use
+              but narrow enough to prevent shell injection.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-23: Contract Validation at Step 0
+      # ────────────────────────────────────────────────
+      - id: "D-23"
+        title: "Contract Validation — Structural at Step 0, Runtime at Tier 5"
+        risk: "🟡"
+        rationale: >
+          Addresses C-1 (pragmatic-verifier: contract validation timing undefined).
+          Contract validation is split into two phases:
+          Phase 1 — Structural validation at Step 0 (orchestrator): schema conformance, required
+          fields present, port range valid [1024, 65535], max_concurrent_instances ≤ 4,
+          referenced skill files exist on disk, command executable in allowlist (D-22).
+          This is a fast, static check that rejects obviously invalid contracts before planning.
+
+          Phase 2 — Runtime validation at Tier 5 Phase 1 (verifier): start_command actually
+          launches the app, health_check returns expected status, app responds within
+          start_timeout, interaction_tool is installed and functional. This validates that
+          the contract's commands actually work in the current environment.
+
+          The split avoids wasting pipeline time on fundamentally broken contracts (Phase 1
+          catches them early) while acknowledging that some validity can only be determined
+          at runtime (Phase 2). See DR-3 for the deviation record explaining why this split
+          deviates from the spec's implied single-validation model.
+        alternatives_rejected:
+          - name: "All validation at Tier 5 only"
+            reason: >
+              Late validation wastes pipeline time. If the contract references a nonexistent
+              skill file, the pipeline would proceed through spec, plan, implementation, and
+              Tiers 1-4 verification before discovering the problem at Tier 5. Early structural
+              validation catches this at Step 0.
+            confidence: "High"
+          - name: "All validation at Step 0 only"
+            reason: >
+              Cannot validate runtime behavior statically. Whether the start_command actually
+              launches the app, whether the health_check endpoint responds, and whether the
+              interaction_tool is installed are only knowable at execution time. Full upfront
+              validation would give false confidence.
+            confidence: "High"
+
+      # ────────────────────────────────────────────────
+      # D-24: Verifier Internal Modularity
+      # ────────────────────────────────────────────────
+      - id: "D-24"
+        title: "Verifier Internal Modularity — Sub-Roles with Conditional Tier 5 Loading"
+        risk: "🟡"
+        rationale: >
+          Addresses A-1 (architecture-guardian: verifier SRP concern) and A-3
+          (pragmatic-verifier: verifier complexity).
+          The verifier agent file is organized into logical sub-roles rather than being split
+          into separate agents:
+            - Tier 1-2 sub-role: baseline verification, TDD compliance checking (~80 lines)
+            - Tier 3 sub-role: integration test orchestration (~30 lines)
+            - Tier 5 sub-role: E2E lifecycle management, script generation, evidence capture (~90 lines)
+
+          The Tier 5 sub-role section is loaded conditionally: its instructions are prefixed with
+          "When e2e_required=true AND workflow_lane='full-tdd-e2e':" — the verifier skips this
+          entire section for non-E2E tasks. This conditional loading means non-E2E verification
+          pays no context cost for E2E instructions (~90 lines saved from working context).
+
+          This preserves single-agent simplicity (no inter-agent coordination needed between
+          verification phases) while addressing the SRP concern through logical separation.
+          The verifier file grows to ~200 lines (current ~110 + ~90 for Tier 5) which is within
+          the typical agent file size range (implementer is ~190 lines, adversarial-reviewer is
+          ~180 lines).
+        alternatives_rejected:
+          - name: "Separate e2e-verifier agent"
+            reason: >
+              Would require orchestrator coordination between verifier and e2e-verifier, adding
+              dispatch complexity and a new agent to the pipeline. The current 9-agent system
+              already has well-defined boundaries. Adding agent #10 for a conditional feature
+              (E2E only applies when contracts exist) adds permanent complexity for an optional
+              capability. Architecture-guardian noted this concern but rated Direction C acceptable.
+            confidence: "High"
+          - name: "Single flat verifier file (no sub-role organization)"
+            reason: >
+              A 200-line flat file with interleaved Tier 1-5 instructions would be harder to
+              maintain and review. Sub-role organization with clear section headers provides
+              navigability without the overhead of agent splitting.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-25: E2E Evidence Sanitization Pipeline
+      # ────────────────────────────────────────────────
+      - id: "D-25"
+        title: "E2E Evidence Sanitization Pipeline — SQL Escape, HAR Stripping, Response Masking"
+        risk: "🔴"
+        rationale: >
+          Addresses S-2 (security-sentinel: SQL injection via evidence), S-3 (security-sentinel:
+          secrets in start_env leaked to evidence), S-4 (security-sentinel: evidence artifact
+          size/content uncontrolled), and S-2 (pragmatic-verifier: evidence authenticity).
+
+          All E2E evidence passes through a sanitization pipeline before SQL insertion or
+          file storage:
+          1. SQL escaping: all string values use sql_escape() (replace ' with '') before
+             insertion into pipeline_telemetry. This is mandatory for ALL free-text fields
+             including interaction_log entries, error messages, and assertion results.
+          2. HAR log stripping: Authorization headers, Cookie headers, and Set-Cookie headers
+             are replaced with '[REDACTED]' before storage. Request/response bodies larger
+             than 10KB are truncated with '[TRUNCATED at 10KB]'.
+          3. Response masking: screenshot file paths are validated (must be within .e2e/evidence/
+             directory, no path traversal). Console output is capped at 5KB per step.
+          4. start_env scrubbing: environment variable values matching common secret patterns
+             (API_KEY, SECRET, TOKEN, PASSWORD, CREDENTIAL) are replaced with '[REDACTED]'
+             in all evidence artifacts. The pattern list is defined in e2e-integration.md.
+
+          Evidence authenticity: the verifier generates a SHA-256 hash of the evidence manifest
+          (list of artifact paths + sizes) and records it in the verification report. The
+          adversarial reviewer can verify manifest integrity by recomputing the hash.
+        alternatives_rejected:
+          - name: "No sanitization (trust evidence content)"
+            reason: >
+              E2E evidence includes content from the application under test (HTML, console logs,
+              network traffic). This content is not under pipeline control and could contain
+              SQL injection payloads, secrets, or excessive data. Security-sentinel rated
+              evidence sanitization concerns as Critical/Major across three findings.
+            confidence: "High"
+          - name: "Store evidence only in files (skip SQL entirely)"
+            reason: >
+              Pipeline telemetry queries (e.g., 'show all failed E2E interactions across features')
+              require SQL-queryable data. File-only storage would require parsing evidence files
+              for every query. The hybrid approach (summary in SQL, full artifacts in files) is
+              already established in the pipeline's evidence pattern.
+            confidence: "Medium"
+
+      # ────────────────────────────────────────────────
+      # D-26: Per-Variation Adversarial SQL Records
+      # ────────────────────────────────────────────────
+      - id: "D-26"
+        title: "Per-Variation Adversarial SQL Records — Individual + Composite with Index"
+        risk: "🟡"
+        rationale: >
+          Addresses C-2 (pragmatic-verifier: per-variation SQL records needed for AC-11).
+          AC-11 requires that each adversarial variation has an individual SQL record. R2 design:
+          (a) Each Tier 5 Phase 4 (Adversarial) variation is recorded as a separate row in
+          pipeline_telemetry with check_name='e2e-adversarial-<variation-name>' and the specific
+          result (passed/failed/skipped). (b) A composite summary record with
+          check_name='e2e-adversarial-summary' aggregates all variations (total, passed, failed).
+          (c) SQL template includes composite index on (run_id, task_id, check_name) for
+          efficient querying of adversarial results per task.
+
+          The sql_escape() function (D-25) MUST be applied to variation-name before constructing
+          check_name to prevent SQL injection via crafted variation names in skill YAML.
+          Variation names are additionally validated: alphanumeric + hyphens only, max 50 chars.
+        alternatives_rejected:
+          - name: "Single summary record only"
+            reason: >
+              AC-11 specifically requires per-variation records. A summary-only approach would
+              make it impossible to identify which specific adversarial variation failed without
+              reading the full evidence files. Per-variation SQL records enable direct query:
+              SELECT * FROM pipeline_telemetry WHERE check_name LIKE 'e2e-adversarial-%'.
+            confidence: "High"
+          - name: "JSON blob in single SQL record"
+            reason: >
+              Storing variations as a JSON blob defeats the purpose of SQL-queryable telemetry.
+              Individual records are directly queryable, sortable, and filterable using standard
+              SQL. JSON extraction in SQLite (json_extract) is less ergonomic and not consistently
+              used elsewhere in the pipeline.
+            confidence: "Medium"
+
+    # ═══════════════════════════════════════════════════════
+    # DEVIATION RECORDS
+    # ═══════════════════════════════════════════════════════
+    deviation_records:
+      - id: "DR-1"
+        spec_requirement: "FR-4.6"
+        deviation: >
+          The design does not fully subsume Step 6a (Runtime Smoke Test — bugfix-only). Instead,
+          Step 6a remains as-is for bugfix features that lack an E2E contract. E2E Tier 5
+          verification replaces Step 6a's function only when an E2E contract exists and the task
+          is in the full-tdd-e2e workflow lane.
+        rationale: >
+          Completely removing Step 6a would break existing bugfix workflows for projects without
+          E2E contracts. The spec says Step 6a 'becomes E2E verification driven by the E2E contract',
+          but graceful degradation (CR-5) requires the old behavior to persist when no contract exists.
+          This deviation is a superset: E2E Tier 5 replaces Step 6a when available, Step 6a remains
+          as fallback when E2E contract is absent.
+
+      - id: "DR-2"
+        spec_requirement: "FR-1.4"
+        deviation: >
+          The design uses structural analysis (test files import production modules, red phase
+          recorded) rather than git diff temporal ordering to verify TDD compliance. The spec
+          mentions 'cross-check against git diff showing test files committed before or alongside
+          production files', but the design verifies test-module-imports + red-phase-evidence
+          instead of commit ordering.
+        rationale: >
+          Git commit timestamps within a single implementer session don't reliably distinguish
+          test-first from code-first authoring order because all changes are committed in a single
+          git add -A operation. Structural analysis (test imports production code + red phase had
+          failures > 0) provides equivalent confidence that TDD was followed without depending on
+          commit timing artifacts. See Decision D-13 for full rationale.
+
+      - id: "DR-3"
+        spec_requirement: "FR-4.1"
+        deviation: >
+          Contract validation is split into two phases (structural at Step 0, runtime at Tier 5)
+          rather than the spec's implied single-point validation. The spec says 'orchestrator
+          discovers and validates the E2E contract' — this design splits that into orchestrator
+          structural validation (Step 0) and verifier runtime validation (Tier 5 Phase 1).
+        rationale: >
+          Some contract properties (schema conformance, file existence, port range) are statically
+          checkable and should fail fast at Step 0. Other properties (command actually works,
+          health check responds, interaction tool installed) require runtime execution to validate.
+          A single-phase approach would either validate too late (all at Tier 5) or give false
+          confidence (all at Step 0). See Decision D-23 for full rationale.
+
+    # ═══════════════════════════════════════════════════════
+    # AGENT MODIFICATION MAP (R2: expanded)
+    # ═══════════════════════════════════════════════════════
+    agent_modification_map:
+      - agent: "verifier"
+        file: "verifier.agent.md"
+        changes:
+          - "Add Tier 5 E2E Verification section with 5-phase lifecycle (Setup, Suite, Exploratory, Adversarial, Teardown)"
+          - "Add Tier 5 gated on workflow_lane='full-tdd-e2e' AND e2e_required=true"
+          - "Add TDD compliance check (check_name='tdd-compliance') in Tier 2 for code tasks"
+          - "Add secondary TDD heuristics (test count, exit code plausibility, runner consistency) — D-13 R2"
+          - "Add behavioral coverage promotion from INFORMATIONAL to BLOCKING for code tasks"
+          - "Add interaction_log structure for step-by-step E2E evidence"
+          - "Add evidence manifest generation with SHA-256 hash at Tier 5 teardown — D-25"
+          - "Add script-generation execution model: generate .spec.ts from skill steps, execute via runner CLI — D-20"
+          - "Add command allowlist check before every run_in_terminal in Tier 5 — D-22"
+          - "Expand run_in_terminal usage rules: commands must match tier5_command_allowlist regex patterns — D-22"
+          - "Add PID tracking for app processes and interaction tool processes with force-kill on timeout"
+          - "Add evidence sanitization pipeline: sql_escape, HAR stripping, response masking, env scrubbing — D-25"
+          - "Add conditional Tier 5 section gated by e2e_required (sub-role organization) — D-24"
+          - "Reference e2e-integration.md for E2E coordination rules, contract schema, skills schema, interaction protocol"
+        risk: "🔴"
+
+      - agent: "implementer"
+        file: "implementer.agent.md"
+        changes:
+          - "Replace existing TDD Steps 4-6 with mandatory RED-GREEN-VERIFY cycle"
+          - "Add verify_phase fields (get_errors_clean, typecheck_clean, tests_passing) to TDD step"
+          - "Tighten TDD Fallback with strict criteria (not code + no production files + doc/config only)"
+          - "Add tdd_fallback_reason mandatory recording when TDD is skipped"
+          - "Add explicit prohibition of app startup, E2E runner execution, browser launch, live HTTP requests"
+          - "Add test writing guidelines (behavior-not-implementation, public interfaces only, no test-only hooks)"
+        risk: "🔴"
+
+      - agent: "orchestrator"
+        file: "orchestrator.agent.md"
+        changes:
+          - "Add E2E contract discovery at Step 0 (check for e2e-contract.yaml at project root or .e2e/contract.yaml)"
+          - "Add Step 0 structural contract validation (schema, required fields, port range, allowlist) — D-23"
+          - "Add contract path propagation to downstream agents via dispatch context"
+          - "Consolidate EG-2 into parameterized EG-10 with three lane variants — D-16 R2"
+          - "Add EG-8 (TDD compliance), EG-9 (E2E completion with sub-phases) — D-16"
+          - "Add E2E concurrency management with DB isolation strategy propagation — D-17 R2"
+          - "Promote EG-7 (behavioral coverage) from INFORMATIONAL to BLOCKING for code tasks"
+          - "Add reference to e2e-integration.md for E2E coordination rules"
+          - "Net line addition: ~15 lines (543/550 target) — D-16 R2 budget analysis"
+        risk: "🔴"
+
+      - agent: "researcher"
+        file: "researcher.agent.md"
+        changes:
+          - "Add Step 0.5 skill creation workflow: examine E2E contract, generate skill YAML files — D-19"
+          - "Add skill file generation rules (deterministic selectors, assertion format, step ordering)"
+        risk: "🟡"
+
+      - agent: "planner"
+        file: "planner.agent.md"
+        changes:
+          - "Add workflow_lane field derivation logic (🟢→unit-only, 🟡→unit-integration, 🔴→full-tdd-e2e)"
+          - "Add e2e_required boolean computation (workflow_lane='full-tdd-e2e' AND contract exists)"
+          - "Add e2e_contract_path field propagation from orchestrator dispatch context"
+          - "Update task schema example to include new fields"
+        risk: "🟡"
+
+      - agent: "adversarial-reviewer"
+        file: "adversarial-reviewer.agent.md"
+        changes:
+          - "Add TDD compliance review dimension to correctness category"
+          - "Add test writing guideline enforcement (behavior-not-implementation, no internals, no test-only hooks)"
+          - "Add E2E interaction quality review (interaction log completeness, evidence capture, step coverage)"
+          - "Add YAGNI/KISS/DRY violation detection rules"
+          - "Add context governance violation flagging (read_file > 200 lines)"
+          - "Add evidence manifest hash verification capability — D-25"
+          - "Add command audit trail review (verify all Tier 5 commands matched allowlist) — D-22"
+        risk: "🟡"
+
+      - agent: "e2e-integration-reference"
+        file: "e2e-integration.md"
+        changes:
+          - "New file: E2E reference document (~500 lines)"
+          - "Contract schema specification with structured command format — D-21"
+          - "Skills schema specification with step types and assertion format"
+          - "Interaction protocol (script-generation model) — D-20"
+          - "Command allowlist patterns (canonical copy, referenced by verifier) — D-22"
+          - "Evidence sanitization rules (sql_escape, HAR stripping, env scrubbing) — D-25"
+          - "DB isolation strategies (per-instance-db, transaction-rollback, shared-with-locking) — D-17"
+          - "Trust level definitions for contract content — D-3"
+        risk: "🔴"
+
+      - agent: "tool-access-matrix"
+        file: "tool-access-matrix.md"
+        changes:
+          - "Add §5 tier5_command_allowlist regex patterns — D-22"
+          - "Document verifier Tier 5 run_in_terminal expansion scope"
+        risk: "🟡"
+
+    # ═══════════════════════════════════════════════════════
+    # REVISION HISTORY (R2)
+    # ═══════════════════════════════════════════════════════
+    revision_history:
+      revision_round: 2
+      reviewers:
+        - "security-sentinel"
+        - "architecture-guardian"
+        - "pragmatic-verifier"
+      findings_summary:
+        total: 33
+        by_severity:
+          critical: 3
+          major: 18
+          minor: 12
+        addressed: 33
+        deferred: 0
+      finding_resolutions:
+        # ── CRITICAL (all resolved) ──
+        - finding: "S-1 (security-sentinel): Command injection via start_command"
+          severity: "Critical"
+          resolution: "D-21 structured command format + D-22 command allowlist"
+          decisions: ["D-21", "D-22"]
+
+        - finding: "S-5 (security-sentinel): Tool access boundary undefined for Tier 5"
+          severity: "Critical"
+          resolution: "D-22 regex command allowlist in tool-access-matrix.md + D-11 updated to reference allowlist"
+          decisions: ["D-22", "D-11"]
+
+        - finding: "A-3 (architecture-guardian): Browser execution model undefined"
+          severity: "Critical"
+          resolution: "D-20 script-generation execution model with deterministic translation from skill steps"
+          decisions: ["D-20"]
+
+        # ── MAJOR (all resolved) ──
+        - finding: "S-2 (security-sentinel): SQL injection via E2E evidence"
+          severity: "Major"
+          resolution: "D-25 evidence sanitization pipeline with mandatory sql_escape()"
+          decisions: ["D-25"]
+
+        - finding: "S-3 (security-sentinel): Secrets in start_env leaked to evidence"
+          severity: "Major"
+          resolution: "D-25 env scrubbing with secret pattern matching"
+          decisions: ["D-25"]
+
+        - finding: "S-4 (security-sentinel): Evidence artifact size/content uncontrolled"
+          severity: "Major"
+          resolution: "D-25 HAR stripping (10KB body limit), console output cap (5KB/step), screenshot path validation"
+          decisions: ["D-25"]
+
+        - finding: "A-1 (security-sentinel): Contract trust boundary"
+          severity: "Major"
+          resolution: "D-3 trust levels (trusted/semi-trusted/untrusted) + D-23 two-phase validation"
+          decisions: ["D-3", "D-23"]
+
+        - finding: "A-2 (security-sentinel): Verifier as process manager"
+          severity: "Major"
+          resolution: "D-5 PID persistence, explicit lifecycle per phase, force-kill on timeout"
+          decisions: ["D-5"]
+
+        - finding: "C-1 (security-sentinel): Hollow test detection"
+          severity: "Major"
+          resolution: "D-13 secondary heuristics (test count, exit code plausibility, runner consistency)"
+          decisions: ["D-13"]
+
+        - finding: "C-2 (security-sentinel): Composite gate single point of failure"
+          severity: "Major"
+          resolution: "D-16 EG-2/EG-10 consolidation with parameterized lane variants"
+          decisions: ["D-16"]
+
+        - finding: "S-1 (architecture-guardian): Trust boundary crossing"
+          severity: "Major"
+          resolution: "D-3 trust level annotations + D-23 structural validation at Step 0"
+          decisions: ["D-3", "D-23"]
+
+        - finding: "A-1 (architecture-guardian): Verifier SRP violation"
+          severity: "Major"
+          resolution: "D-24 sub-role organization with conditional Tier 5 loading"
+          decisions: ["D-24"]
+
+        - finding: "A-2 (architecture-guardian): Orchestrator line budget risk"
+          severity: "Major"
+          resolution: "D-16 EG-2/EG-10 consolidation, explicit budget: 543/550 (7-line margin)"
+          decisions: ["D-16"]
+
+        - finding: "A-4 (architecture-guardian): Context pressure from e2e-integration.md"
+          severity: "Major"
+          resolution: "D-2 per-agent reading guide in e2e-integration.md, ~500 line estimate with conditional loading"
+          decisions: ["D-2"]
+
+        - finding: "C-1 (architecture-guardian): Skill creation responsibility undefined"
+          severity: "Major"
+          resolution: "D-19 researcher-mediated skill creation at Step 0.5"
+          decisions: ["D-19"]
+
+        - finding: "C-2 (architecture-guardian): Evidence gate budget analysis missing"
+          severity: "Major"
+          resolution: "D-16 explicit line budget analysis (net +15 → 543/550)"
+          decisions: ["D-16"]
+
+        - finding: "S-1 (pragmatic-verifier): RED phase self-attested"
+          severity: "Major"
+          resolution: "D-13 secondary heuristics for RED phase plausibility"
+          decisions: ["D-13"]
+
+        - finding: "A-1 (pragmatic-verifier): Browser lifecycle per-phase undefined"
+          severity: "Major"
+          resolution: "D-5 explicit browser lifecycle per Tier 5 phase + D-20 script-generation model"
+          decisions: ["D-5", "D-20"]
+
+        - finding: "A-2 (pragmatic-verifier): Orchestrator budget risk"
+          severity: "Major"
+          resolution: "D-16 consolidation analysis (same as architecture-guardian A-2)"
+          decisions: ["D-16"]
+
+        - finding: "C-1 (pragmatic-verifier): Contract validation timing"
+          severity: "Major"
+          resolution: "D-23 two-phase validation (structural at Step 0, runtime at Tier 5) + DR-3"
+          decisions: ["D-23"]
+
+        - finding: "C-2 (pragmatic-verifier): Per-variation SQL records needed"
+          severity: "Major"
+          resolution: "D-26 per-variation adversarial SQL records + composite index"
+          decisions: ["D-26"]
+
+        - finding: "C-3 (pragmatic-verifier): Lane-to-tier mapping ambiguous"
+          severity: "Major"
+          resolution: "D-8 explicit lane-to-tier gating table (unit-only→T1-2, unit-integration→T1-3, full-tdd-e2e→T1-4+T5)"
+          decisions: ["D-8"]
+
+        - finding: "C-4 (pragmatic-verifier): DB isolation unspecified"
+          severity: "Major"
+          resolution: "D-6 db_isolation_strategy field + D-17 propagation in dispatch context"
+          decisions: ["D-6", "D-17"]
+
+        # ── MINOR (all addressed) ──
+        - finding: "S-6 (security-sentinel): Port range open to low ports"
+          severity: "Minor"
+          resolution: "D-6 port range validation [1024, 65535] with exhaustion check"
+          decisions: ["D-6"]
+
+        - finding: "S-7 (security-sentinel): External URL unrestricted"
+          severity: "Minor"
+          resolution: "D-20 script-generation model restricts navigation to health_check-derived URLs"
+          decisions: ["D-20"]
+
+        - finding: "S-2 (architecture-guardian): Command validation level"
+          severity: "Minor"
+          resolution: "D-22 regex allowlist provides validation beyond basic sanitization"
+          decisions: ["D-22"]
+
+        - finding: "A-5 (architecture-guardian): e2e-integration.md scope"
+          severity: "Minor"
+          resolution: "D-2 per-agent reading guide sections, clear scope boundaries"
+          decisions: ["D-2"]
+
+        - finding: "A-6 (architecture-guardian): SQL template growth"
+          severity: "Minor"
+          resolution: "D-7 per-variation records with composite index, sql_escape mandatory"
+          decisions: ["D-7", "D-26"]
+
+        - finding: "C-3 (architecture-guardian): Dual verification paths"
+          severity: "Minor"
+          resolution: "D-8 lane-to-tier table makes paths explicit, not implicit"
+          decisions: ["D-8"]
+
+        - finding: "S-2 (pragmatic-verifier): Evidence authenticity"
+          severity: "Minor"
+          resolution: "D-25 SHA-256 evidence manifest hash"
+          decisions: ["D-25"]
+
+        - finding: "S-3 (pragmatic-verifier): Secrets in capture"
+          severity: "Minor"
+          resolution: "D-25 env scrubbing with secret pattern matching"
+          decisions: ["D-25"]
+
+        - finding: "C-5 (pragmatic-verifier): skip_remaining semantics"
+          severity: "Minor"
+          resolution: "D-5 phase ordering with explicit skip semantics (Tier 5 pass → skip Step 6a)"
+          decisions: ["D-5"]
+
+        - finding: "C-6 (pragmatic-verifier): Timeout arithmetic"
+          severity: "Minor"
+          resolution: "D-9 per-phase timeout note with realistic budget example (460s)"
+          decisions: ["D-9"]
+
+        - finding: "C-7 (pragmatic-verifier): EG-10 variants"
+          severity: "Minor"
+          resolution: "D-16 three EG-10 lane variants + EG-9 sub-phase cross-checking"
+          decisions: ["D-16"]
+
+        - finding: "C-8 (pragmatic-verifier): Step retry semantics per interaction type"
+          severity: "Minor"
+          resolution: "D-5 per-interaction-type notes (no retry for assertion failures, retry for transient navigation)"
+          decisions: ["D-5"]
+
+        - finding: "A-3 (pragmatic-verifier): Verifier complexity"
+          severity: "Minor"
+          resolution: "D-24 sub-role organization with conditional loading"
+          decisions: ["D-24"]
+
+completion:
+  status: "DONE"
+  summary: "R2 revision complete: 26 decisions (18 updated + 8 new), 3 deviation records, 1 new file, 13 modified files, 5 unchanged files. All 3 Critical and 18 Major findings addressed. Direction C — Hybrid Extended Verifier + Reference Document with script-generation execution model, command allowlist, parameterized evidence gates, and evidence sanitization pipeline."
+  severity: null
+  findings_count: 0
+  risk_level: "🟡"
+  revision_round: 2
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+    - "docs/feature/tdd-e2e-enforcement/design.md"

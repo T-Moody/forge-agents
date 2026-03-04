@@ -1,0 +1,1196 @@
+agent_output:
+  agent: "spec"
+  instance: "spec"
+  step: "step-2"
+  started_at: "2026-03-04T01:50:00Z"
+  completed_at: "2026-03-04T04:15:00Z"
+  schema_version: "1.0"
+  run_id: "2026-03-04T00:00:00Z"
+  feature_slug: "tdd-e2e-enforcement"
+  revision: 2
+  revision_reason: "User clarification — E2E means agents LITERALLY run and interact with the application (browser, API, CLI), not just execute pre-written test suites"
+  payload:
+    feature_name: "TDD & E2E Testing Enforcement"
+
+    # ─────────────────────────────────────────────
+    # PUSHBACK LOG
+    # ─────────────────────────────────────────────
+    pushback_log:
+      concerns_identified: 5
+      mode: "interactive"
+      auto_selected: false
+      selected_option: "proceed"
+      concerns:
+        - severity: "Major"
+          title: "Orchestrator line budget risk"
+          description: >
+            The orchestrator is at 528/550 lines. Adding E2E routing logic, workflow lane enforcement,
+            and E2E instance lifecycle management will likely exceed the 550-line cap. Extraction of
+            E2E coordination rules into a reference document (e.g., e2e-integration.md) is required.
+          recommendation: "Designer must extract E2E coordination rules into a reference document consumed by the orchestrator."
+        - severity: "Major"
+          title: "E2E flakiness amplification in feedback loops"
+          description: >
+            A flaky E2E test triggers verifier NEEDS_REVISION → planner replan → implementer re-implement
+            → verifier re-verify → E2E retest. One flaky test can consume 3 full Pattern B iterations.
+            Exploratory interaction is inherently more flaky than scripted test suites due to timing,
+            rendering, and dynamic content variability.
+          recommendation: "Define E2E-specific retry rules: max 1 E2E re-run before escalating as a known flaky test. Exploratory interaction steps must have configurable timeouts and retry-at-step capability."
+        - severity: "Major"
+          title: "Pipeline wall-clock time increase (3-8x for verification stage)"
+          description: >
+            Exploratory/adversarial interaction adds significant overhead beyond running a test suite.
+            Each interaction procedure involves multiple steps (navigate, fill, click, assert, screenshot).
+            For features with 5+ High Risk tasks, E2E could add 15-60 minutes to the pipeline.
+          recommendation: "Enforce hard E2E timeout per task (max 10 minutes total including both suite and exploratory). Risk-based lanes ensure only High Risk tasks pay the E2E cost."
+        - severity: "Major"
+          title: "Blast radius — 14 of 18 agent system files require modification"
+          description: >
+            This feature touches nearly every file in the agent system. The user acknowledges this
+            ('massive change, okay to delete/update/add'). Phased implementation is recommended.
+          recommendation: "Planner should decompose into phases: TDD strengthening → E2E contract/infrastructure → E2E verification + exploratory interaction → polish/enhancements."
+        - severity: "Critical"
+          title: "Exploratory interaction requires sophisticated tool access for verifier"
+          description: >
+            The verifier must now use browser automation (Playwright), HTTP clients (fetch/curl),
+            and CLI interaction tools — not just run a single test command. This requires expanded
+            tool access and careful sandboxing. The verifier must interpret dynamic responses,
+            take screenshots, parse HTML/JSON, and make judgments about pass/fail from observed
+            behavior rather than exit codes alone.
+          recommendation: "Define a clear interaction tool abstraction layer in the E2E contract. Skills must include explicit expected-behavior assertions so the verifier can determine pass/fail deterministically without subjective judgment."
+
+    # ─────────────────────────────────────────────
+    # ARCHITECTURAL DIRECTIONS
+    # ─────────────────────────────────────────────
+    directions:
+      - id: "A"
+        name: "Extend Existing Verifier"
+        summary: >
+          Add E2E verification capability directly into verifier.agent.md as a new Tier 5 in the
+          existing 4-tier cascade. Verifier manages app lifecycle, executes E2E test suites,
+          AND performs skill-defined exploratory interaction. Smallest file-count change but
+          increases verifier complexity significantly — now requires browser automation and
+          HTTP client tool access.
+      - id: "B"
+        name: "Dedicated E2E Agent"
+        summary: >
+          Create a new e2e-tester.agent.md with specialized E2E responsibility dispatched by the
+          orchestrator after standard verification passes. E2E agent has full browser/API/CLI
+          interaction capability. Cleanest separation of concerns but adds a 10th agent type,
+          new schema, and increased dispatch complexity.
+      - id: "C"
+        name: "Hybrid — Extended Verifier + Reference Document"
+        summary: >
+          Extend verifier with E2E execution AND exploratory interaction capability but extract
+          E2E coordination rules, contract schema, interaction protocol, and safety rules into
+          a new reference document (e2e-integration.md). Keeps agent count at 9, manages verifier
+          complexity via reference extraction, and keeps orchestrator within line budget.
+
+    # ─────────────────────────────────────────────
+    # COMMON REQUIREMENTS
+    # ─────────────────────────────────────────────
+    common_requirements:
+      - id: "CR-1"
+        text: "All agent outputs MUST include schema_version: '1.0' in the common header."
+        priority: "must"
+      - id: "CR-2"
+        text: "Testing is the primary proof of completion. No task is DONE without passing all required verification checks for its workflow lane."
+        priority: "must"
+      - id: "CR-3"
+        text: "No silent failures. All errors, test failures, and E2E outcomes MUST be recorded as SQL INSERTs into anvil_checks and surfaced in verification reports."
+        priority: "must"
+      - id: "CR-4"
+        text: "The system MUST be framework-agnostic. Agents MUST NOT assume any specific test framework (Playwright, Cypress, etc.) — they MUST consult the E2E contract for runner, interaction tools, and configuration."
+        priority: "must"
+      - id: "CR-5"
+        text: "All schema changes MUST be backward-compatible (additive only). New fields MUST have sensible defaults. Projects without E2E contracts MUST degrade gracefully to unit-only verification."
+        priority: "must"
+      - id: "CR-6"
+        text: "All feedback loops involving E2E MUST respect existing bounded iteration limits (implementation-verification max 3, code review max 2, design revision max 1)."
+        priority: "must"
+      - id: "CR-7"
+        text: "Secrets, credentials, and sensitive data MUST NOT appear in E2E contracts, skills definitions, interaction logs, or evidence artifacts."
+        priority: "must"
+      - id: "CR-8"
+        text: "E2E contracts and skills MUST be machine-readable YAML and version-controlled alongside the target application code."
+        priority: "must"
+      - id: "CR-9"
+        text: "E2E testing encompasses BOTH running pre-written test suites AND performing skill-defined exploratory/adversarial interaction with the live application. Both modes are required for High Risk tasks when skills are defined."
+        priority: "must"
+
+    # ─────────────────────────────────────────────
+    # FUNCTIONAL REQUIREMENTS
+    # ─────────────────────────────────────────────
+    functional_requirements:
+      # ── Section 1: Mandatory TDD ──
+      - id: "FR-1"
+        text: "Mandatory TDD — Red-Green-Verify Cycle Enforcement"
+        sub_requirements:
+          - id: "FR-1.1"
+            text: >
+              The implementer MUST execute a 3-phase TDD cycle for all code tasks:
+              RED — Write failing tests FIRST and confirm they FAIL (exit code ≠ 0).
+              GREEN — Write the MINIMAL code required to pass tests (YAGNI) and confirm they PASS.
+              VERIFY — Run get_errors, typecheck, unit tests, and failure mode mitigations sequentially.
+          - id: "FR-1.2"
+            text: >
+              The implementer MUST record structured TDD evidence in the implementation report:
+              tdd_red_green.tests_written_first (boolean), tdd_red_green.initial_run_failures (integer > 0 required for code tasks),
+              tdd_red_green.initial_run_exit_code (integer ≠ 0 required for code tasks),
+              tdd_red_green.verify_phase (object with get_errors_clean, typecheck_clean, tests_passing fields).
+          - id: "FR-1.3"
+            text: >
+              The TDD Fallback MUST be tightened. TDD is skippable ONLY when ALL of the following are true:
+              (a) task_type is NOT 'code', AND (b) no production source files are modified, AND
+              (c) only documentation, configuration, or non-runtime files change. The implementer MUST
+              record the specific fallback reason when TDD is skipped.
+          - id: "FR-1.4"
+            text: >
+              The verifier MUST independently verify TDD compliance by checking:
+              (a) test files exist and import production modules, (b) tdd_red_green.initial_run_failures > 0
+              in the implementation report (not self-attestation — cross-check against git diff showing
+              test files committed before or alongside production files), (c) behavioral_coverage maps every
+              acceptance criterion with test_method='test' to a test function.
+          - id: "FR-1.5"
+            text: >
+              TDD compliance evidence MUST be recorded as a SQL INSERT into anvil_checks with
+              check_name='tdd-compliance'. This check MUST be blocking (passed=1 required) for all
+              code tasks. The existing EG-7 (behavioral coverage, currently INFORMATIONAL) MUST be
+              promoted to a blocking gate for code tasks.
+          - id: "FR-1.6"
+            text: >
+              Test writing guidelines MUST be enforced: tests MUST test behavior not implementation details,
+              tests MUST NOT test what the type system guarantees, tests MUST use only public interfaces,
+              tests MUST NOT expose internals or create test-only hooks. The adversarial reviewer MUST check
+              for violations of these guidelines as part of the correctness review dimension.
+          - id: "FR-1.7"
+            text: >
+              Code quality rules (YAGNI, KISS, DRY, prefer functional patterns, lint compatibility,
+              no TODO/TBD in final code) MUST be verified by the verifier (lint check) and adversarial
+              reviewer (code quality review dimension).
+
+      # ── Section 2: E2E Contract Schema ──
+      - id: "FR-2"
+        text: "Dynamic E2E Contract Schema"
+        sub_requirements:
+          - id: "FR-2.1"
+            text: >
+              A new typed YAML schema (E2E Contract) MUST be defined in schemas.md. The contract MUST include:
+              App Lifecycle fields — app_type (web|api|cli|desktop|library), start_command (string),
+              start_env (map), ready_check (URL or command), ready_timeout_ms (integer, default 30000),
+              base_url (string), shutdown_command (string|null), shutdown_timeout_ms (integer, default 10000).
+              Port Management fields — default_port (integer), port_env_var (string), port_range_start (integer).
+              Runner fields — e2e_runner (string, e.g. playwright|cypress|custom|none), e2e_command (string|null),
+              e2e_config_path (string|null), e2e_env (map).
+              Parallelism fields — supports_parallel (boolean), requires_isolated_instance (boolean),
+              max_concurrent_instances (integer, default 2, max 4).
+              Evidence fields — screenshot_on_failure (boolean, default true), trace_on_failure (boolean, default true),
+              video_recording (boolean, default false), har_capture (boolean, default false for API apps),
+              evidence_output_dir (string, default '.e2e-evidence/').
+              Skills fields — skills (list of skill references), skill_discovery_path (string|null).
+          - id: "FR-2.2"
+            text: >
+              The E2E contract MUST specify the interaction capabilities required for exploratory testing:
+              interaction_type (browser|api|cli|none) — what type of live interaction the app supports.
+              interaction_tools — a map specifying the tool requirements:
+                browser: { tool: 'playwright'|'puppeteer'|'custom', install_command: string|null }
+                api: { tool: 'curl'|'fetch'|'custom', base_headers: map|null, auth_setup: string|null }
+                cli: { tool: 'terminal', shell: string|null, working_dir: string|null }
+              readiness_checks — a list of checks the verifier runs before interaction begins:
+                each with { type: 'http'|'tcp'|'command', target: string, expect: string|null, timeout_ms: integer }.
+              evidence_capture — methods for capturing proof of interaction:
+                screenshots (boolean), har_files (boolean), response_logs (boolean), console_logs (boolean),
+                video (boolean), dom_snapshots (boolean).
+          - id: "FR-2.3"
+            text: >
+              The E2E contract file MUST reside in the target project at a discoverable location
+              (e2e-contract.yaml at project root or .e2e/contract.yaml). The pipeline MUST discover
+              the contract at Step 0 (setup) and propagate its path to downstream agents.
+          - id: "FR-2.4"
+            text: >
+              When no E2E contract exists: in interactive mode, the pipeline MUST prompt the user to
+              create one (via ask_questions), including selecting interaction_type and configuring
+              interaction tools. In autonomous mode, the pipeline MUST skip E2E enforcement
+              with a documented reason in pipeline_telemetry and proceed with unit-only verification.
+          - id: "FR-2.5"
+            text: >
+              The E2E contract MUST be validated at discovery time. Validation checks: all required fields
+              present, start_command is a non-empty string, ready_check is a valid URL or command,
+              interaction_type matches app_type compatibility (web→browser, api→api, cli→cli),
+              interaction_tools match interaction_type, port values are valid integers.
+              Validation failures MUST be recorded as check_name='e2e-contract-validation' with passed=0.
+
+      # ── Section 2b: E2E Skills Schema — Interaction Procedures ──
+      - id: "FR-3"
+        text: "E2E Skills Schema — Reusable Interaction & Test Procedures"
+        sub_requirements:
+          - id: "FR-3.1"
+            text: >
+              A formal E2E Skills Schema MUST be defined as a typed YAML schema. Each skill MUST include:
+              id (string, e.g. 'SKILL-001'), name (string), description (string),
+              type ('test-suite'|'exploratory'|'adversarial') — distinguishing pre-written test execution
+              from agent-driven interactive exploration.
+              interaction (string: 'browser'|'api'|'cli'|'test-command') — what mode of interaction this skill uses.
+              app_type_filter (list of app_type values the skill applies to, or ['*'] for all),
+              preconditions (list of strings — conditions that must be true before the skill runs),
+              steps (ordered list of interaction step objects — the core of the skill),
+              expected_outcomes (list of outcome assertions for the overall skill),
+              adversarial_variations (list of adversarial variation objects),
+              tags (list of strings for categorization),
+              timeout_ms (integer, default 60000 — max time for the entire skill).
+          - id: "FR-3.2"
+            text: >
+              Skill types define the interaction mode:
+              'test-suite' — skill runs a pre-written test command (e.g., npx playwright test). Steps are
+              limited to: run_command, assert_exit_code, capture_output.
+              'exploratory' — skill drives agent to interactively navigate/use the application. Steps include
+              browser actions (navigate, click, fill, submit, scroll, hover, wait_for, assert_visible,
+              assert_text, screenshot) or API actions (http_request, assert_status, assert_body,
+              assert_header) or CLI actions (run_command, send_input, assert_output, assert_exit_code).
+              'adversarial' — same as exploratory but specifically designed to try to break things
+              (malformed input, injection attacks, boundary values, auth bypass attempts, race conditions).
+          - id: "FR-3.3"
+            text: >
+              Each interaction step MUST include:
+              order (integer — execution sequence),
+              action (string — the action to perform),
+              target (string — CSS selector, URL path, API endpoint, or command depending on interaction type),
+              value (string|null — input value for fill/submit/request body actions),
+              method (string|null — HTTP method for api interactions: GET|POST|PUT|DELETE|PATCH),
+              headers (map|null — HTTP headers for api interactions),
+              expect (string|null — human-readable expected result at this step for agent judgment),
+              assert (object|null — machine-checkable assertion: { type: 'status_code'|'text_contains'|
+              'element_visible'|'element_not_visible'|'url_matches'|'response_body_contains'|
+              'exit_code_equals', value: string|integer }),
+              capture (string|null — evidence capture at this step: 'screenshot'|'response'|'har'|'dom'|'console'),
+              timeout_ms (integer, default 5000 — max wait for this step to complete),
+              on_failure ('fail'|'continue'|'skip_remaining' — behavior if step fails, default 'fail').
+          - id: "FR-3.4"
+            text: >
+              Each adversarial_variation within a skill MUST include:
+              id (string), name (string), description (string),
+              severity_if_missed (critical|high|medium|low),
+              overrides (list of step override objects — each with step_order (integer referencing
+              the original step to modify), field (string — which step field to override, e.g. 'value',
+              'target', 'headers'), override_value (string|map — the adversarial replacement value)),
+              expected_behavior (string — what SHOULD happen when the adversarial variation is applied,
+              e.g. 'Error message displayed, no redirect', 'Returns 400 Bad Request', 'Input rejected with validation error'),
+              assert (object|null — machine-checkable assertion for the expected adversarial outcome).
+              Adversarial variations are PRE-DEFINED in the skill, NOT generated at runtime by agents.
+          - id: "FR-3.5"
+            text: >
+              Skills MUST be stored alongside the E2E contract, either inline (skills list in the
+              contract) or as separate files referenced by path (skill_discovery_path in the contract
+              points to a directory of skill YAML files). Skills MUST be organized by type
+              (test-suite/, exploratory/, adversarial/) within the skill directory.
+          - id: "FR-3.6"
+            text: >
+              In interactive mode, agents MUST work with the user to create skills covering both
+              test-suite execution AND exploratory interaction:
+              (a) Discover existing test suites and create 'test-suite' type skills wrapping them,
+              (b) Analyze the app's pages/endpoints/CLI commands and propose 'exploratory' skills
+              with navigation paths, form fills, and API probes,
+              (c) Perform web searches for stack-specific E2E best practices and common vulnerability
+              patterns (XSS, SQL injection, CSRF, auth bypass),
+              (d) Propose 'adversarial' skills with variations targeting discovered input points,
+              (e) Present all proposed skills to the user for review and refinement via ask_questions,
+              (f) Store finalized skills in the contract or skill directory.
+              Max 2 iteration rounds for skill refinement.
+          - id: "FR-3.7"
+            text: >
+              In autonomous mode, agents MUST NOT create new skills interactively. However, if an E2E
+              contract with existing skills already exists, agents MUST execute ALL skill types:
+              'test-suite' skills (run the test command), 'exploratory' skills (follow the interaction
+              steps and verify expected outcomes), and 'adversarial' skills (apply variations and
+              verify expected adversarial behavior). Autonomous mode runs existing skills — it does not
+              skip exploratory/adversarial interaction.
+          - id: "FR-3.8"
+            text: >
+              Skills MUST be reusable across pipeline runs. Once created, a skill persists in the
+              project and is automatically discovered and executed on subsequent runs when the
+              E2E contract references it. Skills SHOULD be evolved over time as the app changes
+              (new pages, new endpoints, new forms) — in interactive mode, agents may propose
+              skill updates when they detect the app has changed.
+          - id: "FR-3.9"
+            text: >
+              Example skill structures MUST be documented in e2e-integration.md as reference:
+              (a) Browser exploratory skill — navigate to login page, fill form, submit, assert
+              redirect to dashboard, navigate to profile, assert user data displayed.
+              (b) API probe skill — POST /api/users with valid payload (assert 201), GET /api/users/:id
+              (assert 200 with correct body), PUT /api/users/:id with partial update (assert 200),
+              DELETE /api/users/:id (assert 204), GET /api/users/:id again (assert 404).
+              (c) CLI interaction skill — run app with --help (assert usage text), run app with
+              valid input (assert correct output), run app with invalid input (assert error message).
+              (d) Adversarial variation — override login email with SQL injection string, assert
+              error message and no session created.
+
+      # ── Section 3: Live App Testing Architecture ──
+      - id: "FR-4"
+        text: "Live App Testing Architecture — Implementer/Verifier Separation"
+        sub_requirements:
+          - id: "FR-4.1"
+            text: >
+              The implementer MUST write unit and integration tests as part of TDD. The implementer
+              MUST NOT start the application, run live E2E tests, or manage app instances.
+              The implementer MAY write E2E test files (if the task requires it) but MUST NOT execute them.
+          - id: "FR-4.2"
+            text: >
+              The verifier MUST execute BOTH pre-written test suites AND exploratory interaction
+              for tasks classified in the High Risk workflow lane. The E2E verification sequence is:
+              Phase 1 — Setup:
+                (a) Read and validate the E2E contract,
+                (b) Start the application using the contract's start_command with an isolated port,
+                (c) Wait for readiness using the contract's ready_check (poll with exponential backoff, max ready_timeout_ms),
+                (d) Set up interaction tools as specified by the contract (launch browser via Playwright, configure HTTP client, etc.).
+              Phase 2 — Test Suite Execution:
+                (e) Execute 'test-suite' type skills: run the e2e_command or skill-defined test commands,
+                (f) Record pass/fail results and capture evidence per contract settings.
+              Phase 3 — Exploratory Interaction:
+                (g) Execute 'exploratory' type skills: follow each step sequentially — navigate pages,
+                click buttons, fill forms, submit data, make API calls, send CLI inputs,
+                (h) At each step, verify the assert condition (if defined) or evaluate the expect description,
+                (i) Capture evidence at each step as directed by the step's capture field (screenshots, response bodies, etc.),
+                (j) Record step-by-step results.
+              Phase 4 — Adversarial Interaction:
+                (k) Execute 'adversarial' type skills and adversarial_variations within exploratory skills,
+                (l) Apply step overrides (inject malformed data, boundary values, attack payloads),
+                (m) Verify the expected adversarial behavior (error messages, rejections, no unauthorized access),
+                (n) Capture evidence of adversarial test results.
+              Phase 5 — Teardown:
+                (o) Shut down the application gracefully,
+                (p) Close browser/interaction tools,
+                (q) Write evidence summary.
+          - id: "FR-4.3"
+            text: >
+              The verifier MUST have access to interaction tools appropriate for the app's interaction_type:
+              For browser interaction: the verifier MUST be able to launch a browser (e.g., via Playwright CLI
+              or MCP browser tool), navigate to URLs, interact with DOM elements (click, fill, submit),
+              take screenshots, capture console logs, and read page content.
+              For API interaction: the verifier MUST be able to make HTTP requests (GET, POST, PUT, DELETE, PATCH)
+              with custom headers, bodies, and auth tokens; read response status codes, headers, and bodies;
+              and log request/response pairs.
+              For CLI interaction: the verifier MUST be able to run commands in the terminal, provide stdin input,
+              and capture stdout/stderr output.
+              These tools MUST be declared in tool-access-matrix.md for the verifier role.
+          - id: "FR-4.4"
+            text: >
+              The verifier MUST remain read-only for source code during E2E execution. E2E testing
+              MUST NOT modify application source files. Only E2E evidence artifacts (screenshots,
+              HAR files, response logs, traces, console logs) are written to the evidence_output_dir.
+          - id: "FR-4.5"
+            text: >
+              Every E2E lifecycle phase MUST be recorded as a separate SQL INSERT into anvil_checks:
+              check_name='e2e-contract-found' (contract exists and is valid),
+              check_name='e2e-instance-start' (app started on assigned port),
+              check_name='e2e-readiness' (app passed ready_check),
+              check_name='e2e-suite-execution' (pre-written E2E test suite ran, with pass/fail),
+              check_name='e2e-exploratory' (exploratory interaction skills executed, with per-skill pass/fail),
+              check_name='e2e-adversarial' (adversarial variations executed, with per-variation pass/fail),
+              check_name='e2e-instance-shutdown' (app shut down gracefully, interaction tools closed).
+              Additionally, a composite check_name='e2e-test-execution' MUST be recorded with passed=1
+              ONLY when ALL of suite, exploratory, and adversarial checks passed (or were N/A because
+              no skills of that type exist).
+          - id: "FR-4.6"
+            text: >
+              The existing Runtime Smoke Test (Step 6a, bugfix-only) MUST be generalized. It becomes
+              E2E verification driven by the E2E contract and skills, triggered for all High Risk tasks
+              (not just bugfixes). The existing Step 6a behavior for bugfixes is subsumed by the
+              generalized E2E verification.
+          - id: "FR-4.7"
+            text: >
+              Evidence capture during interaction MUST be structured and deterministic:
+              (a) Screenshots MUST be named with skill-id, step-order, and timestamp (e.g., SKILL-001_step-03_2026-03-04T10-15-30.png),
+              (b) API response logs MUST include request method, URL, status code, headers, and body (truncated to 10KB),
+              (c) Console logs MUST be captured with timestamps and severity levels,
+              (d) HAR files (if enabled) MUST capture the full request/response cycle during interaction,
+              (e) All evidence files MUST be stored in evidence_output_dir/<task-id>/<skill-id>/,
+              (f) An evidence manifest (evidence-manifest.yaml) MUST be written listing all captured artifacts.
+          - id: "FR-4.8"
+            text: >
+              The verifier MUST produce a step-by-step interaction log for each exploratory/adversarial skill:
+              interaction_log:
+                skill_id: "<skill-id>"
+                skill_type: "<exploratory|adversarial>"
+                steps_executed: <integer>
+                steps_passed: <integer>
+                steps_failed: <integer>
+                step_results:
+                  - order: <integer>
+                    action: "<action>"
+                    target: "<target>"
+                    result: "pass|fail|skip|timeout"
+                    actual_behavior: "<what actually happened>"
+                    evidence_path: "<path to screenshot/response/etc>"
+                    duration_ms: <integer>
+              This log MUST be included in the verification report and referenced in the evidence manifest.
+
+      # ── Section 4: Parallel Agent Safety ──
+      - id: "FR-5"
+        text: "Parallel Agent Safety for E2E Testing"
+        sub_requirements:
+          - id: "FR-5.1"
+            text: >
+              Each verifier running E2E tests MUST use an isolated port. Port allocation strategy:
+              the E2E contract specifies port_range_start; each verifier instance is assigned
+              port_range_start + task_ordinal_index (0-based within the wave). The port MUST be
+              passed to the app via the port_env_var environment variable.
+          - id: "FR-5.2"
+            text: >
+              A max concurrent E2E instance limit MUST be enforced. Default: 2 concurrent E2E instances
+              (configurable via E2E contract's max_concurrent_instances, hard cap 4 to match the
+              dispatch concurrency cap). When the limit is exceeded, E2E verifications MUST be queued
+              and executed in subsequent sub-waves.
+          - id: "FR-5.3"
+            text: >
+              File locks MUST protect shared artifacts during parallel E2E execution. The E2E evidence
+              output directory MUST be task-scoped (evidence_output_dir/<task-id>/) to prevent
+              cross-task file collisions. Browser instances MUST be separate per verifier (no shared
+              browser state). The verification-ledger.db MUST continue using WAL mode + busy_timeout
+              for concurrent SQL access.
+          - id: "FR-5.4"
+            text: >
+              All E2E external calls MUST have hard timeouts: app startup (ready_timeout_ms, default 30s),
+              E2E test suite execution (max 300s per task), exploratory interaction (max 180s per skill),
+              adversarial interaction (max 120s per skill), app shutdown (shutdown_timeout_ms, default 10s),
+              total E2E per task (max 600s). If a timeout expires, the verifier MUST force-kill the
+              app process (via PID), close the browser/interaction tools, and record a timeout failure.
+          - id: "FR-5.5"
+            text: >
+              Deterministic test seeds MUST be supported. If the E2E contract or skills specify
+              a seed value, it MUST be passed to the E2E runner via environment variable or
+              configuration. Seeds enable reproducible test execution across runs.
+          - id: "FR-5.6"
+            text: >
+              The verifier MUST track the PID of every app process AND every browser/interaction tool
+              process it starts. On verification completion (success or failure), the verifier MUST
+              ensure all spawned processes are terminated. Orphaned processes (app or browser) MUST be killed.
+
+      # ── Section 5: Risk-Based Workflow Lanes ──
+      - id: "FR-6"
+        text: "Risk-Based Workflow Lanes"
+        sub_requirements:
+          - id: "FR-6.1"
+            text: >
+              Three formal workflow lanes MUST be defined:
+              LOW — Config changes, documentation, non-runtime refactors. Required tests: unit tests only.
+              Verification: Tiers 1-2. E2E: not required.
+              MEDIUM — Business logic changes, function signature modifications, DB queries.
+              Required tests: unit + integration. Verification: Tiers 1-3. E2E: not required.
+              HIGH — UI flows, API contract changes, state transitions, security-sensitive code,
+              auth/crypto/payments, data deletion, migrations, public API changes.
+              Required tests: full TDD + E2E verification (test suite + exploratory + adversarial).
+              Verification: Tiers 1-4 + E2E. E2E: required (if E2E contract exists).
+          - id: "FR-6.2"
+            text: >
+              The planner MUST assign a workflow_lane field to every task in the task-schema:
+              'unit-only' | 'unit-integration' | 'full-tdd-e2e'. The lane MUST be derived from
+              the existing risk classification (🟢 → unit-only, 🟡 → unit-integration, 🔴 → full-tdd-e2e).
+              Any task with at least one 🔴 file MUST be assigned the 'full-tdd-e2e' lane.
+          - id: "FR-6.3"
+            text: >
+              The planner MUST add an e2e_required boolean to each task. Set to true when
+              workflow_lane='full-tdd-e2e' AND an E2E contract exists for the project.
+              The task-schema MUST also include e2e_contract_path (string|null) referencing the
+              discovered E2E contract location.
+          - id: "FR-6.4"
+            text: >
+              The orchestrator MUST enforce lane-appropriate verification. For each task:
+              (a) Read workflow_lane from task definition,
+              (b) After standard verification (Step 6), check if e2e_required=true,
+              (c) If yes, verify E2E evidence gates pass (e2e-test-execution check exists with passed=1),
+              (d) If E2E fails, enter the existing NEEDS_REVISION → replan loop (Pattern B, max 3 iterations).
+          - id: "FR-6.5"
+            text: >
+              Minimum verification signal requirements MUST be lane-aware:
+              LOW (unit-only): ≥ 2 passed checks (existing Standard behavior).
+              MEDIUM (unit-integration): ≥ 3 passed checks (existing Large behavior).
+              HIGH (full-tdd-e2e): ≥ 4 passed checks INCLUDING at least 1 e2e-test-execution check with passed=1.
+
+      # ── Section 6: Subagent Context Governance ──
+      - id: "FR-7"
+        text: "Subagent Context Governance"
+        sub_requirements:
+          - id: "FR-7.1"
+            text: >
+              All agents MUST limit read_file calls to ≤ 200 lines per invocation. This is elevated
+              from advisory guidance to a mandatory rule in global-operating-rules.md.
+          - id: "FR-7.2"
+            text: >
+              Agents MUST prefer semantic_search and grep_search for discovery before using read_file.
+              Agents MUST NOT read entire repositories or large files (>500 lines) without
+              targeted line ranges.
+          - id: "FR-7.3"
+            text: >
+              E2E evidence MUST be summarized before inclusion in verification reports.
+              Full E2E output (traces, screenshots, interaction logs, response bodies) MUST be stored
+              as files in the evidence_output_dir. Only a summary (≤ 500 chars) is included in the SQL
+              output_snippet field. The verification report MUST reference artifact paths and the
+              evidence manifest rather than inlining full evidence.
+          - id: "FR-7.4"
+            text: >
+              The implementer MUST read ONLY files specified in the task's relevant_context
+              (design_sections, spec_requirements, files_to_modify). This existing rule MUST
+              be reinforced: reading outside relevant_context scope MUST be flagged by the
+              adversarial reviewer.
+
+      # ── Section 7: Interactive Mode Requirements ──
+      - id: "FR-8"
+        text: "Interactive Mode Requirements"
+        sub_requirements:
+          - id: "FR-8.1"
+            text: >
+              When the pipeline is in interactive mode and ambiguity is detected (spec unclear,
+              E2E contract missing, tests ambiguous, risk classification uncertain), agents MUST
+              escalate via ask_questions. The orchestrator MUST ask on behalf of subagents that
+              lack ask_questions access.
+          - id: "FR-8.2"
+            text: >
+              In interactive mode, when no E2E contract exists for a High Risk project, the pipeline
+              MUST guide the user through E2E contract creation including interaction configuration:
+              (a) Detect app type from project files,
+              (b) Determine interaction_type (browser for web apps, api for API apps, cli for CLI apps),
+              (c) Propose interaction tools (Playwright for browser, curl/fetch for api),
+              (d) Propose default contract values including evidence capture methods,
+              (e) Prompt user for confirmation/modification,
+              (f) Write validated contract to the project.
+          - id: "FR-8.3"
+            text: >
+              In interactive mode, E2E skills creation MUST be collaborative and MUST cover both
+              test-suite execution AND exploratory/adversarial interaction:
+              (a) Discover existing test suites and create 'test-suite' skills wrapping them,
+              (b) Analyze app structure — for web apps: discover routes, forms, and interactive elements;
+              for API apps: discover endpoints from OpenAPI/Swagger or route files; for CLI apps: discover
+              commands and flags,
+              (c) Propose 'exploratory' skills with step-by-step interaction procedures reflecting actual
+              user flows (login, CRUD operations, navigation, search, etc.),
+              (d) Propose 'adversarial' skills targeting common vulnerability patterns for the stack
+              (XSS for web, injection for API, input overflow for CLI),
+              (e) Perform web searches for stack-specific E2E and security testing best practices,
+              (f) Present all proposed skills to the user via ask_questions with structured previews,
+              (g) Iterate skill refinement (max 2 iterations),
+              (h) Store finalized skills in the skill directory.
+          - id: "FR-8.4"
+            text: >
+              The spec agent MUST push back on ambiguity in requirements via the pushback system.
+              All subagents MUST escalate when they detect conflicting, incomplete, or ambiguous
+              instructions rather than proceeding speculatively.
+
+      # ── Section 8: Orchestrator Rules Enforcement ──
+      - id: "FR-9"
+        text: "Orchestrator Rules"
+        sub_requirements:
+          - id: "FR-9.1"
+            text: >
+              The orchestrator MUST NOT write implementation code, run builds, execute tests,
+              launch browsers, make HTTP requests, or perform E2E testing directly.
+              Its run_in_terminal access is restricted to SQLite queries, telemetry INSERTs, and git operations.
+          - id: "FR-9.2"
+            text: >
+              The orchestrator MUST enforce workflow lanes by: (a) Reading workflow_lane and
+              e2e_required from task definitions, (b) Dispatching verifiers with lane-appropriate
+              instructions (including interaction requirements for full-tdd-e2e lanes),
+              (c) Checking lane-specific evidence gates before proceeding past Step 6,
+              (d) Routing E2E failures into the existing replan loop.
+          - id: "FR-9.3"
+            text: >
+              The orchestrator MUST manage E2E concurrency: (a) Track how many verifiers are
+              currently in E2E mode (including browser/API/CLI interaction sessions), (b) Enforce
+              max_concurrent_instances from the E2E contract, (c) Queue excess E2E verifications
+              into subsequent sub-waves, (d) Record E2E dispatch decisions in pipeline_telemetry.
+          - id: "FR-9.4"
+            text: >
+              The orchestrator MUST remain deterministic and minimal. E2E coordination rules
+              SHOULD be extracted into a reference document (e.g., e2e-integration.md) to keep
+              the orchestrator within its ≤ 550 line budget.
+
+      # ── Section 9: Copilot Best Practices ──
+      - id: "FR-10"
+        text: "Copilot Best Practices Integration"
+        sub_requirements:
+          - id: "FR-10.1"
+            text: >
+              Implementers MUST behave like real developers: use small files, explicit interfaces,
+              clear contracts, deterministic naming, strong typing, and CI-compatible code.
+              The adversarial reviewer MUST flag violations of these practices.
+          - id: "FR-10.2"
+            text: >
+              The knowledge agent MUST update Copilot instructions (via instruction_updates table)
+              when patterns drift or new best practices are discovered during implementation.
+          - id: "FR-10.3"
+            text: >
+              Agents MUST avoid speculative abstraction. Code MUST solve the current requirement
+              only (YAGNI). Over-engineering MUST be flagged by the adversarial reviewer.
+
+      # ── Section 10: Additional Enhancements ──
+      - id: "FR-11"
+        text: "Test Replay Logs & Evidence"
+        sub_requirements:
+          - id: "FR-11.1"
+            text: >
+              E2E test runs MUST capture replay artifacts: inputs, test seeds, browser traces
+              (if applicable), screenshots (at each interaction step and on failure), console logs,
+              network request/response logs (HAR files for browser, response logs for API),
+              and DOM snapshots (if configured). Artifacts MUST be stored in
+              evidence_output_dir/<task-id>/<skill-id>/.
+          - id: "FR-11.2"
+            text: >
+              The verification report MUST include artifact_paths: a list of file paths pointing
+              to captured replay artifacts, organized by skill. The evidence manifest
+              (evidence-manifest.yaml) MUST provide a machine-readable index of all artifacts with
+              metadata (type, skill-id, step-order, timestamp, size). Full artifacts MUST NOT be
+              inlined in YAML or SQL; only path references are stored.
+          - id: "FR-11.3"
+            text: >
+              The evidence bundle (Step 8) MUST reference E2E replay artifacts alongside other
+              evidence. The knowledge agent MUST include E2E interaction metrics in post-mortem
+              analysis: suite pass rate, exploratory step pass rate, adversarial detection rate,
+              execution time per skill, flakiness rate per skill, and common failure patterns.
+
+      - id: "FR-12"
+        text: "Workflow Completion Gate"
+        sub_requirements:
+          - id: "FR-12.1"
+            text: >
+              A task MUST be considered COMPLETE only when ALL of the following pass:
+              (a) All unit tests pass (Tier 2 'tests' check passed=1),
+              (b) All verification checks pass for the task's workflow lane (EG-2 with lane-aware thresholds),
+              (c) Required E2E tests pass — e2e-test-execution passed=1 means ALL of: suite execution
+              passed, exploratory interaction passed, adversarial interaction passed (if e2e_required=true),
+              (d) No security blockers (EG-4: zero blocker verdicts),
+              (e) Lint clean (Tier 2 'lint' check passed=1 or lint not applicable).
+          - id: "FR-12.2"
+            text: >
+              TDD compliance MUST be part of the completion gate for code tasks:
+              tdd-compliance check passed=1 AND behavioral-coverage check passed=1.
+              These are elevated from informational to blocking.
+
+      - id: "FR-13"
+        text: "Agent Performance Guardrails"
+        sub_requirements:
+          - id: "FR-13.1"
+            text: >
+              Hard timeouts MUST be enforced per pipeline stage: E2E app startup max 60s,
+              E2E test suite max 300s, E2E exploratory interaction max 180s per skill,
+              E2E adversarial interaction max 120s per skill, E2E shutdown max 30s,
+              total E2E per task max 600s (10 minutes). Timeouts trigger force-kill of app AND
+              browser/interaction tool processes and timeout failure recording.
+          - id: "FR-13.2"
+            text: >
+              Max E2E retries per task: 1 (the verifier may re-attempt E2E once on transient
+              failure such as port conflict, startup timeout, or browser crash). After 1 retry,
+              the E2E failure is final and enters the replan loop.
+          - id: "FR-13.3"
+            text: >
+              Escalation thresholds: if E2E failure pattern repeats across 2 consecutive
+              replan iterations for the same task, the orchestrator MUST escalate to interactive
+              mode (if available) or record the failure as a known limitation and proceed.
+
+      - id: "FR-14"
+        text: "Deterministic Output Contracts"
+        sub_requirements:
+          - id: "FR-14.1"
+            text: >
+              All agents MUST output structured YAML with typed completion contracts.
+              No prose output unless in interactive mode. E2E evidence MUST follow the
+              structured e2e-check evidence format defined in the schemas. Interaction logs
+              MUST be structured YAML, not free-form text.
+          - id: "FR-14.2"
+            text: >
+              E2E verification results MUST be recorded in both: (a) anvil_checks SQL table
+              (individual checks with check_name='e2e-*'), and (b) verification-reports/<task-id>.yaml
+              (structured E2E results section with per-skill results, interaction logs, timing,
+              and artifact paths).
+
+    # ─────────────────────────────────────────────
+    # ACCEPTANCE CRITERIA
+    # ─────────────────────────────────────────────
+    acceptance_criteria:
+      # FR-1: Mandatory TDD
+      - id: "AC-1"
+        text: >
+          Given a code task dispatched to the implementer, when the implementer completes,
+          then the implementation report MUST contain tdd_red_green.tests_written_first=true
+          AND tdd_red_green.initial_run_failures > 0. If either condition is false for a code
+          task, the verifier MUST record tdd-compliance check with passed=0.
+        test_method: "test"
+      - id: "AC-2"
+        text: >
+          Given a code task, the verifier MUST record a check_name='tdd-compliance' SQL INSERT.
+          This check MUST be passed=1 for the task to proceed past Step 6. Verify by querying
+          anvil_checks WHERE check_name='tdd-compliance' AND task_id=<task>.
+        test_method: "test"
+      - id: "AC-3"
+        text: >
+          Given a non-code task (docs/config only, no production source files modified),
+          TDD MAY be skipped but the implementer MUST record tdd_fallback_reason in the
+          implementation report. Verify: tdd_fallback_reason field is present and non-empty.
+        test_method: "inspection"
+      - id: "AC-4"
+        text: >
+          The verify phase (get_errors + typecheck + tests) MUST produce structured results
+          in the implementation report under tdd_red_green.verify_phase. Verify: all three
+          sub-fields (get_errors_clean, typecheck_clean, tests_passing) are boolean values.
+        test_method: "inspection"
+
+      # FR-2: E2E Contract (with interaction capabilities)
+      - id: "AC-5"
+        text: >
+          schemas.md MUST contain a complete E2E contract schema definition with all required
+          fields including interaction_type, interaction_tools, readiness_checks, and
+          evidence_capture in addition to the app lifecycle, port, runner, parallelism, and
+          skills fields from FR-2.1 and FR-2.2.
+          Verify: grep schemas.md for the E2E contract schema section and check field completeness.
+        test_method: "inspection"
+      - id: "AC-6"
+        text: >
+          Given a project WITH an e2e-contract.yaml file, the pipeline MUST discover it at
+          Step 0 and record its path. Verify: pipeline_telemetry contains a record with
+          notes mentioning 'e2e-contract' and the discovered path.
+        test_method: "test"
+      - id: "AC-7"
+        text: >
+          Given a project WITHOUT an e2e-contract.yaml in autonomous mode, the pipeline MUST
+          skip E2E enforcement, record the skip reason in pipeline_telemetry, and proceed
+          with unit-only verification for all tasks. Verify: no e2e-* checks in anvil_checks
+          AND pipeline_telemetry contains 'e2e-skipped' note.
+        test_method: "test"
+      - id: "AC-8"
+        text: >
+          Given a project WITHOUT an e2e-contract.yaml in interactive mode with High Risk tasks,
+          the pipeline MUST prompt the user via ask_questions to create an E2E contract including
+          interaction_type and interaction_tools configuration.
+          Verify: ask_questions is invoked with E2E contract creation prompt that includes interaction setup.
+        test_method: "demonstration"
+
+      # FR-3: E2E Skills (Interaction Procedures)
+      - id: "AC-9"
+        text: >
+          The E2E Skills Schema MUST be defined in schemas.md with all required fields per
+          FR-3.1/FR-3.2/FR-3.3/FR-3.4. The schema MUST include the 'type' field
+          (test-suite|exploratory|adversarial), the 'interaction' field (browser|api|cli|test-command),
+          step-by-step interaction actions (navigate, click, fill, submit, http_request, run_command, etc.),
+          assert objects for machine-checkable verification, and adversarial_variations with step overrides.
+          Verify: grep schemas.md for skill schema fields.
+        test_method: "inspection"
+      - id: "AC-10"
+        text: >
+          Given an E2E contract with 'exploratory' type skills, the verifier MUST actually interact
+          with the running application by following each step: navigate to pages, click elements,
+          fill forms, make API requests, etc. — NOT just run a test command. Each step MUST produce
+          a result (pass/fail/skip/timeout) with evidence. Verify: interaction_log in verification
+          report contains per-step results with action, target, result, actual_behavior, and evidence_path.
+        test_method: "test"
+      - id: "AC-11"
+        text: >
+          Given 'adversarial' type skills or adversarial_variations, the verifier MUST apply the
+          defined overrides (e.g., inject SQL in a form field, send malformed JSON to an API endpoint)
+          and verify the expected adversarial behavior occurs (e.g., error message shown, request rejected).
+          Each adversarial variation MUST produce a check_name='e2e-adversarial' SQL INSERT.
+          Verify: anvil_checks contains e2e-adversarial records matching the variation count, and
+          interaction_log shows the override was applied and the actual behavior was observed.
+        test_method: "test"
+      - id: "AC-12"
+        text: >
+          In autonomous mode, NO new skills are created interactively. However, ALL existing skills
+          (including exploratory and adversarial types) MUST still execute with full interaction.
+          Verify: no ask_questions calls related to skill creation occur in autonomous mode AND
+          interaction_logs exist for all skill types.
+        test_method: "test"
+
+      # FR-4: Live App Testing (Actual Interaction)
+      - id: "AC-13"
+        text: >
+          The implementer MUST NOT invoke any app startup command, E2E runner command, browser
+          launch, HTTP request to the running app, or any live interaction command.
+          Verify: grep implementer.agent.md for prohibition of start_command / e2e_command /
+          browser / live interaction execution. Verify: no e2e-instance-start checks recorded
+          with instance='implementer-*'.
+        test_method: "inspection"
+      - id: "AC-14"
+        text: >
+          Given a High Risk task with e2e_required=true, the verifier MUST produce these
+          SQL INSERTs: e2e-contract-found, e2e-instance-start, e2e-readiness,
+          e2e-suite-execution (if test-suite skills exist), e2e-exploratory (if exploratory skills exist),
+          e2e-adversarial (if adversarial skills/variations exist), e2e-instance-shutdown, and
+          the composite e2e-test-execution.
+          Verify: all applicable check_names present in anvil_checks for the task.
+        test_method: "test"
+      - id: "AC-15"
+        text: >
+          For browser interaction: the verifier MUST launch a browser, navigate to the app URL,
+          and produce at least one screenshot as evidence of actual browser interaction.
+          Verify: evidence_output_dir/<task-id>/ contains at least one .png screenshot file AND
+          the interaction_log shows 'navigate' actions to the app's base_url.
+        test_method: "test"
+      - id: "AC-16"
+        text: >
+          For API interaction: the verifier MUST make actual HTTP requests to the running app's
+          endpoints and capture response status codes and bodies.
+          Verify: evidence_output_dir/<task-id>/ contains response log files AND the interaction_log
+          shows 'http_request' actions with status codes and response bodies.
+        test_method: "test"
+      - id: "AC-17"
+        text: >
+          For CLI interaction: the verifier MUST run the app CLI with various inputs and capture
+          stdout/stderr output.
+          Verify: interaction_log shows 'run_command' and 'send_input' actions with captured output.
+        test_method: "test"
+      - id: "AC-18"
+        text: >
+          The verifier MUST remain read-only for application source code during E2E execution.
+          Only evidence artifacts are written. Verify: no create_file or replace_string_in_file
+          calls from verifier targeting source code directories during E2E phases.
+        test_method: "inspection"
+
+      # FR-5: Parallel Safety
+      - id: "AC-19"
+        text: >
+          Given 2+ concurrent E2E verifiers, each MUST use a different port (port_range_start +
+          task_ordinal) AND separate browser instances (no shared browser state).
+          Verify: e2e-instance-start records show distinct port values in the command field.
+        test_method: "test"
+      - id: "AC-20"
+        text: >
+          No more than max_concurrent_instances E2E verifiers run in the same sub-wave.
+          Verify: dispatch_patterns enforcement — at most max_concurrent_instances tasks with
+          e2e_required=true in any single sub-wave.
+        test_method: "test"
+      - id: "AC-21"
+        text: >
+          All E2E timeouts are enforced. Given an app that hangs on startup beyond ready_timeout_ms,
+          the verifier MUST force-kill the process AND close any launched browser/interaction tool,
+          then record e2e-readiness with passed=0.
+          Verify: timeout scenario produces passed=0 record within ready_timeout_ms + buffer.
+        test_method: "demonstration"
+      - id: "AC-22"
+        text: >
+          On verification completion (success or failure), no orphaned app processes or browser
+          processes remain. Verify: PID is recorded in e2e-instance-start and a corresponding
+          kill/shutdown is logged in e2e-instance-shutdown for both app and interaction tools.
+        test_method: "test"
+
+      # FR-6: Workflow Lanes
+      - id: "AC-23"
+        text: >
+          Every task in plan-output.yaml MUST have a workflow_lane field with value 'unit-only',
+          'unit-integration', or 'full-tdd-e2e'. Verify: parse plan-output.yaml tasks and check
+          workflow_lane field presence and valid enum value.
+        test_method: "inspection"
+      - id: "AC-24"
+        text: >
+          Tasks with any 🔴 risk file MUST have workflow_lane='full-tdd-e2e'.
+          Verify: cross-check task risk classification against workflow_lane assignment.
+        test_method: "test"
+      - id: "AC-25"
+        text: >
+          Given a 'full-tdd-e2e' task, verification MUST require ≥ 4 passed checks including
+          at least 1 e2e-test-execution. Verify: EG-2 query for the task returns ≥ 4 AND
+          at least 1 check_name='e2e-test-execution' with passed=1.
+        test_method: "test"
+      - id: "AC-26"
+        text: >
+          Given a 'unit-only' task, the verifier MUST NOT run E2E tests, launch browsers, make
+          HTTP requests to the app, or perform any live interaction — even if an E2E contract exists.
+          Verify: no e2e-* check_names in anvil_checks for unit-only tasks.
+        test_method: "test"
+
+      # FR-7: Context Governance
+      - id: "AC-27"
+        text: >
+          global-operating-rules.md MUST contain a mandatory rule limiting read_file to ≤ 200
+          lines per invocation. Verify: grep global-operating-rules.md for the 200-line rule.
+        test_method: "inspection"
+      - id: "AC-28"
+        text: >
+          E2E evidence in anvil_checks output_snippet MUST be ≤ 500 characters. Full evidence
+          (screenshots, interaction logs, response bodies) stored as file artifacts.
+          Verify: no output_snippet exceeds 500 chars.
+        test_method: "test"
+
+      # FR-8: Interactive Mode
+      - id: "AC-29"
+        text: >
+          In interactive mode with missing or ambiguous input, agents MUST invoke ask_questions
+          rather than proceeding speculatively. Verify: at least one ask_questions call when
+          ambiguity is detected in interactive mode.
+        test_method: "demonstration"
+
+      # FR-9: Orchestrator Rules
+      - id: "AC-30"
+        text: >
+          The orchestrator MUST NOT use run_in_terminal for builds, tests, E2E execution,
+          browser launches, or HTTP requests. Verify: orchestrator.agent.md maintains
+          run_in_terminal restriction to SQLite/git only. tool-access-matrix.md confirms.
+        test_method: "inspection"
+
+      # FR-10: Copilot Practices
+      - id: "AC-31"
+        text: >
+          The adversarial reviewer MUST check for YAGNI/KISS/DRY violations and flag them
+          as Major or Critical findings. Verify: review-perspectives.md includes code quality
+          as a review dimension with specific checks.
+        test_method: "inspection"
+
+      # FR-11: Test Replay & Evidence
+      - id: "AC-32"
+        text: >
+          E2E evidence artifacts (screenshots, HAR files, response logs, interaction logs) MUST
+          be stored in evidence_output_dir/<task-id>/<skill-id>/. An evidence-manifest.yaml MUST
+          be written listing all artifacts. The verification report MUST include artifact_paths
+          referencing these files. Verify: artifact_paths match actual files on disk AND
+          evidence-manifest.yaml exists with correct metadata.
+        test_method: "test"
+
+      # FR-12: Completion Gate
+      - id: "AC-33"
+        text: >
+          A task with e2e_required=true MUST NOT be marked COMPLETE in the orchestrator unless
+          e2e-test-execution check exists with passed=1 (meaning suite + exploratory + adversarial
+          all passed). Verify: orchestrator evidence gate SQL query includes e2e check for tasks
+          where e2e_required=true.
+        test_method: "test"
+      - id: "AC-34"
+        text: >
+          Behavioral coverage (EG-7) and TDD compliance MUST be blocking (not informational)
+          for code tasks. Verify: orchestrator gate logic treats these as blocking.
+        test_method: "inspection"
+
+      # FR-13: Performance Guardrails
+      - id: "AC-35"
+        text: >
+          Total E2E time per task MUST NOT exceed 600 seconds (10 minutes) including suite execution,
+          exploratory interaction, and adversarial interaction. If exceeded, E2E is terminated
+          (app killed, browser closed) and recorded as a timeout failure.
+          Verify: e2e-test-execution check records include timing data; any >600s is passed=0.
+        test_method: "test"
+      - id: "AC-36"
+        text: >
+          E2E retry per task is limited to 1 re-attempt. After 1 retry, E2E failure is final.
+          Verify: at most 2 e2e-test-execution records per task per verification round.
+        test_method: "test"
+
+      # FR-14: Deterministic Outputs
+      - id: "AC-37"
+        text: >
+          All E2E verification results MUST exist in BOTH anvil_checks (SQL) AND
+          verification-reports/<task-id>.yaml (YAML) with structured interaction logs.
+          Verify: for each e2e-* SQL record, a corresponding entry exists in the verification report.
+        test_method: "test"
+
+      # Cross-cutting: Actual interaction (the core differentiator)
+      - id: "AC-38"
+        text: >
+          The system MUST demonstrate that E2E verification involves actual application interaction,
+          not just running test commands. Specifically: for a web app with browser interaction skills,
+          the evidence_output_dir MUST contain screenshots showing actual rendered pages, and the
+          interaction_log MUST show navigate/click/fill/submit actions with real page content observed.
+          For an API app, response logs MUST show actual HTTP request/response pairs with real status
+          codes and response bodies from the running app.
+          This is the CORE DIFFERENTIATOR — agents use the app like a human tester would.
+        test_method: "demonstration"
+
+    # ─────────────────────────────────────────────
+    # EDGE CASES
+    # ─────────────────────────────────────────────
+    edge_cases:
+      - id: "EC-1"
+        text: >
+          E2E contract exists but start_command fails (app won't start). Expected: verifier records
+          e2e-instance-start with passed=0, skips remaining E2E checks (no browser launch, no interaction),
+          returns NEEDS_REVISION with clear failure evidence. Severity if missed: high.
+      - id: "EC-2"
+        text: >
+          App starts but never passes ready_check within ready_timeout_ms. Expected: verifier
+          force-kills the process after timeout, does NOT launch browser or begin interaction,
+          records e2e-readiness with passed=0. Does not hang indefinitely. Severity if missed: critical.
+      - id: "EC-3"
+        text: >
+          Two verifiers assigned the same port (port_range_start collision). Expected: second
+          verifier detects port in use, increments to next available port, and retries.
+          If no port available, records failure and queues for next sub-wave. Severity if missed: high.
+      - id: "EC-4"
+        text: >
+          E2E interaction step is flaky (element not found on first attempt due to rendering delay).
+          Expected: the step retries with its timeout_ms before failing. If the step has
+          on_failure='continue', subsequent steps still execute. Flakiness is logged in the
+          interaction_log for knowledge agent analysis. Severity if missed: medium.
+      - id: "EC-5"
+        text: >
+          E2E contract specifies interaction_type='browser' but Playwright is not installed.
+          Expected: verifier records e2e-contract-validation with passed=0 and a descriptive error
+          about missing browser tool. Pipeline falls back to test-suite-only E2E for that task
+          (if e2e_command is available) or skips E2E entirely. Severity if missed: high.
+      - id: "EC-6"
+        text: >
+          Implementer claims tdd_red_green but test files don't import production modules.
+          Expected: verifier detects structural mismatch during tdd-compliance check, records
+          passed=0, returns NEEDS_REVISION. Severity if missed: high.
+      - id: "EC-7"
+        text: >
+          Interactive mode — user declines to create E2E contract when prompted. Expected:
+          pipeline proceeds without E2E enforcement for this run, records user decision in
+          pipeline_telemetry, and classifies all tasks as unit-only or unit-integration.
+          Severity if missed: medium.
+      - id: "EC-8"
+        text: >
+          Adversarial variation discovers a real bug (expected_behavior violated — e.g., SQL injection
+          bypasses login). Expected: e2e-adversarial recorded with passed=0, interaction_log captures
+          the actual behavior (successful login with injected credentials), screenshot captured as evidence,
+          verifier returns NEEDS_REVISION with the specific adversarial failure details.
+          Severity if missed: critical.
+      - id: "EC-9"
+        text: >
+          Pipeline runs in autonomous mode with an existing E2E contract and skills of all types
+          (test-suite, exploratory, adversarial). Expected: ALL skill types execute — test commands
+          are run, browser/API/CLI interactions are performed, adversarial variations are applied —
+          all without any interactive prompts. No skill creation occurs. Severity if missed: high.
+      - id: "EC-10"
+        text: >
+          The app requires a database. E2E contract has start_env with DATABASE_URL.
+          Expected: each verifier E2E instance uses a unique DATABASE_URL (or the E2E contract
+          specifies how to isolate DB per instance). If DB isolation is not configured, the
+          verifier records a warning and proceeds with non-parallel E2E. Severity if missed: high.
+      - id: "EC-11"
+        text: >
+          Verifier crashes mid-interaction (context overflow while browser is open, tool failure during
+          API request). Expected: orphaned app process AND browser process detected by orchestrator at
+          Step 6 completion. Orchestrator notes the incomplete verification and can re-dispatch (within
+          Pattern B limits). PID cleanup attempted for both app and browser processes.
+          Severity if missed: critical.
+      - id: "EC-12"
+        text: >
+          Skill file referenced by E2E contract does not exist or is malformed YAML.
+          Expected: verifier records e2e-contract-validation with passed=0 for the specific
+          missing/invalid skill. Remaining (valid) skills still execute.
+          Severity if missed: medium.
+      - id: "EC-13"
+        text: >
+          Exploratory skill step targets a CSS selector that doesn't exist on the page (app changed,
+          skill is stale). Expected: step fails with 'element not found' after timeout_ms, on_failure
+          behavior is followed ('fail' stops skill, 'continue' proceeds to next step). Failure is
+          logged with screenshot showing actual page state. Knowledge agent flags the stale skill
+          in post-mortem. Severity if missed: medium.
+      - id: "EC-14"
+        text: >
+          API interaction skill sends a request but the app returns an unexpected content type (e.g.,
+          HTML error page instead of JSON). Expected: step records the actual content type and body
+          (truncated), assertion fails, evidence captures the full response. Verifier does not crash
+          on unexpected response format. Severity if missed: medium.
+      - id: "EC-15"
+        text: >
+          Browser interaction on a single-page app (SPA) — navigation doesn't cause page reload, only
+          hash/pushState changes. Expected: 'navigate' steps work with SPAs by waiting for content
+          changes rather than page load events. The assert/expect fields at each step verify the correct
+          content loaded. Severity if missed: high.
+      - id: "EC-16"
+        text: >
+          E2E contract has skills but interaction_type='none' (library project). Expected: only
+          'test-suite' type skills execute. 'exploratory' and 'adversarial' skills are skipped with
+          a logged reason. e2e-exploratory and e2e-adversarial checks are recorded as N/A (not
+          passed=0). Severity if missed: medium.
+
+    # ─────────────────────────────────────────────
+    # CONSTRAINTS
+    # ─────────────────────────────────────────────
+    constraints:
+      - "Windows environment with VS Code GitHub Copilot agent framework"
+      - "Orchestrator ≤ 550 line budget — E2E coordination must be extractable to reference documents"
+      - "Existing dispatch concurrency cap of 4 agents per wave — E2E cannot exceed this"
+      - "SQLite-based evidence (verification-ledger.db) with WAL mode — no external databases"
+      - "No container runtime assumed — isolation via ports and process management only"
+      - "Schema changes must be additive (backward-compatible) to support incremental rollout"
+      - "All agent outputs constrained by existing tool-access-matrix.md permissions"
+      - "E2E contracts and skills are project-specific, not pipeline-global"
+      - "Browser automation requires Playwright CLI or equivalent — must be declared in contract, not assumed"
+      - "Verifier interaction with the app must be deterministic — all steps are pre-defined in skills, not improvised at runtime"
+
+  # ─────────────────────────────────────────────
+  # NON-FUNCTIONAL REQUIREMENTS
+  # ─────────────────────────────────────────────
+  non_functional_requirements:
+    - id: "NFR-1"
+      title: "E2E Performance Budget"
+      description: >
+        E2E verification per task MUST complete within 600 seconds (10 minutes) including test suite
+        execution, exploratory interaction, AND adversarial interaction combined. Total E2E overhead
+        across all tasks in a pipeline run SHOULD NOT exceed 30 minutes. Risk-based workflow lanes
+        limit E2E to High Risk tasks only. Pipeline wall-clock time WITH E2E SHOULD remain under
+        60 minutes for typical features.
+      priority: "must"
+
+    - id: "NFR-2"
+      title: "Security — No Secrets in E2E Artifacts"
+      description: >
+        E2E contracts, skills, interaction logs, screenshots, HAR files, response logs, and traces
+        MUST NOT contain secrets, credentials, API keys, or PII. Environment variables containing
+        secrets MUST be referenced by name only (e.g., port_env_var: 'DATABASE_URL'), not by value.
+        Screenshots MUST NOT capture sensitive data visible on screen. Evidence output_snippet in SQL
+        MUST be sanitized.
+      priority: "must"
+
+    - id: "NFR-3"
+      title: "Reliability — E2E Retry and Timeout"
+      description: >
+        All E2E operations MUST have hard timeouts (startup, test execution, each interaction step,
+        shutdown). Transient E2E failures (port conflict, startup timeout, browser crash, element
+        not found due to timing) MUST be retried once at the task level. Deterministic failures
+        (contract invalid, runner not installed, interaction tool missing) MUST NOT be retried.
+      priority: "must"
+
+    - id: "NFR-4"
+      title: "Maintainability — Versioned, Machine-Readable Contracts and Skills"
+      description: >
+        E2E contracts and skills MUST be versioned YAML files alongside application code.
+        Schema changes MUST be backward-compatible. Skills SHOULD be updated when the app changes
+        (new pages, new endpoints, renamed elements). The evidence manifest provides a stable
+        contract for downstream consumers (knowledge agent, evidence bundle).
+      priority: "must"
+
+    - id: "NFR-5"
+      title: "Compatibility — Framework-Agnostic Design"
+      description: >
+        The E2E system MUST support any application type (web, API, CLI, desktop, library)
+        and any interaction tool (Playwright, Puppeteer, curl, custom). The E2E contract's
+        interaction_type and interaction_tools fields are the abstraction layer — agents MUST NOT
+        hardcode any tool-specific behavior. Default recommendation for web apps is Playwright CLI,
+        but this is advisory, not mandatory.
+      priority: "must"
+
+    - id: "NFR-6"
+      title: "Scalability — Parallel E2E Isolation"
+      description: >
+        The system MUST support up to 4 concurrent E2E instances (matching the dispatch
+        concurrency cap) with port isolation, separate browser instances, and process management.
+        The max_concurrent_instances contract field allows projects to set a lower limit.
+      priority: "should"
+
+    - id: "NFR-7"
+      title: "Observability — E2E Evidence Trail"
+      description: >
+        All E2E lifecycle events MUST be recorded in anvil_checks. Every interaction step MUST be
+        logged in the interaction_log with action, target, result, actual_behavior, evidence_path,
+        and duration. Evidence manifests provide a machine-readable index of all captured artifacts.
+        Post-mortem analysis MUST include interaction metrics (step pass rate, adversarial detection
+        rate, common failure patterns, skill staleness indicators).
+      priority: "must"
+
+    - id: "NFR-8"
+      title: "Determinism — No Agent Improvisation During Interaction"
+      description: >
+        All interaction steps are pre-defined in skills. Agents follow the steps exactly as written.
+        Agents do NOT improvise new navigation paths, invent new form inputs, or explore pages not
+        specified in the skill. This ensures reproducibility and prevents non-deterministic behavior.
+        Skills are the single source of truth for what interaction the agent performs.
+      priority: "must"
+
+completion:
+  status: "DONE"
+  started_at: "2026-03-04T01:50:00Z"
+  completed_at: "2026-03-04T04:15:00Z"
+  summary: "Revision 2 — 9 CR, 14 FR groups (55 sub-reqs), 38 AC, 16 EC, 10 constraints, 8 NFR. Core change: E2E = actual app interaction via skills, not just test commands."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/spec-output.yaml"
+    - "docs/feature/tdd-e2e-enforcement/feature.md"

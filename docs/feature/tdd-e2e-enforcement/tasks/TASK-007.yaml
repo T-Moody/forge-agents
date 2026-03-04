@@ -1,0 +1,151 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-007"
+  title: "orchestrator.agent.md — E2E Contract Discovery, Lane-Aware Evidence Gates, Concurrency"
+  target_file: "NewAgents/.github/agents/orchestrator.agent.md"
+  action: "modify"
+  risk: "🔴"
+  size: "Large"
+  wave: 2
+  depends_on: ["TASK-002", "TASK-004"]
+  workflow_lane: "full-tdd-e2e"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 27
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-16']" # EG-2/EG-10 consolidation + line budget
+      - "design-output.yaml#payload.decisions[id='D-17']" # E2E concurrency management
+      - "design-output.yaml#payload.decisions[id='D-23']" # Contract validation at Step 0
+      - "design-output.yaml#payload.agent_modification_map[agent='orchestrator']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2']" # FR-2.3-FR-2.5: Contract discovery/validation
+      - "spec-output.yaml#payload.functional_requirements[id='FR-6']" # FR-6.4-FR-6.5: Lane enforcement
+      - "spec-output.yaml#payload.functional_requirements[id='FR-9']" # Orchestrator rules
+      - "spec-output.yaml#payload.functional_requirements[id='FR-12']" # Completion gate
+    files_to_modify:
+      - path: "NewAgents/.github/agents/orchestrator.agent.md"
+        risk: "🔴"
+    files_to_read:
+      - path: "NewAgents/.github/agents/orchestrator.agent.md"
+        reason: "Understand Step 0 structure, EG-2 location, Step 6 verification, line count"
+      - path: "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+        section: "decisions D-16, D-17, D-23"
+        reason: "Gate consolidation strategy, concurrency rules, contract validation"
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        reason: "After TASK-002 completes: reference new EG-8, EG-9, EG-10 query templates"
+
+  description: |
+    Modify the orchestrator with surgical precision — the line budget is 543/550 with a
+    7-line margin. Every line counts.
+
+    **CRITICAL CONSTRAINT:** Current orchestrator is ~528 lines. Target after changes: ≤545 lines.
+    Net addition: ~15 lines. This means consolidating EG-2 into EG-10 MUST save ≥5 lines to
+    offset the new additions. If budget is exceeded, move EG-9 sub-phase checks to verifier
+    output (saves ~3 lines).
+
+    **1. Add E2E Contract Discovery to Step 0 (D-23):**
+
+    In "### Step 0: Setup & Initialization", add after existing initialization:
+    - Check for e2e-contract.yaml at project root OR .e2e/contract.yaml
+    - If found: perform structural validation (required fields, port range [1024, 65535],
+      max_concurrent_instances ≤ 4, referenced skill files exist, executable in allowlist)
+    - Record check_name='e2e-contract-found' and 'e2e-contract-validation'
+    - Propagate contract path to downstream agents via dispatch context
+    - If not found in interactive mode with High Risk tasks: prompt user via ask_questions
+    - If not found in autonomous mode: skip E2E, record in pipeline_telemetry
+
+    Reference e2e-integration.md §1 for contract specification details (don't inline).
+    ~5-6 lines.
+
+    **2. Consolidate EG-2 into Parameterized EG-10 (D-16):**
+
+    In the Step 6 verification section, REPLACE the existing EG-2 (Verification Sufficient)
+    block with parameterized EG-10:
+    - Read workflow_lane from task definition
+    - EG-10(unit-only): ≥2 passed, baseline + tdd-compliance
+    - EG-10(unit-integration): ≥3 passed, + Tier 3
+    - EG-10(full-tdd-e2e): ≥4 passed, + e2e-test-execution
+    Reference sql-templates.md for exact queries.
+    This should be ~same or fewer lines than EG-2 since it references the template.
+
+    **3. Add EG-8 (TDD Compliance) and EG-9 (E2E Completion):**
+
+    Add brief gate checks:
+    - EG-8: check_name='tdd-compliance' passed=1 required for code tasks
+    - EG-9: check_name='e2e-test-execution' passed=1 when e2e_required=true
+    - EG-7 promotion: behavioral-coverage blocking for code tasks
+    ~6 lines total.
+
+    **4. Add E2E Concurrency Management (D-17):**
+
+    In the dispatch section, add reference to e2e-integration.md and dispatch-patterns.md
+    for E2E concurrency rules. Don't inline — just reference:
+    "When dispatching E2E verifiers, enforce max_concurrent_instances from contract.
+    See dispatch-patterns.md §E2E Concurrency and e2e-integration.md §1."
+    ~2-3 lines.
+
+    **5. Add reference to e2e-integration.md:**
+
+    In the reference documents section (if exists) or Step 0, add:
+    "Reference: e2e-integration.md for E2E coordination rules, contract schema, and safety rules."
+    ~1 line.
+
+    **LINE BUDGET ANALYSIS:**
+    - Step 0 contract discovery: +6 lines
+    - EG-2→EG-10 replacement: -5 lines (consolidation) +8 lines (parameterized) = +3 net
+    - EG-8 + EG-9: +6 lines
+    - EG-7 promotion: +1 line (change annotation)
+    - Concurrency reference: +2 lines
+    - e2e-integration.md reference: +1 line
+    - Total: +19 lines, -5 from consolidation = +14 net → 528+14 = 542 ≤ 545 ✅
+
+  acceptance_criteria:
+    - id: "AC-6"
+      text: "Step 0 discovers e2e-contract.yaml at project root or .e2e/contract.yaml and records its path in pipeline_telemetry"
+      test_method: "inspection"
+    - id: "AC-7"
+      text: "Autonomous mode with no contract: E2E is skipped with documented reason in pipeline_telemetry, all tasks proceed as unit-only/unit-integration"
+      test_method: "inspection"
+    - id: "AC-8"
+      text: "Interactive mode with no contract and High Risk tasks: pipeline prompts user via ask_questions to create E2E contract"
+      test_method: "inspection"
+    - id: "AC-25"
+      text: "EG-10(full-tdd-e2e) requires >= 4 passed checks including e2e-test-execution with passed=1"
+      test_method: "inspection"
+    - id: "AC-26"
+      text: "Unit-only tasks never trigger E2E checks even when an E2E contract exists"
+      test_method: "inspection"
+    - id: "AC-30"
+      text: "Orchestrator run_in_terminal usage remains restricted to SQLite/git only — no builds, tests, E2E, browser launches"
+      test_method: "inspection"
+    - id: "AC-33"
+      text: "EG-9 blocks completion for e2e_required=true tasks unless e2e-test-execution passed=1"
+      test_method: "inspection"
+    - id: "AC-T7-8"
+      text: "Final orchestrator.agent.md line count is ≤ 550 lines"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Count current orchestrator lines. Write checks:
+      - Verify Step 0 does NOT mention 'e2e-contract' → expect absent
+      - Verify EG-2 heading still exists → expect present
+      - Verify EG-8, EG-9, EG-10 do NOT exist → expect absent
+    green_phase: |
+      1. Add contract discovery to Step 0 (minimal lines — reference e2e-integration.md)
+      2. Replace EG-2 block with EG-10 parameterized block
+      3. Add EG-8 and EG-9 briefly (reference sql-templates.md for queries)
+      4. Add concurrency reference line
+      5. Count total lines — MUST be ≤ 550
+      Every line matters. Use references instead of inlining.
+    verify_phase: |
+      - Count total lines in orchestrator.agent.md → must be ≤ 550
+      - grep for 'e2e-contract' in Step 0
+      - grep for 'EG-10' with lane variants
+      - Verify EG-2 heading is removed (replaced by EG-10)
+      - grep for 'EG-8' and 'EG-9'
+      - Verify run_in_terminal restrictions are maintained

@@ -1,0 +1,494 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-architecture"
+  step: "step-1"
+  started_at: "2026-03-04T00:00:00Z"
+  completed_at: "2026-03-04T00:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "architecture"
+    findings:
+      - id: "F-1"
+        title: "10-Step Deterministic Pipeline Architecture"
+        category: "structure"
+        detail: |
+          The agent system operates as a deterministic 10-step pipeline (Steps 0-9) orchestrated by a single
+          Orchestrator agent that dispatches 8 other agent types via runSubagent calls. The pipeline steps are:
+          Step 0 (Setup/Init), Step 1 (Research ×4 parallel), Step 1a (Approval Gate), Step 2 (Spec),
+          Step 3 (Design), Step 3b (Design Review ×3 parallel), Step 4 (Planning), Step 4a (Approval Gate),
+          Steps 5-6 (Implementation-Verification Loop, max 3 iterations), Step 6a (Runtime Smoke Test for bugfixes),
+          Step 7 (Code Review ×3 parallel), Step 8 (Knowledge Capture), Step 8b (Evidence Bundle), Step 9 (Auto-Commit).
+          The orchestrator maintains state in-context only (no files), uses typed YAML completion contracts for
+          routing decisions, and SQL evidence gates on verification-ledger.db for approval decisions.
+          Maximum 4 concurrent agents per wave (dispatch-patterns.md concurrency cap).
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — 528 lines, full pipeline definition"
+          - "NewAgents/.github/agents/dispatch-patterns.md — Pattern A (parallel), Pattern B (sequential with replan loop)"
+        relevance: "TDD/E2E enforcement must integrate at specific pipeline steps without disrupting the existing dispatch flow. The implementation-verification loop (Steps 5-6) is the primary insertion point for mandatory TDD. E2E testing needs a new step or extension to the verification cascade."
+
+      - id: "F-2"
+        title: "Complete Agent File Inventory (18 files in agents/, 1 in prompts/)"
+        category: "structure"
+        detail: |
+          Agent definition files (9 total):
+          - orchestrator.agent.md (528 lines) — Pipeline coordinator, dispatch routing, evidence gates
+          - implementer.agent.md (409 lines) — TDD implementation, baseline capture, self-fix loop
+          - verifier.agent.md (343 lines) — 4-tier verification cascade, SQL evidence recording
+          - planner.agent.md (343 lines) — Task decomposition, risk classification, wave ordering
+          - adversarial-reviewer.agent.md (345 lines) — Perspective-based review, 3 categories × 3 perspectives
+          - spec.agent.md (305 lines) — Feature specification, pushback system, acceptance criteria
+          - designer.agent.md (265 lines) — Design decisions with justification scoring
+          - researcher.agent.md (212 lines) — 4 parallel focus areas, codebase investigation
+          - knowledge-agent.agent.md (332 lines) — Post-mortem, evidence bundle, cross-session memory
+
+          Supporting reference documents (9 total):
+          - schemas.md (1220 lines) — 12 schema definitions, single source of truth for all YAML schemas
+          - sql-templates.md (736 lines) — All SQL DDL/DML templates, sanitization rules
+          - tool-access-matrix.md (~200 lines) — Per-agent tool access rules, 14 tools × 9 agents
+          - dispatch-patterns.md (274 lines) — Pattern A (parallel), Pattern B (sequential/replan)
+          - review-perspectives.md (~200 lines) — 3 perspectives with per-category guidance
+          - severity-taxonomy.md (~200 lines) — Blocker/Critical/Major/Minor definitions
+          - evaluation-schema.md (~130 lines) — Artifact evaluation scoring rubric
+          - global-operating-rules.md (~200 lines) — Shared rules: retry, errors, recovery, safety
+          - context7-integration.md (~95 lines) — Optional MCP documentation lookup
+
+          Prompts directory (1 file):
+          - feature-workflow.prompt.md — Simple prompt template invoking orchestrator with USER_FEATURE variable
+        evidence:
+          - "NewAgents/.github/agents/ — 18 files discovered via file_search"
+          - "NewAgents/.github/prompts/feature-workflow.prompt.md — 1 file"
+        relevance: "Every file in this inventory is a potential modification target. The file sizes indicate complexity - schemas.md (1220 lines) and sql-templates.md (736 lines) are the largest and most cross-cutting. Any schema changes propagate to all agents."
+
+      - id: "F-3"
+        title: "Current TDD Implementation in Implementer — Existing but Incomplete"
+        category: "pattern"
+        detail: |
+          The implementer already has TDD steps in its workflow (implementer.agent.md Steps 4-6):
+          Step 4: Write Failing Tests — write tests that verify acceptance criteria, confirm they FAIL before
+          writing production code, record tdd_red_green data.
+          Step 5: Write Production Code — minimal code to pass tests (YAGNI).
+          Step 6: Self-Fix Loop — max 2 attempts, then proceed with failures documented.
+
+          TDD Structural Rules already exist:
+          - Test files MUST import production modules
+          - Assertions MUST reference values from production code
+          - Each test MUST trace to at least one AC with test_method='test'
+          - Tests that pass before production code must be rewritten
+
+          CRITICAL GAPS:
+          1. TDD Fallback allows skipping TDD entirely when no test framework exists, or for doc/config tasks
+          2. No enforcement mechanism beyond self-attestation — the implementer reports tdd_red_green data
+             but nothing independently verifies the tests actually failed first
+          3. No E2E tests — only unit/integration tests are in scope
+          4. behavioral_coverage mapping is self-reported by implementer, cross-checked by verifier only
+             at the file-existence level (verifier checks test file exists, not that it meaningfully tests)
+          5. The adversarial reviewer checks for suspicious TDD patterns (initial_run_failures=0) but this
+             is after-the-fact review, not enforcement
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md — Steps 4-6 (lines ~120-200)"
+          - "NewAgents/.github/agents/implementer.agent.md — TDD Fallback section (lines ~340-380)"
+          - "NewAgents/.github/agents/implementer.agent.md — TDD Structural Rules (lines ~140-155)"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md — Suspicious TDD patterns detection"
+        relevance: "TDD enforcement requires: (1) making TDD Fallback stricter with clear gates, (2) adding independent TDD verification in the verifier cascade, (3) extending tdd_red_green schema to capture more evidence, (4) adding E2E test execution capability."
+
+      - id: "F-4"
+        title: "Current Verification Cascade — 4-Tier with No E2E Tier"
+        category: "structure"
+        detail: |
+          The verifier executes a 4-tier cascade per task (verifier.agent.md):
+          Tier 1 (Always): IDE diagnostics (get_errors), syntax/parse check
+          Tier 2 (If Tooling Exists): Build, type-check, lint, tests, behavioral coverage, runtime wiring
+          Tier 3 (If No Runtime Evidence): Import/load test, smoke execution, or infeasible documentation
+          Tier 4 (Large Tasks Only): Observability, degradation, secrets scan
+
+          Special: Runtime Smoke Test (Step 4.5) — MANDATORY for bugfix tasks only — starts the app,
+          exercises the bug scenario, verifies fix. This is the closest the system gets to E2E testing.
+
+          The verifier is READ-ONLY for source code. It can execute builds, tests, linters via
+          run_in_terminal but MUST NOT modify source files. Output: verification-reports/<task-id>.yaml +
+          SQL INSERTs into anvil_checks.
+
+          Minimum signals: 2 checks for Standard tasks, 3 for Large tasks.
+
+          CRITICAL GAPS for E2E:
+          1. No E2E tier in the cascade — the 4 tiers focus on static analysis and unit testing
+          2. Runtime smoke test is bugfix-only, not generalized for all features
+          3. No app lifecycle management (start, wait for ready, test, shutdown)
+          4. No E2E contract consumption mechanism
+          5. No port isolation or parallel safety for multiple verifiers testing live apps
+          6. The verifier has no mechanism to coordinate with other verifiers on shared resources
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md — 4-tier cascade (lines ~100-200)"
+          - "NewAgents/.github/agents/verifier.agent.md — Runtime Smoke Test (lines ~200-225)"
+          - "NewAgents/.github/agents/verifier.agent.md — Minimum Signal Requirements"
+        relevance: "Adding E2E to the verification cascade requires: a new E2E tier (or extending the runtime smoke test), E2E contract consumption, app lifecycle management, parallel test isolation, and updated minimum signal requirements for risk-based lanes."
+
+      - id: "F-5"
+        title: "E2E Testing Infrastructure — Completely Absent"
+        category: "risk"
+        detail: |
+          The current system has NO E2E testing infrastructure whatsoever:
+          - No E2E contract schema (the initial-request.md proposes one with app_type, start_command,
+            ready_check, base_url, e2e_runner, e2e_command, etc.)
+          - No app startup/shutdown management across the pipeline
+          - No browser automation integration (Playwright or otherwise)
+          - No port isolation or container-based isolation for parallel E2E execution
+          - No mechanism for agents to detect what type of application is being built
+          - No E2E test execution framework detection
+          - The only runtime interaction is the bugfix-specific smoke test in the verifier
+
+          The initial request specifies a rich E2E contract with:
+          - app_type, start_command, ready_check, base_url
+          - e2e_runner, e2e_command, supports_parallel, requires_isolated_instance
+          - Interactive mode: set up reusable skills stored in the contract
+          - Automatic mode: may skip E2E setup
+          - Dynamic and framework-agnostic design
+
+          This is marked as a fundamental architectural gap requiring new schemas, new agent
+          capabilities, and possibly a new agent role.
+        evidence:
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 2 (E2E Testing as First-Class Citizen)"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 3 (Live App Testing Architecture)"
+          - "Absence of any E2E-related schema in NewAgents/.github/agents/schemas.md"
+          - "Absence of any E2E-related SQL tables in NewAgents/.github/agents/sql-templates.md"
+        relevance: "E2E infrastructure must be designed from scratch. All agent files need updates to E2E-aware behavior. New schemas and SQL tables are required. The E2E contract must be dynamic, discoverable, and framework-agnostic."
+
+      - id: "F-6"
+        title: "Risk Classification Exists but No Workflow Lanes"
+        category: "risk"
+        detail: |
+          The current system has per-file risk classification (planner.agent.md):
+          - 🟢 Additive: new tests, docs, config, comments
+          - 🟡 Business Logic: modifying existing logic, function signatures, DB queries
+          - 🔴 Critical: auth/crypto/payments, data deletion, migrations, public API
+
+          Per-task escalation: any 🔴 file → task is Large. overall_risk_summary is the highest
+          risk across all tasks. Risk drives verification depth (Standard=2 checks min, Large=3 checks min)
+          and Tier 4 enablement.
+
+          GAPS for workflow lanes:
+          1. No Low/Medium/High workflow lanes as specified in the initial request
+          2. Risk classification drives VERIFICATION DEPTH but not TESTING TYPE selection
+          3. The orchestrator does not route to different test strategies based on risk
+          4. No mapping: Low Risk → unit tests only, Medium → unit + integration,
+             High → full TDD + E2E verification
+          5. The planner classifies risk but doesn't output lane assignments
+          6. No E2E requirement flag per task based on risk level
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md — Risk Classification System section"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Step 6 evidence gates (EG-1, EG-2)"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 5 (Risk-Based Workflow Lanes)"
+        relevance: "Workflow lanes require: (1) extending risk classification to include lane assignment, (2) updating the planner to output required test types per task, (3) updating the orchestrator to enforce lane-appropriate verification, (4) updating the verifier to check lane compliance."
+
+      - id: "F-7"
+        title: "Parallel Agent Safety — Database Only, No Resource Isolation"
+        category: "risk"
+        detail: |
+          Current parallel safety mechanisms:
+          - SQLite WAL mode + busy_timeout=5000 for database concurrency (global-operating-rules.md §3)
+          - SQLITE_BUSY retry: 3 attempts with exponential backoff (1s, 2s, 4s)
+          - Concurrency cap: max 4 agents per wave (dispatch-patterns.md)
+          - Sub-wave partitioning for >4 tasks
+          - Per-task dispatch for verifiers (1 verifier per task)
+
+          GAPS for parallel E2E safety:
+          1. No instance isolation — no unique ports, containers, or process namespaces
+          2. No file locks on shared artifacts beyond SQLite WAL
+          3. No max concurrent E2E limit separate from the general concurrency cap
+          4. No resource throttling mechanism
+          5. No deterministic test seeds
+          6. No timeout mechanism on external calls (only bounded feedback loops)
+          7. No queuing system for E2E test execution
+          8. No mechanism to prevent two verifiers from starting the same app on the same port
+          9. The verifier's runtime smoke test has no port allocation strategy
+
+          The initial request specifies:
+          - Instance isolation (unique ports or containers)
+          - File locks on shared artifacts
+          - Max concurrent E2E limit
+          - Resource throttling
+          - Deterministic test seeds
+          - Timeouts on all external calls
+          - Queue or spawn isolated instances for multiple verifiers
+        evidence:
+          - "NewAgents/.github/agents/global-operating-rules.md — §3 SQLITE_BUSY Handling"
+          - "NewAgents/.github/agents/dispatch-patterns.md — Concurrency Rules section"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 4 (Parallel Agent Safety)"
+        relevance: "Parallel E2E safety requires new infrastructure: port allocation/management, process isolation, E2E concurrency limits, and coordination between parallel verifiers. This is a cross-cutting concern affecting dispatch-patterns.md, verifier.agent.md, and orchestrator.agent.md."
+
+      - id: "F-8"
+        title: "Context Governance — Partially Implemented via relevant_context"
+        category: "pattern"
+        detail: |
+          Current context governance:
+          - relevant_context pointers in task definitions (planner.agent.md) direct implementers to read
+            only specific design_sections, spec_requirements, and files_to_modify
+          - Tool-access matrix restricts tools per agent (14 tools × 9 agents)
+          - Read-only access for verifiers, researchers, adversarial-reviewers
+          - Scoped create_file restrictions (e.g., researcher can only create research/*.yaml)
+          - Implementer reads ONLY what relevant_context specifies
+
+          GAPS:
+          1. No max-lines-per-read enforcement — the ~200 lines per call guidance is advisory only
+          2. No structured summarization or context compaction mechanisms
+          3. No measurement of context window usage per agent
+          4. No enforcement that agents actually follow relevant_context bounds (honor system)
+          5. No mechanism to detect or prevent context overflow
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md — Relevant Context Mechanism section"
+          - "NewAgents/.github/agents/tool-access-matrix.md — Full matrix"
+          - "NewAgents/.github/agents/implementer.agent.md — Relevant Context Consumption section"
+        relevance: "The initial request requires bounded context windows, max lines per read, structured summarization, and context compaction. This cross-cuts all agents and may require new enforcement rules in global-operating-rules.md."
+
+      - id: "F-9"
+        title: "Agent Dependency Graph and Data Flow"
+        category: "structure"
+        detail: |
+          Complete data flow through the pipeline:
+
+          Step 0: Orchestrator creates initial-request.md, initializes SQLite, generates run_id
+          Step 1: 4× Researcher → research/{architecture,impact,dependencies,patterns}.yaml
+          Step 2: Spec ← research/*.yaml + initial-request.md → spec-output.yaml + feature.md
+          Step 3: Designer ← spec-output.yaml + research/*.yaml → design-output.yaml + design.md
+          Step 3b: 3× Adversarial-Reviewer ← design artifacts → review-findings/design-*.md + review-verdicts/design-*.yaml + 9 SQL INSERTs
+          Step 4: Planner ← design-output.yaml + spec-output.yaml → plan-output.yaml + plan.md + tasks/*.yaml
+          Step 5: ≤4× Implementer ← tasks/<task-id>.yaml → code/tests + implementation-reports/<task-id>.yaml + SQL INSERTs
+          Step 6: ≤4× Verifier ← implementation-reports/ → verification-reports/<task-id>.yaml + SQL INSERTs
+          Step 7: 3× Adversarial-Reviewer ← staged code → review-findings/code-*.md + review-verdicts/code-*.yaml + 9 SQL INSERTs
+          Step 8: Knowledge-Agent ← all outputs → knowledge-output.yaml + decisions.yaml + evidence-bundle.md + post-mortems/ + agent-metrics/ + store_memory calls
+          Step 9: Orchestrator → git add -A && git commit
+
+          Cross-cutting: verification-ledger.db has 4 tables: anvil_checks, pipeline_telemetry, artifact_evaluations, instruction_updates.
+
+          Feedback loops:
+          - Design review → Designer revision (max 1 iteration)
+          - Implementation → Verification → Planner replan (max 3 iterations, Pattern B)
+          - Code review → Implementer fix (max 2 rounds)
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — full pipeline steps"
+          - "NewAgents/.github/agents/schemas.md — Producer/Consumer Dependency Table"
+          - "NewAgents/.github/agents/dispatch-patterns.md — Pattern B replan loop"
+        relevance: "E2E testing must plug into this data flow at specific points. The E2E contract needs to be available by Step 4 (planning) so the planner can assign E2E tasks. E2E execution happens at Step 6 (verification). E2E evidence needs to flow into the evidence bundle at Step 8."
+
+      - id: "F-10"
+        title: "Modification Surface — Files Requiring Changes for TDD/E2E Enforcement"
+        category: "structure"
+        detail: |
+          Based on the full architecture analysis, the following files need modification:
+
+          HIGH MODIFICATION (extensive changes):
+          1. implementer.agent.md — Mandatory TDD enforcement gates, removal of loose TDD Fallback, E2E awareness, stricter tdd_red_green evidence requirements
+          2. verifier.agent.md — New E2E tier in cascade, E2E contract consumption, live app lifecycle management, parallel E2E safety, updated minimum signal requirements
+          3. orchestrator.agent.md — Risk-based workflow lanes, E2E contract discovery/validation, E2E concurrency management, updated evidence gates for E2E checks
+          4. schemas.md — E2E contract schema, E2E verification schema, updated implementation-report schema for mandatory TDD evidence, workflow lane schema
+          5. sql-templates.md — E2E evidence table schema, E2E-specific INSERT templates, updated evidence gate queries
+
+          MEDIUM MODIFICATION (targeted changes):
+          6. planner.agent.md — Workflow lane assignment per task, E2E task flagging, test type requirements in task schema
+          7. dispatch-patterns.md — E2E parallel safety rules, port allocation strategy, E2E concurrency cap
+          8. global-operating-rules.md — E2E safety rules, parallel resource isolation rules, TDD enforcement as an immutable rule
+          9. designer.agent.md — E2E architecture section, E2E contract design decisions
+
+          LOW MODIFICATION (minor updates):
+          10. spec.agent.md — E2E requirements in functional requirements, acceptance criteria with E2E test methods
+          11. adversarial-reviewer.agent.md — E2E test quality checks, TDD compliance verification
+          12. tool-access-matrix.md — Possible new tool permissions for E2E execution
+          13. severity-taxonomy.md — E2E failure severity definitions
+          14. evaluation-schema.md — E2E test quality evaluation criteria
+          15. knowledge-agent.agent.md — E2E metrics in post-mortem, E2E telemetry
+          16. review-perspectives.md — E2E-specific review guidance per perspective
+
+          POTENTIAL NEW FILES:
+          17. e2e-contract-schema.md or section in schemas.md — Machine-readable E2E contract definition
+          18. e2e-safety.md — Parallel E2E isolation rules (or integrated into dispatch-patterns.md)
+          19. A new e2e-tester.agent.md if E2E testing warrants a dedicated agent role (vs extending verifier)
+        evidence:
+          - "All files in NewAgents/.github/agents/ — read in full during this investigation"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — all 10 sections"
+        relevance: "This modification surface assessment is critical for the designer and planner to scope the work. The changes are cross-cutting — nearly every file needs some modification. The designer should decide whether to add a new E2E agent or extend the verifier."
+
+      - id: "F-11"
+        title: "SQL Evidence Infrastructure — Well-Designed but Missing E2E Tables"
+        category: "structure"
+        detail: |
+          The current verification-ledger.db has 4 tables:
+          1. anvil_checks — verification evidence (writers: Orchestrator, Implementer, Verifier, Adversarial Reviewer)
+             Columns: id, run_id, task_id, phase (baseline/after/review), check_name, tool, command, exit_code, output_snippet (≤500 chars), passed (0/1), verdict, severity, round, instance, ts
+          2. pipeline_telemetry — execution tracking (writer: Orchestrator)
+             Columns: id, run_id, step, agent, instance, started_at, completed_at, status, dispatch_count, retry_count, notes, ts
+          3. artifact_evaluations — quality feedback (writers: Implementer, Verifier, Adversarial Reviewer)
+          4. instruction_updates — governed update tracking (writer: Knowledge Agent)
+
+          The anvil_checks table already supports a rich set of check_names including ide-diagnostics, syntax-check, build, type-check, lint, tests, behavioral-coverage, runtime-wiring, import-check, smoke-execution, readiness-*, review-*-security/architecture/correctness. But there are NO E2E-specific check_names.
+
+          Evidence gates (EG-1 through EG-6) use SQL queries filtered by run_id, task_id, and round:
+          - EG-1: Baseline exists (≥1 baseline record)
+          - EG-2: Verification sufficient (≥2 Standard, ≥3 Large)
+          - EG-3: All reviewers submitted (3 distinct instances)
+          - EG-4: Zero blockers
+          - EG-5: Category coverage (3 rows per reviewer)
+          - EG-6: Majority approval (≥2 of 3)
+
+          GAPS: No e2e-test, e2e-contract-validation, e2e-startup, e2e-shutdown check_names.
+          No E2E-specific evidence gate (e.g., EG-7 for E2E pass requirement on High-risk tasks).
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md — §1 Database Initialization DDL"
+          - "NewAgents/.github/agents/verifier.agent.md — check_name Quick Reference table"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Evidence Gate Logic section"
+        relevance: "E2E enforcement requires new check_names in anvil_checks (e2e-contract-valid, e2e-startup, e2e-test, e2e-shutdown) and a new evidence gate (EG-7 or equivalent) requiring E2E passage for high-risk tasks."
+
+      - id: "F-12"
+        title: "Industry Patterns — Evaluator-Optimizer and Orchestrator-Workers Align with Current Architecture"
+        category: "pattern"
+        detail: |
+          Anthropic's 'Building Effective Agents' guide (Dec 2024) identifies 5 workflow patterns:
+          1. Prompt Chaining — sequential steps with gates (≈ Steps 2→3→4 in current pipeline)
+          2. Routing — classify and route to specialized tasks (≈ risk-based workflow lanes needed)
+          3. Parallelization — sectioning or voting (≈ existing researcher ×4, reviewer ×3)
+          4. Orchestrator-Workers — dynamic task decomposition and delegation (≈ existing pipeline)
+          5. Evaluator-Optimizer — one generates, another evaluates in a loop (≈ implementer-verifier loop)
+
+          Key insights for TDD/E2E enforcement:
+          - 'Code solutions are verifiable through automated tests; Agents can iterate on solutions
+            using test results as feedback' — validates the TDD-first approach
+          - 'Extensive testing in sandboxed environments, along with appropriate guardrails' — supports
+            E2E isolation requirements
+          - AutoGen parallel tool calls must be disabled for stateful agents to avoid concurrency issues —
+            validates the parallel safety constraints
+          - CrewAI uses iteration-based testing with performance metrics per agent — aligns with
+            pipeline telemetry and evaluation scoring
+
+          The existing system already implements most of these patterns. The main gap is that
+          testing (TDD and E2E) is not treated as a GATE or ENFORCEMENT MECHANISM — it's advisory
+          and self-reported rather than independently verified and mandatory.
+        evidence:
+          - "https://www.anthropic.com/engineering/building-effective-agents — Anthropic, Dec 2024"
+          - "https://docs.crewai.com/concepts/testing — CrewAI testing framework"
+          - "https://microsoft.github.io/autogen/stable/ — AutoGen parallel tool call constraints"
+        relevance: "The current architecture already follows industry best practices for multi-agent workflows. The key enhancement is making testing an enforcement mechanism rather than an advisory process. The evaluator-optimizer pattern should be strengthened with mandatory test passage as a gate condition."
+
+      - id: "F-13"
+        title: "Orchestrator Tool Restrictions Limit E2E Management Capability"
+        category: "risk"
+        detail: |
+          The orchestrator has strict tool restrictions (tool-access-matrix.md §2):
+          - 7 tools allowed: runSubagent, read_file, list_dir, run_in_terminal (🔒), get_terminal_output, memory, ask_questions
+          - run_in_terminal is ONLY for SQLite queries, telemetry INSERT, git operations
+          - MUST NOT use for builds, tests, code execution, or file modification
+          - Cannot use: create_file, replace_string_in_file, grep_search, semantic_search, file_search, get_errors
+
+          This means the orchestrator CANNOT directly:
+          - Start or stop application instances for E2E testing
+          - Execute E2E tests
+          - Validate E2E contracts
+          - Manage ports or containers
+
+          E2E management must be delegated to subagents (verifier or a new E2E agent).
+          The orchestrator can only coordinate via dispatch and SQL evidence gate checks.
+        evidence:
+          - "NewAgents/.github/agents/tool-access-matrix.md — §2 Orchestrator"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Tool Access section"
+        relevance: "E2E lifecycle management (start app, run tests, stop app) must be delegated to the verifier or a new dedicated agent. The orchestrator's role is limited to dispatching and checking SQL evidence gates for E2E passage."
+
+      - id: "F-14"
+        title: "Implementer-Verifier Separation Already Enforces TDD Responsibility Boundary"
+        category: "pattern"
+        detail: |
+          The current architecture enforces a clean separation between implementation and verification:
+          - Implementer: Read-WRITE access. Captures baseline, writes tests (TDD), writes code, self-fixes, stages with git. Reports tdd_red_green and behavioral_coverage data. DOES NOT run live E2E tests.
+          - Verifier: Read-ONLY for source code. Executes builds, tests, linters via run_in_terminal. Cannot modify source files. Records all checks as SQL INSERTs. HAS runtime smoke test capability (bugfix only).
+
+          This separation aligns perfectly with the initial request's requirement:
+          'Implementers write unit + integration tests (TDD). DO NOT run live E2E tests.'
+          'Verifiers spin up isolated app instances. Execute E2E tests. Attempt adversarial workflows.'
+
+          The initial request's live app testing architecture maps cleanly:
+          - Implementer scope: unit + integration tests (TDD) — ALREADY in place
+          - Verifier scope: E2E tests, live app testing — NEEDS to be added
+          - Never allow both to run live app instances — ALREADY enforced by tool restrictions
+
+          The existing boundary is architecturally correct for the TDD/E2E split.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md — Role & Purpose, Tool Access"
+          - "NewAgents/.github/agents/verifier.agent.md — Role & Purpose ('read-only for source code')"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 3 (Live App Testing Architecture)"
+        relevance: "The implementer-verifier boundary is the right architecture for TDD/E2E separation. E2E testing should be added to the verifier (or a new agent dispatched by the verifier/orchestrator), not to the implementer."
+
+      - id: "F-15"
+        title: "Schema System Is the Key Integration Point"
+        category: "structure"
+        detail: |
+          schemas.md (1220 lines) is the single source of truth for all typed YAML schemas. It defines
+          12 schemas covering all agent inputs/outputs. The Producer/Consumer Dependency Table maps
+          which agents produce and consume each schema.
+
+          Adding TDD/E2E enforcement requires schema changes at multiple levels:
+          1. Schema 6 (task-schema): Add required_test_types field (unit/integration/e2e), workflow_lane
+          2. Schema 7 (implementation-report): Strengthen tdd_red_green to be MANDATORY (not just for code tasks), add e2e_awareness field
+          3. Schema 8 (verification-report): Add e2e_results section with app_startup, test_execution, app_shutdown evidence
+          4. New Schema: E2E contract (app_type, start_command, ready_check, base_url, e2e_runner, e2e_command, etc.)
+          5. Schema 1 (completion-contract): Possibly add tdd_compliant and e2e_passed boolean flags
+          6. Schema 5 (plan-output): Add workflow_lanes mapping, e2e_required flag per task
+
+          The schema system's Producer/Consumer table ensures changes propagate correctly:
+          - E2E contract: produced by user/setup, consumed by planner, verifier, orchestrator
+          - Updated task-schema: produced by planner, consumed by implementer, verifier
+          - Updated verification-report: produced by verifier, consumed by orchestrator, knowledge-agent
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — full document (1220 lines)"
+          - "NewAgents/.github/agents/schemas.md — Producer/Consumer Dependency Table"
+        relevance: "Schema changes are the most cross-cutting modification. Every agent that produces or consumes updated schemas must be updated. The schema system is well-designed for extension — new fields can be added without breaking existing agents if made optional initially."
+
+    summary: |
+      The agent system at NewAgents/.github/agents/ is a well-architected 10-step deterministic pipeline
+      with 9 agent types, typed YAML schemas, SQL-based evidence gating, and parallel dispatch capabilities.
+      The system already has TDD built into the implementer (write failing tests → minimal code → self-fix),
+      a 4-tier verification cascade in the verifier, and clean implementer-verifier separation.
+
+      However, critical gaps exist for the TDD/E2E enforcement feature:
+      1. TDD is advisory, not enforced — the TDD Fallback allows skipping, and compliance is self-attested
+      2. E2E testing infrastructure is completely absent — no contract schema, no app lifecycle management,
+         no browser automation, no port isolation
+      3. Risk-based workflow lanes do not exist — risk classification drives verification depth but not
+         test type selection
+      4. Parallel E2E safety is absent — only SQLite WAL mode provides concurrency protection
+      5. Context governance is advisory — no enforcement of read limits or context compaction
+
+      The modification surface is broad: nearly all 18 files need some level of change, with the
+      heaviest modifications needed in implementer.agent.md, verifier.agent.md, orchestrator.agent.md,
+      schemas.md, and sql-templates.md. The existing implementer-verifier boundary is architecturally
+      correct for TDD/E2E separation (implementer = unit/integration TDD, verifier = E2E).
+
+      Industry patterns (Anthropic, CrewAI, AutoGen) confirm the architecture is sound; the key
+      enhancement is elevating testing from advisory process to mandatory enforcement mechanism.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/review-perspectives.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/context7-integration.md"
+      - "NewAgents/.github/prompts/feature-workflow.prompt.md"
+      - "docs/feature/tdd-e2e-enforcement/initial-request.md"
+
+completion:
+  status: "DONE"
+  summary: "Architecture research complete: 15 findings covering pipeline structure, TDD gaps, E2E absence, modification surface, and industry patterns"
+  severity: null
+  findings_count: 15
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/research/architecture.yaml"

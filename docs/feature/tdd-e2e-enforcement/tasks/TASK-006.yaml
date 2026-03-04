@@ -1,0 +1,112 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-006"
+  title: "verifier.agent.md — TDD Compliance Verification + Behavioral Coverage Promotion"
+  target_file: "NewAgents/.github/agents/verifier.agent.md"
+  action: "modify"
+  risk: "🔴"
+  size: "Large"
+  wave: 2
+  depends_on: ["TASK-001", "TASK-002"]
+  workflow_lane: "full-tdd-e2e"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 60
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-5']" # Tier 5 ordering (Tiers 1-4 must complete first)
+      - "design-output.yaml#payload.decisions[id='D-13']" # TDD compliance verification + secondary heuristics
+      - "design-output.yaml#payload.decisions[id='D-24']" # Verifier internal modularity
+      - "design-output.yaml#payload.agent_modification_map[agent='verifier']" # Full change list
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1']" # FR-1.4, FR-1.5: Independent TDD verification
+      - "spec-output.yaml#payload.functional_requirements[id='FR-12']" # FR-12.2: EG-7 promotion
+    files_to_modify:
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        risk: "🔴"
+    files_to_read:
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        reason: "Understand existing Tier 1-4 cascade, check_name patterns, behavioral coverage check"
+      - path: "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+        section: "decisions D-13, D-24"
+        reason: "TDD compliance structural analysis, secondary heuristics, sub-role organization"
+      - path: "docs/feature/tdd-e2e-enforcement/spec-output.yaml"
+        section: "FR-1.4, FR-1.5, FR-12.2"
+        reason: "Independent TDD verification requirements, EG-7 promotion"
+
+  description: |
+    Add TDD compliance verification to the verifier's existing Tier 1-4 cascade. This task
+    modifies ONLY the existing Tiers 1-4 sections — the new Tier 5 E2E lifecycle is added
+    separately in TASK-009.
+
+    **1. Add TDD Compliance Check to Tier 2 (D-13):**
+
+    In the "### 3. Tier 2 — Run If Tooling Exists" section, after the existing "Always-Run
+    Behavioral Checks (Code Tasks)", add a TDD Compliance subsection:
+
+    **Primary checks (all must pass for tdd-compliance passed=1):**
+    (a) Test files exist and contain import/require statements referencing production modules
+        (grep for import/require patterns in test files)
+    (b) Implementation report has tdd_red_green.initial_run_failures > 0 AND
+        initial_run_exit_code != 0
+    (c) behavioral_coverage maps every AC with test_method='test' to a specific test function
+
+    **Secondary heuristics (warnings only, logged for adversarial review):**
+    (d) Test count comparison: number of test functions ≥ number of ACs with test_method='test'
+    (e) Exit code plausibility: initial_run_exit_code non-zero AND differs from final exit code
+    (f) Runner consistency: test runner in report matches detected test framework in project
+
+    Record check_name='tdd-compliance' SQL INSERT with passed=1 only when all primary checks
+    (a-c) pass. Secondary heuristics (d-f) logged as warnings in output_snippet.
+    Known limitation: single-commit model prevents temporal ordering verification (DR-2).
+
+    **2. Promote Behavioral Coverage from INFORMATIONAL to BLOCKING:**
+
+    In the existing "Always-Run Behavioral Checks (Code Tasks)" section, update the behavioral
+    coverage check from INFORMATIONAL to BLOCKING for code tasks:
+    - Record check_name='behavioral-coverage' with passed=1 required for code task completion
+    - Cross-check: every AC with test_method='test' must map to an identified test function
+    - This makes EG-7 a blocking gate (aligned with TASK-002 EG-7 promotion in sql-templates)
+
+    **3. Add Tier 2 sub-role header (D-24):**
+    Add an organizational header comment: "Tier 1-2 Sub-Role: Baseline Verification, TDD Compliance"
+    This provides logical separation for the future Tier 5 addition in TASK-009.
+
+  acceptance_criteria:
+    - id: "AC-2"
+      text: "verifier.agent.md contains TDD compliance check that records check_name='tdd-compliance' SQL INSERT. This check is blocking (passed=1 required) for code tasks"
+      test_method: "inspection"
+    - id: "AC-34"
+      text: "Behavioral coverage check is BLOCKING (not INFORMATIONAL) for code tasks. The section header or annotation reflects this change"
+      test_method: "inspection"
+    - id: "AC-T6-3"
+      text: "TDD compliance primary checks include: (a) test files import production modules, (b) initial_run_failures > 0 AND exit_code ≠ 0, (c) behavioral_coverage maps all test-method='test' ACs"
+      test_method: "inspection"
+    - id: "AC-T6-4"
+      text: "TDD compliance secondary heuristics are documented as WARNINGS (not blocking): test count, exit code plausibility, runner consistency"
+      test_method: "inspection"
+    - id: "AC-T6-5"
+      text: "DR-2 known limitation is documented: single-commit model prevents temporal ordering verification"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - Verify verifier.agent.md does NOT contain 'tdd-compliance' check → expect absent
+      - Verify behavioral coverage section says 'INFORMATIONAL' → expect present
+      - Verify no 'Sub-Role' organizational headers exist → expect absent
+    green_phase: |
+      1. Add TDD compliance subsection after existing behavioral checks in Tier 2
+      2. Include primary checks (a-c) and secondary heuristics (d-f)
+      3. Change behavioral coverage from INFORMATIONAL to BLOCKING
+      4. Add sub-role organizational header
+      Keep existing Tier 1-4 content intact — only add/modify, don't remove
+    verify_phase: |
+      - grep for 'tdd-compliance' check_name in verifier
+      - grep for 'initial_run_failures' and 'initial_run_exit_code' in the check logic
+      - grep for 'BLOCKING' in the behavioral coverage section
+      - Verify 'INFORMATIONAL' is no longer the behavioral coverage status for code tasks
+      - Verify existing Tier 1-4 content is intact

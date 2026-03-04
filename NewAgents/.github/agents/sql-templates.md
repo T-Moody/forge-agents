@@ -246,6 +246,256 @@ INSERT INTO anvil_checks (
 
 ---
 
+## §2a TDD & E2E Evidence INSERT Templates
+
+Used by: **Verifier** — inserted during TDD compliance verification (Tier 2) and E2E lifecycle phases (Tier 5). All `output_snippet` values MUST use `sql_escape()` (D-25). Max 500 chars per `output_snippet` (FR-7.3).
+
+### TDD Compliance Evidence
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ tdd-compliance — TDD cycle verified by verifier             │
+-- │ BLOCKING for code tasks (EG-8). passed=1 required.         │
+-- │ output_snippet: structural analysis JSON summary            │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'tdd-compliance',
+  'structural-analysis', NULL, NULL,
+  '{sql_escape(output_snippet)}',  -- e.g. '{"tests_exist":true,"imports_valid":true,"red_phase_plausible":true}'
+  {passed},                        -- 1 if TDD cycle verified, 0 otherwise
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### TDD Fallback Record
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ tdd-fallback — TDD skipped with recorded reason             │
+-- │ Recorded when TDD is not applicable (non-code task, etc.)   │
+-- │ output_snippet: fallback reason                             │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'tdd-fallback',
+  'verifier', NULL, NULL,
+  '{sql_escape(fallback_reason)}', -- e.g. 'task_type=documentation, no production source files modified'
+  1,                               -- passed=1 (fallback is valid when conditions met)
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### E2E Contract Discovery
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-contract-found — Contract exists and location recorded  │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-contract-found',
+  'file_search', NULL, NULL,
+  '{sql_escape(output_snippet)}',  -- e.g. 'Contract found at e2e-contract.yaml'
+  {passed},                        -- 1 if contract discovered, 0 if missing
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### E2E Contract Validation
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-contract-validation — Structural validation result      │
+-- │ D-23: Phase 1 (structural) at Step 0                       │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-contract-validation',
+  'schema-validator', NULL, NULL,
+  '{sql_escape(output_snippet)}',  -- e.g. 'Schema valid. Fields: 12/12 required present.'
+  {passed},                        -- 1 if valid, 0 if validation errors
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### E2E Instance Start
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-instance-start — App started on assigned port           │
+-- │ output_snippet includes PID for teardown tracking           │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-instance-start',
+  'run_in_terminal', '{sql_escape(command)}', {exit_code},
+  '{sql_escape(output_snippet)}',  -- e.g. 'Started on port 9001, PID=12345'
+  {passed},                        -- 1 if app started successfully
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### E2E Readiness
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-readiness — App passed ready_check health probe         │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-readiness',
+  'run_in_terminal', '{sql_escape(command)}', {exit_code},
+  '{sql_escape(output_snippet)}',  -- e.g. 'Health check passed: HTTP 200 at http://localhost:9001/health'
+  {passed},                        -- 1 if ready, 0 if timeout/failure
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### E2E Suite Execution
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-suite-execution — Pre-written test suite result         │
+-- │ Tier 5 Phase 2                                              │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-suite-execution',
+  'run_in_terminal', '{sql_escape(command)}', {exit_code},
+  '{sql_escape(output_snippet)}',  -- e.g. 'Suite: 12 passed, 0 failed, 0 skipped'
+  {passed},                        -- 1 if all suite tests pass
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### E2E Exploratory Interaction
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-exploratory — Exploratory interaction result per skill  │
+-- │ Tier 5 Phase 3. One INSERT per exploratory skill.           │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-exploratory',
+  'playwright', NULL, NULL,
+  '{sql_escape(output_snippet)}',  -- e.g. 'SKILL-001: 5/5 steps passed, 3 screenshots captured'
+  {passed},                        -- 1 if all steps in skill passed
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### E2E Adversarial — Per-Variation Records (D-26)
+
+> **Per D-26:** Each adversarial variation produces its own INSERT row. Variation names are validated: **alphanumeric + hyphens only, max 50 chars.** The `sql_escape()` function MUST be applied to `variation_id` before constructing the output_snippet.
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-adversarial — Per-variation adversarial result (D-26)   │
+-- │ Tier 5 Phase 4. ONE INSERT per variation.                   │
+-- │ variation_id: alphanumeric + hyphens only, max 50 chars.    │
+-- │ sql_escape() MUST be applied to variation_id.               │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-adversarial',
+  'playwright', NULL, NULL,
+  '{sql_escape(output_snippet)}',  -- e.g. 'variation_id=xss-script-inject: attack BLOCKED, HTTP 400'
+  {passed},                        -- 1 if attack was correctly blocked
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+**Variation name validation (before INSERT):**
+
+```
+validate_variation_id(variation_id):
+  1. Assert: matches regex ^[a-zA-Z0-9-]+$
+  2. Assert: LENGTH(variation_id) <= 50
+  3. Apply sql_escape() before embedding in output_snippet
+  If validation fails: skip INSERT, record error in e2e-adversarial-composite
+```
+
+### E2E Adversarial Composite Summary
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-adversarial-composite — Aggregate adversarial summary   │
+-- │ Summarizes all per-variation results for the task.          │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-adversarial-composite',
+  'verifier', NULL, NULL,
+  '{sql_escape(output_snippet)}',  -- e.g. 'Adversarial: 5 total, 5 blocked, 0 bypassed'
+  {passed},                        -- 1 only if ALL variations blocked attacks
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### E2E Instance Shutdown
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-instance-shutdown — Graceful shutdown confirmation       │
+-- │ Tier 5 Phase 5. Confirms app + tools shut down cleanly.     │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-instance-shutdown',
+  'run_in_terminal', '{sql_escape(command)}', {exit_code},
+  '{sql_escape(output_snippet)}',  -- e.g. 'Shutdown complete. PID 12345 terminated. Port 9001 released.'
+  {passed},                        -- 1 if clean shutdown
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+### E2E Test Execution — Composite Result
+
+```sql
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ e2e-test-execution — Composite E2E result (EG-9 target)     │
+-- │ passed=1 ONLY when ALL sub-phases pass:                     │
+-- │   suite_run, exploratory, adversarial (or N/A if no skills) │
+-- │ This is the check queried by EG-9.                          │
+-- └─────────────────────────────────────────────────────────────┘
+INSERT INTO anvil_checks (
+  run_id, task_id, phase, check_name, tool, command,
+  exit_code, output_snippet, passed, verdict, severity, round, instance
+) VALUES (
+  '{run_id}', '{task_id}', 'after', 'e2e-test-execution',
+  'verifier', NULL, NULL,
+  '{sql_escape(output_snippet)}',  -- e.g. 'E2E complete: suite=PASS, exploratory=PASS, adversarial=PASS'
+  {passed},                        -- 1 ONLY when ALL sub-phases passed
+  NULL, NULL, {round}, '{instance}'
+);
+```
+
+---
+
 ## §3 pipeline_telemetry INSERT Template
 
 Used by: **Orchestrator only** — inserted after each agent dispatch completes (Decision D-4).
@@ -376,17 +626,57 @@ WHERE run_id = '{run_id}'
   AND phase = 'baseline';
 ```
 
-### EG-2: Verification Sufficient (per task)
+### EG-10: Lane-Aware Verification (parameterized, replaces EG-2 — D-16)
 
-Verifies post-implementation checks passed. Threshold: ≥2 for Standard risk, ≥3 for Large risk tasks.
+> **Replaces old EG-2.** Consolidates verification-sufficient checks into three parameterized lane variants. The orchestrator selects the appropriate variant based on the task's `workflow_lane` field. Each variant checks for specific `check_name` values with `passed=1`.
+>
+> **Gate evaluation order:** EG-1 → EG-10 → EG-7 → EG-8 → EG-9 → EG-3..EG-6
+
+#### EG-10(unit-only): Baseline + TDD Compliance
+
+For tasks with `workflow_lane='unit-only'` (🟢 risk). Minimum 2 passed checks.
 
 ```sql
--- EG-2: Verification sufficient for task
--- Expected: ≥2 (Standard) or ≥3 (Large)
+-- EG-10(unit-only): baseline captured + TDD compliance
+-- Expected: 2
+-- Producer: verifier (baseline-captured in Tier 0/1, tdd-compliance in Tier 2)
 SELECT COUNT(*) FROM anvil_checks
 WHERE run_id = '{run_id}'
   AND task_id = '{task_id}'
   AND phase = 'after'
+  AND check_name IN ('baseline-captured', 'tdd-compliance')
+  AND passed = 1;
+```
+
+#### EG-10(unit-integration): Baseline + TDD + Behavioral Coverage
+
+For tasks with `workflow_lane='unit-integration'` (🟡 risk). Minimum 3 passed checks.
+
+```sql
+-- EG-10(unit-integration): baseline + TDD + behavioral coverage
+-- Expected: 3
+-- Producer: verifier (baseline-captured Tier 0/1, tdd-compliance Tier 2, behavioral-coverage Tier 2)
+SELECT COUNT(*) FROM anvil_checks
+WHERE run_id = '{run_id}'
+  AND task_id = '{task_id}'
+  AND phase = 'after'
+  AND check_name IN ('baseline-captured', 'tdd-compliance', 'behavioral-coverage')
+  AND passed = 1;
+```
+
+#### EG-10(full-tdd-e2e): Baseline + TDD + Behavioral Coverage + E2E
+
+For tasks with `workflow_lane='full-tdd-e2e'` (🔴 risk). Minimum 4 passed checks including `e2e-test-execution`.
+
+```sql
+-- EG-10(full-tdd-e2e): baseline + TDD + behavioral coverage + E2E
+-- Expected: 4 (including at least 1 e2e-test-execution with passed=1)
+-- Producer: verifier (baseline-captured Tier 0/1, tdd-compliance Tier 2, behavioral-coverage Tier 2, e2e-test-execution Tier 5)
+SELECT COUNT(*) FROM anvil_checks
+WHERE run_id = '{run_id}'
+  AND task_id = '{task_id}'
+  AND phase = 'after'
+  AND check_name IN ('baseline-captured', 'tdd-compliance', 'behavioral-coverage', 'e2e-test-execution')
   AND passed = 1;
 ```
 
@@ -473,18 +763,19 @@ SELECT COUNT(*) FROM (
 3. `HAVING COUNT(CASE WHEN verdict != 'approve' THEN 1 END) = 0` — zero non-approve verdicts means full approval
 4. Outer `COUNT(*)` counts how many reviewers fully approved — must be ≥2 for majority
 
-### EG-7: Behavioral Coverage Evidence (INFORMATIONAL)
+### EG-7: Behavioral Coverage Evidence (BLOCKING for code tasks)
 
-> **Status: INFORMATIONAL** — This query is logged by the orchestrator but does NOT block the pipeline (per FR-5.1, Design Decision D-8). Tasks without behavioral-coverage records pass the gate; results are recorded for observability only.
+> **Status: BLOCKING** for tasks with `task_type='code'` (per FR-1.5, FR-12.2). Tasks without behavioral-coverage records FAIL this gate when they are code tasks. Non-code tasks (documentation, configuration) are exempt.
 >
-> **Promotion criteria:** Promote EG-7 to a required (blocking) gate after 3+ consecutive pipeline runs where ≥90% of code tasks naturally produce behavioral-coverage records with zero false-positive overrides. The Knowledge Agent tracks these metrics via post-mortem telemetry.
+> **Promotion rationale:** Promoted from INFORMATIONAL to BLOCKING per FR-1.5 and FR-12.2. TDD compliance requires that behavioral-coverage evidence exists and passes for all code tasks. The Knowledge Agent continues to track gap metrics via post-mortem telemetry.
 
 Checks that each code task in the current run has at least one `anvil_checks` record with `check_name='behavioral-coverage'` AND `passed=1`.
 
 ```sql
--- EG-7: Behavioral coverage evidence per task (INFORMATIONAL — logged, not blocking)
+-- EG-7: Behavioral coverage evidence per task (BLOCKING for code tasks)
 -- Expected: 1 (behavioral-coverage record exists and passed)
--- If 0: log informational warning, do NOT halt pipeline
+-- If 0 AND task_type='code': BLOCK pipeline, record failure
+-- If 0 AND task_type!='code': log informational warning only
 SELECT COUNT(*) FROM anvil_checks
 WHERE run_id = '{run_id}'
   AND task_id = '{task_id}'
@@ -492,11 +783,10 @@ WHERE run_id = '{run_id}'
   AND passed = 1;
 ```
 
-**Gap-detection companion query** — identifies code tasks MISSING behavioral-coverage records entirely (useful for promotion readiness assessment):
+**Gap-detection companion query** — identifies code tasks MISSING behavioral-coverage records entirely:
 
 ```sql
 -- EG-7 gap detection: code tasks without any behavioral-coverage record
--- Use this to assess promotion readiness across a pipeline run
 -- Expected: 0 when all code tasks produce behavioral-coverage signals
 SELECT t.task_id
 FROM pipeline_telemetry t
@@ -508,6 +798,88 @@ WHERE t.run_id = '{run_id}'
   AND t.agent = 'implementer'
   AND a.id IS NULL
 GROUP BY t.task_id;
+```
+
+### EG-8: TDD Compliance (BLOCKING for code tasks)
+
+> **Status: BLOCKING** for tasks with `task_type='code'`. Verifies that the verifier recorded TDD compliance evidence. This gate ensures the Red-Green-Verify cycle was executed and structurally verified.
+
+```sql
+-- EG-8: TDD compliance verified
+-- Expected: 1 (tdd-compliance check exists with passed=1)
+-- BLOCKING: task cannot proceed past Step 6 without this
+SELECT COUNT(*) FROM anvil_checks
+WHERE run_id = '{run_id}'
+  AND task_id = '{task_id}'
+  AND check_name = 'tdd-compliance'
+  AND passed = 1;
+```
+
+**TDD Fallback check** — when TDD is skipped, verify fallback record exists:
+
+```sql
+-- EG-8 fallback: TDD was skipped with valid reason
+-- Used when task_type != 'code' or TDD Fallback conditions met
+-- Expected: 1 (tdd-fallback record with passed=1)
+SELECT COUNT(*) FROM anvil_checks
+WHERE run_id = '{run_id}'
+  AND task_id = '{task_id}'
+  AND check_name = 'tdd-fallback'
+  AND passed = 1;
+```
+
+### EG-9: E2E Completion Gate (BLOCKING when e2e_required=true)
+
+> **Status: BLOCKING** when the task has `e2e_required=true`. Verifies the composite E2E result exists and passed. Cross-checks sub-phase records to ensure completeness.
+
+```sql
+-- EG-9: E2E completion — composite check
+-- Expected: 1 when e2e_required=true
+-- BLOCKING: task cannot complete when e2e_required=true without this
+SELECT COUNT(*) FROM anvil_checks
+WHERE run_id = '{run_id}'
+  AND task_id = '{task_id}'
+  AND check_name = 'e2e-test-execution'
+  AND passed = 1;
+```
+
+**Sub-phase cross-check** — verifies all E2E sub-phases completed:
+
+```sql
+-- EG-9 sub-phase verification: all E2E lifecycle phases recorded
+-- suite_run_verified: e2e-suite-execution exists
+-- exploratory_coverage_verified: e2e-exploratory exists
+-- adversarial_records_inserted: e2e-adversarial-composite exists
+SELECT check_name, passed FROM anvil_checks
+WHERE run_id = '{run_id}'
+  AND task_id = '{task_id}'
+  AND check_name IN (
+    'e2e-suite-execution',
+    'e2e-exploratory',
+    'e2e-adversarial-composite'
+  );
+-- All rows must have passed=1 for composite e2e-test-execution to be valid
+```
+
+**Per-variation adversarial query** — retrieve individual adversarial variation results:
+
+```sql
+-- EG-9 adversarial detail: per-variation results for a task
+SELECT check_name, passed, output_snippet FROM anvil_checks
+WHERE run_id = '{run_id}'
+  AND task_id = '{task_id}'
+  AND check_name = 'e2e-adversarial';
+```
+
+### Composite Index Recommendation
+
+> **Per architecture-guardian A-6.** Recommended for production deployments to optimize evidence gate query performance. The orchestrator MAY execute this at Step 0 initialization.
+
+```sql
+-- Recommended composite index for evidence gate query performance
+-- Covers EG-1, EG-8, EG-9, EG-10 query patterns efficiently
+CREATE INDEX IF NOT EXISTS idx_anvil_checks_lookup
+  ON anvil_checks(run_id, task_id, check_name, passed);
 ```
 
 ---

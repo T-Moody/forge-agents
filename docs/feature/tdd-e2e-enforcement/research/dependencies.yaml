@@ -1,0 +1,645 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-dependencies"
+  step: "step-1"
+  started_at: "2026-03-04T00:10:00Z"
+  completed_at: "2026-03-04T00:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "dependencies"
+    findings:
+      # ─────────────────────────────────────────────────────────────
+      # INTERNAL AGENT DEPENDENCIES
+      # ─────────────────────────────────────────────────────────────
+      - id: "F-1"
+        title: "Producer/Consumer dependency chain spans 12 typed schemas across 9 agents"
+        category: "dependency"
+        detail: |
+          The current pipeline has a well-defined producer/consumer table (schemas.md §Producer/Consumer Dependency Table)
+          with 12 schemas. The dependency chain is:
+            Researcher → Spec → Designer → Planner → Implementer → Verifier → Adversarial Reviewer → Knowledge Agent
+          Key flows for TDD/E2E enforcement:
+            1. Planner produces task-schema (Schema 6) with risk classifications and acceptance_criteria
+            2. Implementer consumes tasks and produces implementation-report (Schema 7) with tdd_red_green and behavioral_coverage
+            3. Verifier consumes implementation-report and produces verification-report (Schema 8) with 4-tier cascade
+            4. Orchestrator reads completion contracts (Schema 1) from all agents for routing
+          E2E enforcement will add new data flows:
+            - Planner → Verifier: risk-based workflow lane (determines if E2E is required)
+            - E2E contract file → Verifier: app lifecycle management (start/stop/readiness)
+            - Verifier → anvil_checks (SQL): E2E test evidence records
+            - Orchestrator → Verifier: E2E gate queries
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Producer/Consumer Dependency Table (12 entries)"
+          - "NewAgents/.github/agents/schemas.md — Schema 6 task-schema with acceptance_criteria"
+          - "NewAgents/.github/agents/schemas.md — Schema 7 implementation-report with tdd_red_green"
+          - "NewAgents/.github/agents/schemas.md — Schema 8 verification-report with evidence_gate"
+        relevance: "Design phase must extend existing dependency flows without breaking the 12-schema contract. New E2E schemas must fit into the existing producer/consumer model."
+
+      - id: "F-2"
+        title: "Completion contract routing matrix governs all agent status transitions"
+        category: "dependency"
+        detail: |
+          The completion-contract (Schema 1) is embedded in every agent output and drives orchestrator routing.
+          Key status transitions relevant to E2E:
+            - Implementer: DONE or ERROR only (never NEEDS_REVISION)
+            - Verifier: DONE, NEEDS_REVISION, or ERROR
+            - Adversarial Reviewer: DONE, NEEDS_REVISION, or ERROR (with blocker → pipeline ERROR)
+          The completion contract includes evidence_summary with total_checks/passed/failed/security_blockers.
+          For E2E enforcement:
+            - Verifier's evidence_summary must include E2E check counts
+            - New gate_status logic must account for E2E pass/fail
+            - Risk-based workflow lanes must influence which checks are required
+          Currently, the Verifier returns NEEDS_REVISION when any check fails or below minimum signal threshold.
+          E2E failures would trigger this same NEEDS_REVISION flow into the replan loop (Pattern B, max 3 iterations).
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Completion Contract Routing Matrix"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Steps 5-6 Pattern B loop"
+          - "NewAgents/.github/agents/verifier.agent.md — Completion Contract table"
+        relevance: "E2E check failures must integrate into the existing NEEDS_REVISION → replan loop. No new completion statuses needed."
+
+      - id: "F-3"
+        title: "Dispatch patterns constrain E2E parallelism to max 4 concurrent agents"
+        category: "dependency"
+        detail: |
+          Pattern A (fully parallel) has a hard concurrency cap of 4 subagents per wave.
+          Pattern B (implementation-verification cycle) sequences implementation waves then verification waves.
+          E2E testing implications:
+            1. Max 4 verifiers can run concurrent E2E tests (per wave)
+            2. Each E2E test may spin up an isolated app instance (unique ports required)
+            3. Sub-wave partitioning (dispatch-patterns.md) already handles >4 tasks via sequential sub-waves
+            4. The initial request demands: "Queue them or spawn isolated instances" for parallel verifiers
+          Current gate conditions:
+            - Researchers: ≥2 of 4 DONE
+            - Implementers: all DONE
+            - Verifiers: all DONE (per-task gate)
+            - Code Review: ≥2 of 3 approve + 0 blockers
+          E2E adds a new dimension: resource contention for ports, databases, and app instances.
+        evidence:
+          - "NewAgents/.github/agents/dispatch-patterns.md — Pattern A and B definitions"
+          - "NewAgents/.github/agents/dispatch-patterns.md — Concurrency Cap section (max 4)"
+          - "NewAgents/.github/agents/dispatch-patterns.md — Sub-Wave Partitioning algorithm"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 4: Parallel Agent Safety"
+        relevance: "E2E resource isolation must work within the existing 4-agent concurrency cap. Port allocation strategy needed."
+
+      # ─────────────────────────────────────────────────────────────
+      # SCHEMA DEPENDENCIES
+      # ─────────────────────────────────────────────────────────────
+      - id: "F-4"
+        title: "Task schema (Schema 6) needs risk-based workflow lane field for E2E routing"
+        category: "schema"
+        detail: |
+          Currently task-schema has: id, title, description, agent, size, risk, depends_on, acceptance_criteria, relevant_context.
+          The risk field uses emoji values: 🟢, 🟡, 🔴.
+          The initial request defines 3 workflow lanes:
+            - Low Risk (🟢): Config/docs/non-runtime → unit tests only
+            - Medium Risk (🟡): Business logic → unit + integration
+            - High Risk (🔴): UI/API/state/security → full TDD + E2E verification
+          Currently risk only affects minimum verification signals (2 Standard, 3 Large/🔴).
+          Schema changes needed:
+            1. Add workflow_lane field to task-schema: "unit-only" | "unit-integration" | "full-tdd-e2e"
+            2. OR derive workflow lane from existing risk + size fields (less explicit but no schema change)
+            3. Add e2e_required boolean or e2e_contract_path reference
+          The acceptance_criteria structure (v2.0 with id, text, test_method) already supports
+          test_method='demonstration' which could map to E2E tests. However, there's no explicit
+          "run the whole app and test it" semantic.
+          A new test_method value like 'e2e' or extending 'demonstration' may be needed.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Schema 6 task-schema fields"
+          - "NewAgents/.github/agents/schemas.md — test_method values: inspection, demonstration, test, analysis"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 5: Risk-Based Workflow Lanes"
+        relevance: "Design must decide whether to add explicit workflow_lane to task-schema or derive it from risk. test_method enum may need 'e2e' value."
+
+      - id: "F-5"
+        title: "Implementation report schema needs E2E readiness fields"
+        category: "schema"
+        detail: |
+          Schema 7 (implementation-report) already has:
+            - tdd_red_green: {tests_written_first, initial_run_failures, initial_run_exit_code}
+            - behavioral_coverage: [{ac_id, test_file, test_name, status, justification}]
+            - verification_entries with baseline-phase SQL entries
+          For E2E enforcement, the implementer does NOT run E2E tests (per initial request §3:
+          "Implementers write unit + integration tests (TDD). DO NOT run live E2E tests.").
+          However, the implementer may need to:
+            1. Ensure E2E contract exists and is valid for the project
+            2. Write E2E test files (but not execute them)
+            3. Report e2e_tests_written in behavioral_coverage with status='pending_e2e_verification'
+          The behavioral_coverage.status enum currently allows: 'covered' | 'not_applicable'.
+          A new value like 'pending_e2e' may be needed for ACs that require E2E verification.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Schema 7 implementation-report fields"
+          - "NewAgents/.github/agents/implementer.agent.md — behavioral_coverage section"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 3: Implementers DO NOT run E2E"
+        relevance: "Design must extend behavioral_coverage status enum and/or add E2E readiness fields to implementation-report."
+
+      - id: "F-6"
+        title: "Verification report schema needs E2E cascade tier and evidence fields"
+        category: "schema"
+        detail: |
+          Schema 8 (verification-report) has a 4-tier cascade:
+            Tier 1: IDE diagnostics, syntax (always run)
+            Tier 2: Build, type-check, lint, tests, behavioral-coverage, runtime-wiring (if tooling exists)
+            Tier 3: Import/load, smoke execution (if Tiers 1-2 have no runtime verification)
+            Tier 4: Operational readiness (Large tasks only)
+          The verifier already has a runtime smoke test (§4.5 in verifier.agent.md) for bugfix tasks,
+          but this is a narrow check, not full E2E testing.
+          For E2E enforcement, a new Tier 5 or extension of existing tiers is needed:
+            - E2E lifecycle management: start app, wait for readiness, execute E2E tests, shutdown
+            - E2E evidence: screenshots, traces, console logs, network logs
+            - E2E check_names: 'e2e-app-start', 'e2e-readiness', 'e2e-test-execution', 'e2e-app-shutdown'
+            - E2E gate: e2e-test-execution passed=1 required for High Risk tasks
+          The verifier's existing minimum signal requirements (2 Standard, 3 Large) would need
+          adjustment to require E2E signals for High Risk tasks.
+          Current check_name patterns in schemas.md cover: baseline-*, ide-diagnostics, syntax-check,
+          build, type-check, lint, tests, behavioral-coverage, runtime-wiring, import-check,
+          smoke-execution, tier3-infeasible, readiness-*, review-*-*, baseline-discrepancy.
+          New E2E check_names must follow the existing naming convention.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Schema 8 verification-report fields"
+          - "NewAgents/.github/agents/verifier.agent.md — 4-tier cascade (Tiers 1-4)"
+          - "NewAgents/.github/agents/verifier.agent.md — §4.5 Runtime Smoke Test"
+          - "NewAgents/.github/agents/schemas.md — check_name Naming Patterns table"
+        relevance: "Design must add E2E tier to verification cascade and define new check_name patterns for E2E evidence."
+
+      # ─────────────────────────────────────────────────────────────
+      # SQL/DB DEPENDENCIES
+      # ─────────────────────────────────────────────────────────────
+      - id: "F-7"
+        title: "anvil_checks table needs new check_names and possibly new phase for E2E evidence"
+        category: "dependency"
+        detail: |
+          Current anvil_checks schema (sql-templates.md §1):
+            - phase CHECK: 'baseline' | 'after' | 'review'
+            - verdict CHECK: 'approve' | 'needs_revision' | 'blocker'
+            - severity CHECK: 'Blocker' | 'Critical' | 'Major' | 'Minor'
+          E2E evidence options:
+            Option A: Use existing phase='after' with new check_names (e2e-*)
+              - Pro: No DDL change, fits existing evidence gate queries
+              - Con: E2E checks mixed with unit/integration checks in queries
+            Option B: Add new phase='e2e' to the CHECK constraint
+              - Pro: Clean separation, easier gate queries
+              - Con: Requires table recreation (SQLite doesn't support ALTER CHECK)
+                     per sql-templates.md §9 Schema Evolution Strategy
+            Option C: Add a new 'tier' column to anvil_checks
+              - Pro: Explicit tier classification, supports future tiering
+              - Con: Additive column change (safe via ALTER TABLE ADD COLUMN)
+          Recommended: Option A (new check_names under phase='after') is least disruptive.
+          New evidence gate queries needed:
+            - EG-8: E2E evidence exists for High Risk tasks
+            - EG-9: E2E app lifecycle completed (start + readiness + tests + shutdown)
+          The Schema Evolution Strategy (sql-templates.md §9) allows safe additive changes
+          (new columns with DEFAULT) and enum expansion (requires table recreation at Step 0).
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md — §1 anvil_checks DDL with CHECK constraints"
+          - "NewAgents/.github/agents/sql-templates.md — §9 Schema Evolution Strategy"
+          - "NewAgents/.github/agents/sql-templates.md — §6 Evidence Gate Queries EG-1 through EG-7"
+        relevance: "Design must choose between new check_names vs new phase value. Table recreation at Step 0 is expensive but documented."
+
+      - id: "F-8"
+        title: "New SQL table or columns needed for E2E contract storage and lifecycle tracking"
+        category: "dependency"
+        detail: |
+          The current DB has 4 tables: anvil_checks, pipeline_telemetry, artifact_evaluations, instruction_updates.
+          E2E testing introduces new data:
+            1. E2E contract metadata (per-app): app_type, start_command, ready_check, base_url,
+               e2e_runner, e2e_command, supports_parallel, requires_isolated_instance, shutdown_mechanism
+            2. E2E lifecycle events: app_started_at, app_ready_at, tests_started_at, tests_completed_at,
+               app_shutdown_at, port_allocated, pid
+            3. E2E test results: test_name, status, duration, screenshot_path, trace_path, console_log
+            4. E2E replay artifacts: browser traces, screenshots, console logs (referenced by path)
+          Options:
+            A. New 'e2e_runs' table for lifecycle tracking + extend anvil_checks for individual test results
+            B. Everything in anvil_checks with rich output_snippet and new check_names
+            C. New 'e2e_runs' + 'e2e_test_results' tables
+          The E2E contract itself should be a YAML file in the project, not in SQLite.
+          But lifecycle events and test results should be in SQLite for evidence gating.
+          Estimated new DDL:
+            - e2e_runs: run_id, task_id, app_type, port, pid, started_at, ready_at, tests_completed_at,
+              shutdown_at, status ('started'|'ready'|'tested'|'shutdown'|'failed')
+            - Extend anvil_checks with new check_names (no DDL change needed)
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md — §1 Database Initialization (4 tables)"
+          - "NewAgents/.github/agents/sql-templates.md — §2 anvil_checks INSERT Template"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 2: Dynamic E2E Contract"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 10A: Test Replay Logs"
+        relevance: "Design must decide on new table(s) vs extending existing tables. E2E lifecycle needs structured tracking for evidence gating."
+
+      - id: "F-9"
+        title: "Evidence gate queries need E2E-aware extensions"
+        category: "dependency"
+        detail: |
+          Current evidence gates (sql-templates.md §6):
+            EG-1: Baseline exists (≥1 baseline record per task)
+            EG-2: Verification sufficient (≥2 Standard, ≥3 Large passed checks)
+            EG-3: All reviewers submitted (3 distinct instances)
+            EG-4: Zero blockers
+            EG-5: Category coverage (3 categories per reviewer)
+            EG-6: Majority approval (≥2 of 3 fully approve)
+            EG-7: Behavioral coverage (INFORMATIONAL only, not blocking)
+          For E2E enforcement, new gates needed:
+            EG-8: E2E required check — for High Risk tasks, verify at least one e2e-* check exists
+            EG-9: E2E lifecycle complete — verify app start + readiness + test execution + shutdown
+            EG-10: E2E pass rate — verify e2e-test-execution passed=1
+          The orchestrator runs these via 'run_in_terminal' with SQL queries against verification-ledger.db.
+          Risk-based routing: orchestrator must read task risk from plan-output.yaml and only enforce
+          E2E gates for 🔴 tasks (or as configured by workflow lane).
+          EG-7 (behavioral coverage) is currently INFORMATIONAL. It could be promoted alongside E2E gates.
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md — §6 Evidence Gate Queries EG-1 through EG-7"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Evidence Gate Logic section"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Orchestrator Decision Table"
+        relevance: "Design must define new evidence gate queries for E2E and update orchestrator decision table for risk-based E2E enforcement."
+
+      # ─────────────────────────────────────────────────────────────
+      # EXTERNAL TOOL DEPENDENCIES
+      # ─────────────────────────────────────────────────────────────
+      - id: "F-10"
+        title: "Playwright CLI + Skills is the recommended agent-friendly E2E tool for web apps"
+        category: "dependency"
+        detail: |
+          The Playwright ecosystem offers two agent integration paths:
+          1. @playwright/cli (npm: @playwright/cli, GitHub: microsoft/playwright-cli)
+             - CLI-based, token-efficient (avoids loading large tool schemas into context)
+             - Skills-based pattern: 'playwright-cli install --skills' installs reusable skills
+             - Session management: named sessions (-s=name) for isolated browser instances
+             - Monitoring: 'playwright-cli show' opens visual dashboard for observing agents
+             - Commands: open, goto, click, type, fill, screenshot, snapshot, eval, etc.
+             - Headless by default, --headed for visible operation
+             - Persistent sessions or isolated (in-memory) sessions
+             - v0.1.1 (latest), Apache-2.0 license, 4.7k stars
+             - Recommended for coding agents (explicitly designed for GitHub Copilot, Claude Code)
+          2. @playwright/mcp (npm: @playwright/mcp)
+             - MCP server providing browser automation via accessibility snapshots
+             - Better for exploratory automation, self-healing tests, long-running workflows
+             - More token-expensive (loads tool schemas and accessibility trees)
+             - v0.0.68, 1.5M+ weekly downloads
+             - Supports: VS Code, Cursor, Claude Desktop, and other MCP clients
+             - Config: isolated mode, save-trace, save-video, headless operation
+          Key distinction from Playwright docs:
+            "CLI + SKILLs better suited for high-throughput coding agents that must balance
+             browser automation with large codebases, tests, and reasoning within limited context windows."
+          Both tools require Node.js 18+.
+          The initial request says: "Agents must not assume Playwright. They must consult the E2E contract."
+          This means the E2E contract must specify which runner to use, and the system must
+          support pluggable runners (Playwright, Cypress, Selenium, custom, etc.).
+        evidence:
+          - "https://github.com/microsoft/playwright-cli — README with CLI commands and skills"
+          - "https://www.npmjs.com/package/@playwright/mcp — MCP server documentation"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — 'Use Playwright CLI' recommendation"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — 'Agents must not assume Playwright'"
+        relevance: "Design must support Playwright CLI as default recommendation while allowing pluggable E2E runners per project contract."
+
+      - id: "F-11"
+        title: "Framework-agnostic E2E runner abstraction required"
+        category: "dependency"
+        detail: |
+          The initial request requires the system to be "dynamic, configurable, and framework-agnostic".
+          External tool dependencies by category:
+
+          Web app E2E runners:
+            - Playwright CLI (@playwright/cli) — recommended default for web
+            - Playwright MCP (@playwright/mcp) — for exploratory/long-running workflows
+            - Cypress (cypress) — alternative web E2E runner
+            - Selenium/WebDriver — legacy web testing
+
+          API E2E runners:
+            - curl/httpie — HTTP API testing
+            - Postman/Newman — API test suites
+            - REST Client (VS Code) — for interactive mode
+
+          Desktop app E2E runners:
+            - Appium — cross-platform desktop/mobile automation
+            - WinAppDriver — Windows-specific UI automation
+
+          App lifecycle tools:
+            - dotnet run / npm start / python manage.py runserver — app start
+            - Health check HTTP polling — readiness detection
+            - Process management (PID tracking, graceful shutdown)
+            - Port allocation (find available port, avoid conflicts)
+
+          Test evidence tools:
+            - Playwright traces (.zip) — full replay with network, DOM, screenshots
+            - Screenshots (png) — visual verification artifacts
+            - Console logs — runtime error capture
+            - Video recording — session capture
+
+          The system needs a runner abstraction layer:
+            1. E2E contract specifies the runner type and commands
+            2. Agent reads contract and dispatches appropriate CLI commands
+            3. Evidence collection is standardized regardless of runner
+        evidence:
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — 'framework-agnostic' requirement"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — E2E contract example"
+          - "NewAgents/.github/agents/verifier.agent.md — Dynamic tool detection from config files"
+        relevance: "Design must define a runner abstraction that normalizes E2E execution and evidence collection across different frameworks."
+
+      - id: "F-12"
+        title: "Port allocation and app instance isolation required for parallel E2E testing"
+        category: "dependency"
+        detail: |
+          The initial request §4 (Parallel Agent Safety) requires:
+            - Instance isolation (unique ports or containers)
+            - File locks on shared artifacts
+            - Max concurrent E2E limit
+            - Resource throttling
+            - Timeouts on all external calls
+          Implementation considerations:
+            1. Port allocation: Each verifier E2E instance needs a unique port.
+               Strategy: base_port + task_index (e.g., 5000 + task ordinal)
+               Or: dynamic port allocation (find available port at runtime)
+            2. Process management: Track PIDs for graceful shutdown.
+               Verifier must kill app processes even on verification failure/timeout.
+            3. Database isolation: If the app uses a DB, each instance needs
+               its own DB or transaction isolation.
+            4. File system isolation: Temp directories per E2E instance.
+            5. Environment variables: PORT, DATABASE_URL, etc. must be unique per instance.
+          The existing concurrency cap of 4 (dispatch-patterns.md) naturally limits max E2E instances.
+          But within a wave, all 4 verifiers might try E2E simultaneously.
+          Recommended: E2E contract specifies port_range_start and the system offsets per task.
+        evidence:
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 4: Parallel Agent Safety"
+          - "NewAgents/.github/agents/dispatch-patterns.md — Concurrency Cap (max 4)"
+          - "NewAgents/.github/agents/verifier.agent.md — per-task dispatch model"
+        relevance: "Design must specify port allocation strategy and instance isolation for parallel E2E testing within the 4-agent wave limit."
+
+      # ─────────────────────────────────────────────────────────────
+      # E2E CONTRACT SCHEMA DESIGN
+      # ─────────────────────────────────────────────────────────────
+      - id: "F-13"
+        title: "E2E contract schema must be a new typed YAML format referenced by task definitions"
+        category: "schema"
+        detail: |
+          The initial request provides an example E2E contract:
+            app_type: web
+            start_command: dotnet run
+            ready_check: http://localhost:5000/health
+            base_url: http://localhost:5000
+            e2e_runner: playwright
+            e2e_command: npx playwright test
+            supports_parallel: false
+            requires_isolated_instance: true
+
+          Required fields for a complete E2E contract schema:
+
+          App Lifecycle:
+            - app_type: "web" | "api" | "cli" | "desktop" | "library"
+            - start_command: string (command to start the application)
+            - start_env: map of environment variables needed
+            - ready_check: string (URL or command to verify app is running)
+            - ready_timeout_ms: integer (max wait for readiness, default 30000)
+            - base_url: string (base URL for web/API apps)
+            - shutdown_command: string | null (graceful shutdown, default SIGTERM)
+            - shutdown_timeout_ms: integer (max wait for shutdown, default 10000)
+
+          Port Management:
+            - default_port: integer (default port the app listens on)
+            - port_env_var: string (environment variable name for port override, e.g., "PORT")
+            - port_range_start: integer (for parallel instances, e.g., 5000)
+
+          E2E Runner:
+            - e2e_runner: "playwright-cli" | "playwright" | "cypress" | "custom"
+            - e2e_command: string (command to execute E2E tests)
+            - e2e_config_path: string | null (path to runner config if needed)
+            - e2e_env: map of additional env vars for test runner
+
+          Parallelism:
+            - supports_parallel: boolean
+            - requires_isolated_instance: boolean
+            - max_concurrent_instances: integer (default 4, max concurrency cap)
+
+          Evidence:
+            - screenshot_on_failure: boolean (default true)
+            - trace_on_failure: boolean (default true)
+            - video_recording: boolean (default false)
+            - evidence_output_dir: string (default ".e2e-evidence/")
+
+          Skills (interactive mode):
+            - skills: list of skill references (reusable E2E procedures)
+            - skill_path: string | null (path to skills directory)
+
+          The contract file should live at the project root as 'e2e-contract.yaml' or '.e2e/contract.yaml'.
+          The task-schema should reference it via a new field: e2e_contract_path.
+        evidence:
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 2: Dynamic E2E Contract"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — E2E contract YAML example"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — 'skill set up that can be reused'"
+          - "NewAgents/.github/agents/schemas.md — Schema 6 task-schema structure"
+        relevance: "Design must define a complete E2E contract schema. This is a new schema (#13) to add to schemas.md."
+
+      - id: "F-14"
+        title: "Interactive vs automatic mode affects E2E setup and skill creation"
+        category: "dependency"
+        detail: |
+          The initial request distinguishes two modes for E2E:
+            - Interactive mode: Agents work with user to set up E2E, create reusable skills,
+              do web searches for latest stack info, and build an E2E contract collaboratively
+            - Automatic mode: "we may not want to set up e2e" — E2E setup might be skipped
+
+          This maps to the existing approval_mode in the orchestrator pipeline state:
+            - autonomous: Skip E2E setup, use existing contract if present
+            - interactive: Prompt user for E2E contract details, create skills
+
+          Dependencies on existing interactive mode infrastructure:
+            - Orchestrator's ask_questions tool (approval gates)
+            - Spec agent's ask_questions 🔒 (interactive mode only)
+            - Step 0 approval_mode selection
+            - Step 4a post-planning approval gate
+
+          New interactive mode requirements:
+            - E2E contract creation wizard (ask_questions-driven)
+            - Skill creation workflow (Playwright CLI 'playwright-cli install --skills')
+            - Web search for stack-specific E2E setup (context7-integration.md)
+            - E2E contract validation (verify commands work before pipeline proceeds)
+        evidence:
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Interactive mode for E2E setup"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — 'In automatic mode we may not want to set up e2e'"
+          - "NewAgents/.github/agents/orchestrator.agent.md — approval_mode (autonomous | interactive)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — ask_questions tool usage"
+        relevance: "Design must handle E2E setup differently in interactive vs automatic mode. May need new approval gate for E2E contract."
+
+      - id: "F-15"
+        title: "TDD enforcement depends on existing behavioral_coverage and tdd_red_green schema fields"
+        category: "dependency"
+        detail: |
+          The existing system already has strong TDD infrastructure:
+            1. Implementer's tdd_red_green field: {tests_written_first, initial_run_failures, initial_run_exit_code}
+            2. Implementer's behavioral_coverage: maps each AC to test file/name with status
+            3. Verifier's Tier 2 behavioral-coverage check: validates AC-to-test mapping
+            4. EG-7: Behavioral coverage evidence (currently INFORMATIONAL, not blocking)
+
+          The initial request wants to make TDD mandatory (not just tracked):
+            - Tests MUST be written first (tdd_red_green.tests_written_first must be true)
+            - Tests MUST fail initially (initial_run_failures > 0)
+            - Only minimal code to pass tests (YAGNI)
+
+          Current enforcement gaps:
+            - tdd_red_green is 'Conditional' (required for task_type='code' when TDD applies)
+            - TDD Fallback allows skipping TDD for doc/config tasks, bootstrap tasks, no test framework
+            - EG-7 is INFORMATIONAL only — currently logged but NOT blocking
+            - No check verifies that tests_written_first is actually true (self-reported)
+
+          To make TDD truly mandatory:
+            - EG-7 should be promoted to a blocking gate (or a new EG-8 for TDD enforcement)
+            - Verifier should verify tdd_red_green claims (e.g., check git history for test-before-code)
+            - TDD Fallback rules need tightening (fewer exceptions)
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Schema 7 tdd_red_green and behavioral_coverage"
+          - "NewAgents/.github/agents/implementer.agent.md — TDD Structural Rules"
+          - "NewAgents/.github/agents/implementer.agent.md — TDD Fallback section"
+          - "NewAgents/.github/agents/sql-templates.md — EG-7 behavioral coverage (INFORMATIONAL)"
+          - "NewAgents/.github/agents/verifier.agent.md — §3e Behavioral Coverage check"
+        relevance: "Design must decide how to promote TDD from optional-with-fallback to mandatory enforcement. EG-7 promotion is key."
+
+      - id: "F-16"
+        title: "Step 6a Runtime Smoke Test is a partial E2E precursor needing generalization"
+        category: "dependency"
+        detail: |
+          The orchestrator already has Step 6a: Runtime Smoke Test (Mandatory for Bugfix Features).
+          The verifier has §4.5: Runtime Smoke Test (MANDATORY for Bugfix Tasks).
+          Current behavior:
+            1. Start application via standard run command (background)
+            2. Wait for readiness (HTTP 200 for web apps)
+            3. Exercise the bug scenario end-to-end
+            4. Capture result (success/failure)
+            5. Shut down application
+          This is conceptually identical to E2E testing but:
+            - Only triggered for bugfix tasks (not all High Risk tasks)
+            - No formal E2E contract consulted
+            - No reusable skills or structured evidence
+            - Ad-hoc readiness detection (not contract-driven)
+            - Single scenario only (the reported bug)
+
+          Generalization needed:
+            - Extend from bugfix-only to risk-based triggering
+            - Use E2E contract for app lifecycle management
+            - Execute full E2E test suite (not just one scenario)
+            - Produce structured evidence (traces, screenshots)
+            - Support skill-based testing workflows
+
+          The existing Step 6a infrastructure proves the concept is viable.
+          It just needs to be generalized and formalized with E2E contracts.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — Step 6a: Runtime Smoke Test"
+          - "NewAgents/.github/agents/verifier.agent.md — §4.5 Runtime Smoke Test"
+          - "NewAgents/.github/agents/verifier.agent.md — check_name='runtime-smoke'"
+        relevance: "Design should generalize Step 6a into a full E2E verification step driven by E2E contracts. Existing smoke test is the foundation."
+
+      - id: "F-17"
+        title: "Orchestrator tool restrictions limit E2E operations to verifier scope"
+        category: "dependency"
+        detail: |
+          Tool access matrix (tool-access-matrix.md) constraints relevant to E2E:
+            - Orchestrator: run_in_terminal 🔒 (SQLite + git only, NO builds/tests/code execution)
+            - Verifier: run_in_terminal ✅ (builds, tests, SQL, git show, smoke execution)
+            - Implementer: run_in_terminal ✅ (full access within task scope)
+            - Adversarial Reviewer: run_in_terminal 🔒 (git diff + SQL INSERT only)
+
+          Implications:
+            1. The orchestrator CANNOT start/stop applications or run E2E tests
+            2. Only the Verifier and Implementer can execute terminal commands for app lifecycle
+            3. The Verifier is the natural owner of E2E test execution (read-only for source code,
+               but can execute builds, tests, and manage app processes)
+            4. The Implementer should NOT run E2E (per initial request §3)
+            5. The Adversarial Reviewer cannot run E2E tests (limited terminal access)
+
+          This aligns with the initial request:
+            "Implementers: Write unit + integration tests (TDD). DO NOT run live E2E tests."
+            "Verifiers: Spin up isolated app instances. Execute E2E tests."
+
+          The Verifier's existing tool set (run_in_terminal, get_terminal_output) is sufficient
+          for E2E operations. No new tool permissions needed.
+        evidence:
+          - "NewAgents/.github/agents/tool-access-matrix.md — §1 Master Matrix"
+          - "NewAgents/.github/agents/tool-access-matrix.md — §2 Orchestrator restrictions"
+          - "NewAgents/.github/agents/tool-access-matrix.md — §8 Verifier permissions"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 3: Live App Testing Architecture"
+        relevance: "No tool access changes needed. Verifier is the correct E2E executor. Orchestrator only runs E2E gate queries (SQL)."
+
+      - id: "F-18"
+        title: "Workflow completion gate requires holistic pass criteria across TDD + E2E + review"
+        category: "dependency"
+        detail: |
+          The initial request §10B defines a workflow completion gate:
+            Task is COMPLETE only if:
+              - Unit tests pass
+              - Verification checks pass
+              - Required E2E passes
+              - No security issues
+              - No lint violations
+
+          Current pipeline gates:
+            - Step 6 verification gate: EG-1 (baseline) + EG-2 (sufficient signals)
+            - Step 7 review gate: EG-3 (all submitted) + EG-4 (zero blockers) + EG-5 (coverage) + EG-6 (majority)
+            - Step 9 auto-commit: Confidence ≥ Medium
+
+          New holistic gate needed before Step 7 or Step 9:
+            - All unit tests pass (EG-2 covers this partially)
+            - All E2E tests pass (new EG-8/9/10)
+            - No security blockers (EG-4 covers this at review level)
+            - Lint clean (Tier 2 lint check in verification)
+            - TDD evidence complete (EG-7 currently informational)
+
+          This may require a new composite gate check in the orchestrator,
+          or enhancement of the existing EG-2 threshold for different risk levels:
+            - Low Risk: EG-2 ≥ 2 (unit tests sufficient)
+            - Medium Risk: EG-2 ≥ 3 (unit + integration)
+            - High Risk: EG-2 ≥ 4 + E2E gates passed
+        evidence:
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md — Section 10B: Workflow Completion Gate"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Evidence Gate Logic section"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Step 9 Auto-Commit conditions"
+          - "NewAgents/.github/agents/verifier.agent.md — Minimum Signal Requirements"
+        relevance: "Design must define a composite completion gate that combines TDD, E2E, review, and security evidence based on risk level."
+
+    summary: |
+      The TDD & E2E enforcement feature touches every layer of the existing agent pipeline.
+      18 findings identified across 5 dependency categories:
+
+      INTERNAL AGENT DEPENDENCIES (F-1 to F-3): The existing 12-schema producer/consumer model,
+      completion contract routing, and dispatch patterns provide a solid foundation. E2E adds
+      new data flows (E2E contract → Verifier, Verifier → E2E evidence) but requires no new
+      agent types. The concurrency cap of 4 naturally limits E2E parallelism.
+
+      SCHEMA DEPENDENCIES (F-4 to F-6): Three schemas need extensions: task-schema (workflow lane),
+      implementation-report (E2E readiness), verification-report (E2E cascade tier). A new E2E
+      contract schema (F-13) is the biggest addition. The test_method enum may need 'e2e' value.
+
+      SQL/DB DEPENDENCIES (F-7 to F-9): anvil_checks can accommodate E2E evidence via new
+      check_names under existing phase='after'. A new e2e_runs table is recommended for lifecycle
+      tracking. Evidence gates EG-8 through EG-10 needed for E2E enforcement. EG-7 should be
+      promoted from INFORMATIONAL to blocking.
+
+      EXTERNAL TOOL DEPENDENCIES (F-10 to F-12): Playwright CLI + Skills is the recommended
+      agent-friendly E2E tool for web apps. The system must be framework-agnostic with a
+      pluggable runner abstraction. Port allocation and instance isolation are critical for
+      parallel E2E within the 4-agent wave limit.
+
+      E2E CONTRACT & ENFORCEMENT (F-13 to F-18): A comprehensive E2E contract schema is needed.
+      Interactive vs automatic mode affects E2E setup. TDD enforcement needs promotion from
+      optional-with-fallback to mandatory. Step 6a runtime smoke test is a partial E2E precursor
+      that should be generalized. Tool access matrix already supports E2E in the Verifier.
+      A holistic completion gate combining TDD + E2E + review evidence is needed.
+
+    source_files_examined:
+      - "docs/feature/tdd-e2e-enforcement/initial-request.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+
+completion:
+  status: DONE
+  summary: "Dependencies research complete: 18 findings covering internal agents, schemas, SQL, external tools, and E2E contract design"
+  severity: null
+  findings_count: 18
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/research/dependencies.yaml"
+    - "docs/feature/tdd-e2e-enforcement/research/dependencies.md"

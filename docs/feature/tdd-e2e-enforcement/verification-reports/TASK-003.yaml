@@ -1,0 +1,134 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-003"
+  step: "step-6"
+  started_at: "2026-03-04T12:00:00Z"
+  completed_at: "2026-03-04T12:12:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-003"
+    run_id: "2026-03-04T00:00:00Z"
+    evidence_gate:
+      total_checks: 7
+      passed: 7
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "get_errors on NewAgents/.github/agents/global-operating-rules.md: No errors found"
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file (212 lines) structurally valid. All headings, code fences, tables, bullet lists well-formed. No unclosed fences or malformed table rows."
+
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          All 4 ACs use test_method=inspection. AC-3: TDD immutable rule found L132 with exact
+          skip criteria (a)(b)(c). AC-27: MUST read_file <=200 found L203 as mandatory. AC-T3-3:
+          E2E safety rules found §10.1-10.4 (cleanup L169, timeouts L177-179, sql_escape L187,
+          read-only L195). AC-T3-4: <=500 chars summarization found L211 with file-based storage.
+
+      - check_name: "baseline-discrepancy"
+        tier: 1
+        phase: "after"
+        tool: "git show"
+        command: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/global-operating-rules.md"
+        exit_code: 0
+        passed: true
+        output_snippet: >
+          Baseline (108 lines) vs current (212 lines). All original §1-§8 preserved. §9 preserved
+          with 2 additive changes: +1 immutable rule (TDD), +1 rejection criterion (TDD weakening).
+          §10-§11 are net-new sections. No existing rules removed or weakened. No discrepancies
+          with implementer report.
+
+      - check_name: "no-contradictions"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          No SHOULD/advisory language remains for read_file (elevated to MUST). Original 5 immutable
+          rules (L127-131), 5 protected phrases (L138-142), 5 rejection criteria (L149-153) all
+          preserved. New additions are purely additive. No contradictions between new §10-§11 and
+          existing §1-§9.
+
+      - check_name: "existing-rules-preserved"
+        tier: 2
+        phase: "after"
+        tool: "git show"
+        command: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/global-operating-rules.md"
+        exit_code: 0
+        passed: true
+        output_snippet: >
+          All 5 original immutable rules present: Terminal-only testing (L127), No-file-redirect
+          (L128), Agent boundary integrity (L129), Bounded loop invariants (L130), Evidence-first
+          (L131). All 5 protected phrases (L138-142). All 5 original rejection criteria (L149-153).
+          §1-§8 unchanged.
+
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: "n/a"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          Tier 3 not applicable: target file is a Markdown reference document (global-operating-rules.md).
+          No runtime import, no executable code. Tier 1 (IDE diagnostics, syntax) + Tier 2 (behavioral
+          coverage, no-contradictions, existing-rules-preserved) provide sufficient verification signals.
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/global-operating-rules.md"
+      discrepancies_found: false
+
+    acceptance_criteria_verification:
+      - id: "AC-3"
+        status: "PASS"
+        evidence: "Line 132: 'Mandatory TDD for code tasks' in §9.1 Immutable Rules with exact skip criteria: (a) task_type NOT code, (b) no production source files, (c) only docs/config. tdd_fallback_reason recording required."
+
+      - id: "AC-27"
+        status: "PASS"
+        evidence: "Line 203: 'All agents MUST limit read_file calls to ≤ 200 lines per invocation. This is a mandatory rule, not advisory.' — uses MUST, explicitly states mandatory."
+
+      - id: "AC-T3-3"
+        status: "PASS"
+        evidence: "§10.1 Process cleanup (L169): orphans=Blocker-severity. §10.2 Timeout enforcement (L177-179): 600s total, 60s startup, 30s single interaction. §10.3 Evidence sanitization (L187): sql_escape mandatory. §10.4 Source code read-only (L195): verifier MUST remain read-only."
+
+      - id: "AC-T3-4"
+        status: "PASS"
+        evidence: "§11.3 (L211): E2E evidence MUST be summarized (≤ 500 chars) before SQL output_snippet. Full artifacts stored as files in evidence_output_dir, referenced by path in verification report."
+
+completion:
+  status: "DONE"
+  summary: "Verified TASK-003: 7 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/verification-reports/TASK-003.yaml"
+  evidence_summary:
+    total_checks: 7
+    passed: 7
+    failed: 0
+    security_blockers: 0

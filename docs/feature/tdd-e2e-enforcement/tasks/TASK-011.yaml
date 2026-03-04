@@ -1,0 +1,95 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-011"
+  title: "dispatch-patterns.md — E2E Concurrency Cap + Sub-Wave Queuing"
+  target_file: "NewAgents/.github/agents/dispatch-patterns.md"
+  action: "modify"
+  risk: "🟡"
+  size: "Standard"
+  wave: 3
+  depends_on: ["TASK-004"]
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 50
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-6']" # E2E concurrency cap
+      - "design-output.yaml#payload.decisions[id='D-17']" # Port allocation protocol
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']" # FR-5.1, FR-5.2, FR-5.3: Parallel safety
+    files_to_modify:
+      - path: "NewAgents/.github/agents/dispatch-patterns.md"
+        risk: "🟡"
+    files_to_read:
+      - path: "NewAgents/.github/agents/dispatch-patterns.md"
+        reason: "Understand existing Pattern A (Sequential), Pattern B etc. and where to add E2E rules"
+      - path: "NewAgents/.github/agents/e2e-integration.md"
+        reason: "After TASK-004: Port allocation protocol defined in §5 or equivalent section"
+
+  description: |
+    Add E2E concurrency safety rules and port allocation guidance to dispatch-patterns.md.
+
+    **Changes required:**
+
+    1. **E2E Concurrency Cap Section:**
+       Add new subsection (e.g., "Pattern A-E2E: Sequential with E2E Sub-Wave Constraints"):
+       - Maximum 1 E2E-enabled task running at a time within a wave (concurrency cap = 1)
+       - When a wave contains multiple e2e_required=true tasks, sub-wave queuing applies:
+         tasks run sequentially even if max_concurrent > 1
+       - Non-E2E tasks in the same wave can still run in parallel up to max_concurrent
+       - Rationale: prevents port collision, shared resource contention, flaky browser behavior
+
+    2. **Port Allocation Protocol (D-17):**
+       Add port assignment rules:
+       - Base port = port_range_start from E2E contract
+       - Actual port = port_range_start + task_ordinal_index (unique per task)
+       - Port passed to application via port_env_var environment variable
+       - Orchestrator must verify port availability before dispatching E2E task
+       - On conflict: wait for previous E2E task to complete teardown
+
+    3. **Sub-Wave Queuing Mechanics:**
+       - E2E tasks within a wave form a FIFO queue
+       - Each E2E task must complete full Tier 5 lifecycle (including teardown) before next starts
+       - If an E2E task fails, remaining E2E tasks in the wave still execute (independent)
+       - Non-E2E tasks are unaffected by the E2E queue
+
+    4. **Cross-reference:**
+       - Reference e2e-integration.md for full port allocation protocol details
+       - Reference global-operating-rules.md for E2E safety rules
+
+  acceptance_criteria:
+    - id: "AC-19"
+      text: "Port isolation: each E2E task gets a unique port assignment via port_range_start + task_ordinal_index formula, preventing collisions"
+      test_method: "inspection"
+    - id: "AC-20"
+      text: "Concurrent E2E cap: max 1 E2E-enabled task running simultaneously. Sub-wave queuing described for waves with multiple E2E tasks"
+      test_method: "inspection"
+    - id: "AC-T11-3"
+      text: "Sub-wave mechanics documented: FIFO queue, full teardown before next, independent failure handling"
+      test_method: "inspection"
+    - id: "AC-T11-4"
+      text: "Non-E2E tasks in mixed waves are explicitly stated as unaffected by the E2E queue"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - grep dispatch-patterns.md for 'E2E' or 'e2e' → expect absent (or minimal)
+      - grep for 'port_range_start' → expect absent
+      - grep for 'sub-wave' or 'sub_wave' → expect absent
+    green_phase: |
+      1. Add E2E concurrency cap subsection (~15 lines)
+      2. Add port allocation protocol rules (~12 lines)
+      3. Add sub-wave queuing mechanics (~15 lines)
+      4. Add cross-references to e2e-integration.md (~5 lines)
+      Place after existing Pattern A section or as a new subsection within it
+    verify_phase: |
+      - grep for 'port_range_start' + 'task_ordinal_index'
+      - grep for concurrency cap mention (1 E2E task at a time)
+      - grep for 'sub-wave' or 'FIFO' queue reference
+      - Verify existing dispatch patterns content is intact
+      - Count added lines (~50)

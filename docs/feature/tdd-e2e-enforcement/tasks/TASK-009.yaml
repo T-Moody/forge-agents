@@ -1,0 +1,226 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-009"
+  title: "verifier.agent.md — Tier 5 E2E Verification Lifecycle (5-Phase)"
+  target_file: "NewAgents/.github/agents/verifier.agent.md"
+  action: "modify"
+  risk: "🔴"
+  size: "Large"
+  wave: 3
+  depends_on: ["TASK-004", "TASK-006"]
+  workflow_lane: "full-tdd-e2e"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 180
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-5']" # Tier 5 ordering + lifecycle
+      - "design-output.yaml#payload.decisions[id='D-9']" # Timeout architecture
+      - "design-output.yaml#payload.decisions[id='D-11']" # Verifier tool access model
+      - "design-output.yaml#payload.decisions[id='D-12']" # E2E retry policy
+      - "design-output.yaml#payload.decisions[id='D-18']" # Interaction determinism
+      - "design-output.yaml#payload.decisions[id='D-20']" # Script generation execution model
+      - "design-output.yaml#payload.decisions[id='D-22']" # Command allowlist
+      - "design-output.yaml#payload.decisions[id='D-24']" # Verifier internal modularity
+      - "design-output.yaml#payload.decisions[id='D-25']" # Evidence sanitization
+      - "design-output.yaml#payload.decisions[id='D-26']" # Per-variation adversarial SQL
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4']" # FR-4.2-FR-4.8: Live app testing
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']" # FR-5.4, FR-5.6: Timeouts, PID tracking
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7']" # FR-7.3: Evidence summarization
+      - "spec-output.yaml#payload.functional_requirements[id='FR-11']" # Evidence capture
+      - "spec-output.yaml#payload.functional_requirements[id='FR-13']" # Performance guardrails
+      - "spec-output.yaml#payload.functional_requirements[id='FR-14']" # Deterministic outputs
+    files_to_modify:
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        risk: "🔴"
+    files_to_read:
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        reason: "Understand existing cascade structure after TASK-006 TDD additions"
+      - path: "NewAgents/.github/agents/e2e-integration.md"
+        reason: "After TASK-004: E2E contract spec (§1), skills schema (§2), script generation protocol (§3), command sanitization (§4), command allowlist (§5), evidence sanitization (§6)"
+      - path: "NewAgents/.github/agents/tool-access-matrix.md"
+        reason: "After TASK-008: Tier 5 command allowlist reference"
+      - path: "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+        section: "decisions D-5, D-9, D-12, D-20, D-24, D-25, D-26"
+        reason: "Tier 5 lifecycle, timeouts, retry, script generation, modularity, sanitization"
+
+  description: |
+    Add the Tier 5 E2E Verification section to verifier.agent.md. This is the most complex
+    single task — it adds live application interaction capability to the verifier.
+
+    **CRITICAL:** This section is CONDITIONALLY LOADED — prefix all instructions with
+    "When e2e_required=true AND workflow_lane='full-tdd-e2e':" so non-E2E verification pays no
+    context cost for this section (~180 lines saved from working context). Per D-24.
+
+    **Tier 5 sub-role header:** "### Tier 5 — E2E Verification (Conditional: e2e_required=true)"
+
+    **Ordering guarantee (D-5):** Tier 5 MUST execute AFTER Tiers 1-4 complete and all SQL
+    is committed. Never interleaved with earlier tiers.
+
+    **Phase 1 — Setup:**
+    - Read and validate the E2E contract (runtime validation: commands work, tools installed)
+    - Record check_name='e2e-contract-found' and 'e2e-contract-validation'
+    - **Verify Playwright CLI availability:** confirm `playwright-cli` binary is installed
+      (via `npm install -g @playwright/cli@latest` if missing)
+    - **Install Playwright CLI skills:** `playwright-cli install --skills` (if not already installed)
+    - Start the application: construct command from contract's structured format ({executable, args})
+    - Validate command against tier5_command_allowlist BEFORE execution
+    - Assign port: port_range_start + task_ordinal_index
+    - Pass port via port_env_var environment variable
+    - Record PID in check_name='e2e-instance-start' output_snippet (survives crashes)
+    - Wait for readiness: poll ready_check with exponential backoff, max ready_timeout_ms
+    - Record check_name='e2e-readiness'
+    - **Create Playwright CLI session:** `playwright-cli -s=verify-{task-id} open {base_url}`
+      (named session for isolation — allows parallel verifiers without conflict)
+    - Track session name (verify-{task-id}) for cleanup in Phase 5
+    - **Read .playwright/cli.config.json** if present for project-specific Playwright CLI configuration
+
+    **Phase 2 — Test Suite Execution:**
+    - Execute 'test-suite' type skills: run test commands via allowlist
+    - Record check_name='e2e-suite-execution' per skill
+    - Test suites use `npx playwright test` (full Playwright Test runner) for complex suites
+    - Session note: Phase 2 test suites manage their own browser instances via test runner
+    - Cleanup sub-step: confirm all Phase 2 test runner processes terminated before Phase 3
+
+    **Phase 3 — Exploratory Interaction (Playwright CLI):**
+    - **Primary model: Playwright CLI commands** (replaces script generation for exploratory skills)
+    - For each exploratory skill, translate skill steps into `playwright-cli` commands:
+      - navigate → `playwright-cli -s=verify-{task-id} goto {url}`
+      - click → `playwright-cli -s=verify-{task-id} click {ref}`
+      - fill → `playwright-cli -s=verify-{task-id} fill {ref} {text}`
+      - type → `playwright-cli -s=verify-{task-id} type {text}`
+      - press → `playwright-cli -s=verify-{task-id} press {key}`
+      - assert → `playwright-cli -s=verify-{task-id} snapshot` + verify element in accessibility tree
+    - Evidence capture at each step:
+      - Screenshot: `playwright-cli -s=verify-{task-id} screenshot --filename=.e2e/evidence/{skill-id}-step-{N}.png`
+      - Console: `playwright-cli -s=verify-{task-id} console` (capture console messages)
+      - Network: `playwright-cli -s=verify-{task-id} network` (capture network requests)
+      - Tracing: `playwright-cli -s=verify-{task-id} tracing-start` / `tracing-stop` (for complex flows)
+    - **Fallback for complex suites:** skill YAML → generated .spec.ts → `npx playwright test` (retained)
+    - Record check_name='e2e-exploratory' per skill with interaction_log
+    - Interaction determinism (D-18): follow steps exactly as written, NO improvisation
+    - Token efficiency: playwright-cli commands avoid dumping page data into LLM context
+
+    **Phase 4 — Adversarial Interaction:**
+    - Execute 'adversarial' type skills AND adversarial_variations within exploratory skills
+    - Translate adversarial steps to playwright-cli commands with step overrides applied:
+      - Override fill values: `playwright-cli -s=verify-{task-id} fill {ref} {override_value}`
+      - Override navigation: `playwright-cli -s=verify-{task-id} goto {override_url}`
+    - Each adversarial variation: separate SQL INSERT with check_name='e2e-adversarial' +
+      variation_id in output_snippet (D-26)
+    - Validate variation names: alphanumeric + hyphens only, max 50 chars
+    - Record composite check_name='e2e-adversarial-composite' aggregating all results
+    - Per-phase timeout: max 120s per adversarial skill
+
+    **Phase 5 — Teardown:**
+    - **Close Playwright CLI session:** `playwright-cli -s=verify-{task-id} close`
+    - Shut down application gracefully (shutdown_command from contract)
+    - **Emergency session cleanup:** `playwright-cli close-all` if graceful close fails
+    - **Force-kill:** `playwright-cli kill-all` if sessions persist after shutdown_timeout_ms
+    - Verify ALL spawned PIDs (app process) are terminated — no orphans
+    - Verify `playwright-cli list` returns no active sessions for verify-{task-id}
+    - Record check_name='e2e-instance-shutdown'
+    - Write evidence manifest (evidence-manifest.yaml) with SHA-256 hash (D-25)
+    - Write composite check_name='e2e-test-execution' (passed=1 only when ALL sub-phases pass)
+
+    **Evidence Sanitization Pipeline (D-25):**
+    Apply to ALL evidence before storage:
+    - sql_escape() for all SQL output_snippet values
+    - HAR stripping: Authorization/Cookie/Set-Cookie → [REDACTED], body > 10KB → [TRUNCATED]
+    - Screenshot path validation (within .e2e/evidence/, no path traversal)
+    - Console output cap: 5KB per step
+    - Env scrubbing: secret patterns → [REDACTED]
+
+    **Retry Policy (D-12):**
+    Max 1 retry of entire Tier 5 sequence on transient failure (port conflict, startup timeout,
+    playwright-cli session crash). Non-retryable: contract invalid, runner missing, assertion failure.
+
+    **Timeout Budget (D-9):**
+    Total 600s per task. Per-phase: startup 60s, suite 300s, exploratory 180s/skill,
+    adversarial 120s/skill, shutdown 30s.
+
+    **Interaction Log Structure:**
+    For each exploratory/adversarial skill, produce:
+    interaction_log:
+      skill_id, skill_type, steps_executed, steps_passed, steps_failed,
+      step_results: [{order, action, target, result, actual_behavior, evidence_path, duration_ms}]
+
+    **Source code read-only:** Verifier MUST NOT modify application source during E2E.
+    Only evidence artifacts are written to evidence_output_dir.
+
+  acceptance_criteria:
+    - id: "AC-10"
+      text: "Tier 5 describes exploratory interaction using Playwright CLI: verifier translates skill steps to playwright-cli commands (goto, click, fill, type, press) via named session (-s=verify-{task-id}) to interact with the running app. Fallback script generation (.spec.ts) retained for complex suites"
+      test_method: "inspection"
+    - id: "AC-11"
+      text: "Adversarial phase applies step overrides and records per-variation check_name='e2e-adversarial' SQL INSERTs with variation_id in output_snippet"
+      test_method: "inspection"
+    - id: "AC-14"
+      text: "All E2E lifecycle phases produce SQL INSERTs: e2e-contract-found, e2e-instance-start, e2e-readiness, e2e-suite-execution, e2e-exploratory, e2e-adversarial, e2e-instance-shutdown, e2e-test-execution"
+      test_method: "inspection"
+    - id: "AC-15"
+      text: "Playwright CLI browser interaction described: session creation (playwright-cli -s=verify-{task-id} open), navigation (goto), element interaction (click, fill), evidence capture (screenshot, snapshot, console, network, tracing)"
+      test_method: "inspection"
+    - id: "AC-18"
+      text: "Verifier remains read-only for source code during E2E — only evidence artifacts written"
+      test_method: "inspection"
+    - id: "AC-21"
+      text: "Timeout enforcement: all E2E operations have hard timeouts. Exceeded timeout triggers force-kill of app + playwright-cli sessions via playwright-cli kill-all and tracked PIDs"
+      test_method: "inspection"
+    - id: "AC-22"
+      text: "Phase 5 teardown closes Playwright CLI session (playwright-cli -s=verify-{task-id} close), shuts down app, uses close-all/kill-all as fallback, verifies playwright-cli list shows no active sessions, verifies all app PIDs terminated"
+      test_method: "inspection"
+    - id: "AC-28"
+      text: "Evidence sanitization pipeline applied: sql_escape(), HAR stripping, response masking, 500-char output_snippet limit"
+      test_method: "inspection"
+    - id: "AC-32"
+      text: "Evidence manifest (evidence-manifest.yaml) written at teardown listing all artifacts with SHA-256 hash"
+      test_method: "inspection"
+    - id: "AC-35"
+      text: "Total E2E timeout documented as 600s per task with per-phase budgets"
+      test_method: "inspection"
+    - id: "AC-36"
+      text: "Retry policy: max 1 retry of entire Tier 5 on transient failure (including playwright-cli session crash). Assertion failures are non-retryable"
+      test_method: "inspection"
+    - id: "AC-T9-12"
+      text: "Tier 5 section is prefixed with conditional loading gate: 'When e2e_required=true AND workflow_lane=full-tdd-e2e'"
+      test_method: "inspection"
+    - id: "AC-T9-13"
+      text: "Command allowlist check is documented: every run_in_terminal command verified against tier5_command_allowlist BEFORE execution"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - Verify verifier.agent.md does NOT contain 'Tier 5' section → expect absent
+      - Verify no 'e2e-instance-start' check_name reference → expect absent
+      - Verify no 'playwright-cli' or 'playwright-cli -s=' text → expect absent
+    green_phase: |
+      Add the entire Tier 5 section after existing Tier 4 / before Evidence Gate Summary:
+      1. Conditional gate preamble
+      2. Phase 1 Setup with playwright-cli session creation (~35 lines)
+      3. Phase 2 Suite Execution (~15 lines)
+      4. Phase 3 Exploratory Interaction with playwright-cli commands (~45 lines)
+      5. Phase 4 Adversarial Interaction with playwright-cli overrides (~30 lines)
+      6. Phase 5 Teardown with playwright-cli close/close-all/kill-all (~30 lines)
+      7. Evidence sanitization rules (~15 lines)
+      8. Retry policy + timeout budget (~10 lines)
+      9. Interaction log structure (~15 lines)
+      Reference e2e-integration.md for detailed protocol — don't duplicate
+    verify_phase: |
+      - grep for 'Tier 5' section with all 5 phases
+      - grep for 'playwright-cli -s=verify-{task-id}' session pattern
+      - grep for playwright-cli commands: 'open', 'goto', 'click', 'fill', 'screenshot', 'snapshot'
+      - grep for 'playwright-cli close', 'close-all', 'kill-all' in Phase 5
+      - grep for 'playwright-cli list' in Phase 5 verification
+      - grep for all 8 E2E check_names in the phase descriptions
+      - grep for 'tier5_command_allowlist' reference
+      - grep for 'sql_escape' in evidence sanitization
+      - grep for '600s' total timeout
+      - grep for 'e2e_required=true' conditional gate
+      - Verify existing Tiers 1-4 content is intact
+      - Count estimated lines of new section (~180)

@@ -1,0 +1,111 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-review-fixes-r1"
+  step: "step-5"
+  started_at: "2026-03-04T00:00:00Z"
+  completed_at: "2026-03-04T00:00:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "review-fixes-r1"
+    task_type: "code"
+    baseline:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        action: "modified"
+        description: >
+          Fixed EG-10 lane-aware verification queries: replaced phantom check_names
+          'baseline-verified' with 'baseline-captured' and 'integration-tests-passed'
+          with 'behavioral-coverage'. Added Producer comments to each query variant.
+          unit-only: baseline-captured + tdd-compliance (2). unit-integration:
+          baseline-captured + tdd-compliance + behavioral-coverage (3). full-tdd-e2e:
+          baseline-captured + tdd-compliance + behavioral-coverage + e2e-test-execution (4).
+      - path: "NewAgents/.github/agents/tool-access-matrix.md"
+        action: "modified"
+        description: >
+          Tightened tier5_command_allowlist patterns #4, #7, #8.
+          Pattern #4: ^node .+ → ^node \.[\\/].+\.m?[jt]s$ (local file paths only).
+          Pattern #7: ^curl -s .+ → ^curl -sf?o? https?://localhost[:/] (localhost only).
+          Pattern #8: ^(kill|taskkill) → ^(kill (-[0-9]+ )?[0-9]+|taskkill /F /PID [0-9]+)$ (numeric PID only).
+      - path: "NewAgents/.github/agents/e2e-integration.md"
+        action: "modified"
+        description: >
+          Tightened §5 allowlist patterns #4, #7, #8 to match tool-access-matrix.md.
+          Clarified §8 Parallel Instance Isolation: max_concurrent_instances is browser-instance
+          cap within a single verifier, not cross-task dispatch concurrency. Updated API/CLI
+          curl reference to new localhost-only pattern.
+      - path: "NewAgents/.github/agents/orchestrator.agent.md"
+        action: "modified"
+        description: >
+          Fixed E2E concurrency wording to align with dispatch-patterns.md:
+          max 1 E2E task per wave (sequential sub-wave queuing). Clarified that
+          max_concurrent_instances controls browser contexts within a single verifier task,
+          not cross-task dispatch concurrency.
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        action: "modified"
+        description: >
+          Added 'baseline-captured' (Tier 0) to check_name quick reference table.
+          Updated baseline cross-check step 4 to INSERT baseline-captured with passed=1
+          when no discrepancies found (required for EG-10 gates to be satisfiable).
+          Previously, clean baselines produced no SQL record.
+    self_check:
+      ide_diagnostics:
+        errors: 0
+        warnings: 0
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "eg10-phantom-checknames-fixed"
+        phase: "after"
+        tool: "multi_replace_string_in_file"
+        passed: true
+      - check_name: "overbroad-allowlist-fixed"
+        phase: "after"
+        tool: "multi_replace_string_in_file"
+        passed: true
+      - check_name: "e2e-concurrency-cap-aligned"
+        phase: "after"
+        tool: "replace_string_in_file"
+        passed: true
+    behavioral_coverage:
+      - ac_id: "EG-10-phantom-checknames"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection'; documentation/instruction file changes only — no executable code to test"
+      - ac_id: "overbroad-allowlist-regexes"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection'; regex pattern changes in markdown instruction files — verified by manual review"
+      - ac_id: "e2e-concurrency-cap-contradiction"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection'; cross-document consistency fix in markdown instruction files"
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+    tdd_fallback_reason: >
+      TDD skipped: all changes are to agent instruction Markdown files (.md) with no
+      executable code. No test framework applies to Markdown instruction documents.
+      task_type='code' but all modified files are non-runtime agent instruction files.
+completion:
+  status: "DONE"
+  summary: "Fixed 3 critical/major findings from Round 1 code review: EG-10 phantom check_names, overbroad allowlist regexes, E2E concurrency cap contradiction"
+  severity: null
+  findings_count: 3
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/implementation-reports/review-fixes-r1.yaml"

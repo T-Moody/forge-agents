@@ -1,0 +1,114 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-TASK-002"
+  step: "step-6"
+  started_at: "2026-03-04T01:00:00Z"
+  completed_at: "2026-03-04T01:15:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-002"
+    run_id: "2026-03-04T00:00:00Z"
+    evidence_gate:
+      total_checks: 8
+      passed: 8
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file — no IDE compile errors applicable. File parses as valid markdown."
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "All SQL code blocks have matching open/close fences. 12 INSERT templates well-formed. 3 EG SELECT queries valid. Markdown structure valid."
+
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "All 7 ACs verified by inspection (test_method=inspection): AC-2 tdd-compliance INSERT present, AC-14 all 12 check_names present, AC-25 EG-10 full-tdd-e2e >=4, AC-33 EG-9 blocks, AC-34 EG-7 BLOCKING, AC-T2-6 variation_id validated, AC-T2-7 EG-2 replaced by EG-10"
+
+      - check_name: "eg-8-syntax-valid"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "EG-8 at L800-825: SELECT COUNT(*) FROM anvil_checks WHERE check_name=tdd-compliance AND passed=1. Fallback query present. BLOCKING header documented."
+
+      - check_name: "eg-9-syntax-valid"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "EG-9 at L830-870: SELECT COUNT(*) FROM anvil_checks WHERE check_name=e2e-test-execution AND passed=1. Sub-phase cross-check queries present for suite/exploratory/adversarial. Per-variation query present."
+
+      - check_name: "eg-10-syntax-valid"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "EG-10 at L629-678: 3 lane variants present. unit-only(>=2 checks), unit-integration(>=3), full-tdd-e2e(>=4 incl e2e-test-execution). All use SELECT COUNT(*) with IN clause and passed=1."
+
+      - check_name: "check-names-consistent"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "All 12 new check_names in INSERT templates match those referenced in EG-8/EG-9/EG-10 queries. Cross-verified: tdd-compliance(EG-8,EG-10), e2e-test-execution(EG-9,EG-10), suite/exploratory/adversarial-composite(EG-9 sub-phase)."
+
+      - check_name: "existing-gates-preserved"
+        tier: 4
+        phase: "after"
+        tool: "git show"
+        command: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/sql-templates.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline 586 lines, current 1105. EG-1,EG-3,EG-4,EG-5,EG-6 preserved at L616,L680,L694,L709,L731. EG-2 replaced by EG-10 (D-16). EG-7 promoted INFORMATIONAL->BLOCKING. s0-s9 sections intact."
+
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-04:NewAgents/.github/agents/sql-templates.md"
+      discrepancies_found: false
+      details: >
+        Baseline file was 586 lines. Current file is 1105 lines (519 lines added).
+        Verified: §0 (sanitization), §1 (DDL), §2 (anvil_checks INSERT) preserved unchanged.
+        §2a (TDD & E2E INSERT templates) is entirely new — 12 check_name INSERT templates added.
+        §3-§9 preserved unchanged. EG-1 preserved. EG-2 replaced by EG-10 (D-16 design decision).
+        EG-3 through EG-6 preserved. EG-7 promoted from INFORMATIONAL to BLOCKING per FR-1.5.
+        EG-8 (new), EG-9 (new) added. Composite index recommendation (new) added per A-6.
+        Gate evaluation order documented. Implementer baseline claims match git show evidence.
+
+completion:
+  status: "DONE"
+  summary: "Verified TASK-002: 8 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/verification-reports/TASK-002.yaml"
+  evidence_summary:
+    total_checks: 8
+    passed: 8
+    failed: 0
+    security_blockers: 0

@@ -111,13 +111,15 @@ Every verification check — regardless of tier, result, or significance — MUS
 
 | Tier | `check_name`              | Description                           |
 | ---- | ------------------------- | ------------------------------------- |
+| 0    | `baseline-captured`       | Baseline cross-check passed (no discrepancies) |
 | 1    | `ide-diagnostics`         | IDE diagnostic check via `get_errors` |
 | 1    | `syntax-check`            | Syntax/parse verification             |
 | 2    | `build`                   | Build/compile                         |
 | 2    | `type-check`              | Type checker                          |
 | 2    | `lint`                    | Linter                                |
 | 2    | `tests`                   | Test execution                        |
-| 2    | `behavioral-coverage`     | Behavioral coverage verification      |
+| 2    | `behavioral-coverage`     | Behavioral coverage (BLOCKING for code tasks) |
+| 2    | `tdd-compliance`          | TDD compliance verification (BLOCKING for code tasks) |
 | 2    | `runtime-wiring`          | Runtime wiring for new files          |
 | 3    | `import-check`            | Import/load test                      |
 | 3    | `smoke-execution`         | Smoke execution                       |
@@ -125,6 +127,16 @@ Every verification check — regardless of tier, result, or significance — MUS
 | 4    | `readiness-observability` | Observability hooks present           |
 | 4    | `readiness-degradation`   | Graceful degradation paths            |
 | 4    | `readiness-secrets`       | No hardcoded secrets                  |
+| 5    | `e2e-contract-found`      | E2E contract exists and is readable   |
+| 5    | `e2e-contract-validation` | Runtime contract validation passed    |
+| 5    | `e2e-instance-start`      | App started on assigned port (PID in output_snippet) |
+| 5    | `e2e-readiness`           | App passed `ready_check`              |
+| 5    | `e2e-suite-execution`     | Test suite execution pass/fail        |
+| 5    | `e2e-exploratory`         | Exploratory interaction result        |
+| 5    | `e2e-adversarial`         | Per-variation adversarial result      |
+| 5    | `e2e-adversarial-composite` | Composite adversarial summary       |
+| 5    | `e2e-instance-shutdown`   | App + sessions shut down cleanly      |
+| 5    | `e2e-test-execution`      | Composite: ALL E2E phases passed      |
 | —    | `baseline-discrepancy`    | Baseline claims mismatch `git show`   |
 
 ---
@@ -150,7 +162,9 @@ Execute these steps in order for every task verification dispatch.
    ```
 2. Compare against the Implementer's self-reported baseline data.
 3. **Discrepancies found:** INSERT with `check_name='baseline-discrepancy'`, `passed=0`.
-4. **No discrepancies:** Record `baseline_cross_check.discrepancies_found: false` in YAML. No INSERT needed for clean cross-checks.
+4. **No discrepancies:** INSERT with `check_name='baseline-captured'`, `passed=1`. This positive record is required by the EG-10 lane-aware verification gate.
+
+<!-- Tier 1-2 Sub-Role: Baseline Verification, TDD Compliance (D-24) -->
 
 ### 2. Tier 1 — Always Run
 
@@ -186,10 +200,36 @@ Run **only if** corresponding tooling exists. Detect dynamically from config fil
 
 The following checks use workspace analysis tools (`read_file`, `grep_search`) that are always available. They are **unconditional for `task_type='code'` tasks** — not gated by external tooling detection.
 
-- **3e. Behavioral Coverage** — Read `behavioral_coverage` mapping from `implementation-reports/<task-id>.yaml`. For each acceptance criterion with `test_method='test'`: (a) verify the mapped test file exists, (b) verify the test file imports/references the production module, (c) confirm mapping is complete for all `test_method='test'` criteria. Accept `not_applicable` with justification for `test_method='inspection'` criteria and TDD Fallback scenarios (EC-2). INSERT with `check_name='behavioral-coverage'`.
+- **3e. Behavioral Coverage (BLOCKING for code tasks)** — Read `behavioral_coverage` mapping from `implementation-reports/<task-id>.yaml`. For each acceptance criterion with `test_method='test'`: (a) verify the mapped test file exists, (b) verify the test file imports/references the production module, (c) confirm mapping is complete for all `test_method='test'` criteria. Accept `not_applicable` with justification for `test_method='inspection'` criteria and TDD Fallback scenarios (EC-2). INSERT with `check_name='behavioral-coverage'`. **This check is BLOCKING** — `passed=1` is required for code task completion (EG-7 promotion per FR-12.2). A `passed=0` result triggers `gate_status: "failed"`.
 - **3f. Runtime Wiring** — Only for tasks that create new source files (skip for modification-only tasks per EC-3). Use `grep_search` to verify at least one pre-existing file imports or references each newly created file. INSERT with `check_name='runtime-wiring'`.
 
 Both checks count toward the EG-2 minimum signal threshold (FR-3.4).
+
+#### TDD Compliance Check (BLOCKING for code tasks — D-13)
+
+For all `task_type='code'` tasks, perform independent TDD compliance verification. This check does NOT trust the implementer's self-reported `tdd_red_green` fields — it cross-checks via structural analysis.
+
+**Primary checks (ALL must pass for `check_name='tdd-compliance'` `passed=1`):**
+
+(a) **Test files import production modules** — Verify that test files exist and contain `import`/`require`/`from ... import` statements referencing production modules modified or created by the task. Use `grep_search` to scan test files for import patterns matching the task's changed production files.
+
+(b) **RED phase recorded** — Verify the implementation report contains `tdd_red_green.initial_run_failures > 0` AND `tdd_red_green.initial_run_exit_code != 0`. This confirms the implementer recorded a failing test run before production code was complete.
+
+(c) **Behavioral coverage complete** — Verify `behavioral_coverage` maps every AC with `test_method='test'` to a specific test function (test_file + test_name). Every such AC must have `status='covered'` with non-empty `test_file` and `test_name`.
+
+INSERT with `check_name='tdd-compliance'`, `passed=1` only when ALL primary checks (a-c) pass. If any primary check fails, `passed=0`. This check is **BLOCKING** — `passed=1` is required for code task completion (FR-1.5, FR-12.2).
+
+**Secondary heuristics (WARNINGS only — logged for adversarial review, do NOT block):**
+
+(d) **Test count** — Number of test functions in test files ≥ number of ACs with `test_method='test'`. If fewer tests than ACs, log warning: `"WARNING: test count (<N>) < AC count (<M>)"`.
+
+(e) **Exit code plausibility** — `tdd_red_green.initial_run_exit_code` must be non-zero AND differ from the final test exit code. If both are identical, log warning: `"WARNING: initial and final exit codes identical (<code>)"`.
+
+(f) **Runner consistency** — Test runner name in the implementation report should match the detected test framework in the project (e.g., `pytest` vs `jest` vs `dotnet test`). If mismatch, log warning: `"WARNING: runner mismatch — report says '<X>', project uses '<Y>'"`.
+
+Secondary heuristic warnings are included in the `output_snippet` field of the `tdd-compliance` SQL INSERT for adversarial review audit trail.
+
+> **Known limitation (DR-2):** Within the single-commit model (`git add -A`), the verifier cannot distinguish whether the implementer truly wrote tests before production code or wrote them simultaneously. The structural checks verify that TDD artifacts exist and are plausible, not that the exact temporal ordering was followed. This is an accepted limitation given the commit model constraint.
 
 ### 4. Tier 3 — Required When Tiers 1–2 Produce No Runtime Verification
 
@@ -218,6 +258,148 @@ Execute **only for Large tasks** (any file classified as `🔴`). Skip for Stand
 - **5a. Observability** — Inspect for error logging, structured error messages, diagnostic info in failure paths. INSERT with `check_name='readiness-observability'`.
 - **5b. Degradation** — Inspect for graceful handling of external dependency failures, timeouts, retries. INSERT with `check_name='readiness-degradation'`.
 - **5c. Secrets Scan** — `grep_search` for `password`, `secret`, `api_key`, `token`, `Bearer`, connection strings, etc. INSERT with `check_name='readiness-secrets'`.
+
+<!-- Tier 5 Sub-Role: E2E Verification (Conditional — D-24) -->
+
+### 5.5 Tier 5 — E2E Verification (Conditional: e2e_required=true)
+
+> **Conditional gate:** Execute this section **ONLY** when `e2e_required=true` AND `workflow_lane='full-tdd-e2e'` in the task definition. When these conditions are not met, skip the entire Tier 5 section — non-E2E verification pays no context cost (~180 lines saved). Per D-24.
+
+> **Ordering guarantee (D-5):** Tier 5 MUST execute AFTER Tiers 1–4 complete and all SQL is committed. Never interleaved with earlier tiers. Within Tier 5, phases execute sequentially: 1 → 2 → 3 → 4 → 5.
+
+> **Source-code read-only:** The verifier MUST NOT modify application source code during E2E. Only evidence artifacts are written to `evidence_output_dir`.
+
+> **Canonical reference:** See [e2e-integration.md](e2e-integration.md) for full protocol details (§1 contract spec, §2 skills schema, §3 Playwright CLI protocol, §4 command sanitization, §5 command allowlist, §6 evidence sanitization).
+
+#### Phase 1 — Setup
+
+1. **Read E2E contract:** Locate `e2e-contract.yaml` (project root) or `.e2e/contract.yaml`. INSERT with `check_name='e2e-contract-found'`, `passed=1` if found, `passed=0` if missing.
+2. **Validate contract (runtime):** Confirm required fields present, port range valid `[1024, 65535]`, executable matches `tier5_command_allowlist`. INSERT with `check_name='e2e-contract-validation'`.
+3. **Verify Playwright CLI availability:** Confirm `playwright-cli` is installed. If missing, run `npm install -g @playwright/cli@latest` via `run_in_terminal`.
+4. **Install Playwright CLI skills:** `playwright-cli install --skills` (if not already installed).
+5. **Read `.playwright/cli.config.json`** if present for project-specific configuration.
+6. **Command allowlist gate (D-22):** Validate the contract's `start_command.executable` against `tier5_command_allowlist` (see [tool-access-matrix.md §8.2](tool-access-matrix.md)) **BEFORE** execution. Every `run_in_terminal` command during Tier 5 MUST match at least one allowlist pattern. Commands not matching → **REJECTED** with error logged.
+7. **Start application:** Construct command from contract's structured format `{executable, args}`. Assign port: `port_range_start + task_ordinal_index`. Pass port via `port_env_var` environment variable. Execute via `run_in_terminal` (background).
+8. **Record PID:** INSERT with `check_name='e2e-instance-start'`, store PID in `output_snippet` (survives agent crashes).
+9. **Wait for readiness:** Poll `ready_check` with exponential backoff, max `ready_timeout_ms`. INSERT with `check_name='e2e-readiness'`, `passed=1` if ready, `passed=0` on timeout.
+10. **Create Playwright CLI session:** `playwright-cli -s=verify-{task-id} open {base_url}` — named session for isolation (allows parallel verifiers without conflict). Track session name `verify-{task-id}` for cleanup in Phase 5.
+
+**Phase 1 timeout budget:** 60s max. On expiry → kill PID, record `e2e-readiness` `passed=0`.
+
+#### Phase 2 — Test Suite Execution
+
+1. Execute `test-suite` type skills: run test commands via allowlist-validated commands.
+2. Test suites use `npx playwright test` (full Playwright Test runner) for complex suites.
+3. Record `check_name='e2e-suite-execution'` per skill with pass/fail and `output_snippet`.
+4. **Session note:** Phase 2 test suites manage their own browser instances via the test runner — they do not use the Playwright CLI session from Phase 1.
+5. **Cleanup sub-step:** Confirm all Phase 2 test runner processes terminated before proceeding to Phase 3.
+
+**Phase 2 timeout budget:** 300s per task. On expiry → kill test runner, record `e2e-suite-execution` `passed=0`.
+
+#### Phase 3 — Exploratory Interaction (Playwright CLI)
+
+For each `exploratory` type skill, translate skill steps into `playwright-cli` commands using the named session:
+
+| Skill Action   | Playwright CLI Command                                              |
+| -------------- | ------------------------------------------------------------------- |
+| `navigate`     | `playwright-cli -s=verify-{task-id} goto {url}`                     |
+| `click`        | `playwright-cli -s=verify-{task-id} click {ref}`                    |
+| `fill`         | `playwright-cli -s=verify-{task-id} fill {ref} {text}`              |
+| `type`         | `playwright-cli -s=verify-{task-id} type {text}`                    |
+| `press`        | `playwright-cli -s=verify-{task-id} press {key}`                    |
+| `assert`       | `playwright-cli -s=verify-{task-id} snapshot` + verify in a11y tree |
+
+**Evidence capture at each step:**
+
+- **Screenshot:** `playwright-cli -s=verify-{task-id} screenshot --filename=.e2e/evidence/{skill-id}-step-{N}.png`
+- **Console:** `playwright-cli -s=verify-{task-id} console` (capture console messages)
+- **Network:** `playwright-cli -s=verify-{task-id} network` (capture network requests)
+- **Tracing:** `playwright-cli -s=verify-{task-id} tracing-start` / `tracing-stop` (for complex flows)
+
+**Interaction determinism (D-18):** Follow steps exactly as written in the skill — **NO improvisation**. Machine-checkable `assert` fields determine pass/fail. Human-readable `expect` fields are logged only.
+
+**Fallback for complex suites:** skill YAML → generated `.spec.ts` → `npx playwright test` (retained per D-20). Generated script serves as audit artifact.
+
+Record `check_name='e2e-exploratory'` per skill with `interaction_log` in `output_snippet`.
+
+**Phase 3 timeout budget:** 180s per skill. On expiry → kill browser/tool, skip remaining steps.
+
+#### Phase 4 — Adversarial Interaction
+
+Execute `adversarial` type skills AND `adversarial_variations` within exploratory skills:
+
+1. Translate adversarial steps to `playwright-cli` commands with step overrides applied:
+   - Override fill values: `playwright-cli -s=verify-{task-id} fill {ref} {override_value}`
+   - Override navigation: `playwright-cli -s=verify-{task-id} goto {override_url}`
+2. **Per-variation SQL INSERT (D-26):** Each adversarial variation produces a separate INSERT with `check_name='e2e-adversarial'` and `variation_id` in `output_snippet`. Variation names: alphanumeric + hyphens only, max 50 chars, `sql_escape()` applied.
+3. Record composite `check_name='e2e-adversarial-composite'` aggregating all variation results.
+
+**Phase 4 timeout budget:** 120s per adversarial skill. On expiry → kill browser/tool, skip remaining variations.
+
+#### Phase 5 — Teardown
+
+1. **Close Playwright CLI session:** `playwright-cli -s=verify-{task-id} close`
+2. **Shut down application:** Execute `shutdown_command` from contract (graceful).
+3. **Emergency session cleanup:** If graceful close fails → `playwright-cli close-all`
+4. **Force-kill:** If sessions persist after `shutdown_timeout_ms` → `playwright-cli kill-all`
+5. **Verify PID termination:** Confirm ALL spawned PIDs (app process) are terminated — no orphans.
+6. **Verify session cleanup:** `playwright-cli list` must return no active sessions for `verify-{task-id}`.
+7. **Write evidence manifest:** Generate `evidence-manifest.yaml` listing all artifact paths + sizes with **SHA-256 hash** (D-25).
+8. **Composite result:** INSERT with `check_name='e2e-instance-shutdown'`. Then INSERT composite `check_name='e2e-test-execution'` — `passed=1` ONLY when ALL sub-phases (1–4) passed.
+
+**Phase 5 timeout budget:** 30s max. On expiry → force-kill all PIDs.
+
+#### Evidence Sanitization Pipeline (D-25)
+
+Apply to ALL evidence before SQL insertion or file storage:
+
+1. **SQL escaping (mandatory):** `sql_escape()` (replace `'` with `''`) for all `output_snippet` values.
+2. **HAR stripping:** `Authorization`, `Cookie`, `Set-Cookie` headers → `[REDACTED]`. Request/response body > 10KB → `[TRUNCATED]`.
+3. **Screenshot path validation:** Paths must be within `.e2e/evidence/` — no path traversal (`..`). File naming: `{skill-id}_step-{order}_{timestamp}.png`.
+4. **Console output cap:** 5KB per step maximum.
+5. **Env scrubbing:** Secret patterns (`API_KEY`, `SECRET`, `TOKEN`, `PASSWORD`, `CREDENTIAL`) → `[REDACTED]` in all evidence.
+6. **`output_snippet` limit:** ≤ 500 characters after sanitization.
+
+#### Retry Policy (D-12)
+
+- **Max 1 retry** of the entire Tier 5 sequence on transient failure:
+  - Retryable: port conflict, startup timeout, `playwright-cli` session crash.
+  - **Non-retryable:** contract invalid, runner missing, assertion failure.
+- On retry, the full 5-phase lifecycle restarts from Phase 1.
+
+#### Timeout Budget (D-9)
+
+| Phase              | Max Duration | On Expiry                                    |
+| ------------------ | ------------ | -------------------------------------------- |
+| Startup (Phase 1)  | 60s          | Kill PID, `e2e-readiness` `passed=0`         |
+| Suite (Phase 2)    | 300s         | Kill test runner, `e2e-suite-execution` `passed=0` |
+| Exploratory (Ph 3) | 180s/skill   | Kill browser/tool, skip remaining steps      |
+| Adversarial (Ph 4) | 120s/skill   | Kill browser/tool, skip remaining variations |
+| Shutdown (Phase 5)  | 30s          | Force-kill all PIDs                          |
+| **Total per task** | **600s**     | **Kill all processes + sessions, `e2e-test-execution` `passed=0`** |
+
+Timeout triggers force-kill of app process + all `playwright-cli` sessions via tracked PIDs and `playwright-cli kill-all`.
+
+#### Interaction Log Structure
+
+For each exploratory/adversarial skill, produce:
+
+```yaml
+interaction_log:
+  skill_id: "<skill-id>"
+  skill_type: "exploratory | adversarial"
+  steps_executed: <int>
+  steps_passed: <int>
+  steps_failed: <int>
+  step_results:
+    - order: <int>
+      action: "<action>"
+      target: "<target>"
+      result: "pass | fail"
+      actual_behavior: "<description>"
+      evidence_path: "<path>"
+      duration_ms: <int>
+```
 
 ### 6. Regression Detection
 
@@ -318,10 +500,16 @@ Before returning, run the common checklist from [global-operating-rules.md §6](
 
 - [ ] Tier 1 executed (always required)
 - [ ] Tier 2 executed if tooling detected (or documented as absent)
-- [ ] Behavioral-coverage check executed for all code tasks with `test_method='test'` criteria
+- [ ] Behavioral-coverage check executed for all code tasks with `test_method='test'` criteria — BLOCKING (passed=1 required)
+- [ ] TDD-compliance check executed for all code tasks — BLOCKING (passed=1 required)
 - [ ] Runtime-wiring check executed for tasks creating new files (or documented as N/A for modification-only tasks)
 - [ ] Tier 3 executed if Tiers 1–2 produced no runtime verification (or `tier3-infeasible` recorded)
 - [ ] Tier 4 executed if task is Large (or skipped for Standard)
+- [ ] Tier 5 executed if `e2e_required=true` AND `workflow_lane='full-tdd-e2e'` (or skipped with conditional gate)
+- [ ] All 5 E2E phases completed sequentially when Tier 5 applies
+- [ ] All E2E check_names recorded: contract-found, contract-validation, instance-start, readiness, suite-execution, exploratory, adversarial, instance-shutdown, test-execution
+- [ ] Evidence sanitization pipeline applied (sql_escape, HAR stripping, path validation, console cap, env scrubbing)
+- [ ] Playwright CLI sessions closed and PIDs verified terminated in Phase 5
 
 ### Baseline & Regression
 

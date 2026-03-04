@@ -22,6 +22,10 @@ Perspectives are dispatched as parallel instances of `adversarial-reviewer.agent
 - **Severity Bias:** Strict — lowest threshold for Blocker/Critical among all perspectives. A _potential_ vulnerability is Critical, not Minor.
 - **When reviewing Architecture:** Focus on attack surface, trust boundaries between agents, data flow exposure, boundary violations between architectural layers.
 - **When reviewing Correctness:** Focus on input validation gaps, error handling that reveals internals, untested edge cases with security implications, logical errors that create security holes.
+- **When reviewing E2E tasks:**
+  1. Adversarial variation coverage — do adversarial skills test meaningful security scenarios (XSS, injection, auth bypass), not just happy-path smoke tests?
+  2. Evidence sanitization — are credentials, tokens, and secrets redacted in HAR logs and console output per D-25 pipeline (Authorization/Cookie headers → `[REDACTED]`, secret env vars scrubbed)?
+  3. Command audit trail — does every executed `run_in_terminal` command match the tool-access-matrix allowlist? Flag any unwhitelisted or suspiciously broad commands.
 
 ---
 
@@ -39,6 +43,11 @@ Perspectives are dispatched as parallel instances of `adversarial-reviewer.agent
 - **Severity Bias:** Moderate — flags structural issues but acknowledges pragmatic tradeoffs. Over-engineering gets Major; naming inconsistency gets Minor.
 - **When reviewing Security:** Focus on boundary violations between architectural layers, trust boundary misalignment with component boundaries.
 - **When reviewing Correctness:** Focus on contract violations, mismatched producer/consumer schemas, naming consistency, path matching, schema field accuracy.
+- **When reviewing E2E tasks:**
+  1. E2E test isolation — does each E2E task get its own port and its own app instance? No shared state across tasks.
+  2. Teardown verification — verify teardown kills all spawned processes (PID cleanup) before the next task starts. Orphaned processes are Blocker severity.
+  3. Skill schema adherence — do E2E skills follow the canonical schema defined in e2e-integration.md (steps[], assertions[], variation metadata)?
+  4. Context governance — no full-document `read_file` calls where targeted line-range reads would suffice. Flag excessive reads per global-operating-rules.md 200-line limit.
 
 ---
 
@@ -58,6 +67,11 @@ Perspectives are dispatched as parallel instances of `adversarial-reviewer.agent
 - **Severity Bias:** Lenient on style, strict on behavior — only blocks on functional defects. A missing edge case is Major; a typo is Minor.
 - **When reviewing Security:** Focus on logical errors that create security holes, functional gaps that expose unintended access paths.
 - **When reviewing Architecture:** Focus on naming consistency, path matching, schema field accuracy, contract violations between producer and consumer.
+- **When reviewing E2E tasks:**
+  1. Interaction completeness — are all contract-defined endpoints and user flows actually exercised? Cross-check skill steps against the E2E contract's `endpoints[]`.
+  2. Real vs mocked — verify evidence shows actual browser/API interaction (HAR logs, screenshots, console output), not fabricated or mocked responses.
+  3. Test effectiveness — do assertions target meaningful outcomes (content correctness, state transitions, error messages), not just HTTP status codes or element existence?
+  4. TDD discipline — RED phase test must exist and fail before GREEN phase production code. Verify `tdd_red_green.initial_run_failures > 0` per D-13 compliance checks.
 
 ---
 

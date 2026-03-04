@@ -1,0 +1,126 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-002"
+  title: "sql-templates.md — E2E Evidence Gates, TDD Compliance Gate, Per-Variation SQL"
+  target_file: "NewAgents/.github/agents/sql-templates.md"
+  action: "modify"
+  risk: "🟡"
+  size: "Standard"
+  wave: 1
+  depends_on: []
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 155
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-7']" # SQL evidence strategy
+      - "design-output.yaml#payload.decisions[id='D-16']" # EG-2/EG-10 consolidation
+      - "design-output.yaml#payload.decisions[id='D-26']" # Per-variation adversarial SQL
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1']" # FR-1.5: TDD compliance SQL
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4']" # FR-4.5: E2E lifecycle SQL
+      - "spec-output.yaml#payload.functional_requirements[id='FR-6']" # FR-6.5: Lane-aware verification signals
+      - "spec-output.yaml#payload.functional_requirements[id='FR-12']" # Completion gate
+    files_to_modify:
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        risk: "🟡"
+    files_to_read:
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        reason: "Understand existing SQL template conventions, EG-1 through EG-7 structure, anvil_checks schema"
+      - path: "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+        section: "decisions D-7, D-16, D-26"
+        reason: "Evidence gate consolidation strategy, per-variation SQL format, composite index"
+
+  description: |
+    Add E2E evidence INSERT templates and new evidence gate queries to sql-templates.md:
+
+    1. **New INSERT templates for E2E check_names:**
+       Add INSERT template examples for all new check_names:
+       - check_name='tdd-compliance' — TDD verification result with output_snippet containing
+         structural analysis results (tests_exist, imports_valid, red_phase_plausible)
+       - check_name='tdd-fallback' — TDD skip record with reason in output_snippet
+       - check_name='e2e-contract-found' — Contract discovery result
+       - check_name='e2e-contract-validation' — Structural validation result
+       - check_name='e2e-instance-start' — App startup with PID in output_snippet
+       - check_name='e2e-readiness' — Health check result
+       - check_name='e2e-suite-execution' — Test suite pass/fail
+       - check_name='e2e-exploratory' — Exploratory interaction result per skill
+       - check_name='e2e-adversarial' — Per-variation adversarial result (D-26):
+         Each variation produces its own INSERT with variation_id in output_snippet.
+         Variation names validated: alphanumeric + hyphens only, max 50 chars.
+       - check_name='e2e-adversarial-composite' — Aggregate adversarial summary
+       - check_name='e2e-instance-shutdown' — Graceful shutdown confirmation
+       - check_name='e2e-test-execution' — Composite E2E result (passed=1 only when ALL sub-phases pass)
+       All output_snippet values MUST use sql_escape() (D-25). Max 500 chars per output_snippet (FR-7.3).
+
+    2. **Consolidate EG-2 into parameterized EG-10 (D-16):**
+       Replace existing EG-2 (Verification Sufficient) with three EG-10 lane variants:
+       - EG-10(unit-only): baseline_verified=1 AND tdd_compliance=1. Minimum 2 passed checks.
+       - EG-10(unit-integration): baseline_verified=1 AND tdd_compliance=1 AND Tier 3 integration pass. Minimum 3 passed checks.
+       - EG-10(full-tdd-e2e): baseline_verified=1 AND tdd_compliance=1 AND integration=1 AND e2e_completed=1. Minimum 4 passed checks including e2e-test-execution.
+       Document the gate evaluation order: EG-1 → EG-10 → EG-7 → EG-8 → EG-9 → EG-3..EG-6.
+
+    3. **Add EG-8 (TDD Compliance Gate):**
+       Query: check_name='tdd-compliance' with passed=1 for the task. Blocking for code tasks.
+
+    4. **Add EG-9 (E2E Completion Gate):**
+       Query: check_name='e2e-test-execution' with passed=1 (composite). Cross-check sub-phases:
+       suite_run_verified, exploratory_coverage_verified, adversarial_records_inserted.
+       Required only when e2e_required=true.
+
+    5. **Promote EG-7 from INFORMATIONAL to BLOCKING for code tasks:**
+       Update EG-7 (Behavioral Coverage Evidence) header and query to indicate blocking status
+       for tasks with task_type='code'. Document promotion rationale.
+
+    6. **Add composite index recommendation:**
+       Document recommended index: CREATE INDEX idx_anvil_checks_lookup ON
+       anvil_checks(run_id, task_id, check_name, passed) — per architecture-guardian A-6.
+
+  acceptance_criteria:
+    - id: "AC-2"
+      text: "sql-templates.md contains a tdd-compliance INSERT template with check_name='tdd-compliance' that is blocking (passed=1 required) for code tasks"
+      test_method: "inspection"
+    - id: "AC-14"
+      text: "sql-templates.md contains INSERT templates for all E2E lifecycle check_names: e2e-contract-found, e2e-instance-start, e2e-readiness, e2e-suite-execution, e2e-exploratory, e2e-adversarial, e2e-instance-shutdown, e2e-test-execution"
+      test_method: "inspection"
+    - id: "AC-25"
+      text: "EG-10 query for full-tdd-e2e lane requires >= 4 passed checks including at least 1 e2e-test-execution with passed=1"
+      test_method: "inspection"
+    - id: "AC-33"
+      text: "EG-9 blocks task completion when e2e_required=true unless e2e-test-execution check exists with passed=1"
+      test_method: "inspection"
+    - id: "AC-34"
+      text: "EG-7 (behavioral coverage) is marked as BLOCKING (not INFORMATIONAL) for code tasks"
+      test_method: "inspection"
+    - id: "AC-T2-6"
+      text: "Per-variation adversarial INSERT template includes variation_id in output_snippet with sql_escape() applied. Variation names constrained to alphanumeric+hyphens, max 50 chars"
+      test_method: "inspection"
+    - id: "AC-T2-7"
+      text: "EG-2 is replaced by parameterized EG-10 with three lane variants — no standalone EG-2 remains"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write structural checks:
+      - Verify EG-8 section does NOT exist → expect absent
+      - Verify EG-9 section does NOT exist → expect absent
+      - Verify EG-7 header still says 'INFORMATIONAL' → expect present
+      - Verify no e2e-related INSERT template exists → expect absent
+    green_phase: |
+      1. Add E2E INSERT templates after existing §2 anvil_checks section
+      2. Replace EG-2 block with EG-10 parameterized block
+      3. Add EG-8 and EG-9 sections
+      4. Update EG-7 header from INFORMATIONAL to BLOCKING
+      5. Add composite index recommendation
+      Follow existing sql-templates.md formatting conventions exactly
+    verify_phase: |
+      - grep for all 12 new check_name values in INSERT templates
+      - Verify EG-2 section heading is gone, replaced by EG-10
+      - Verify EG-10 has three lane variants clearly labeled
+      - Verify EG-7 no longer says INFORMATIONAL for code tasks
+      - Verify sql_escape() is referenced in all E2E INSERT templates
+      - Verify composite index recommendation is present

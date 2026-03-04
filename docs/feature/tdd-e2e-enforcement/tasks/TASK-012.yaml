@@ -1,0 +1,111 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-012"
+  title: "adversarial-reviewer.agent.md — TDD + E2E Review Dimensions"
+  target_file: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+  action: "modify"
+  risk: "🟡"
+  size: "Standard"
+  wave: 3
+  depends_on: ["TASK-001"]
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 50
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-13']" # TDD compliance + YAGNI/KISS/DRY
+      - "design-output.yaml#payload.decisions[id='D-22']" # Command allowlist audit trail
+      - "design-output.yaml#payload.decisions[id='D-25']" # Evidence sanitization verification
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1']" # FR-1.6, FR-1.7: TDD guidelines
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7']" # FR-7.4: Context governance
+      - "spec-output.yaml#payload.functional_requirements[id='FR-10']" # FR-10.1, FR-10.3: Best practices
+    files_to_modify:
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        risk: "🟡"
+    files_to_read:
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        reason: "Understand existing review dimensions, severity criteria, and finding format"
+      - path: "NewAgents/.github/agents/schemas.md"
+        reason: "After TASK-001: check_name patterns for TDD/E2E to reference in review criteria"
+
+  description: |
+    Add TDD compliance and E2E review dimensions to the adversarial reviewer.
+
+    **Changes required:**
+
+    1. **TDD Compliance Review Dimension:**
+       Add a review dimension (or extend existing code quality dimensions) for TDD verification:
+       - Check: RED phase test written before GREEN phase code
+       - Check: Test actually fails on first run (not a post-hoc test)
+       - Check: Test code exercises the correct behavior, not implementation details
+       - Severity: Missing RED phase evidence → Major finding
+       - Severity: Post-hoc test (no red-phase failure evidence) → Major finding
+
+    2. **Test Writing Guideline Enforcement:**
+       Add checks for test quality per D-13:
+       - YAGNI: No speculative tests for unspecified behavior
+       - KISS: Test directly asserts the acceptance criterion, no over-abstraction
+       - DRY: Shared setup in beforeAll/setUp, no copy-paste test boilerplate
+       - Severity: Violation of any guideline → Minor finding
+
+    3. **E2E Interaction Quality Review (for E2E-enabled tasks):**
+       When reviewing tasks with e2e_required=true:
+       - Check: Interaction log shows actual UI/API interaction (not mocked)
+       - Check: Screenshots/evidence exist for interactive steps
+       - Check: Adversarial variations actually test meaningful edge cases
+       - Check: Evidence manifest hash matches computed hash (D-25)
+       - Severity: Mock evidence detected → Blocker finding
+       - Severity: Missing interaction evidence → Critical finding
+
+    4. **Context Governance Flagging:**
+       Add check for context governance violations (FR-7.4):
+       - Flag read_file calls exceeding 200 lines
+       - Flag full-document scans when targeted line-range reads would suffice
+       - Severity: Repeated full-document reads → Minor finding
+
+    5. **Command Audit Trail Review:**
+       When reviewing E2E tasks:
+       - Verify every run_in_terminal command has a matching allowlist entry
+       - Flag any command not in command_audit_trail → Critical finding
+
+  acceptance_criteria:
+    - id: "AC-31"
+      text: "Adversarial reviewer checks TDD compliance (RED before GREEN), test writing guidelines (YAGNI/KISS/DRY), and E2E interaction quality with defined severity levels"
+      test_method: "inspection"
+    - id: "AC-T12-2"
+      text: "Missing RED phase evidence maps to Major severity. Mock evidence in E2E maps to Blocker severity"
+      test_method: "inspection"
+    - id: "AC-T12-3"
+      text: "Context governance flagging: read_file calls >200 lines flagged as violations"
+      test_method: "inspection"
+    - id: "AC-T12-4"
+      text: "Command audit trail review dimension added: commands not in allowlist flagged as Critical"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - grep adversarial-reviewer.agent.md for 'TDD compliance' or 'RED phase' → expect absent
+      - grep for 'YAGNI' or 'KISS' or 'test writing' → expect absent or minimal
+      - grep for 'interaction quality' or 'mock evidence' → expect absent
+      - grep for 'command_audit_trail' → expect absent
+    green_phase: |
+      1. Add TDD compliance review dimension (~12 lines)
+      2. Add test writing guideline checks (~10 lines)
+      3. Add E2E interaction quality review (~12 lines, conditional on e2e_required)
+      4. Add context governance flagging (~6 lines)
+      5. Add command audit trail review (~8 lines)
+      Integrate into existing review dimensions section, maintaining consistent formatting
+    verify_phase: |
+      - grep for 'TDD compliance' or 'RED phase' check description
+      - grep for all three guidelines: YAGNI, KISS, DRY
+      - grep for 'mock evidence' → Blocker severity mapping
+      - grep for 'command_audit_trail' review check
+      - grep for '200 lines' context governance check
+      - Verify existing review dimensions are intact
+      - Count added lines (~50)

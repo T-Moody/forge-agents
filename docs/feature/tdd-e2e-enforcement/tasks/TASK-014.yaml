@@ -1,0 +1,83 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-014"
+  title: "evaluation-schema.md — E2E Evaluation Criteria"
+  target_file: "NewAgents/.github/agents/evaluation-schema.md"
+  action: "modify"
+  risk: "🟢"
+  size: "Standard"
+  wave: 4
+  depends_on: []
+  workflow_lane: "unit-only"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 20
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-18']" # Interaction determinism
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-14']" # FR-14.1: Deterministic outputs
+    files_to_modify:
+      - path: "NewAgents/.github/agents/evaluation-schema.md"
+        risk: "🟢"
+    files_to_read:
+      - path: "NewAgents/.github/agents/evaluation-schema.md"
+        reason: "Understand existing quality dimensions and scoring rubric format"
+
+  description: |
+    Add E2E-specific evaluation criteria to the evaluation schema.
+
+    **Changes required:**
+
+    1. **E2E Interaction Log Quality (new dimension or sub-dimension):**
+       Add criteria for evaluating E2E interaction quality:
+       - interaction_log present and complete for all exploratory/adversarial skills
+       - Each step has: action, target, result, evidence_path
+       - Steps follow the skill definition order exactly (D-18 determinism)
+       - Duration recorded per step (duration_ms field)
+       - Score: 0 = missing/empty, 1 = partial, 2 = complete with evidence
+
+    2. **Evidence Completeness (new dimension or sub-dimension):**
+       Add criteria for evaluating E2E evidence:
+       - evidence-manifest.yaml present with SHA-256 hash
+       - All referenced evidence files exist on disk
+       - No credential/token leakage in evidence (sanitization verified)
+       - Score: 0 = manifest missing, 1 = manifest present but incomplete, 2 = full + verified
+
+    3. **TDD Compliance Quality (new dimension or sub-dimension):**
+       Add criteria for evaluating TDD discipline:
+       - RED phase: failing test committed/evidenced before implementation
+       - GREEN phase: minimal implementation (no speculative code)
+       - VERIFY phase: structured check_name results in SQL
+       - Score: 0 = no TDD evidence, 1 = partial, 2 = full RED→GREEN→VERIFY cycle
+
+  acceptance_criteria:
+    - id: "AC-T14-1"
+      text: "E2E interaction log quality dimension added with 3-point scoring (0/1/2) based on completeness and determinism"
+      test_method: "inspection"
+    - id: "AC-T14-2"
+      text: "Evidence completeness dimension added: manifest presence, file existence, sanitization verification"
+      test_method: "inspection"
+    - id: "AC-T14-3"
+      text: "TDD compliance quality dimension added: RED→GREEN→VERIFY cycle scoring"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - grep evaluation-schema.md for 'interaction_log' or 'E2E' → expect absent
+      - grep for 'evidence-manifest' → expect absent
+      - grep for 'RED.*GREEN.*VERIFY' or 'TDD compliance' dimension → expect absent
+    green_phase: |
+      1. Add E2E interaction log quality dimension (~7 lines)
+      2. Add evidence completeness dimension (~7 lines)
+      3. Add TDD compliance quality dimension (~6 lines)
+      Maintain consistent format with existing dimensions
+    verify_phase: |
+      - grep for 'interaction_log' quality criteria
+      - grep for 'evidence-manifest' presence criteria
+      - grep for TDD scoring (0/1/2 scale)
+      - Verify existing dimensions are intact

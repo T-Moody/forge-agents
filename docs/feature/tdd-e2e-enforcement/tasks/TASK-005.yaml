@@ -1,0 +1,127 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-005"
+  title: "implementer.agent.md — Mandatory RED-GREEN-VERIFY TDD Cycle"
+  target_file: "NewAgents/.github/agents/implementer.agent.md"
+  action: "modify"
+  risk: "🔴"
+  size: "Large"
+  wave: 2
+  depends_on: ["TASK-001", "TASK-003"]
+  workflow_lane: "full-tdd-e2e"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 100
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-10']" # TDD fallback tightening
+      - "design-output.yaml#payload.decisions[id='D-13']" # TDD compliance verification (implementer evidence)
+      - "design-output.yaml#payload.agent_modification_map[agent='implementer']" # Change list
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1']" # FR-1.1 through FR-1.7
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4']" # FR-4.1: Implementer E2E prohibition
+    files_to_modify:
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        risk: "🔴"
+    files_to_read:
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        reason: "Understand existing TDD Steps 4-6, fallback logic, implementation report structure"
+      - path: "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+        section: "decisions D-10, D-13, agent_modification_map implementer"
+        reason: "TDD fallback criteria, evidence structure, change list"
+      - path: "docs/feature/tdd-e2e-enforcement/spec-output.yaml"
+        section: "FR-1.1 through FR-1.7, FR-4.1"
+        reason: "Complete TDD cycle requirements, E2E prohibition"
+
+  description: |
+    Replace the existing TDD implementation in implementer.agent.md with the mandatory
+    RED-GREEN-VERIFY cycle and add E2E execution prohibition.
+
+    **1. Replace Steps 4-6 with RED-GREEN-VERIFY cycle:**
+
+    Replace existing "#### 4. Write Failing Tests (TDD)", "#### 5. Write Production Code",
+    and "#### 6. Self-Fix Loop" with a unified RED-GREEN-VERIFY section:
+
+    **RED phase:** Write failing tests FIRST, then run the test suite. Confirm tests FAIL
+    (exit code ≠ 0). Record: tdd_red_green.tests_written_first=true,
+    tdd_red_green.initial_run_failures (count > 0 required),
+    tdd_red_green.initial_run_exit_code (must be ≠ 0).
+
+    **GREEN phase:** Write the MINIMAL code required to make tests pass (YAGNI). Run tests
+    again. Confirm all tests PASS (exit code = 0). Do NOT add functionality beyond what
+    tests require.
+
+    **VERIFY phase:** Run get_errors, typecheck, and full test suite sequentially. Record:
+    tdd_red_green.verify_phase.get_errors_clean (boolean),
+    tdd_red_green.verify_phase.typecheck_clean (boolean),
+    tdd_red_green.verify_phase.tests_passing (boolean).
+    ALL three must be true for the VERIFY phase to pass.
+
+    **2. Tighten TDD Fallback (D-10):**
+    Replace the existing TDD Fallback with strict criteria. TDD is skippable ONLY when ALL of:
+    (a) task_type is NOT 'code', AND
+    (b) no production source files are modified, AND
+    (c) only documentation, configuration, or non-runtime files change.
+    When TDD is skipped, the implementer MUST record tdd_fallback_reason (non-empty string)
+    in the implementation report AND record a check_name='tdd-fallback' SQL INSERT.
+
+    **3. Add test writing guidelines (FR-1.6):**
+    Add a section on test writing guidelines that the implementer MUST follow:
+    - Tests MUST test behavior, not implementation details
+    - Tests MUST NOT test what the type system guarantees
+    - Tests MUST use only public interfaces
+    - Tests MUST NOT expose internals or create test-only hooks
+    - Tests MUST be deterministic and independent
+
+    **4. Add E2E execution prohibition (FR-4.1):**
+    Add explicit prohibition: "The implementer MUST NOT start the application, run E2E tests,
+    launch browsers, make HTTP requests to the running app, execute e2e_command, or perform
+    any live interaction. E2E verification is the verifier's exclusive responsibility."
+
+    **5. Update implementation report evidence fields:**
+    Ensure the implementation report YAML structure includes the new verify_phase fields
+    and tdd_fallback_reason (matching Schema 7 extension from TASK-001).
+
+  acceptance_criteria:
+    - id: "AC-1"
+      text: "implementer.agent.md describes the RED-GREEN-VERIFY cycle with RED (write failing tests, confirm fail exit code ≠ 0), GREEN (minimal code to pass), VERIFY (get_errors + typecheck + tests). tdd_red_green.tests_written_first, initial_run_failures > 0, initial_run_exit_code ≠ 0 are documented as required evidence fields"
+      test_method: "inspection"
+    - id: "AC-3"
+      text: "TDD fallback criteria match: task_type NOT 'code' AND no production source files AND only docs/config. tdd_fallback_reason is mandatory when TDD is skipped"
+      test_method: "inspection"
+    - id: "AC-4"
+      text: "verify_phase object with get_errors_clean, typecheck_clean, tests_passing boolean fields is documented in the implementation report output structure"
+      test_method: "inspection"
+    - id: "AC-13"
+      text: "implementer.agent.md contains explicit prohibition of: start_command, e2e_command, browser launch, live HTTP requests, app startup, any E2E execution"
+      test_method: "inspection"
+    - id: "AC-T5-5"
+      text: "Test writing guidelines section exists with rules: behavior-based testing, no type-system testing, public interfaces only, no test-only hooks, deterministic tests"
+      test_method: "inspection"
+    - id: "AC-T5-6"
+      text: "Existing Steps 4-6 are fully replaced — no orphaned references to the old 'Write Failing Tests', 'Write Production Code', 'Self-Fix Loop' step names remain (except in the new RED-GREEN-VERIFY context)"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - Verify implementer.agent.md does NOT contain 'RED-GREEN-VERIFY' → expect absent
+      - Verify 'verify_phase' fields are NOT in the report structure → expect absent
+      - Verify no E2E prohibition section exists → expect absent
+    green_phase: |
+      1. Replace Steps 4-6 content with RED-GREEN-VERIFY cycle description
+      2. Update the TDD Fallback section with strict criteria
+      3. Add test writing guidelines section
+      4. Add E2E prohibition section
+      5. Update implementation report YAML example with verify_phase fields
+      Ensure step numbering is consistent after replacement
+    verify_phase: |
+      - grep for 'RED' phase, 'GREEN' phase, 'VERIFY' phase section headings
+      - grep for 'tests_written_first', 'initial_run_failures', 'initial_run_exit_code'
+      - grep for 'verify_phase', 'get_errors_clean', 'typecheck_clean', 'tests_passing'
+      - grep for 'tdd_fallback_reason' in both the workflow and report sections
+      - grep for E2E prohibition keywords: 'MUST NOT start', 'MUST NOT launch browser'
+      - Verify old step names ('Write Failing Tests', 'Write Production Code') are not orphaned

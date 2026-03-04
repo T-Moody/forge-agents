@@ -187,6 +187,35 @@ Examine correctness concerns through your perspective's unique lens. Assess edge
 
 If all tests pass but no observable behavioral change is evident (e.g., only boilerplate/scaffolding added, no assertions on production output), flag as a correctness concern — the implementation may satisfy form without substance.
 
+**TDD compliance review** (apply during code review for all `task_type: code` tasks per D-13):
+
+- **RED before GREEN verification:** Confirm tests were written before production code. Check that `tdd_red_green.tests_written_first` is `true`, `initial_run_failures > 0`, and `initial_run_exit_code != 0`. Missing RED phase evidence (no recorded failure before production code) — severity: **Major**.
+- **Post-hoc test detection:** If `initial_run_failures` is `0` or `initial_run_exit_code` is `0`, the test may have been written after production code already passed. Post-hoc test with no red-phase failure evidence — severity: **Major**.
+- **Behavioral assertion focus:** Tests must exercise observable behavior (method returns, side effects, output), not implementation details (private state, internal call order). Tests asserting only on implementation internals — severity: **Major**.
+
+**Test writing guideline enforcement** (apply during code review for all `task_type: code` tasks):
+
+- **YAGNI:** No speculative tests for unspecified behavior. Tests must trace to a specific acceptance criterion. Speculative tests for behavior not in the AC list — severity: **Minor**.
+- **KISS:** Tests should directly assert the acceptance criterion without over-abstraction (excessive helper layers, meta-programming, dynamic test generation). Over-abstracted test code that obscures intent — severity: **Minor**.
+- **DRY:** Shared setup belongs in `beforeAll`/`setUp`/test fixtures, not copy-pasted across test functions. Repeated identical setup across 3+ test functions — severity: **Minor**.
+
+**E2E interaction quality review** (apply during code review ONLY for tasks with `e2e_required: true`):
+
+- **Actual interaction evidence:** Interaction log must show real UI/API interactions, not mocked or fabricated evidence. Mock evidence detected (stubbed responses, synthetic interaction logs) — severity: **Blocker**.
+- **Missing interaction evidence:** Screenshots, HAR logs, or console captures must exist for interactive steps. Missing interaction evidence for E2E steps — severity: **Critical**.
+- **Adversarial variation quality:** Adversarial variations must test meaningful edge cases (boundary inputs, error states, race conditions), not trivial repetitions. Trivial or duplicate adversarial variations — severity: **Minor**.
+- **Evidence manifest integrity (D-25):** Verify evidence manifest SHA-256 hash matches the recomputed hash of artifact paths + sizes. Hash mismatch indicates evidence tampering — severity: **Blocker**.
+
+**Context governance flagging** (apply during code review for all tasks per FR-7.4):
+
+- **Oversized `read_file` calls:** Flag any `read_file` call exceeding 200 lines. A single occurrence is a warning; repeated full-document reads (3+ occurrences of >200-line reads) — severity: **Minor**.
+- **Full-document scans:** Flag full-document scans when targeted line-range reads would have sufficed based on the task's `relevant_context` pointers. Unnecessary full-document reads — severity: **Minor**.
+
+**Command audit trail review** (apply during code review ONLY for tasks with `e2e_required: true`, per D-22):
+
+- **Allowlist compliance:** Every `run_in_terminal` command in the implementation must have a matching entry in the `tier5_command_allowlist` regex patterns defined in [tool-access-matrix.md](tool-access-matrix.md). Command not matching any allowlist pattern — severity: **Critical**.
+- **Audit trail completeness:** Every Tier 5 command execution must be recorded in the `interaction_log` with `command_text`, `matched_pattern`, `timestamp`, and `exit_code`. Missing audit trail entry for an executed command — severity: **Critical**.
+
 For each finding:
 
 1. **Assess severity** using [severity-taxonomy.md](severity-taxonomy.md).

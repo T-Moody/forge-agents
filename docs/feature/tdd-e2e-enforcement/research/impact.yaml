@@ -1,0 +1,620 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-impact"
+  step: "step-1"
+  started_at: "2026-03-04T00:00:00Z"
+  completed_at: "2026-03-04T00:45:00Z"
+  schema_version: "1.0"
+  run_id: "2026-03-04T00:00:00Z"
+  feature_slug: "tdd-e2e-enforcement"
+  payload:
+    focus: "impact"
+    findings:
+      # ─────────────────────────────────────────────
+      # BLAST RADIUS ANALYSIS
+      # ─────────────────────────────────────────────
+      - id: "F-1"
+        title: "Verifier agent requires the deepest structural changes for E2E enforcement"
+        category: "impact"
+        detail: |
+          The verifier.agent.md (343 lines) is the most heavily impacted agent. Currently it
+          has a 4-tier verification cascade (IDE diagnostics → build/type/lint/tests → import/smoke →
+          operational readiness) and a Runtime Smoke Test (Section 4.5) that is MANDATORY only for
+          bugfix tasks. The TDD+E2E enforcement feature requires:
+          1. Expanding Runtime Smoke from bugfix-only to risk-based (all High-Risk tasks per Section 5).
+          2. Adding a new E2E verification tier that spins up isolated app instances, executes E2E
+             test suites per the E2E contract, and attempts adversarial workflows.
+          3. Adding new check_name entries to anvil_checks (e.g., 'e2e-contract-validation',
+             'e2e-test-execution', 'e2e-adversarial', 'tdd-compliance-check').
+          4. Verifier currently is read-only for source code — this constraint must be preserved while
+             adding E2E execution capabilities (run app, but don't modify code).
+          5. New SQL INSERT patterns for E2E evidence recording.
+          The verifier's tool access (9 tools) may need expansion for E2E browser automation tools
+          or the E2E contract runner must operate within existing run_in_terminal scope.
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md lines 1-20 (role definition)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 202-215 (Runtime Smoke Test — bugfix only)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 95-130 (check_name quick reference — no E2E entries)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §8 (verifier has 9 tools)"
+        relevance: "Verifier changes are the highest-risk component of this feature. Designer must plan E2E verification architecture carefully. Planner should classify verifier changes as 🔴."
+
+      - id: "F-2"
+        title: "Implementer agent already enforces TDD but needs strengthened red-green evidence"
+        category: "impact"
+        detail: |
+          The implementer.agent.md already mandates TDD: Step 4 (Write Failing Tests) requires
+          writing tests first, confirming they fail, and recording tdd_red_green with
+          tests_written_first, initial_run_failures, and initial_run_exit_code. However, the
+          initial request's Section 1 demands stricter enforcement:
+          - Explicit RED phase confirmation (tests MUST fail before production code)
+          - Explicit GREEN phase (minimal code to pass)
+          - Explicit VERIFY phase (get_errors + typecheck + unit tests + failure mode mitigations)
+          - Code quality rules (YAGNI, KISS, DRY) — already present in implementer
+          - Test writing guidelines (don't test type system guarantees, test behavior not
+            implementation) — already partially present
+          GAP ANALYSIS: The existing tdd_red_green schema records the TDD cycle but does not
+          enforce the VERIFY phase (typecheck as separate step). The failure handling rules
+          (transient→handle, persistent→escalate) extend beyond the current self-fix loop of max 2.
+          CHANGE ESTIMATE: Moderate. Strengthen existing TDD enforcement, add VERIFY phase,
+          update schema to record typecheck results. No fundamental architectural change.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md lines 112-117 (tdd_red_green schema)"
+          - "NewAgents/.github/agents/implementer.agent.md lines 135-160 (Step 4: Write Failing Tests)"
+          - "NewAgents/.github/agents/implementer.agent.md lines 282-310 (TDD Fallback rules)"
+          - "NewAgents/.github/agents/schemas.md lines 566-569 (tdd_red_green field definitions)"
+        relevance: "Implementer changes are incremental, not revolutionary. Designer can build on existing TDD infrastructure. Risk: 🟡 (strengthening existing patterns)."
+
+      - id: "F-3"
+        title: "Orchestrator requires new workflow lane routing and E2E instance lifecycle management"
+        category: "impact"
+        detail: |
+          The orchestrator.agent.md (528 lines, already at NFR-1 exception of ≤550 lines) must
+          accommodate:
+          1. RISK-BASED WORKFLOW LANES (Section 5): The orchestrator already reads
+             overall_risk_summary from plan-output.yaml and routes based on 🟢/🟡/🔴. However,
+             Section 5 adds explicit lane definitions:
+             - Low Risk → Unit tests only
+             - Medium Risk → Unit + integration
+             - High Risk → Full TDD + E2E verification
+             This requires new routing logic in the Step 5-6 implementation+verification loop.
+          2. E2E INSTANCE MANAGEMENT: The orchestrator must manage E2E app instance lifecycle:
+             - Decide when to spin up instances (after verification passes, before code review)
+             - Manage concurrency limits for E2E instances (Section 4: max concurrent E2E limit)
+             - Queue E2E verifications when resources are constrained
+             - Handle E2E-specific timeouts and failure modes
+          3. NEW PIPELINE STEP: Step 6a (Runtime Smoke) currently only applies to bugfix tasks.
+             Section 3 mandates verifier-driven E2E for High Risk tasks. This likely becomes a
+             new Step 6b or an expansion of Step 6a to be risk-conditional.
+          4. COMPLETION GATE (Section 10B): Task is COMPLETE only when unit tests + verification
+             + required E2E + no security issues + no lint violations all pass. Orchestrator's
+             evidence gate logic must expand.
+          LINE BUDGET RISK: At 528 lines, the orchestrator is already near its 550-line cap.
+          Adding E2E routing and lane management may push it over. Designer must consider
+          extracting E2E coordination into a reference document or new sub-agent.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 37-40 (NFR-1: ≤550 line exception)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 234-246 (Step 6a: Runtime Smoke — bugfix only)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 260-290 (Steps 5-6 loop)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 386-400 (decision table)"
+        relevance: "Orchestrator line budget is a hard constraint. Designer must decide between expanding orchestrator or extracting E2E coordination. This is a key architectural decision."
+
+      - id: "F-4"
+        title: "Planner must classify tasks into risk-based workflow lanes with E2E requirements"
+        category: "impact"
+        detail: |
+          The planner.agent.md already classifies files by risk (🟢/🟡/🔴) and computes
+          overall_risk_summary. Section 5 requires the planner to additionally:
+          1. Map each task to a WORKFLOW LANE (Low/Medium/High) based on risk classification
+          2. Add E2E test requirements to task acceptance criteria for High Risk tasks
+          3. Include E2E contract references in relevant_context for tasks requiring E2E
+          4. The task-schema (Schema 6) needs new fields: workflow_lane, e2e_required (bool),
+             e2e_contract_ref (optional path to E2E contract)
+          EXISTING ALIGNMENT: The risk classification system (per-file 🟢/🟡/🔴) maps cleanly
+          to the proposed workflow lanes. Low Risk ≈ 🟢, Medium Risk ≈ 🟡, High Risk ≈ 🔴.
+          The planner's existing escalation rule (any 🔴 file → task is Large) aligns with
+          High Risk → Full TDD + E2E. Only additive schema changes are needed.
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md lines 130-175 (Risk Classification System)"
+          - "NewAgents/.github/agents/planner.agent.md lines 65-75 (plan-output.yaml schema with overall_risk_summary)"
+          - "NewAgents/.github/agents/planner.agent.md lines 80-110 (task-schema with relevant_context)"
+          - "NewAgents/.github/agents/schemas.md lines 344-510 (Schema 5 and Schema 6 definitions)"
+        relevance: "Planner changes are additive and low risk. New fields extend existing schemas without breaking backward compatibility."
+
+      - id: "F-5"
+        title: "14 of 18 agent system files require modification"
+        category: "impact"
+        detail: |
+          FULL FILE CHANGE INVENTORY across NewAgents/.github/agents/:
+          HIGH IMPACT (major structural changes):
+          - verifier.agent.md — Add E2E verification tier, expand runtime smoke, new check_names
+          - orchestrator.agent.md — Add workflow lanes, E2E lifecycle, expanded gates
+          - implementer.agent.md — Strengthen TDD enforcement, add VERIFY phase
+          MEDIUM IMPACT (schema/field additions):
+          - planner.agent.md — Add workflow_lane and E2E fields to task classification
+          - schemas.md — Add E2E contract schema, new check_names, workflow_lane fields
+          - dispatch-patterns.md — Add E2E dispatch patterns, queuing rules
+          - global-operating-rules.md — Add TDD enforcement rules, E2E safety rules
+          - tool-access-matrix.md — Potential verifier tool expansion for E2E
+          LOW IMPACT (minor additions):
+          - spec.agent.md — Add E2E requirement generation in specifications
+          - designer.agent.md — Add E2E architecture consideration in design decisions
+          - adversarial-reviewer.agent.md — Add TDD compliance and E2E coverage review checks
+          - knowledge-agent.agent.md — Add E2E metrics capture, TDD compliance tracking
+          - severity-taxonomy.md — Add E2E-specific severity examples
+          - evaluation-schema.md — Add E2E-related evaluation criteria
+          NEW FILES NEEDED:
+          - e2e-contract-schema.md (or section in schemas.md) — Machine-readable E2E contract
+          - e2e-integration.md — E2E test runner integration reference (similar to context7-integration.md)
+          UNCHANGED:
+          - researcher.agent.md — Read-only agent, no testing responsibilities
+          - review-perspectives.md — May need minor TDD/E2E perspective additions
+          - sql-templates.md — Needs new INSERT templates for E2E check_names
+          - context7-integration.md — Unchanged
+        evidence:
+          - "NewAgents/.github/agents/ (full directory listing: 18 files)"
+          - "Analysis based on each file's role and the 10 sections of initial-request.md"
+        relevance: "14 of 18 files changing constitutes a large blast radius. Phased rollout is recommended to manage risk."
+
+      # ─────────────────────────────────────────────
+      # PIPELINE FLOW IMPACT
+      # ─────────────────────────────────────────────
+      - id: "F-6"
+        title: "Pipeline flow requires 3 new decision points and 1 new verification tier"
+        category: "pipeline"
+        detail: |
+          CURRENT PIPELINE (10 steps):
+          Step 0 (Setup) → Step 1 (Research ×4) → Step 1a (Gate) → Step 2 (Spec) →
+          Step 3 (Design) → Step 3b (Design Review ×3) → Step 4 (Planning) → Step 4a (Gate) →
+          Steps 5-6 (Impl+Verify Loop, max 3) → Step 6a (Runtime Smoke, bugfix only) →
+          Step 7 (Code Review ×3) → Step 8 (Knowledge) → Step 9 (Auto-Commit)
+
+          PROPOSED CHANGES:
+          1. Step 0: ADD E2E contract discovery/validation. Check if target project has an
+             E2E contract file. If missing and interactive mode, prompt user to create one.
+             If missing and autonomous mode, skip E2E enforcement with documented reason.
+          2. Step 4: ADD workflow lane assignment. Planner classifies each task into
+             Low/Medium/High risk lane. This determines verification depth.
+          3. Step 6: MODIFY verification to be lane-aware:
+             - Low Risk tasks: Tier 1-2 only (existing behavior)
+             - Medium Risk tasks: Tier 1-3 (existing behavior for Standard tasks)
+             - High Risk tasks: Tier 1-4 + E2E verification (NEW)
+          4. Step 6a/6b: EXPAND from bugfix-only to risk-conditional. High Risk tasks get
+             full E2E verification including app spinup, E2E test execution, and adversarial
+             testing. This is a significant new step, not just a gate modification.
+          5. Step 7: ADD TDD compliance check. Adversarial reviewers verify that TDD
+             red-green-refactor cycle was followed (already partially present in behavioral
+             test validity checks, but needs strengthening).
+
+          NEW LOOPS:
+          - E2E retry loop: If E2E tests fail, route back to implementer with E2E failure
+            evidence (analogous to existing verification retry loop)
+          - E2E instance queuing: When multiple verifiers need E2E instances simultaneously,
+            queue them with isolation guarantees (new concurrency pattern)
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 100-400 (full pipeline steps)"
+          - "NewAgents/.github/agents/dispatch-patterns.md lines 1-200 (Pattern A and B definitions)"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md Sections 3, 4, 5"
+        relevance: "Pipeline flow changes affect orchestrator routing logic directly. Additional decision points increase orchestrator complexity against its line budget constraint."
+
+      - id: "F-7"
+        title: "E2E contract introduces a new external dependency on target project configuration"
+        category: "dependency"
+        detail: |
+          Section 2 of the initial request introduces a machine-readable E2E contract that
+          each application must define. This is a fundamentally new dependency: the agent
+          system's behavior now depends on configuration that lives OUTSIDE the agent system
+          itself (in the target application being modified).
+
+          The contract includes: app_type, start_command, ready_check, base_url, e2e_runner,
+          e2e_command, supports_parallel, requires_isolated_instance, and optionally a skill
+          reference for reusable E2E setup.
+
+          IMPACT:
+          - Pipeline must gracefully degrade when no E2E contract exists
+          - Contract validation becomes a Step 0 prerequisite
+          - Interactive mode must support contract creation workflow
+          - Autonomous mode must handle missing contracts without blocking
+          - Contract schema must be versioned for forward compatibility
+          - Different app types (web, API, CLI, mobile) need different contract shapes
+
+          PRECEDENT: context7-integration.md provides a model for optional external integrations
+          with graceful degradation. The E2E contract should follow the same pattern:
+          check → available → use, check → unavailable → skip with documented reason.
+        evidence:
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md Section 2 (E2E contract definition)"
+          - "NewAgents/.github/agents/context7-integration.md (graceful degradation pattern)"
+        relevance: "The E2E contract is the critical enabler for E2E testing. Without it, the entire E2E enforcement feature degrades to unit-only testing. Designer must define the contract schema and degradation rules."
+
+      # ─────────────────────────────────────────────
+      # PERFORMANCE IMPLICATIONS
+      # ─────────────────────────────────────────────
+      - id: "F-8"
+        title: "E2E testing adds 2-5x wall-clock time to the verification stage"
+        category: "performance"
+        detail: |
+          CURRENT VERIFICATION TIMING:
+          The existing verification cascade (Tiers 1-4) involves static analysis, builds,
+          tests, and code inspection — all fast operations completed in seconds to low minutes.
+          Runtime Smoke Test (Step 6a) for bugfix tasks adds 30-120 seconds for app startup,
+          request, and shutdown.
+
+          PROJECTED E2E TIMING per task (High Risk lane):
+          - App startup: 5-60 seconds (depends on app type; web apps with DB need more)
+          - E2E test suite execution: 30-300 seconds (Playwright tests, API tests, etc.)
+          - Adversarial workflow testing: 60-180 seconds (simulating developer trying to break)
+          - App shutdown and cleanup: 5-15 seconds
+          - TOTAL per task: 100-555 seconds (~2-9 minutes)
+
+          PIPELINE-LEVEL IMPACT:
+          - With 4 concurrent verifiers each running E2E: resource contention increases
+          - If E2E is sequential (supports_parallel=false in contract), verifiers must queue
+          - For a feature with 5+ High Risk tasks, E2E adds 10-45 minutes to pipeline
+          - Current pipeline target is roughly 15-30 minutes end-to-end; E2E could double this
+
+          PARALLELISM CONSTRAINTS:
+          - Section 4 requires instance isolation (unique ports or containers)
+          - Max concurrent E2E limit must be enforced
+          - If app requires isolated database, each instance needs separate DB
+          - Port conflicts between multiple app instances must be managed
+
+          MITIGATION FROM TEST PYRAMID LITERATURE (Fowler/Cohn):
+          - "End-to-end tests require a lot of maintenance and run pretty slowly"
+          - "You should aim to reduce the number of end-to-end tests to a bare minimum"
+          - "Write lots of unit tests. Write some more coarse-grained tests and very few
+            high-level end-to-end tests"
+          - Risk-based lanes (Section 5) align with this: only High Risk gets E2E
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md lines 202-215 (Runtime Smoke timing reference)"
+          - "NewAgents/.github/agents/dispatch-patterns.md lines 200-230 (concurrency cap: 4)"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md Section 4 (parallel safety)"
+          - "Martin Fowler: The Practical Test Pyramid — E2E tests section on maintenance cost and speed"
+        relevance: "Performance impact is the primary risk to pipeline usability. Designer must define hard timeouts for E2E stages and implement the risk-based lane system to limit E2E scope."
+
+      - id: "F-9"
+        title: "Context window pressure increases significantly with E2E evidence"
+        category: "performance"
+        detail: |
+          Section 6 (Context Governance) acknowledges that subagents must operate within
+          bounded context windows. E2E testing generates substantially more evidence:
+          - Browser traces, screenshots, console logs (Section 10A: Test Replay Logs)
+          - E2E test output (potentially verbose, especially on failure)
+          - E2E contract details added to task context
+          - Instance management logs (port assignments, startup/shutdown)
+          - Adversarial workflow results
+
+          The verifier already produces substantial output per task. Adding E2E evidence may
+          push verifier dispatches against context limits, especially for complex apps with
+          many E2E scenarios.
+
+          EXISTING MITIGATIONS:
+          - output_snippet truncation to ≤500 chars per anvil_checks entry
+          - Structured summarization in verification reports
+          - Per-task dispatch (verifier handles one task at a time)
+
+          NEW MITIGATIONS NEEDED:
+          - E2E output summarization (truncate to key failures, not full trace)
+          - Separate E2E evidence storage (file-based, not inline in YAML)
+          - Reference-based E2E results (store full trace as file, reference path in report)
+        evidence:
+          - "NewAgents/.github/agents/verifier.agent.md lines 258-260 (output_snippet ≤500 chars)"
+          - "NewAgents/.github/agents/global-operating-rules.md §6 (context governance)"
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md Section 6 and 10A"
+        relevance: "Context overflow in verifier dispatches is a real risk. Designer must define evidence summarization strategy for E2E output."
+
+      # ─────────────────────────────────────────────
+      # RISK CLASSIFICATION PER SECTION
+      # ─────────────────────────────────────────────
+      - id: "F-10"
+        title: "Risk classification matrix for all 10 sections of the initial request"
+        category: "risk"
+        detail: |
+          Section 1 — Make TDD Mandatory
+            Risk: 🟡 MEDIUM | Difficulty: MODERATE
+            Rationale: TDD is already enforced in implementer. Changes strengthen existing
+            patterns. Main risk: stricter enforcement may increase implementer failure rate
+            and trigger more self-fix loops, slowing pipeline.
+
+          Section 2 — E2E Testing as First-Class Citizen
+            Risk: 🔴 HIGH | Difficulty: HIGH
+            Rationale: Completely new capability. E2E contract is a new schema. Dynamic
+            contract interpretation means agent must handle many app types. Interactive mode
+            for E2E setup adds complexity. Skill reference system is novel.
+
+          Section 3 — Live App Testing Architecture
+            Risk: 🔴 HIGH | Difficulty: HIGH
+            Rationale: Requires verifier to spin up and manage live app instances. Instance
+            isolation is complex. Adversarial testing (developer trying to break it) requires
+            creative test generation. Clear separation between implementer (no E2E) and
+            verifier (runs E2E) must be enforced.
+
+          Section 4 — Parallel Agent Safety
+            Risk: 🔴 HIGH | Difficulty: HIGH
+            Rationale: Concurrency control for E2E instances is the hardest technical challenge.
+            File locks, port allocation, container isolation, queuing — each is non-trivial.
+            Race conditions are the primary failure mode. Current system has no E2E concurrency.
+
+          Section 5 — Risk-Based Workflow Lanes
+            Risk: 🟡 MEDIUM | Difficulty: MODERATE
+            Rationale: Extends existing risk classification. Planner already classifies
+            🟢/🟡/🔴. Main change is making lanes explicit and routing them differently through
+            the verification cascade. Orchestrator routing logic must expand.
+
+          Section 6 — Subagent Context Governance
+            Risk: 🟢 LOW | Difficulty: LOW
+            Rationale: Already partially implemented. Relevant context pointers, targeted reads,
+            context-efficient reading rules are in place. Section 6 reinforces existing rules.
+            May need minor additions for max lines per read enforcement.
+
+          Section 7 — Interactive Mode Requirements
+            Risk: 🟡 MEDIUM | Difficulty: MODERATE
+            Rationale: ask_questions already exists for orchestrator and spec agent. Extension
+            to support E2E contract creation and ambiguity escalation is moderate work. The
+            pattern of subagent requesting orchestrator to ask on their behalf is new but
+            conceptually simple.
+
+          Section 8 — Orchestrator Rules
+            Risk: 🟢 LOW | Difficulty: LOW
+            Rationale: Orchestrator already follows these rules. Section 8 reinforces existing
+            constraints. No new implementation needed — this is policy affirmation.
+
+          Section 9 — Copilot Best Practices Integration
+            Risk: 🟢 LOW | Difficulty: LOW
+            Rationale: Guidelines, not code changes. The knowledge agent already handles
+            instruction updates. Section 9 is a documentation/convention update.
+
+          Section 10 — Additional Enhancements
+            Risk: 🟡 MEDIUM | Difficulty: MODERATE
+            Rationale: Four sub-features, each moderate:
+            A. Test Replay Logs — New storage format, moderate schema work
+            B. Workflow Completion Gate — Expands existing evidence gates, moderate
+            C. Agent Performance Guardrails — Hard timeouts already partially exist, moderate
+            D. Deterministic Output Contracts — Already largely in place via schemas.md
+        evidence:
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md (all 10 sections)"
+          - "Full analysis of each section against existing agent system capabilities"
+        relevance: "Risk matrix directly informs planner task decomposition and designer priority ordering. Sections 2, 3, 4 are the critical path."
+
+      # ─────────────────────────────────────────────
+      # BACKWARD COMPATIBILITY
+      # ─────────────────────────────────────────────
+      - id: "F-11"
+        title: "Schema additions are backward-compatible; behavioral changes require migration strategy"
+        category: "compatibility"
+        detail: |
+          BACKWARD-COMPATIBLE CHANGES (additive only):
+          - New fields in task-schema (workflow_lane, e2e_required) — optional, with defaults
+          - New check_name values in anvil_checks — additive, existing queries unaffected
+          - New E2E contract schema — entirely new artifact, no existing artifacts change
+          - New SQL table(s) for E2E evidence — additive DDL, existing tables unchanged
+          - New reference documents (e2e-contract-schema.md, e2e-integration.md) — new files
+
+          POTENTIALLY BREAKING CHANGES:
+          - Strengthened TDD enforcement may cause existing implementer prompts to fail more
+            often if they relied on loose TDD (e.g., writing tests that pass immediately)
+          - Expanded verification requirements (E2E for High Risk) mean tasks that previously
+            completed in verification may now fail E2E and require revision
+          - Orchestrator routing changes affect pipeline flow — in-progress pipeline runs
+            using old routing would be incompatible
+          - If E2E contract becomes mandatory (not gracefully optional), projects without
+            contracts cannot use High Risk classification
+
+          MIGRATION STRATEGY NEEDED FOR:
+          1. Schema version bump (schemas.md currently at 1.0 — new fields may warrant 1.1)
+          2. Graceful handling of tasks created before E2E enforcement was added
+          3. Pipeline state recovery (EC-5) must handle hybrid states where some tasks were
+             verified with old cascade and others with E2E-enhanced cascade
+          4. verification-ledger.db DDL must use CREATE TABLE IF NOT EXISTS and
+             ALTER TABLE ADD COLUMN IF NOT EXISTS for new columns
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 1-10 (Schema Version Requirement: 1.0)"
+          - "NewAgents/.github/agents/global-operating-rules.md §7 (Pipeline State Recovery)"
+          - "NewAgents/.github/agents/global-operating-rules.md §5 (Completion Contract Routing Matrix)"
+        relevance: "Migration strategy must be designed to preserve existing pipeline runs. Additive-only changes are strongly preferred."
+
+      - id: "F-12"
+        title: "Existing anvil_checks SQL schema supports E2E extension without structural changes"
+        category: "compatibility"
+        detail: |
+          The anvil_checks table schema is:
+          (id, run_id, task_id, phase, check_name, tool, command, exit_code,
+           output_snippet, passed, verdict, severity, round, instance, ts)
+
+          E2E verification results can be recorded using existing columns:
+          - check_name: 'e2e-contract-found', 'e2e-instance-start', 'e2e-test-execution',
+            'e2e-adversarial', 'e2e-instance-shutdown'
+          - phase: 'after' (for verification) — fits existing phase enum
+          - tool: 'run_in_terminal' (E2E test runner via shell)
+          - command: e2e_command from contract
+          - exit_code: E2E test runner exit code
+          - output_snippet: truncated E2E output (≤500 chars)
+          - passed: 0 or 1
+
+          NO SCHEMA CHANGES NEEDED for basic E2E evidence recording. The existing
+          anvil_checks table is sufficiently general. However, the evidence gate queries
+          (EG-1, EG-2) may need updating to count E2E checks toward minimum signal requirements.
+          For Large tasks with E2E: minimum signals should increase from 3 to perhaps 4-5
+          to ensure E2E evidence is present.
+        evidence:
+          - "verification-ledger.db schema (from terminal context: CREATE TABLE anvil_checks)"
+          - "NewAgents/.github/agents/sql-templates.md (referenced for INSERT patterns)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 95-130 (check_name quick reference)"
+        relevance: "No SQL schema migration required is a significant compatibility win. Designer should plan E2E check_names within existing schema."
+
+      # ─────────────────────────────────────────────
+      # ONLINE RESEARCH INSIGHTS
+      # ─────────────────────────────────────────────
+      - id: "F-13"
+        title: "Test Pyramid principles strongly favor risk-based E2E scoping over blanket enforcement"
+        category: "external-research"
+        detail: |
+          Research from Martin Fowler's 'The Practical Test Pyramid' (widely cited in industry)
+          provides key principles that directly impact this feature's design:
+
+          1. TEST PYRAMID SHAPE: Write lots of unit tests, some integration tests, very few E2E
+             tests. An inverted pyramid (many E2E, few unit) is an anti-pattern called the
+             'test ice-cream cone' that is a nightmare to maintain and takes way too long to run.
+
+          2. E2E FLAKINESS: "End-to-end tests are notoriously flaky and often fail for unexpected
+             and unforeseeable reasons. Browser quirks, timing issues, animations and unexpected
+             popup dialogs" are common failure sources. This directly impacts the verifier's
+             adversarial testing capability.
+
+          3. MAINTENANCE COST: "End-to-end tests require a lot of maintenance and run pretty
+             slowly." Each E2E test is additional baggage — writing, maintaining, debugging.
+
+          4. PUSH TESTS DOWN: "Push your tests as far down the test pyramid as you can." If
+             something can be tested with a unit test, don't also test it with an E2E test.
+             This principle validates Section 5's risk-based approach (only High Risk gets E2E).
+
+          5. DEPLOYMENT PIPELINE PLACEMENT: E2E tests belong in later pipeline stages. Fast
+             unit tests go first for rapid feedback. This aligns with the existing pipeline
+             where verification (Step 6) comes after implementation (Step 5).
+
+          6. CONTRACT TESTING: Consumer-driven contract tests (CDC) can replace some E2E tests
+             for API interactions. This is relevant for the E2E contract system — the contract
+             defines the interface, not necessarily requiring full browser-based E2E.
+
+          APPLICATION TO THIS FEATURE:
+          - Section 5's risk-based lanes correctly implement pyramid principles
+          - Blanket E2E enforcement would violate pyramid shape and slow pipeline
+          - E2E should be reserved for user-facing flows, security boundaries, and state transitions
+          - The E2E contract should support varying test depths, not just full browser E2E
+        evidence:
+          - "Martin Fowler: The Practical Test Pyramid (2018, martinfowler.com/articles/practical-test-pyramid.html)"
+          - "Mike Cohn: Succeeding with Agile (original test pyramid concept)"
+          - "Google Testing Blog: Test Sizes (referenced by Simon Stewart)"
+        relevance: "External research validates risk-based approach and warns against over-testing with E2E. Designer should explicitly reference test pyramid principles when scoping E2E enforcement."
+
+      - id: "F-14"
+        title: "AI agent systems face unique TDD/E2E challenges not covered by traditional testing literature"
+        category: "external-research"
+        detail: |
+          While traditional TDD and E2E testing literature applies broadly, AI agent systems
+          (like this multi-agent pipeline) face unique challenges:
+
+          1. NON-DETERMINISTIC OUTPUTS: LLM-based agents may produce different code for the
+             same prompt. TDD tests written by agents may be brittle or over-fitted to specific
+             implementations. The existing tdd_red_green tracking helps, but agents may write
+             tests that trivially pass (known issue: adversarial reviewer already checks for
+             suspicious TDD patterns where initial_run_failures = 0).
+
+          2. CONTEXT WINDOW CONSTRAINTS: Unlike human developers who can maintain mental state
+             across test writing and implementation, agents operate within bounded context
+             windows. E2E test setup (contract parsing, environment configuration, instance
+             management) consumes valuable context budget.
+
+          3. TOOL-MEDIATED TESTING: Agents run tests via run_in_terminal, not interactively.
+             E2E testing tools (Playwright, Selenium, Cypress) produce rich output (traces,
+             screenshots) that must be summarized for agent consumption within output_snippet
+             (≤500 chars) limitations.
+
+          4. PARALLEL AGENT INTERFERENCE: Multiple agents running E2E tests simultaneously
+             on the same machine risk port conflicts, shared state corruption, and file system
+             races. Traditional CI/CD parallelism uses containers; this agent system runs
+             within VS Code's Copilot runtime without container isolation.
+
+          5. FEEDBACK LOOP AMPLIFICATION: In traditional CI/CD, a flaky E2E test causes one
+             retry. In this agent system, E2E failure triggers: verifier NEEDS_REVISION →
+             planner replan → implementer re-implement → verifier re-verify → E2E retest.
+             A flaky E2E test can consume 3 full iteration cycles (the Pattern B max).
+
+          6. SKILL REUSE ACROSS SESSIONS: The initial request mentions 'skills' for E2E setup
+             that can be reused. This aligns with the knowledge agent's store_memory +
+             instruction_updates pattern but requires a new 'skill' abstraction that doesn't
+             exist in the current system.
+        evidence:
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md lines 170-185 (suspicious TDD pattern detection)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 258-260 (output_snippet ≤500 chars)"
+          - "NewAgents/.github/agents/dispatch-patterns.md lines 108-140 (Pattern B: max 3 iterations)"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 1-50 (store_memory + instruction updates)"
+        relevance: "These agent-specific challenges must be addressed in the design. Traditional TDD/E2E patterns need adaptation for agent context."
+
+      - id: "F-15"
+        title: "The 'massive change' scope declaration suggests phased implementation is critical"
+        category: "risk"
+        detail: |
+          The initial request explicitly states: 'This is a massive change and it''s okay to
+          delete, update, add files and agents any way needed.' This declaration combined with
+          the blast radius analysis (14 of 18 files, 3 new files) creates significant risk.
+
+          PHASING RECOMMENDATION (based on impact analysis):
+          Phase 1 — TDD Strengthening (🟡 Medium Risk):
+            - Strengthen implementer TDD enforcement (Section 1)
+            - Add TDD compliance checks to adversarial reviewer
+            - Update schemas for VERIFY phase recording
+            - Add workflow lane field to task schema (Section 5, data only)
+
+          Phase 2 — E2E Contract & Infrastructure (🔴 High Risk):
+            - Define E2E contract schema (Section 2)
+            - Add E2E contract discovery to pipeline (Step 0)
+            - Build E2E instance management in orchestrator or new reference doc
+            - Implement parallel safety controls (Section 4)
+
+          Phase 3 — E2E Verification Integration (🔴 High Risk):
+            - Expand verifier with E2E verification tier (Section 3)
+            - Implement risk-based verification routing (Section 5)
+            - Add E2E evidence to completion gates (Section 10B)
+            - Interactive mode for E2E contract setup (Section 7)
+
+          Phase 4 — Polish & Enhancements (🟡 Medium Risk):
+            - Test replay logs (Section 10A)
+            - Performance guardrails (Section 10C)
+            - Context governance refinements (Section 6)
+            - Knowledge agent E2E metrics (Section 10D)
+
+          Each phase should be independently deployable and rollback-safe.
+        evidence:
+          - "docs/feature/tdd-e2e-enforcement/initial-request.md (scope declaration: 'massive change')"
+          - "Findings F-1 through F-12 (aggregate impact analysis)"
+        relevance: "Phased rollout is essential for managing the risk of this feature. Designer and planner must be aware of phase boundaries."
+
+    summary: |
+      The TDD & E2E enforcement feature has a large blast radius: 14 of 18 agent system files
+      require modification, with verifier.agent.md, orchestrator.agent.md, and implementer.agent.md
+      being the most heavily impacted. TDD strengthening is incremental (builds on existing TDD
+      infrastructure), while E2E enforcement is revolutionary (entirely new capability requiring
+      app instance management, E2E contracts, parallel safety, and risk-based routing).
+
+      Key risks: (1) Orchestrator line budget (528/550) constrains E2E routing additions;
+      (2) E2E testing adds 2-5x wall-clock time to verification; (3) E2E flakiness amplified by
+      3-iteration feedback loops; (4) Parallel E2E instances require concurrency controls that
+      don't exist in the current system; (5) Context window pressure from E2E evidence.
+
+      Sections 2, 3, and 4 (E2E contract, live testing architecture, parallel safety) are
+      classified 🔴 HIGH risk. Sections 1 and 5 (TDD mandatory, workflow lanes) are 🟡 MEDIUM
+      risk and can build on existing infrastructure. Sections 6, 8, 9 are 🟢 LOW risk.
+
+      External research (Martin Fowler's Test Pyramid) validates the risk-based approach: E2E
+      should be minimal and targeted, not blanket-applied. The risk-based workflow lanes (Section 5)
+      correctly implement test pyramid principles. Phased implementation across 4 phases is
+      strongly recommended.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/context7-integration.md"
+      - "docs/feature/tdd-e2e-enforcement/initial-request.md"
+
+completion:
+  status: "DONE"
+  started_at: "2026-03-04T00:00:00Z"
+  completed_at: "2026-03-04T00:45:00Z"
+  summary: "Impact research complete: 15 findings covering blast radius (14/18 files), pipeline flow (3 new decision points), performance (2-5x E2E overhead), risk matrix (3 HIGH, 4 MEDIUM, 3 LOW sections), and backward compatibility (additive schema changes, no SQL migration needed)"
+  severity: null
+  findings_count: 15
+  risk_level: null
+  output_paths:
+    - "research/impact.yaml"

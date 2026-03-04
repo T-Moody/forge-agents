@@ -1,0 +1,114 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-008"
+  title: "tool-access-matrix.md — Verifier Tier 5 Command Allowlist"
+  target_file: "NewAgents/.github/agents/tool-access-matrix.md"
+  action: "modify"
+  risk: "🟡"
+  size: "Standard"
+  wave: 2
+  depends_on: ["TASK-004"]
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 35
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-11']" # Verifier tool access expansion
+      - "design-output.yaml#payload.decisions[id='D-22']" # Command allowlist regex patterns
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4']" # FR-4.3: Verifier interaction tools
+    files_to_modify:
+      - path: "NewAgents/.github/agents/tool-access-matrix.md"
+        risk: "🟡"
+    files_to_read:
+      - path: "NewAgents/.github/agents/tool-access-matrix.md"
+        reason: "Understand existing §8 Verifier tool access, §10 Knowledge Agent pattern (precedent for command allowlist)"
+      - path: "NewAgents/.github/agents/e2e-integration.md"
+        reason: "After TASK-004: canonical command allowlist in §5"
+      - path: "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+        section: "decisions D-11, D-22"
+        reason: "Verifier tool access model, regex allowlist specification"
+
+  description: |
+    Expand the verifier's tool access in tool-access-matrix.md to support Tier 5 E2E
+    verification while maintaining security boundaries.
+
+    **1. Expand §8 Verifier tool access:**
+
+    Add Tier 5 tool access scope to the existing §8 Verifier section. Document that:
+    - run_in_terminal is expanded for Tier 5 ONLY when e2e_required=true
+    - Commands MUST match the tier5_command_allowlist regex patterns
+    - Commands not matching any pattern are REJECTED (logged in interaction_log)
+    - Phase gating: Tier 5 commands allowed only during E2E verification phases
+
+    **2. Add tier5_command_allowlist (D-22):**
+
+    Add the regex command allowlist patterns (reference e2e-integration.md §5 as canonical):
+    | Pattern | Purpose |
+    |---------|---------|
+    | `^npx playwright test .+` | Execute generated E2E test scripts |
+    | `^playwright-cli .+` | Playwright CLI browser interaction (open, goto, click, fill, screenshot, snapshot, close, etc.) |
+    | `^npm (run\|start\|test)` | Application lifecycle management |
+    | `^node .+` | Direct Node.js script execution |
+    | `^dotnet (run\|test)` | .NET application lifecycle |
+    | `^python -m (pytest\|uvicorn\|flask)` | Python application lifecycle |
+    | `^curl -s .+` | Health check HTTP requests |
+    | `^(kill\|taskkill)` | Process cleanup during teardown |
+
+    Note: This follows the Knowledge Agent §10 precedent for command-restricted tool access.
+
+    **3. Add audit trail requirement:**
+
+    Document that every Tier 5 run_in_terminal execution must be logged:
+    - command_text, matched_pattern (or 'REJECTED'), timestamp, exit_code
+    - This provides a complete audit trail for adversarial review
+
+    **4. Add Playwright CLI session management commands:**
+
+    Document the session management patterns for the verifier:
+    - Session creation: `playwright-cli -s=verify-{task-id} open {base_url}`
+    - Session interaction: `playwright-cli -s=verify-{task-id} <command>` (goto, click, fill, screenshot, etc.)
+    - Session cleanup: `playwright-cli -s=verify-{task-id} close`
+    - Emergency cleanup: `playwright-cli close-all` or `playwright-cli kill-all`
+    - Session listing: `playwright-cli list` (for audit/debugging)
+    - All session commands match the `^playwright-cli .+` allowlist pattern
+
+  acceptance_criteria:
+    - id: "AC-30"
+      text: "Verifier §8 documents Tier 5 run_in_terminal expansion that is conditional on e2e_required=true and constrained by tier5_command_allowlist"
+      test_method: "inspection"
+    - id: "AC-T8-2"
+      text: "All 8 command allowlist regex patterns (including ^playwright-cli .+ for browser CLI interaction) are listed in tool-access-matrix.md with their purpose descriptions"
+      test_method: "inspection"
+    - id: "AC-T8-3"
+      text: "Audit trail requirement is documented: every Tier 5 command logged with command_text, matched_pattern, timestamp, exit_code"
+      test_method: "inspection"
+    - id: "AC-T8-4"
+      text: "Phase gating is documented: Tier 5 commands allowed ONLY during E2E verification phases, not during Tiers 1-4"
+      test_method: "inspection"
+    - id: "AC-T8-5"
+      text: "Playwright CLI session management patterns documented: session creation (-s=verify-{task-id} open), session interaction, session cleanup (close, close-all, kill-all)"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - Verify §8 Verifier section does NOT mention 'Tier 5' or 'tier5_command_allowlist' → expect absent
+      - Verify no command allowlist regex patterns exist → expect absent
+    green_phase: |
+      1. Expand §8 with Tier 5 tool access description
+      2. Add command allowlist table with all 8 patterns (including ^playwright-cli .+)
+      3. Add Playwright CLI session management patterns
+      4. Add audit trail requirement
+      5. Add cross-reference to e2e-integration.md §5
+      Follow §10 Knowledge Agent style for allowlist formatting
+    verify_phase: |
+      - grep for 'tier5_command_allowlist' in tool-access-matrix.md
+      - grep for all 8 regex patterns (playwright-cli, npx playwright, npm, node, dotnet, python, curl, kill)
+      - grep for 'playwright-cli -s=verify-' session patterns
+      - grep for 'audit trail' or 'interaction_log'
+      - Verify existing tool access for other agents is unchanged

@@ -1,0 +1,142 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-001"
+  title: "schemas.md — E2E Contract Schema, Skills Schema, Task Schema Extension"
+  target_file: "NewAgents/.github/agents/schemas.md"
+  action: "modify"
+  risk: "🟡"
+  size: "Standard"
+  wave: 1
+  depends_on: []
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 290
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-3']" # E2E contract location + trust level
+      - "design-output.yaml#payload.decisions[id='D-4']" # Skills storage
+      - "design-output.yaml#payload.decisions[id='D-15']" # Task schema extension
+      - "design-output.yaml#payload.decisions[id='D-21']" # Structured command format
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2']" # E2E contract schema
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3']" # Skills schema
+      - "spec-output.yaml#payload.functional_requirements[id='FR-6']" # Workflow lanes (task fields)
+      - "spec-output.yaml#payload.functional_requirements[id='FR-14']" # Deterministic outputs
+    files_to_modify:
+      - path: "NewAgents/.github/agents/schemas.md"
+        risk: "🟡"
+    files_to_read:
+      - path: "NewAgents/.github/agents/schemas.md"
+        reason: "Understand existing schema structure, numbering, and conventions (Schema 1-12)"
+      - path: "docs/feature/tdd-e2e-enforcement/design-output.yaml"
+        section: "decisions D-3, D-4, D-15, D-21"
+        reason: "Contract format, skills storage, task schema fields, structured commands"
+      - path: "docs/feature/tdd-e2e-enforcement/spec-output.yaml"
+        section: "FR-2, FR-3, FR-6"
+        reason: "Complete field-level requirements for contract and skills schemas"
+
+  description: |
+    Add three new schema definitions and extend one existing schema in schemas.md:
+
+    1. **E2E Contract Schema (new):** Define the typed YAML schema for e2e-contract.yaml. Must include:
+       - App lifecycle: app_type, start_command (structured: {executable, args, env}), ready_check,
+         ready_timeout_ms, base_url, shutdown_command, shutdown_timeout_ms
+       - Port management: default_port, port_env_var, port_range_start
+       - Runner: e2e_runner, e2e_command, e2e_config_path, e2e_env
+       - Parallelism: supports_parallel, requires_isolated_instance, max_concurrent_instances (max 4)
+       - Evidence: screenshot_on_failure, trace_on_failure, video_recording, har_capture, evidence_output_dir
+       - Skills: skills (list), skill_discovery_path
+       - Interaction: interaction_type (browser|api|cli|none), interaction_tools, readiness_checks, evidence_capture
+       - Browser tool config (new — @playwright/cli):
+         - browser.tool: "playwright-cli" (the CLI binary from @playwright/cli)
+         - browser.install: "npm install -g @playwright/cli@latest"
+         - browser.skills_install: "playwright-cli install --skills" (installs agent-discoverable skill guides)
+         - browser.session_prefix: "verify-{task-id}" (session isolation via -s=<name>)
+         - browser.config: ".playwright/cli.config.json" (per-project configuration)
+       - DB isolation: db_isolation_strategy (per-instance-db|transaction-rollback|shared-with-locking)
+       - Trust level annotation (project-trusted|pipeline-generated)
+       - start_command uses STRUCTURED format {executable, args, env} — NOT raw shell string (D-21)
+
+    2. **E2E Skills Schema (new):** Define the typed YAML schema for skill definitions. Must include:
+       - Skill metadata: id, name, description, type (test-suite|exploratory|adversarial),
+         interaction (browser|api|cli|test-command), app_type_filter, preconditions, tags, timeout_ms
+       - Steps: ordered list with fields: order, action, target, value, method, headers,
+         expect, assert ({type, value}), capture, timeout_ms, on_failure
+       - Assert types: status_code, text_contains, element_visible, element_not_visible,
+         url_matches, response_body_contains, exit_code_equals
+       - Adversarial variations: id, name, description, severity_if_missed, overrides
+         (list of {step_order, field, override_value}), expected_behavior, assert
+
+    3. **Extend Schema 6 (task-schema):** Add three new fields:
+       - workflow_lane: 'unit-only'|'unit-integration'|'full-tdd-e2e' (required, default derived from risk)
+       - e2e_required: boolean (required, default false)
+       - e2e_contract_path: string|null (required when e2e_required=true, default null)
+
+    4. **Extend Schema 7 (implementation-report):** Add verify_phase object:
+       - tdd_red_green.verify_phase: {get_errors_clean: boolean, typecheck_clean: boolean, tests_passing: boolean}
+       - tdd_red_green.tdd_fallback_reason: string|null
+
+    5. **Extend Schema 8 (verification-report):** Add E2E results section:
+       - e2e_results: {suite_passed, exploratory_passed, adversarial_passed, interaction_log}
+       - interaction_log per skill: {skill_id, skill_type, steps_executed, steps_passed, steps_failed, step_results}
+
+    6. **Add new check_name patterns:** Document the new check_name values:
+       - tdd-compliance, tdd-fallback, e2e-contract-found, e2e-contract-validation,
+         e2e-instance-start, e2e-readiness, e2e-suite-execution, e2e-exploratory,
+         e2e-adversarial, e2e-adversarial-<variation-name>, e2e-instance-shutdown,
+         e2e-test-execution (composite)
+
+    **Important:** All schema changes MUST be additive (CR-5). Existing fields MUST NOT be
+    removed or renamed. New fields MUST have sensible defaults. Follow existing schema
+    documentation style and numbering conventions.
+
+  acceptance_criteria:
+    - id: "AC-5"
+      text: "schemas.md contains a complete E2E contract schema with all required fields: app_type, start_command (structured format with executable/args/env), ready_check, ready_timeout_ms, base_url, shutdown_command, interaction_type, interaction_tools, readiness_checks, evidence_capture, skills, skill_discovery_path, port fields, parallelism fields, evidence fields, db_isolation_strategy, and browser tool config (browser.tool='playwright-cli', browser.install, browser.skills_install, browser.session_prefix, browser.config)"
+      test_method: "inspection"
+    - id: "AC-9"
+      text: "schemas.md contains a complete E2E skills schema with: type field (test-suite|exploratory|adversarial), interaction field (browser|api|cli|test-command), step schema with all action types (navigate, click, fill, submit, http_request, run_command), assert objects with machine-checkable types, and adversarial_variations with step overrides"
+      test_method: "inspection"
+    - id: "AC-23"
+      text: "Schema 6 (task-schema) includes workflow_lane ('unit-only'|'unit-integration'|'full-tdd-e2e'), e2e_required (boolean), and e2e_contract_path (string|null) fields with documented defaults"
+      test_method: "inspection"
+    - id: "AC-T1-4"
+      text: "Schema 7 (implementation-report) includes verify_phase object with get_errors_clean, typecheck_clean, tests_passing boolean fields and tdd_fallback_reason string field"
+      test_method: "inspection"
+    - id: "AC-T1-5"
+      text: "Schema 8 (verification-report) includes e2e_results section with interaction_log structure containing per-step results (order, action, target, result, actual_behavior, evidence_path, duration_ms)"
+      test_method: "inspection"
+    - id: "AC-T1-6"
+      text: "All new check_name patterns (tdd-compliance, tdd-fallback, e2e-contract-found, e2e-contract-validation, e2e-instance-start, e2e-readiness, e2e-suite-execution, e2e-exploratory, e2e-adversarial, e2e-instance-shutdown, e2e-test-execution) are documented in the check_name reference section"
+      test_method: "inspection"
+    - id: "AC-T1-7"
+      text: "All schema changes are additive — no existing fields removed or renamed. New fields have documented default values"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write structural validation checks:
+      - Verify schemas.md does NOT yet contain 'E2E Contract Schema' section → expect absent
+      - Verify Schema 6 does NOT yet contain 'workflow_lane' field → expect absent
+      - Verify check_name reference does NOT yet list 'tdd-compliance' → expect absent
+    green_phase: |
+      Add the schema sections in order:
+      1. E2E Contract Schema (new numbered schema after existing Schema 12)
+      2. E2E Skills Schema (next number)
+      3. Extend Schema 6 with 3 new fields (additive, at end of field list)
+      4. Extend Schema 7 with verify_phase
+      5. Extend Schema 8 with e2e_results
+      6. Update check_name reference table with all new patterns
+    verify_phase: |
+      - grep schemas.md for all required field names from FR-2.1 and FR-2.2
+      - Verify start_command uses structured format {executable, args, env} not raw string
+      - Verify browser tool config section exists with fields: tool, install, skills_install, session_prefix, config
+      - Verify browser.tool value is 'playwright-cli'
+      - Verify skill type enum contains exactly: test-suite, exploratory, adversarial
+      - Verify assertion types match FR-3.3 specification
+      - Verify Schema 6 extension has default values documented
+      - Verify no existing schema content was removed or modified incompatibly

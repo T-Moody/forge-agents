@@ -1,0 +1,71 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-003"
+  step: "step-5"
+  started_at: "2026-03-04T00:10:00Z"
+  completed_at: "2026-03-04T00:18:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-003"
+    task_type: "code"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/global-operating-rules.md"
+        action: "modified"
+        description: "Added 'Mandatory TDD for code tasks' to §9 Immutable Rules with strict skip criteria (task_type NOT code AND no production source files AND only docs/config). Added TDD skip weakening to §9.3 pattern-matching rejection criteria. Added new §10 E2E Safety Rules (process cleanup with Blocker severity for orphans, timeout enforcement table with 600s/60s/30s limits, evidence sanitization with sql_escape and HAR stripping, source code read-only constraint). Added new §11 Context Governance Rules (mandatory read_file ≤200 lines per invocation, discovery-first search strategy, E2E evidence summarization ≤500 chars with file-based artifact storage)."
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "baseline-build"
+        phase: "baseline"
+        tool: "n/a"
+        passed: true
+      - check_name: "baseline-tests"
+        phase: "baseline"
+        tool: "n/a"
+        passed: true
+    behavioral_coverage:
+      - ac_id: "AC-3"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — verified by grepping for 'Mandatory TDD for code tasks' in §9 Immutable Rules section; exact skip criteria present (task_type NOT code AND no production source files AND only docs/config)"
+      - ac_id: "AC-27"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — verified by grepping for 'MUST limit read_file' with '≤ 200 lines' in mandatory §11 section (not advisory)"
+      - ac_id: "AC-T3-3"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — verified by grepping for process cleanup (orphans=Blocker), timeout enforcement (600s total, 60s startup), evidence sanitization (sql_escape), and source code read-only in §10"
+      - ac_id: "AC-T3-4"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — verified by grepping for '≤ 500 chars' evidence summary rule with file-based artifact storage in §11.3"
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+
+completion:
+  status: "DONE"
+  summary: "TASK-003 — Added TDD immutable rule (§9), E2E safety rules (§10), and context governance rules (§11) to global-operating-rules.md"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/implementation-reports/TASK-003.yaml"

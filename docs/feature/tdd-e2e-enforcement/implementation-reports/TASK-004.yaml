@@ -1,0 +1,82 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-004"
+  step: "step-5"
+  started_at: "2026-03-04T12:00:00Z"
+  completed_at: "2026-03-04T12:45:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-004"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/e2e-integration.md"
+        action: "created"
+        description: "E2E Coordination Reference Document (~546 lines) with §0 per-agent reading guide, §1 E2E contract specification (structured command format, port allocation, DB isolation, Playwright CLI config), §2 skills schema & storage, §3 Playwright CLI interaction protocol (full command reference, session management, skill-to-CLI mapping, fallback script generation), §4 command sanitization rules, §5 command allowlist (8 regex patterns), §6 evidence sanitization pipeline (SQL escape, HAR stripping, response masking, env scrubbing, SHA-256 hash), §7 reference examples (4 skills: browser login, API CRUD, CLI input, adversarial SQL injection), §8 E2E timeout budget and lifecycle summary"
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "post-edit-ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: true
+    behavioral_coverage:
+      - ac_id: "AC-T4-1"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — document structure verified by line count (546) and section headers"
+      - ac_id: "AC-T4-2"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — §1 contains structured command format {executable, args, env} with full validation rules"
+      - ac_id: "AC-T4-3"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — §3 contains complete Playwright CLI protocol: installation, skills installation, session isolation, full CLI command reference, session management, skill-to-CLI mapping, fallback script generation"
+      - ac_id: "AC-T4-4"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — §5 contains all 8 command allowlist regex patterns including ^playwright-cli .+"
+      - ac_id: "AC-T4-5"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — §6 contains complete sanitization pipeline: sql_escape(), HAR stripping, 10KB body limit, 5KB console cap, secret env scrubbing, SHA-256 manifest hash"
+      - ac_id: "AC-T4-6"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — §7 contains 4 reference examples: browser login flow, API CRUD probe, CLI input testing, adversarial SQL injection variation"
+      - ac_id: "AC-T4-7"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — document is 546 lines, within 500±50 range"
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+completion:
+  status: "DONE"
+  summary: "TASK-004 — Created e2e-integration.md (546 lines) with all 9 required sections covering Playwright CLI protocol, E2E contract spec, skills schema, command allowlist, evidence sanitization, and reference examples"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "implementation-reports/TASK-004.yaml"
+    - "NewAgents/.github/agents/e2e-integration.md"

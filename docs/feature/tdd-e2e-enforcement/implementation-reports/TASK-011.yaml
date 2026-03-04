@@ -1,0 +1,63 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-TASK-011"
+  step: "step-5"
+  started_at: "2026-03-04T00:00:00Z"
+  completed_at: "2026-03-04T00:05:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "TASK-011"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/dispatch-patterns.md"
+        action: "modified"
+        description: "Added E2E Dispatch Constraints section with E2E Concurrency Cap, Port Allocation Protocol (D-6), Sub-Wave Queuing Mechanics, and cross-references to e2e-integration.md and global-operating-rules.md"
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "after-ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: true
+    behavioral_coverage:
+      - ac_id: "AC-19"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection'; port_range_start + task_ordinal_index formula documented in Port Allocation Protocol section with env var injection and conflict resolution"
+      - ac_id: "AC-20"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection'; E2E Concurrency Cap section documents max 1 E2E task concurrent with sub-wave queuing for waves with multiple E2E tasks"
+      - ac_id: "AC-T11-3"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection'; Sub-Wave Queuing Mechanics section documents FIFO queue, full Tier 5 lifecycle teardown before next, and independent failure handling"
+      - ac_id: "AC-T11-4"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection'; Both E2E Concurrency Cap and Sub-Wave Queuing Mechanics explicitly state non-E2E tasks are unaffected and run under normal Pattern A rules"
+
+completion:
+  status: "DONE"
+  summary: "TASK-011 — Added E2E Dispatch Constraints to dispatch-patterns.md: concurrency cap, port allocation protocol, sub-wave queuing mechanics, and cross-references"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/tdd-e2e-enforcement/implementation-reports/TASK-011.yaml"

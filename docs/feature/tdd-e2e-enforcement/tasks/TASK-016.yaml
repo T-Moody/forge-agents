@@ -1,0 +1,89 @@
+agent_output:
+  schema_version: "1.0"
+
+task:
+  id: "TASK-016"
+  title: "severity-taxonomy.md — E2E Failure Severity Examples"
+  target_file: "NewAgents/.github/agents/severity-taxonomy.md"
+  action: "modify"
+  risk: "🟢"
+  size: "Standard"
+  wave: 4
+  depends_on: []
+  workflow_lane: "unit-only"
+  e2e_required: false
+  e2e_contract_path: null
+  estimated_lines: 20
+
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-5']" # Tier ordering (Tier 5 lifecycle)
+      - "design-output.yaml#payload.decisions[id='D-12']" # Retry policy
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-13']" # Performance guardrails
+    files_to_modify:
+      - path: "NewAgents/.github/agents/severity-taxonomy.md"
+        risk: "🟢"
+    files_to_read:
+      - path: "NewAgents/.github/agents/severity-taxonomy.md"
+        reason: "Understand existing severity levels (Blocker/Critical/Major/Minor) and example format"
+
+  description: |
+    Add E2E-specific and TDD-specific failure severity examples to the severity taxonomy.
+
+    **Changes required:**
+
+    1. **Blocker Severity — E2E Examples:**
+       - "Orphaned process: app or browser PID left running after E2E teardown"
+       - "Credential exposure: token/password found in evidence artifacts"
+       - "Command allowlist bypass: run_in_terminal executed a command not in tier5_command_allowlist"
+
+    2. **Critical Severity — E2E Examples:**
+       - "Evidence fabrication: interaction_log references steps that don't match skill definition"
+       - "Missing teardown: Phase 5 (Teardown) not executed or incomplete"
+       - "Port collision: E2E task used a port already in use by another task"
+
+    3. **Major Severity — TDD/E2E Examples:**
+       - "Flaky E2E test: test passes/fails non-deterministically across runs"
+       - "Missing RED phase: test was written after implementation (no failure evidence)"
+       - "Incomplete interaction: skill defines 5 steps but only 3 were executed"
+
+    4. **Minor Severity — TDD/E2E Examples:**
+       - "Stale skill: skill YAML references a selector that no longer exists in the UI"
+       - "Verbose evidence: interaction log exceeds recommended size without truncation"
+       - "Missing duration: step_results lacks duration_ms for some steps"
+
+  acceptance_criteria:
+    - id: "AC-T16-1"
+      text: "Blocker examples added: orphaned process, credential exposure, command allowlist bypass"
+      test_method: "inspection"
+    - id: "AC-T16-2"
+      text: "Critical examples added: evidence fabrication, missing teardown, port collision"
+      test_method: "inspection"
+    - id: "AC-T16-3"
+      text: "Major examples added: flaky E2E test, missing RED phase, incomplete interaction"
+      test_method: "inspection"
+    - id: "AC-T16-4"
+      text: "Minor examples added: stale skill, verbose evidence, missing duration"
+      test_method: "inspection"
+
+  tdd_hints:
+    red_phase: |
+      Write checks:
+      - grep severity-taxonomy.md for 'orphaned process' → expect absent
+      - grep for 'credential exposure' or 'evidence fabrication' → expect absent
+      - grep for 'flaky E2E' or 'stale skill' → expect absent
+    green_phase: |
+      Add 3 examples per severity level (12 total, ~20 lines):
+      1. Append Blocker E2E examples to existing Blocker section (~4 lines)
+      2. Append Critical E2E examples to existing Critical section (~4 lines)
+      3. Append Major TDD/E2E examples to existing Major section (~4 lines)
+      4. Append Minor TDD/E2E examples to existing Minor section (~4 lines)
+      Use consistent bullet-point format with existing examples
+    verify_phase: |
+      - grep for 'orphaned process' at Blocker level
+      - grep for 'evidence fabrication' at Critical level
+      - grep for 'flaky E2E' at Major level
+      - grep for 'stale skill' at Minor level
+      - Verify existing severity examples are intact
+      - Count added lines (~20)
