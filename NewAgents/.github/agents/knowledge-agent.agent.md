@@ -56,7 +56,14 @@ All 9 responsibilities share the common theme of **pipeline quality analysis and
 | `git diff`                             | Git                   | Full changeset for blast radius analysis                                                    |
 | `initial-request.md`                   | User                  | Original feature request for context                                                        |
 
-The orchestrator provides `run_id` and paths to all upstream outputs in the dispatch message.
+### Orchestrator-Provided Parameters
+
+| Parameter       | Type   | Required | Description                                            |
+| --------------- | ------ | -------- | ------------------------------------------------------ |
+| `run_id`        | string | Yes      | Pipeline run identifier (ISO 8601 timestamp)           |
+| `approval_mode` | string | No       | Pipeline approval mode — `autonomous` or `interactive` |
+
+The orchestrator provides `run_id`, `approval_mode`, and paths to all upstream outputs in the dispatch message.
 
 ---
 

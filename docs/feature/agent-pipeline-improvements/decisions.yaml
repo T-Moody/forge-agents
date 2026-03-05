@@ -1,0 +1,151 @@
+# Decision Log — agent-pipeline-improvements
+# Run ID: 2026-03-05T12:00:00Z
+# Append-only. Do not modify or delete existing entries.
+
+decisions:
+  - id: "DL-001"
+    title: "D-2: E2E decoupled from workflow_lane"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer"
+    rationale: >
+      User reported E2E only triggered for 🔴 risk items. e2e_required is now an independent
+      boolean based on (a) e2e-contract.yaml presence and (b) planner verification-value
+      assessment. Risk level no longer gates E2E. 🔴 with contract = mandatory; 🟢/🟡 = optional.
+    confidence: "High"
+    addresses: ["FR-1.1", "FR-1.2", "FR-1.7"]
+
+  - id: "DL-002"
+    title: "D-4: Approval mode — user selection authoritative, interactive safe default"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer"
+    rationale: >
+      'Default to autonomous' language caused agents to override user's explicit mode selection.
+      Fix: user's APPROVAL_MODE is authoritative (no re-prompting). If absent, safe-default to
+      interactive. All subagent dispatches include approval_mode as named parameter.
+    confidence: "High"
+    addresses: ["FR-2.1", "FR-2.2", "FR-2.3", "FR-2.4"]
+
+  - id: "DL-003"
+    title: "D-5: fetch_webpage for researcher/designer/spec (interactive-only)"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer"
+    rationale: >
+      User wants agents researching like real developers. fetch_webpage granted to researcher,
+      designer, spec — interactive mode only (🔒). Autonomous mode must not use fetch_webpage.
+      Self-verification checklist items enforce the autonomous guard.
+    confidence: "High"
+    addresses: ["FR-3.1", "FR-3.2", "FR-3.3"]
+
+  - id: "DL-004"
+    title: "D-6: Per-concern pushback with accept/modify/dismiss"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer"
+    rationale: >
+      Bulk pushback (proceed/modify/abandon) didn't let users address individual concerns.
+      Per-concern multiple-choice via ask_questions gives precise control. Each concern
+      presented with accept/modify/dismiss options. Pushback log records decisions.
+    confidence: "High"
+    addresses: ["FR-5.1", "FR-5.2", "FR-5.3"]
+
+  - id: "DL-005"
+    title: "D-7: No-redirect explicit bans across all agents"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer"
+    rationale: >
+      Terminal output redirected to files caused repo clutter and constant approval prompts.
+      Explicit ban on >, >>, | tee added to global-operating-rules.md, implementer, verifier
+      anti-drift anchors and self-verification checklists.
+    confidence: "High"
+    addresses: ["FR-4.1", "FR-4.2", "FR-4.3", "FR-4.4"]
+
+  - id: "DL-006"
+    title: "D-8: Copilot Skills dual format for E2E"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer"
+    rationale: >
+      User wants E2E testing via GitHub Copilot Skills. Verifier Tier 5 now supports both
+      SKILL.md format (copilot-skill:/ URI) and existing Playwright YAML. E2E contract
+      schema (skill_format field) specifies which format to use.
+    confidence: "Medium"
+    addresses: ["FR-6.1", "FR-6.2", "FR-6.3"]
+
+  - id: "DL-007"
+    title: "D-9: DB archive on new run"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer"
+    rationale: >
+      SQLite DB frequently out of date after agent changes. Step 0 now checks run_id
+      mismatch and archives to verification-ledger-{timestamp}.db.archive. No migration
+      plans needed. Corrupt/unreadable DB archived unconditionally.
+    confidence: "High"
+    addresses: ["FR-7.1", "FR-7.2", "FR-7.3", "FR-7.4"]
+
+  - id: "DL-008"
+    title: "D-10: Fast-track pipeline via plan-and-implement.prompt.md"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer"
+    rationale: >
+      User wanted shorter flow without removing full pipeline. New prompt triggers reduced
+      step set: 0→4→5-6→7→8→9 (skipping Steps 1-3b). Separate prompt approach preserves
+      existing feature-workflow.prompt.md per CR-6. Planner uses ask_questions to compensate
+      for missing spec/design.
+    confidence: "High"
+    addresses: ["FR-8.1", "FR-8.2", "FR-8.3", "FR-8.4", "FR-8.6"]
+
+  - id: "DL-009"
+    title: "D-14: Immutable minimum step set {0, 7, 9}"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "adversarial-reviewer (security-sentinel)"
+    rationale: >
+      Design review R1 security-sentinel finding S-1: fast-track could bypass Step 7 (code review).
+      Resolution: immutable minimum step set {Step 0 init, Step 7 adversarial review, Step 9
+      completion} enforced in orchestrator anti-drift anchor. No reduced pipeline may skip these.
+    confidence: "High"
+    addresses: ["S-1 (design review)"]
+
+  - id: "DL-010"
+    title: "Direction C: Hybrid modification strategy"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer"
+    rationale: >
+      Spec offered 3 directions. Direction C (hybrid) selected: extract complex additions
+      (fast-track, DB archive, E2E overhaul) to reference docs; inline simple changes
+      (approval mode, no-redirect). Orchestrator stays at 539/550 lines. 14 files modified,
+      1 new file created.
+    confidence: "High"
+    addresses: ["CR-3 (line budget)", "architecture"]
+
+  - id: "DL-011"
+    title: "DR-2: APPROVAL_MODE clarification relocated to orchestrator"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "designer (R2)"
+    rationale: >
+      Design R1 found FR-2.4/FR-8.6 contradiction: feature-workflow.prompt.md was being modified
+      which violated FR-8.6 (no modification of existing prompts). Relocating the APPROVAL_MODE
+      priority clarification to orchestrator Step 0 resolves both requirements.
+    confidence: "High"
+    addresses: ["FR-2.4", "FR-8.6", "A-1 (design review)"]
+
+  - id: "DL-012"
+    title: "Code review R1 fixes: 10 corrections across 7 files"
+    date: "2026-03-05"
+    run_id: "2026-03-05T12:00:00Z"
+    agent: "implementer (code-review-fixes-r2)"
+    rationale: >
+      Code review R1: 2 Critical + 6 Major + 7 Minor across 3 reviewers. All resolved in
+      single fix round. Key fixes: §11→§1.1 cross-ref (Critical), 🔴 fast-track escalation
+      (Critical), EG-10 threshold ≥4→≥3 (Major), pushback option names (Major), self-verification
+      items (Minor). R2: all 3 reviewers approve with 0 new findings.
+    confidence: "High"
+    addresses: ["code review R1 findings"]

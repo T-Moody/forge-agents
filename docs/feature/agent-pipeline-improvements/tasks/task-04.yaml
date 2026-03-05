@@ -1,0 +1,71 @@
+task:
+  id: "task-04"
+  title: "Apply all orchestrator.agent.md changes (approval mode, DB archive, fast-track, E2E, anti-drift)"
+  description: >
+    Nine changes to orchestrator.agent.md (🔴 risk — controls pipeline flow, auth, and security):
+    (1) Step 0 approval mode language rewrite — remove 'default to autonomous' at lines 105 and 109,
+    make user selection authoritative, safe-default to interactive. (2) Step 0 DB archive check —
+    add run_id mismatch detection and rename logic before DDL. Query: SELECT DISTINCT run_id FROM
+    pipeline_telemetry LIMIT 1 (from sql-templates.md). If different run_id, rename to
+    verification-ledger-{timestamp}.db. (3) Step 0 fast-track mode detection — detect pipeline_mode
+    variable, conditionally skip Steps 1-3b. (4) E2E contract discovery — remove 🔴-risk
+    precondition. (5) EG-10 note update — reference e2e_required independent of lane. (6) Anti-drift
+    anchor amendment (line 539) — condition step-skipping on prompt-defined reduced step sets with
+    immutable minimum step set {Step 0, Step 7, Step 9}. (7) Role & Purpose amendment (line 29) —
+    same conditional never-skip language. (8) Fix typos on line 24 ('presetnt' → 'present',
+    'stoping' → 'stopping'). (9) Add APPROVAL_MODE priority clarification to Step 0 (relocated
+    from feature-workflow.prompt.md per DR-2). Net change: ~+11 lines (539 → ~550, within budget).
+  agent: "implementer"
+  size: "Large"
+  risk: "🔴"
+  depends_on:
+    - "task-01"
+    - "task-02"
+  acceptance_criteria:
+    - id: "AC-4"
+      text: "When initial-request.md contains APPROVAL_MODE, the orchestrator uses it without re-prompting. Step 0 language states: 'The user''s selected APPROVAL_MODE is authoritative.'"
+      test_method: "inspection"
+    - id: "AC-5"
+      text: "The phrase 'default to autonomous' does not appear anywhere in orchestrator.agent.md."
+      test_method: "test"
+    - id: "AC-14"
+      text: "Orchestrator Step 0 archives existing verification-ledger.db (renames with timestamp) when it contains data from a different run_id. Handles: no DB (skip), same run_id (keep), different run_id (archive), corrupt DB (archive unconditionally)."
+      test_method: "inspection"
+    - id: "AC-19"
+      text: "Anti-drift anchor no longer contains absolute 'NEVER skip pipeline steps' but instead reads: 'You NEVER skip pipeline steps unless the active prompt explicitly defines a reduced step set. All pipeline prompts MUST include at minimum: Step 0, Step 7, and Step 9.' Both line 29 and anchor section use consistent language."
+      test_method: "inspection"
+    - id: "AC-21"
+      text: "orchestrator.agent.md remains ≤550 lines after all changes."
+      test_method: "test"
+    - id: "FR-2.5"
+      text: "Typos on line 24 corrected: 'presetnt' → 'present', 'stoping' → 'stopping'."
+      test_method: "inspection"
+    - id: "FR-1.4"
+      text: "E2E contract discovery in Step 0 no longer has a 🔴-risk precondition. Discovery applies whenever an e2e-contract.yaml exists."
+      test_method: "inspection"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-4']"
+      - "design-output.yaml#payload.decisions[id='D-9']"
+      - "design-output.yaml#payload.decisions[id='D-10']"
+      - "design-output.yaml#payload.decisions[id='D-11']"
+      - "design-output.yaml#payload.decisions[id='D-14']"
+      - "design-output.yaml#payload.deviation_records[id='DR-2']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/orchestrator.agent.md']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1'][sub_requirements.id='FR-1.4']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2'][sub_requirements.id='FR-2.1']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2'][sub_requirements.id='FR-2.3']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2'][sub_requirements.id='FR-2.4']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2'][sub_requirements.id='FR-2.5']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7'][sub_requirements.id='FR-7.1']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7'][sub_requirements.id='FR-7.3']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7'][sub_requirements.id='FR-7.4']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-8'][sub_requirements.id='FR-8.2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-8'][sub_requirements.id='FR-8.5']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/orchestrator.agent.md"
+        risk: "🔴"
+  workflow_lane: "full-tdd-e2e"
+  e2e_required: false
+  e2e_contract_path: null

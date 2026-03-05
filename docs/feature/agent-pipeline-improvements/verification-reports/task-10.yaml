@@ -1,0 +1,80 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-10"
+  step: "step-6"
+  started_at: "2026-03-05T14:00:00Z"
+  completed_at: "2026-03-05T14:08:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-10"
+    run_id: "2026-03-05T12:00:00Z"
+    evidence_gate:
+      total_checks: 5
+      passed: 5
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-05:<path>"
+        exit_code: 0
+        passed: true
+        output_snippet: "No discrepancies. Baseline had no approval_mode in either file. Diffs confirm additive-only changes matching implementation report."
+
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "adversarial-reviewer: 1 pre-existing error (anchor link). knowledge-agent: 3 pre-existing errors (schema links). All on unchanged lines. No NEW errors introduced by task-10."
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Both .agent.md files parse as valid Markdown. Tables are well-formed with correct column alignment. YAML frontmatter valid. No structural issues."
+
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "task_type=documentation. Both ACs (FR-2.2a, FR-2.2b) have test_method=inspection. Verified by inspection: approval_mode row present in adversarial-reviewer L45 and knowledge-agent L64. N/A for test coverage per EC-2."
+
+      - check_name: "tdd-compliance"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "task_type=documentation — TDD not applicable. No production source files modified, only agent instruction markdown. TDD fallback accepted per documentation task rules."
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-05:<path>"
+      discrepancies_found: false
+
+completion:
+  status: "DONE"
+  summary: "Verified task-10: 5 checks passed, 0 failed, 0 regressions. approval_mode correctly added to both agent files per FR-2.2a/FR-2.2b and D-4."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-pipeline-improvements/verification-reports/task-10.yaml"
+  evidence_summary:
+    total_checks: 5
+    passed: 5
+    failed: 0
+    security_blockers: 0

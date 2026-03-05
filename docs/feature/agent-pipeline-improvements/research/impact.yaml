@@ -1,0 +1,542 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-impact"
+  step: "step-1"
+  started_at: "2026-03-05T12:00:00Z"
+  completed_at: "2026-03-05T12:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "impact"
+    findings:
+      # ═══════════════════════════════════════════════════════════
+      # Issue #1: E2E for all risk levels (not just 🔴)
+      # ═══════════════════════════════════════════════════════════
+      - id: "F-1"
+        title: "E2E gating is hardcoded to 🔴-risk-only across 6 files"
+        category: "risk"
+        detail: |
+          E2E testing is currently gated behind workflow_lane='full-tdd-e2e' which is deterministically
+          derived from 🔴 risk classification only. The derivation chain is:
+          1. planner.agent.md (lines ~178-185): Workflow Lane Derivation table maps 🟢→unit-only,
+             🟡→unit-integration, 🔴→full-tdd-e2e. e2e_required is only true for full-tdd-e2e.
+          2. schemas.md (line ~483-484): task.workflow_lane and task.e2e_required field definitions
+             encode the same 🔴-only derivation rule.
+          3. verifier.agent.md (line ~266): Tier 5 conditional gate: "Execute ONLY when
+             e2e_required=true AND workflow_lane='full-tdd-e2e'".
+          4. orchestrator.agent.md (lines ~294-296): EG-10 and EG-9 evidence gates reference
+             full-tdd-e2e lane and e2e_required=true.
+          5. sql-templates.md (lines ~629-690): EG-10 has 3 lane variants; only full-tdd-e2e
+             includes e2e-test-execution check.
+          6. e2e-integration.md (§0 Per-Agent Reading Guide): Planner reads §1 only for
+             "lane derivation" — implies E2E contract fields only matter for 🔴.
+          7. dispatch-patterns.md (lines ~183-189): E2E dispatch constraints only apply
+             when e2e_required=true.
+
+          Changing this to allow E2E for 🟢/🟡 would require either:
+          (a) Decoupling e2e_required from risk level entirely (user/planner choice), or
+          (b) Adding a new workflow_lane like 'unit-e2e' or making e2e_required an independent boolean.
+          Either approach touches the derivation logic in planner, the conditional gate in verifier,
+          the EG-10 SQL variants, and the schema field definitions.
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md lines 178-185 (Workflow Lane Derivation table)"
+          - "NewAgents/.github/agents/schemas.md line 483-484 (task.workflow_lane, task.e2e_required)"
+          - "NewAgents/.github/agents/verifier.agent.md line 266 (Tier 5 conditional gate)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 294-296 (EG-10, EG-9 gates)"
+          - "NewAgents/.github/agents/sql-templates.md lines 629-690 (three EG-10 variants)"
+          - "NewAgents/.github/agents/dispatch-patterns.md lines 183-189 (E2E dispatch constraints)"
+          - "NewAgents/.github/agents/e2e-integration.md §0 (Per-Agent Reading Guide)"
+        relevance: "HIGH BLAST RADIUS — This is the highest-risk change. It touches the core derivation chain from planner through verifier to orchestrator evidence gates. Every file in the E2E subsystem assumes e2e_required correlates with 🔴 risk. Decoupling this requires careful redesign of the lane model."
+
+      - id: "F-2"
+        title: "EG-10 SQL templates need new lane variants or restructuring"
+        category: "risk"
+        detail: |
+          sql-templates.md §6 defines three EG-10 variants — EG-10(unit-only), EG-10(unit-integration),
+          EG-10(full-tdd-e2e). If E2E becomes available for 🟢/🟡 tasks, these variants must be
+          restructured. Options: (a) add new combined variants like EG-10(unit-only-e2e), or (b) make
+          e2e-test-execution an independent additive check that EG-9 handles regardless of lane.
+          Current EG-9 is already an independent gate ("BLOCKING when e2e_required=true") so option (b)
+          may be simpler — keep EG-10 as-is and rely on EG-9 for all E2E tasks regardless of risk.
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md lines 640-690 (EG-10 three variants)"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 437 (EG-9 independent gate)"
+        relevance: "SQL template and orchestrator evidence gate logic must be updated consistently. EG-9 being already independent reduces the blast radius if approach (b) is chosen."
+
+      - id: "F-3"
+        title: "Planner self-verification check #11 enforces 🔴-only E2E"
+        category: "risk"
+        detail: |
+          planner.agent.md self-verification item 11 reads: 'Every 🔴 task has
+          workflow_lane=full-tdd-e2e and e2e_required is explicitly set'. This couples
+          E2E to 🔴 in the planner's own self-check. If E2E is decoupled from risk,
+          this check must be updated to reflect the new derivation rule.
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md self-verification item 11"
+        relevance: "Without updating this self-check, the planner would self-report errors when assigning E2E to non-🔴 tasks."
+
+      # ═══════════════════════════════════════════════════════════
+      # Issue #2: Approval mode 'default to auto' confusion
+      # ═══════════════════════════════════════════════════════════
+      - id: "F-4"
+        title: "Approval mode language is ambiguous in orchestrator Step 0"
+        category: "risk"
+        detail: |
+          orchestrator.agent.md lines 101-109 contain the approval mode selection logic.
+          Key problematic phrases:
+          - Line 105: "If the user does not respond in the interactive gate, default to autonomous."
+          - Line 109: "If the user does not respond, default to autonomous."
+          - Line 107: "autonomous is faster but may not yield results as good as interactive"
+          The double-default language ("default to autonomous" appearing twice) and the framing
+          of autonomous as the fallback may cause agents to favor autonomous even when the user
+          explicitly chose interactive. The prompt file (feature-workflow.prompt.md line 15) also
+          says "autonomous skips approval gates" without clarifying that the user's APPROVAL_MODE
+          from initial-request.md takes priority.
+
+          Additionally, line 24 of orchestrator.agent.md has typos: "presetnt" and "stoping".
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 101-109 (Step 0 approval mode)"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 24 (typos in responsibility 2)"
+          - "NewAgents/.github/prompts/feature-workflow.prompt.md line 15 (APPROVAL_MODE reference)"
+        relevance: "LOW RISK — Text-only changes in 2-3 files. No structural refactoring needed. Fix by making language unambiguous: remove 'default' framing, make user-selected mode authoritative."
+
+      # ═══════════════════════════════════════════════════════════
+      # Issue #3: Adding fetch_webpage for research
+      # ═══════════════════════════════════════════════════════════
+      - id: "F-5"
+        title: "fetch_webpage not in any agent's tool access — requires matrix update"
+        category: "dependency"
+        detail: |
+          tool-access-matrix.md §1 master matrix contains 14 tools. fetch_webpage is not listed.
+          Adding it requires:
+          1. A new row in the §1 master matrix (all 9 agents get a column value).
+          2. Section updates for each agent that gains access (likely researcher §3, designer §5,
+             possibly spec §4).
+          3. Each agent's .agent.md tool summary lines updated to reflect the new tool count.
+          4. Interactive-mode gating: fetch_webpage requires user approval in VS Code, so it
+             should only be used in interactive mode. This is a new constraint type not currently
+             in the matrix — tool-access-matrix.md has no concept of mode-gated tools currently.
+             The closest precedent is ask_questions (§4 Spec agent: "interactive mode only").
+          5. The global copilot-instructions.md (.github/copilot-instructions.md) does not
+             mention fetch_webpage restrictions.
+        evidence:
+          - "NewAgents/.github/agents/tool-access-matrix.md §1 (14 tools, no fetch_webpage)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §3 (researcher: 6 tools)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §5 (designer: 7 tools)"
+          - "NewAgents/.github/agents/researcher.agent.md (no web fetching capability)"
+          - "NewAgents/.github/agents/designer.agent.md (no web fetching capability)"
+        relevance: "MEDIUM RISK — Adding a tool to the matrix is structural but well-contained. The interactive-mode gating is a new pattern that needs a clean design. Affects tool-access-matrix.md + each agent gaining the tool."
+
+      - id: "F-6"
+        title: "Context7 integration exists but fetch_webpage fills a different gap"
+        category: "pattern"
+        detail: |
+          context7-integration.md already provides library/framework doc lookup for implementer
+          and researcher. However, fetch_webpage addresses a different need: general web research
+          for architecture patterns, stack updates, best practices — not library-specific API docs.
+          The two complement each other. The design should clarify when to use Context7 (API docs)
+          vs fetch_webpage (general research, interactive mode). No conflict, but documentation
+          in researcher.agent.md and designer.agent.md should distinguish the two.
+        evidence:
+          - "NewAgents/.github/agents/context7-integration.md §5 (Implementer=primary, Researcher=secondary)"
+          - "NewAgents/.github/agents/researcher.agent.md (references context7 but not fetch_webpage)"
+        relevance: "Documentation alignment needed to avoid confusion between Context7 and fetch_webpage use cases."
+
+      # ═══════════════════════════════════════════════════════════
+      # Issue #4: Terminal output redirect to files
+      # ═══════════════════════════════════════════════════════════
+      - id: "F-7"
+        title: "No-file-redirect rule exists but agents still redirect in practice"
+        category: "risk"
+        detail: |
+          The no-file-redirect rule is already stated in two places:
+          1. .github/copilot-instructions.md (global): "NEVER redirect terminal command output
+             to a file (e.g., command > output.txt, command | tee output.txt, command 2>&1 > log.txt)."
+          2. global-operating-rules.md §9 line 128: "No-file-redirect — Never redirect terminal
+             output to files" (listed as immutable rule).
+          3. global-operating-rules.md §9 line 139: Protected phrase "NEVER redirect".
+
+          Despite these rules, the user reports implementers/verifiers still redirect output.
+          This suggests the rules are not emphatic enough in the agent-specific files. The
+          implementer.agent.md and verifier.agent.md do NOT explicitly restate the no-redirect
+          rule in their operating rules sections — they rely on the global reference.
+
+          Fix: Add explicit no-redirect rules to implementer.agent.md operating rules and
+          verifier.agent.md operating rules, with concrete examples of what NOT to do.
+        evidence:
+          - ".github/copilot-instructions.md lines 10-11 (No File-Redirect)"
+          - "NewAgents/.github/agents/global-operating-rules.md lines 127-128 (immutable rule)"
+          - "NewAgents/.github/agents/global-operating-rules.md line 139 (protected phrase)"
+          - "NewAgents/.github/agents/implementer.agent.md operating rules section (no explicit redirect mention)"
+          - "NewAgents/.github/agents/verifier.agent.md (no explicit redirect mention in operating rules)"
+        relevance: "LOW RISK — Text additions only. Add 2-3 lines to implementer and verifier operating rules. No structural changes. The rule already exists globally; this makes it more prominent."
+
+      - id: "F-8"
+        title: "Anti-drift anchors in implementer/verifier could reinforce no-redirect"
+        category: "pattern"
+        detail: |
+          Both implementer.agent.md and verifier.agent.md have anti-drift anchor sections at
+          the end that summarize critical constraints. Adding 'NEVER redirect terminal output
+          to files' to these anchors would reinforce the rule at the most visible location.
+          The orchestrator anti-drift anchor (line ~530-540) already references tool constraints
+          but not the redirect rule specifically.
+        evidence:
+          - "NewAgents/.github/agents/implementer.agent.md (anti-drift anchor section)"
+          - "NewAgents/.github/agents/verifier.agent.md line ~520 (anti-drift anchor section)"
+        relevance: "Complements F-7. Anti-drift anchors are the last thing agents read before acting — high-impact location for behavioral enforcement."
+
+      # ═══════════════════════════════════════════════════════════
+      # Issue #5: Spec pushback needs per-concern ask_questions
+      # ═══════════════════════════════════════════════════════════
+      - id: "F-9"
+        title: "Spec pushback uses single aggregate question instead of per-concern choices"
+        category: "risk"
+        detail: |
+          spec.agent.md lines 144-170 define the interactive pushback prompt. Currently it
+          uses a single ask_questions call with three aggregate options (proceed / modify / abandon).
+          The user wants per-concern granularity: each concern should be its own multiple-choice
+          question so the user can respond to each independently (e.g., accept concern 1, modify
+          scope for concern 2, dismiss concern 3).
+
+          The current structure (lines 146-166):
+          - question: "The Spec agent identified [N] concerns..."
+          - options: proceed | modify | abandon
+          - All concerns listed in context, not individually actionable.
+
+          Change: Restructure to emit one ask_questions call per concern (or a single call
+          with multiple questions), each with its own options like:
+          - "Accept as known risk"
+          - "Modify scope to address"
+          - "This is not a real concern"
+
+          This impacts:
+          1. spec.agent.md Pushback System section (lines 112-185)
+          2. spec.agent.md Workflow step 2 (lines 216-220)
+          3. spec.agent.md Response handling logic (lines 168-173)
+          4. Autonomous mode auto-selection (lines 175-185) — must still work per-concern
+        evidence:
+          - "NewAgents/.github/agents/spec.agent.md lines 112-185 (Pushback System)"
+          - "NewAgents/.github/agents/spec.agent.md lines 144-170 (Interactive Mode ask_questions)"
+          - "NewAgents/.github/agents/spec.agent.md lines 216-220 (Workflow step 2)"
+        relevance: "MEDIUM RISK — Changes are contained within spec.agent.md only. The spec agent already has ask_questions access (tool-access-matrix.md §4). No other agents are affected. The change is behavioral (how the tool is called), not structural."
+
+      # ═══════════════════════════════════════════════════════════
+      # Issue #6: E2E via GitHub Copilot Skills
+      # ═══════════════════════════════════════════════════════════
+      - id: "F-10"
+        title: "E2E currently uses Playwright CLI — Copilot Skills is a different paradigm"
+        category: "risk"
+        detail: |
+          The current E2E system is built around Playwright CLI for browser interaction
+          (e2e-integration.md §3, verifier.agent.md Tier 5 Phases 1-5, tool-access-matrix.md
+          §8.1-§8.4). The user wants to use GitHub Copilot Skills for app interaction instead.
+
+          GitHub Copilot Skills are .md files in .github/copilot/skills/ that teach Copilot
+          agent how to interact with an application. This is fundamentally different from the
+          current Playwright CLI approach:
+          - Playwright CLI: Agent sends CLI commands to drive a real browser session
+          - Copilot Skills: Agent reads skill files that describe how to interact with the app,
+            then uses appropriate tools (possibly including Playwright CLI) guided by the skill
+
+          The current e2e-integration.md is ~700 lines defining the Playwright-centric protocol.
+          Adding Copilot Skills would mean:
+          1. e2e-integration.md: Add a new skill format section or replace §2 Skills Schema
+          2. verifier.agent.md Tier 5: Modify to read .github/copilot/skills/*.md files
+          3. researcher.agent.md: May need web research step to understand Copilot Skills format
+          4. e2e-contract.yaml: May need new fields for skill discovery paths
+
+          This is NOT a replacement of Playwright CLI — it is complementary. Skills describe
+          WHAT to do; Playwright CLI is HOW to do it for browser interactions. The design
+          should layer skills on top of the existing Playwright infrastructure.
+        evidence:
+          - "NewAgents/.github/agents/e2e-integration.md §2 (Skills Schema & Storage)"
+          - "NewAgents/.github/agents/e2e-integration.md §3 (Playwright CLI protocol)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 264-460 (Tier 5 E2E)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §8.1-§8.4 (Tier 5 expansion)"
+        relevance: "MEDIUM-HIGH RISK — Requires understanding the Copilot Skills format via web research. The e2e-integration.md skills schema may need revision. The Playwright CLI infrastructure can remain as the execution engine. This is an enhancement, not a replacement."
+
+      # ═══════════════════════════════════════════════════════════
+      # Issue #7: SQLite DB archive-on-new-run
+      # ═══════════════════════════════════════════════════════════
+      - id: "F-11"
+        title: "SQLite archive strategy impacts Step 0 initialization only"
+        category: "structure"
+        detail: |
+          orchestrator.agent.md Step 0 (lines 96-127) handles SQLite initialization. Currently:
+          - Line 112: Execute DDL from sql-templates.md §1 on verification-ledger.db
+          - Line 113: Sets PRAGMA journal_mode=WAL and busy_timeout=5000
+          - Line 114: Runs PRAGMA integrity_check
+
+          The user wants: before creating/reusing the DB, check if it contains data from a
+          previous run. If so, rename it to an archive (e.g., verification-ledger-{timestamp}.db)
+          and create a fresh DB.
+
+          Files affected:
+          1. orchestrator.agent.md Step 0: Add archive check logic before DDL execution
+          2. sql-templates.md §1: May add an archive check query (e.g., SELECT run_id FROM
+             pipeline_telemetry LIMIT 1) or this could be handled purely by the orchestrator.
+          3. No other agents are affected — they all reference verification-ledger.db by name,
+             which would always point to the fresh DB.
+
+          The archive rename is a simple filesystem operation (mv or rename via run_in_terminal).
+          The orchestrator already has run_in_terminal access for SQLite and git operations.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 112-114 (Step 0 SQLite init)"
+          - "NewAgents/.github/agents/sql-templates.md §1 (DDL templates)"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 43 (run_in_terminal constraint)"
+        relevance: "LOW RISK — Isolated to orchestrator Step 0. Simple filesystem operation. No downstream agent changes needed. The run_in_terminal scope restriction may need a small expansion to allow file rename (currently limited to SQLite queries, git, telemetry INSERT)."
+
+      - id: "F-12"
+        title: "Orchestrator run_in_terminal scope needs expansion for DB rename"
+        category: "dependency"
+        detail: |
+          orchestrator.agent.md line 43 and tool-access-matrix.md §2 restrict run_in_terminal to
+          'SQLite queries (SELECT, DDL) + git operations only. No builds, tests, or code execution.'
+          Renaming a file (mv/rename) is not currently in scope. The DR-1 constraint would need
+          a small expansion: 'SQLite queries + git operations + verification-ledger.db archive
+          rename'. This is a low-risk scope expansion since it is a single, specific file operation.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md line 43 (DR-1 constraint)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §2 (orchestrator scope)"
+        relevance: "Must be addressed in design — the scope expansion is minimal and well-bounded but must be explicitly documented to avoid self-verification failures."
+
+      # ═══════════════════════════════════════════════════════════
+      # Issue #8: Shorter pipeline prompt starting at planning
+      # ═══════════════════════════════════════════════════════════
+      - id: "F-13"
+        title: "New prompt file needs orchestrator dispatch logic changes"
+        category: "structure"
+        detail: |
+          Currently there is exactly one prompt: feature-workflow.prompt.md (lines 1-17).
+          It triggers the full pipeline (Steps 0-9) via orchestrator.agent.md.
+
+          The user wants a second prompt that starts at planning (Step 4), skipping
+          research (Step 1), spec (Step 2), and design (Step 3/3b). This 'fast-track' prompt
+          would need:
+
+          1. A new prompt file: e.g., plan-and-implement.prompt.md in NewAgents/.github/prompts/
+          2. The prompt must reference the orchestrator agent (same agent definition).
+          3. The orchestrator must detect which prompt was used and skip Steps 1-3b accordingly.
+          4. The planner in fast-track mode should use ask_questions to ask clarifying questions
+             (since there are no research/spec/design outputs to guide it).
+
+          Impact on orchestrator.agent.md:
+          - Step 0: Must detect the prompt mode (full vs fast-track). Could use a prompt
+            variable like {{PIPELINE_MODE}} or infer from the presence/absence of upstream
+            outputs.
+          - Steps 1-3b: Must be skippable when in fast-track mode.
+          - Step 4: Planner dispatch must include instruction to use ask_questions for
+            clarification when no upstream research/spec/design exist.
+
+          Impact on planner.agent.md:
+          - Minimum Viable Input section: Currently requires design-output.yaml and spec-output.yaml.
+            In fast-track mode, these won't exist. The planner needs a fallback path that
+            works from initial-request.md alone + user Q&A via ask_questions.
+          - Tool access: planner.agent.md does NOT currently have ask_questions access
+            (tool-access-matrix.md §6 lists 7 tools, ask_questions not among them).
+            Adding ask_questions to the planner requires a tool-access-matrix update.
+        evidence:
+          - "NewAgents/.github/prompts/feature-workflow.prompt.md (current only prompt)"
+          - "NewAgents/.github/agents/orchestrator.agent.md Step 0 (initialization)"
+          - "NewAgents/.github/agents/orchestrator.agent.md Steps 1-3b (skippable steps)"
+          - "NewAgents/.github/agents/planner.agent.md Input Schema (requires design+spec)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §6 (planner: 7 tools, no ask_questions)"
+        relevance: "MEDIUM-HIGH RISK — Requires a new prompt file, orchestrator logic changes for mode detection, planner input flexibility, and a tool-access-matrix update. Cross-cutting but well-scoped."
+
+      - id: "F-14"
+        title: "Planner ask_questions access requires tool-access-matrix update"
+        category: "dependency"
+        detail: |
+          tool-access-matrix.md §1 master matrix shows ask_questions access: Orch=✅, Spec=🔒,
+          all others=❌. For the fast-track prompt, the planner needs ask_questions to ask
+          clarifying questions. This requires:
+          1. §1 master matrix: Change Planner column from ❌ to 🔒 for ask_questions.
+          2. §6 Planner section: Add ask_questions with scope restriction (fast-track mode only,
+             or interactive mode only).
+          3. planner.agent.md: Update tool summary and add ask_questions usage in workflow.
+        evidence:
+          - "NewAgents/.github/agents/tool-access-matrix.md §1 (Planner ask_questions = ❌)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §6 (7 tools listed)"
+          - "NewAgents/.github/agents/planner.agent.md Tool Access section"
+        relevance: "Required dependency for issue #8. Without this, the planner cannot ask clarifying questions in fast-track mode."
+
+      # ═══════════════════════════════════════════════════════════
+      # Cross-Cutting Impacts
+      # ═══════════════════════════════════════════════════════════
+      - id: "F-15"
+        title: "tool-access-matrix.md is affected by 3 separate issues"
+        category: "risk"
+        detail: |
+          tool-access-matrix.md is impacted by issues #3 (add fetch_webpage), #4 (reinforce
+          no-redirect in agent sections), and #8 (add ask_questions to planner). Three
+          independent changes to the same file increase merge conflict risk if implemented
+          in separate tasks. Recommend implementing all tool-access-matrix changes in a single
+          task or at minimum in the same wave.
+
+          Specific sections affected:
+          - §1 Master Matrix: add fetch_webpage row + change Planner ask_questions cell
+          - §3 Researcher: update tool count, add fetch_webpage scope
+          - §5 Designer: update tool count, add fetch_webpage scope
+          - §6 Planner: update tool count, add ask_questions scope
+          - §7 Implementer: (no change needed for redirect — rule is behavioral, not tool-based)
+          - §8 Verifier: (no change needed for redirect — rule is behavioral, not tool-based)
+        evidence:
+          - "NewAgents/.github/agents/tool-access-matrix.md §1 (master matrix)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §3 (researcher)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §5 (designer)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §6 (planner)"
+        relevance: "Coordination risk — three issues converge on one file. Design should batch these changes."
+
+      - id: "F-16"
+        title: "orchestrator.agent.md is affected by 4 separate issues"
+        category: "risk"
+        detail: |
+          orchestrator.agent.md is impacted by issues #1 (E2E gating), #2 (approval mode
+          language), #7 (DB archive), and #8 (fast-track mode). The orchestrator is already
+          at 539/550 line budget (NFR-1 exception). Adding fast-track mode detection and DB
+          archive logic will push it over the limit.
+
+          Specific sections affected:
+          - Step 0 lines 96-127: issues #2 (approval language), #7 (DB archive), #8 (mode detect)
+          - Evidence Gates lines 293-296: issue #1 (EG-10/EG-9 for all risk levels)
+          - Lines 155, 233: issue #2 (approval gate language)
+          - New logic needed: issue #8 (step-skipping for fast-track mode)
+
+          The orchestrator is the most impacted file. The line budget concern (539/550) means
+          any additions must be offset by removals or the budget must be renegotiated. The
+          existing pattern of extracting rules to reference docs (e.g., e2e-integration.md)
+          could be applied here — extract fast-track rules to a new reference doc.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md line 34 (NFR-1: ≤550 lines)"
+          - "NewAgents/.github/agents/orchestrator.agent.md (539/550 lines currently)"
+          - "NewAgents/.github/agents/orchestrator.agent.md Step 0 (lines 96-127)"
+          - "NewAgents/.github/agents/orchestrator.agent.md Evidence Gates (lines 293-296)"
+        relevance: "CRITICAL — The orchestrator line budget is nearly exhausted. Fast-track mode logic cannot fit inline. Design must address this constraint (reference doc extraction or budget increase)."
+
+      - id: "F-17"
+        title: "Breaking change risk assessment across all 8 issues"
+        category: "risk"
+        detail: |
+          Breaking change analysis per issue:
+          1. E2E for all risks: BREAKING for existing pipeline behavior — tasks that previously
+             had no E2E will now potentially have E2E. Could increase pipeline duration significantly.
+             Mitigation: make E2E opt-in or recommended-not-required for 🟢/🟡.
+          2. Approval mode language: NON-BREAKING — text clarification only. Existing pipelines
+             continue to work; behavior becomes more predictable.
+          3. fetch_webpage: NON-BREAKING — additive tool access. Existing agents without the tool
+             continue to work. New capability is opt-in by agents that use it.
+          4. No-redirect enforcement: NON-BREAKING — reinforces existing rule. Agents that already
+             comply are unaffected. Agents that violate will now be explicitly told not to.
+          5. Spec per-concern pushback: NON-BREAKING in autonomous mode (auto-proceed per concern).
+             BEHAVIOR CHANGE in interactive mode — users will see more granular questions instead
+             of one aggregate. This is the desired outcome, not a breaking change.
+          6. Copilot Skills for E2E: NON-BREAKING if layered on existing Playwright infrastructure.
+             BREAKING if it replaces Playwright CLI entirely (not recommended).
+          7. DB archive: NON-BREAKING — existing DBs are preserved (renamed). New runs get fresh DBs.
+             Downstream agents always reference verification-ledger.db (the fresh one).
+          8. Fast-track prompt: NON-BREAKING — additive. Existing full prompt works as-is. New
+             prompt is an alternative entry point. The orchestrator detects mode and adjusts.
+        evidence:
+          - "All files examined in findings F-1 through F-14"
+        relevance: "Only issue #1 has true breaking-change potential. All others are additive or behavioral reinforcement. Issue #1 needs careful design to avoid unexpectedly long pipeline runs for simple features."
+
+      - id: "F-18"
+        title: "Complete file-to-issue impact map"
+        category: "structure"
+        detail: |
+          Files affected per issue (asterisk = primary change):
+
+          Issue #1 (E2E all risks):
+            * planner.agent.md (Workflow Lane Derivation table, self-verification #11)
+            * verifier.agent.md (Tier 5 conditional gate L266)
+            * orchestrator.agent.md (EG-10/EG-9 gates L293-296, L431-437)
+            * sql-templates.md (EG-10 variants L629-690)
+            * schemas.md (task.workflow_lane/e2e_required field definitions L483-484)
+            * e2e-integration.md (§0 Per-Agent Reading Guide)
+            * dispatch-patterns.md (E2E dispatch constraints L183-189)
+
+          Issue #2 (Approval mode):
+            * orchestrator.agent.md (Step 0 L101-109, gates L155/L233, L24 typos)
+            * feature-workflow.prompt.md (L15)
+
+          Issue #3 (fetch_webpage):
+            * tool-access-matrix.md (§1 matrix, §3 researcher, §5 designer)
+            * researcher.agent.md (tool summary, workflow section)
+            * designer.agent.md (tool summary, workflow section)
+
+          Issue #4 (No-redirect):
+            * implementer.agent.md (operating rules section)
+            * verifier.agent.md (operating rules section)
+            * (optional) implementer/verifier anti-drift anchors
+
+          Issue #5 (Spec per-concern):
+            * spec.agent.md (Pushback System L112-185, Workflow step 2 L216-220)
+
+          Issue #6 (Copilot Skills):
+            * e2e-integration.md (§2 Skills Schema)
+            * verifier.agent.md (Tier 5 skill loading)
+            * (optional) researcher.agent.md (web research for Skills format)
+
+          Issue #7 (DB archive):
+            * orchestrator.agent.md (Step 0 L112-114)
+            * tool-access-matrix.md (§2 scope expansion note)
+            * (optional) sql-templates.md (archive check query)
+
+          Issue #8 (Fast-track prompt):
+            * New file: plan-and-implement.prompt.md
+            * orchestrator.agent.md (Step 0 mode detection, step-skipping logic)
+            * planner.agent.md (Input Schema, Workflow, ask_questions usage)
+            * tool-access-matrix.md (§1 matrix, §6 planner)
+
+          Total unique files affected: 12 (of 19 files in agents/ + 1 in prompts/)
+        evidence:
+          - "All findings F-1 through F-14 aggregated"
+        relevance: "This map drives task decomposition in the planning phase. 12/20 files touched indicates a broad but manageable scope. The orchestrator, tool-access-matrix, and planner are the most heavily impacted."
+
+    summary: |
+      Impact analysis of 8 pipeline improvement issues reveals 12 of 20 agent system files are affected.
+      The highest-risk change is Issue #1 (E2E for all risk levels) which touches 7 files across the
+      core derivation chain (planner→verifier→orchestrator→SQL templates→schemas). The orchestrator
+      is the most impacted single file (4 issues) and is already near its 550-line budget.
+
+      Risk tiers:
+      - HIGH RISK: Issue #1 (E2E gating, 7 files, breaking change potential), Issue #8 (fast-track
+        prompt, 4 files including new prompt + orchestrator mode logic)
+      - MEDIUM RISK: Issue #3 (fetch_webpage, 3+ files), Issue #5 (spec pushback, 1 file but
+        behavioral change), Issue #6 (Copilot Skills, 2-3 files, requires web research)
+      - LOW RISK: Issue #2 (approval mode, text-only), Issue #4 (no-redirect reinforcement,
+        text additions), Issue #7 (DB archive, isolated to Step 0)
+
+      Cross-cutting concern: tool-access-matrix.md is affected by issues #3, #7, and #8.
+      Recommend batching all tool-access-matrix changes into a single task. The orchestrator
+      line budget (539/550) is a binding constraint — fast-track mode logic should be extracted
+      to a reference document.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/e2e-integration.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/context7-integration.md"
+      - "NewAgents/.github/prompts/feature-workflow.prompt.md"
+      - ".github/copilot-instructions.md"
+      - "docs/feature/agent-pipeline-improvements/initial-request.md"
+
+completion:
+  status: "DONE"
+  summary: "Impact research complete: 18 findings across 12 affected files, 3 high-risk / 3 medium-risk / 2 low-risk issues"
+  severity: null
+  findings_count: 18
+  risk_level: null
+  output_paths:
+    - "research/impact.yaml"

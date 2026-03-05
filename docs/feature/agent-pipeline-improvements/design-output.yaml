@@ -1,0 +1,697 @@
+agent_output:
+  agent: "designer"
+  instance: "designer"
+  step: "step-3"
+  started_at: "2026-03-05T16:00:00Z"
+  completed_at: "2026-03-05T17:30:00Z"
+  schema_version: "1.0"
+  payload:
+    feature_slug: "agent-pipeline-improvements"
+    revision_round: 2
+    revision_notes: >
+      R2 addresses 5 Major findings from 3 adversarial reviewers (Round 1):
+      (S-1) Minimum required step set for reduced pipelines — prevents Step 7 bypass.
+      (A-1) FR-2.4/FR-8.6 contradiction — relocated APPROVAL_MODE clarification to orchestrator,
+      feature-workflow.prompt.md no longer modified. Added DR-2.
+      (PV-A1) Orchestrator baseline re-verified at 539 lines via direct file read; research/impact.yaml
+      line 410 confirms 539/550. Pragmatic-verifier's 353-line measurement is incorrect.
+      (PV-C1) FR-2.2 approval_mode now tracked for all 8 subagent files.
+      (PV-C2) Both line 29 and line 539 "never skip steps" instances now amended.
+      Also addresses 8 Minor findings across all 3 reviewers.
+    architecture: >
+      Hybrid modification strategy (Direction C from spec): complex additions (fast-track pipeline,
+      DB archive procedure, E2E gating overhaul) extracted to reference documents; simple changes
+      (approval mode language, no-redirect reinforcement, spec pushback restructure) edited in-place.
+      14 existing files modified, 1 new file created (plan-and-implement.prompt.md). Orchestrator
+      stays within 550-line budget by extracting fast-track rules to inline reference pointers
+      rather than new reference docs, and by netting out removed "default to autonomous" language
+      and 🔴-only E2E gating conditions against new archive/mode-detection additions.
+      R2 additions: all 8 subagent files now include FR-2.2 (approval_mode parameter docs),
+      feature-workflow.prompt.md removed from modification list (FR-8.6 honored), minimum
+      required step set added to anti-drift anchor (S-1 resolution).
+
+    # ══════════════════════════════════════════════════════════════
+    # FILE INVENTORY
+    # ══════════════════════════════════════════════════════════════
+    file_inventory:
+      # ── NEW FILES ──
+      - path: "NewAgents/.github/prompts/plan-and-implement.prompt.md"
+        action: "create"
+        risk: "🟢"
+        estimated_lines: 35
+        description: >
+          Fast-track pipeline prompt. Invokes orchestrator with pipeline_mode=fast-track.
+          Defines reduced step set: Step 0 → Step 4 → Steps 5-6 → Step 7 → Step 8 → Step 9.
+          Skips Steps 1-3b (research, spec, design, design review).
+        addresses_frs: ["FR-8.1", "FR-8.2", "FR-8.6"]
+
+      # ── MODIFIED: Core agent files ──
+      - path: "NewAgents/.github/agents/orchestrator.agent.md"
+        action: "modify"
+        risk: "🔴"
+        estimated_lines: 550
+        description: >
+          Nine changes: (1) Step 0 approval mode language rewrite — remove "default to autonomous"
+          at lines 105 and 109 (2 occurrences), make user selection authoritative, safe-default
+          to interactive (removes ~6 lines, adds ~6). (2) Step 0 DB archive check — add run_id
+          mismatch detection and rename logic before DDL (adds ~8 lines). (3) Step 0 fast-track
+          mode detection — detect pipeline_mode variable, conditionally skip Steps 1-3b (adds ~5
+          lines). (4) E2E contract discovery — remove 🔴-risk precondition (net -2 lines).
+          (5) Evidence gate EG-10 note update — reference e2e_required independent of lane
+          (net 0 lines). (6) Anti-drift anchor amendment (line 539) for fast-track step skipping
+          with minimum required step set {Step 0, Step 7, Step 9} (net +2 lines).
+          (7) Role & Purpose section amendment (line 29) — same conditional never-skip language
+          as anchor, ensuring no contradiction between line 29 and anchor (net +1 line).
+          (8) Fix typos on line 24 (net 0 lines). (9) Add APPROVAL_MODE priority clarification
+          to Step 0 — relocated from feature-workflow.prompt.md per DR-2 to honor FR-8.6
+          (net +1 line). Net change: ~+11 lines (539 → ~550, within 550 budget).
+        addresses_frs:
+          - "FR-1.4"
+          - "FR-2.1"
+          - "FR-2.2"
+          - "FR-2.3"
+          - "FR-2.4"
+          - "FR-2.5"
+          - "FR-7.1"
+          - "FR-7.2"
+          - "FR-7.3"
+          - "FR-7.4"
+          - "FR-8.2"
+          - "FR-8.5"
+
+      - path: "NewAgents/.github/agents/planner.agent.md"
+        action: "modify"
+        risk: "🟡"
+        estimated_lines: 380
+        description: >
+          Three changes: (1) Workflow Lane Derivation table — decouple e2e_required from
+          workflow_lane. e2e_required becomes independent boolean based on contract presence +
+          planner assessment. Lanes remain risk-based for test tier selection only. (2) Add
+          fast-track fallback input path — when spec-output.yaml and design-output.yaml are
+          absent, work from initial-request.md + ask_questions user responses. (3) Update
+          self-verification check #11 for new e2e_required derivation.
+        addresses_frs:
+          - "FR-1.1"
+          - "FR-1.2"
+          - "FR-1.7"
+          - "FR-1.8"
+          - "FR-2.2"
+          - "FR-8.3"
+          - "FR-8.4"
+
+      - path: "NewAgents/.github/agents/verifier.agent.md"
+        action: "modify"
+        risk: "🟡"
+        estimated_lines: 535
+        description: >
+          Three changes: (1) Tier 5 conditional gate — change from "e2e_required=true AND
+          workflow_lane=full-tdd-e2e" to "e2e_required=true" only. (2) Add no-file-redirect
+          rule to Operating Rules section with banned pattern examples. (3) Add "NEVER redirect
+          terminal output to files" to anti-drift anchor. (4) Extend Tier 5 to support
+          copilot-skill format alongside existing playwright-yaml.
+        addresses_frs:
+          - "FR-1.3"
+          - "FR-2.2"
+          - "FR-4.2"
+          - "FR-4.4"
+          - "FR-6.3"
+
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        action: "modify"
+        risk: "🟢"
+        estimated_lines: 375
+        description: >
+          Two changes: (1) Add no-file-redirect rule to Operating Rules section with banned
+          pattern examples (>, >>, | tee, 2>&1 >). (2) Add "NEVER redirect terminal output
+          to files" to anti-drift anchor.
+        addresses_frs:
+          - "FR-4.1"
+          - "FR-2.2"
+          - "FR-4.3"
+
+      - path: "NewAgents/.github/agents/spec.agent.md"
+        action: "modify"
+        risk: "🟡"
+        estimated_lines: 310
+        description: >
+          Three changes: (1) Restructure pushback system — interactive mode presents each
+          concern as separate question in ask_questions call with per-concern accept/modify/dismiss
+          options. (2) Autonomous mode auto-resolves each concern individually as "accept as
+          known risk". (3) pushback_log records per-concern user_response fields. (4) Add
+          fetch_webpage to tool summary with interactive-mode-only restriction.
+        addresses_frs:
+          - "FR-2.2"
+          - "FR-3.5"
+          - "FR-5.1"
+          - "FR-5.2"
+          - "FR-5.3"
+          - "FR-5.4"
+          - "FR-5.5"
+
+      - path: "NewAgents/.github/agents/researcher.agent.md"
+        action: "modify"
+        risk: "🟢"
+        estimated_lines: 210
+        description: >
+          Three changes: (1) Add fetch_webpage to tool summary and workflow step for web
+          research in interactive mode. (2) Update tool count. (3) Add check for existing
+          Copilot skill files in .github/copilot/skills/ during E2E skill generation.
+        addresses_frs:
+          - "FR-2.2"
+          - "FR-3.3"
+          - "FR-6.2"
+
+      - path: "NewAgents/.github/agents/designer.agent.md"
+        action: "modify"
+        risk: "🟢"
+        estimated_lines: 255
+        description: >
+          Two changes: (1) Add fetch_webpage to tool summary. (2) Document when to use
+          fetch_webpage (stack research, design pattern lookup) vs Context7 (library API docs).
+          Update tool count.
+        addresses_frs:
+          - "FR-2.2"
+          - "FR-3.4"
+
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        action: "modify"
+        risk: "🟢"
+        estimated_lines: 310
+        description: >
+          One change: Add approval_mode to Orchestrator-Provided Parameters table.
+          Documents that the orchestrator passes approval_mode when dispatching
+          adversarial reviewers at Step 7.
+        addresses_frs:
+          - "FR-2.2"
+
+      - path: "NewAgents/.github/agents/knowledge-agent.agent.md"
+        action: "modify"
+        risk: "🟢"
+        estimated_lines: 280
+        description: >
+          One change: Add approval_mode to Orchestrator-Provided Parameters table.
+          Documents that the orchestrator passes approval_mode when dispatching
+          the knowledge agent at Step 8.
+        addresses_frs:
+          - "FR-2.2"
+
+      # ── MODIFIED: Shared reference documents ──
+      - path: "NewAgents/.github/agents/tool-access-matrix.md"
+        action: "modify"
+        risk: "🟡"
+        estimated_lines: 120
+        description: >
+          Four changes batched in single task: (1) Add fetch_webpage row to §1 master matrix —
+          Researcher=🔒, Designer=🔒, Spec=🔒, all others=❌. (2) Change Planner ask_questions
+          from ❌ to 🔒 in §1. (3) Add fetch_webpage scope details in §3 (Researcher), §4 (Spec),
+          §5 (Designer). (4) Add ask_questions scope details in §6 (Planner — fast-track mode
+          only). (5) Expand §2 orchestrator run_in_terminal scope to include DB archive rename.
+        addresses_frs:
+          - "FR-3.1"
+          - "FR-3.2"
+          - "FR-3.6"
+          - "FR-7.5"
+          - "FR-8.3"
+
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        action: "modify"
+        risk: "🟡"
+        estimated_lines: 165
+        description: >
+          Two changes: (1) Restructure EG-10 — make e2e-test-execution an additive check
+          gated on e2e_required=true, independent of workflow_lane. Keep existing lane-based
+          minimum check counts for non-E2E checks. (2) Add archive check query template
+          for orchestrator Step 0 (SELECT DISTINCT run_id FROM pipeline_telemetry LIMIT 1).
+        addresses_frs:
+          - "FR-1.5"
+          - "FR-7.2"
+
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modify"
+        risk: "🟡"
+        estimated_lines: 1455
+        description: >
+          Two changes: (1) Update Schema 6 task.e2e_required field definition — new derivation
+          rule independent of risk level. (2) Extend Schema 13 e2e-contract to include
+          skill_format field (playwright-yaml | copilot-skill).
+        addresses_frs:
+          - "FR-1.6"
+          - "FR-6.1"
+
+      - path: "NewAgents/.github/agents/e2e-integration.md"
+        action: "modify"
+        risk: "🟡"
+        estimated_lines: 710
+        description: >
+          Three changes: (1) Update §0 Per-Agent Reading Guide to reflect E2E applicability
+          for all risk levels. (2) Extend §2 Skills Schema with skill_format field supporting
+          copilot-skill format alongside existing playwright-yaml. (3) Add guidance for
+          Copilot skill discovery and conversion to Playwright CLI interaction steps.
+        addresses_frs:
+          - "FR-1.9"
+          - "FR-6.1"
+          - "FR-6.5"
+
+      - path: "NewAgents/.github/agents/dispatch-patterns.md"
+        action: "modify"
+        risk: "🟢"
+        estimated_lines: 125
+        description: >
+          One change: Update E2E dispatch constraints to apply when e2e_required=true
+          regardless of risk level or workflow_lane.
+        addresses_frs:
+          - "FR-1.10"
+
+    # ══════════════════════════════════════════════════════════════
+    # DECISIONS
+    # ══════════════════════════════════════════════════════════════
+    decisions:
+      - id: "D-1"
+        title: "Direction selection: Hybrid (Direction C) — extract complex, inline simple"
+        risk: "🟡"
+        rationale: >
+          Direction C balances the orchestrator's 539/550 line budget against minimizing new
+          files. Complex changes (fast-track pipeline, E2E decoupling) benefit from reference
+          doc pointers; simple changes (approval mode, no-redirect, typos) are safely inlined.
+          Direction A risks exceeding the orchestrator budget (539/550 confirmed via direct file
+          read and research/impact.yaml line 410; R1 pragmatic-verifier's 353-line measurement
+          was incorrect). Direction B creates unnecessary indirection for 2-line text fixes.
+        alternatives_rejected:
+          - name: "Direction A — All in-place edits"
+            reason: "Orchestrator at 539/550 lines (verified R2) cannot absorb fast-track mode detection + DB archive + approval mode rewrite + E2E gate changes all inline. Would exceed NFR-1 budget."
+            confidence: "High"
+          - name: "Direction B — All reference-doc extraction"
+            reason: "Over-engineers simple text fixes (approval mode language, typo corrections, anti-drift anchor updates). Creates unnecessary cross-references for 2-line changes."
+            confidence: "High"
+
+      - id: "D-2"
+        title: "E2E decoupling: independent boolean e2e_required, lanes remain risk-based"
+        risk: "🟡"
+        rationale: >
+          Making e2e_required an independent boolean (based on contract presence + planner
+          assessment) while keeping workflow_lane risk-based is the cleanest factoring.
+          Lanes determine which test tiers run (unit-only, unit-integration, full-tdd-e2e).
+          E2E is orthogonal — a 🟢 task can have e2e_required=true if a contract exists and
+          the planner deems it valuable. This preserves backward compatibility: 🔴 tasks still
+          get full-tdd-e2e lane AND mandatory E2E. The verifier Tier 5 gate simplifies to
+          "e2e_required=true" only. EG-10 restructures to make e2e-test-execution an additive
+          check rather than a lane-specific variant, leveraging the existing EG-9 independent gate.
+        alternatives_rejected:
+          - name: "New workflow_lane values (e.g., unit-e2e, integration-e2e)"
+            reason: "Combinatorial explosion: 3 risk levels × 2 E2E states = 6 lanes. EG-10 would need 6 variants. The lane model was designed for test tier selection, not E2E gating."
+            confidence: "High"
+          - name: "Remove workflow_lane entirely, use only e2e_required"
+            reason: "workflow_lane still serves a valid purpose — it determines which test tiers (unit, integration, full) the verifier runs. Removing it would lose that graduated verification model."
+            confidence: "High"
+
+      - id: "D-3"
+        title: "E2E for 🟢/🟡 is opt-in (planner decides), mandatory for 🔴 with contract"
+        risk: "🟢"
+        rationale: >
+          Spec FR-1.7 and pushback concern #1 both recommend making E2E optional for 🟢/🟡
+          to avoid pipeline duration bloat on trivial tasks. The planner assesses "(a) contract
+          exists AND (b) E2E adds verification value" — this two-criterion gate allows the
+          planner to skip E2E for doc-only changes even if a contract exists (EC-1). For 🔴
+          tasks, E2E remains mandatory when a contract exists (backward compatible).
+        alternatives_rejected:
+          - name: "E2E mandatory for all risk levels when contract exists"
+            reason: "Would force E2E on trivial 🟢 tasks (doc changes, config tweaks) wasting pipeline time. User explicitly wants 'confirmed working' but spec clarifies this means available, not always required."
+            confidence: "High"
+          - name: "E2E always off for 🟢, always optional for 🟡"
+            reason: "Too restrictive — some 🟢 bug fixes genuinely benefit from E2E (e.g., fixing a UI rendering bug). Planner discretion is more adaptable than hard rules."
+            confidence: "Medium"
+
+      - id: "D-4"
+        title: "Approval mode: user selection authoritative, interactive as safe default"
+        risk: "🟢"
+        rationale: >
+          The root cause of Issue #2 is the phrase "default to autonomous" appearing 2 times
+          in lines 105 and 109, with related autonomous-default language at line 24, creating
+          a bias. Fix: (1) If APPROVAL_MODE is in initial-request.md, use it without
+          re-prompting. (2) If absent, prompt via ask_questions with no default bias.
+          (3) If user doesn't respond to prompt, safe-default to interactive (not
+          autonomous). Interactive is the safer default because it preserves human oversight.
+          Autonomous should only be active when explicitly selected. This flips the current
+          bias without breaking existing autonomous-mode users who explicitly set it.
+        alternatives_rejected:
+          - name: "Keep defaulting to autonomous but reduce emphasis"
+            reason: "Doesn't fix the core problem — agents still see 'autonomous' as the default path. Users who don't set APPROVAL_MODE would still get autonomous, which the user reports causes quality issues."
+            confidence: "High"
+          - name: "Always prompt for mode, even when APPROVAL_MODE is provided"
+            reason: "Wastes user time. If the user explicitly writes 'APPROVAL_MODE: autonomous' in their request, re-prompting is redundant and annoying."
+            confidence: "High"
+
+      - id: "D-5"
+        title: "fetch_webpage granted to Researcher, Designer, Spec (🔒 interactive-only)"
+        risk: "🟢"
+        rationale: >
+          These three agents most benefit from web research: Researcher (architecture patterns,
+          best practices), Designer (stack updates, design pattern lookup), Spec (requirement
+          feasibility). Interactive-only restriction is natural since VS Code requires user
+          approval per fetch_webpage invocation. The 🔒 scope restriction pattern already
+          exists for ask_questions (Spec) — fetch_webpage follows the same convention. Not
+          granting to Implementer/Verifier: they execute, not research. Knowledge Agent could
+          theoretically benefit but it runs at Step 8 when research is done.
+        alternatives_rejected:
+          - name: "Grant to all agents"
+            reason: "Implementer, Verifier, Adversarial Reviewer, Knowledge Agent don't have research workflows. Granting web access would invite off-topic browsing and approval fatigue."
+            confidence: "High"
+          - name: "Grant only to Researcher"
+            reason: "Too restrictive. The Designer needs stack research for informed decisions. The Spec agent benefits from researching feasibility of requirements. The user explicitly wants agents to 'act like real developers' who research."
+            confidence: "Medium"
+
+      - id: "D-6"
+        title: "No-redirect enforcement: reinforce in agent operating rules AND anti-drift anchors"
+        risk: "🟢"
+        rationale: >
+          The global rule exists but agents with run_in_terminal access (implementer, verifier)
+          still redirect. The enforcement gap is structural — the rule is two hops from where
+          violations occur (global-operating-rules.md → agent reads → generates command).
+          Adding the prohibition directly to each agent's Operating Rules section AND anti-drift
+          anchor puts it at zero hops — the agent sees it in its own instructions. The anti-drift
+          anchor is the last section agents read, making it high-impact for behavioral enforcement.
+          This is a belt-and-suspenders approach: global rule + agent-level rule.
+        alternatives_rejected:
+          - name: "Rely on existing global rule only"
+            reason: "Already proven insufficient — the user reports ongoing violations. The global copilot-instructions.md and global-operating-rules.md §9 both have the rule, yet agents still redirect."
+            confidence: "High"
+          - name: "Add to tool-access-matrix.md scope restrictions instead"
+            reason: "tool-access-matrix.md defines what tools agents CAN use, not behavioral constraints on HOW they use them. File redirect is a usage pattern, not a tool access issue. Operating Rules is the correct location."
+            confidence: "Medium"
+
+      - id: "D-7"
+        title: "Spec pushback: per-concern questions in single ask_questions call"
+        risk: "🟢"
+        rationale: >
+          The ask_questions tool supports a questions[] array with per-question options. Using
+          a single ask_questions call with N questions (one per concern) is the optimal UX —
+          the user sees all concerns at once and responds to each. Each question gets the
+          three options: accept/modify/dismiss. The "modify" option enables freeform input
+          via allowFreeformInput=true. This gives per-concern granularity without requiring
+          N separate tool invocations.
+        alternatives_rejected:
+          - name: "N separate ask_questions calls (one per concern)"
+            reason: "Poor UX — presents concerns one at a time, requiring N approval clicks instead of one. Also slower due to N round-trips."
+            confidence: "High"
+          - name: "Keep aggregate question but add per-concern checkboxes"
+            reason: "ask_questions options don't support checkboxes per concern. The questions[] array with per-question options is the correct ask_questions API pattern."
+            confidence: "High"
+
+      - id: "D-8"
+        title: "Copilot Skills: layered enhancement on existing Playwright infrastructure"
+        risk: "🟡"
+        rationale: >
+          GitHub Copilot Skills (SKILL.md files with copilot-skill:// URIs) describe WHAT to
+          test — interaction procedures for an application. The existing Playwright CLI
+          infrastructure is HOW to execute browser interactions. These are complementary layers:
+          a Copilot skill file describes "navigate to login page, enter credentials, verify
+          dashboard loads", and the Verifier Tier 5 translates those steps to Playwright CLI
+          commands. Adding a skill_format field to e2e-integration.md §2 allows the system to
+          recognize both formats. The Verifier reads copilot-skill .md files as interaction
+          guides and converts steps to its existing Playwright CLI execution pipeline. This
+          preserves the entire existing E2E infrastructure investment while adding a more
+          declarative skill authoring format.
+        alternatives_rejected:
+          - name: "Replace Playwright CLI entirely with Copilot Skills native execution"
+            reason: "Copilot Skills don't execute themselves — they're instructions for agent behavior, not a test execution engine. The pipeline still needs Playwright CLI (or equivalent) for actual browser automation. Replacing would remove the execution layer."
+            confidence: "High"
+          - name: "Only support playwright-yaml, ignore Copilot Skills"
+            reason: "Misses the user's intent (Issue #6). Copilot Skills are a more natural format for describing app interactions — they're markdown-based and match the agent system's instruction paradigm. Supporting them as an input format improves e2e skill authoring ergonomics."
+            confidence: "Medium"
+
+      - id: "D-9"
+        title: "SQLite archive: run_id mismatch rename at Step 0, no migration"
+        risk: "🟢"
+        rationale: >
+          The user explicitly rejects migration plans (FR-7.6). A simple run_id comparison
+          at Step 0 is clean and deterministic: query pipeline_telemetry for existing run_id,
+          compare to current run_id, rename file if different. This handles: (a) fresh
+          install (no DB → skip archive, create new), (b) same run resume (same run_id →
+          keep DB), (c) new run (different run_id → archive + recreate), (d) corrupt DB
+          (query fails → archive unconditionally). The rename operation (Rename-Item or mv)
+          is a single terminal command that fits naturally in the orchestrator's Step 0
+          initialization sequence. The scope expansion to DR-1 (allowing file rename) is
+          minimal and well-bounded to a single specific file operation.
+        alternatives_rejected:
+          - name: "Schema version comparison migration"
+            reason: "User explicitly rejects this approach. Migration plans add complexity and the schema_meta system is unused scaffolding. The user wants fresh DBs per run, not evolved schemas."
+            confidence: "High"
+          - name: "Delete old DB instead of archiving"
+            reason: "Violates the evidence-first immutable rule in global-operating-rules.md §9. Old evidence should be preserved (archived) not destroyed. The user said 'rename it to archive it'."
+            confidence: "High"
+
+      - id: "D-10"
+        title: "Fast-track: separate prompt file, not dynamic scope detection"
+        risk: "🟡"
+        rationale: >
+          Spec FR-8 evaluation table strongly favors separate prompt (higher clarity, lower
+          complexity, higher safety, higher user control, lower anti-drift risk). Research
+          finding F-16 confirms no partial-entry mechanism exists — a prompt-defined step set
+          is the established pattern (feature-workflow.prompt.md defines "All steps"). A new
+          prompt defines a different step set. The orchestrator detects pipeline_mode from
+          the prompt variable and skips Steps 1-3b. This is explicit (user chooses which
+          prompt) rather than heuristic (orchestrator guesses scope). The anti-drift anchor
+          amendment ("NEVER skip steps unless the active prompt defines a reduced step set")
+          is narrowly scoped and preserves the general no-skip guarantee for full pipeline.
+          R2 addition (S-1 resolution): The anti-drift anchor amendment now includes an
+          immutable minimum step set constraint {Step 0, Step 7, Step 9} ensuring security
+          review (Step 7) cannot be bypassed by any future reduced step set. Both line 29
+          and line 539 are amended to the same conditional language (PV-C2 resolution).
+        alternatives_rejected:
+          - name: "Dynamic scope detection in orchestrator"
+            reason: "Heuristic-based step skipping is brittle. Rules for assessing 'simple vs complex' tasks are subjective. Risks erroneously skipping research/design for tasks that need them. The orchestrator would need scope-assessment logic that doesn't exist and is hard to get right."
+            confidence: "High"
+          - name: "Modify existing prompt with a mode toggle variable"
+            reason: "Violates FR-8.6 (existing prompt must not be modified structurally). Also muddies the existing prompt's clear 'run all steps' contract."
+            confidence: "High"
+
+      - id: "D-11"
+        title: "Orchestrator line budget: net within 550 via balanced add/remove"
+        risk: "🟡"
+        rationale: >
+          The orchestrator is at 539/550 (re-verified in R2 via direct file read: line 539
+          contains the anti-drift anchor, confirmed by research/impact.yaml line 410;
+          pragmatic-verifier R1 finding of 353 lines is incorrect). Changes: (a) Remove
+          "default to autonomous" language (-6 lines at lines 105, 109, and related context).
+          (b) Remove 🔴-risk E2E precondition (-2 lines). (c) Add DB archive check (+8 lines).
+          (d) Add fast-track mode detection (+5 lines). (e) Fix approval mode language (+6 lines).
+          (f) Amend anti-drift anchor with minimum step set (+2 lines). (g) Amend line 29
+          never-skip language (+1 line). (h) Add APPROVAL_MODE priority clarification (+1 line,
+          relocated from feature-workflow.prompt.md per DR-2). Net: ~+11 lines → 550/550.
+          This avoids creating a new reference document for fast-track rules by keeping the
+          orchestrator's mode detection minimal. The fast-track step set is defined in the
+          prompt file, not repeated in the orchestrator. At budget ceiling; if implementation
+          reveals more lines needed, DB archive procedure (~8 lines) is first extraction
+          candidate.
+        alternatives_rejected:
+          - name: "Extract fast-track rules to new reference doc (fast-track-pipeline.md)"
+            reason: "The orchestrator's fast-track logic is only ~5 lines: detect pipeline_mode, skip Steps 1-3b. This is too small to justify a new reference document. The step set is already defined in the prompt file."
+            confidence: "High"
+          - name: "Increase orchestrator budget to 600 lines"
+            reason: "Budget increases should be a last resort. The balanced add/remove approach fits within 550 without removing any necessary content. The 550-line NFR-1 exception was hard-won and shouldn't be casually expanded."
+            confidence: "Medium"
+
+      - id: "D-12"
+        title: "Planner ask_questions: 🔒 fast-track AND interactive mode restriction"
+        risk: "🟢"
+        rationale: >
+          The planner needs ask_questions only in fast-track mode (no upstream artifacts) AND
+          only in interactive mode (autonomous mode cannot prompt users). The double restriction
+          (🔒 fast-track mode + interactive mode) prevents the planner from prompting in the
+          full pipeline (where it has spec/design outputs) or in autonomous mode (where prompting
+          is impossible). This follows the existing 🔒 pattern: Spec has ask_questions restricted
+          to interactive mode only. The planner's restriction is narrower (additionally requires
+          fast-track mode).
+        alternatives_rejected:
+          - name: "Orchestrator asks questions on behalf of planner before dispatch"
+            reason: "Adds complexity to the orchestrator (which is already at budget). The planner is better positioned to identify what clarifying questions to ask since it understands task decomposition. The orchestrator doesn't know what the planner needs."
+            confidence: "Medium"
+          - name: "Grant planner unrestricted ask_questions access"
+            reason: "In the full pipeline, the planner has spec-output.yaml and design-output.yaml — it shouldn't need to ask the user anything. Unrestricted access would create unnecessary prompts in normal pipeline runs."
+            confidence: "High"
+
+      - id: "D-13"
+        title: "Fast-track step set: Step 0 → 4 → 5-6 → 7 → 8 → 9"
+        risk: "🟢"
+        rationale: >
+          Including Step 8 (knowledge capture) in fast-track aligns with FR-8.7 — learning
+          from every pipeline run improves the system even for quick tasks. Step 0 is always
+          required (DB init, mode detection, approval mode). Step 4 (planning) is the entry
+          point with ask_questions compensation for missing upstream artifacts. Steps 5-6
+          (implementation/verification) are the core work. Step 7 (code review) provides
+          quality assurance even for fast-tracked changes. Step 9 (auto-commit) is the
+          standard completion. Skipped: Steps 1 (research), 1a (post-research gate), 2 (spec),
+          3 (design), 3b (design review). The user explicitly wants to "start at planning."
+        alternatives_rejected:
+          - name: "Skip code review (Step 7) in fast-track"
+            reason: "Code review is a safety net even for simple changes. Skipping it risks merging un-reviewed code. The time cost of Step 7 is small relative to the quality benefit."
+            confidence: "High"
+          - name: "Include Step 1 (research) in fast-track"
+            reason: "The user explicitly wants to 'start at planning.' Including research defeats the purpose of the fast-track prompt. The planner's ask_questions compensates for missing research."
+            confidence: "High"
+
+      - id: "D-14"
+        title: "Minimum required step set: Step 0 + Step 7 + Step 9 immutable for all prompts"
+        risk: "🟢"
+        rationale: >
+          R2 addition resolving security-sentinel S-1. The anti-drift anchor amendment (D-10)
+          conditionalizes step skipping on prompt-defined reduced step sets. Without a minimum
+          step set, a future prompt could define a reduced set that omits Step 7 (code review /
+          adversarial review), bypassing the pipeline's only security review checkpoint. Adding
+          an immutable minimum step set {Step 0 (initialization), Step 7 (code review), Step 9
+          (commit)} guarantees initialization, security review, and proper completion regardless
+          of pipeline mode. The constraint is placed in the orchestrator anti-drift anchor (both
+          line 29 and line 539) as a systemic guarantee rather than a per-prompt property. The
+          anti-drift anchor text now reads: "You NEVER skip pipeline steps unless the active
+          prompt explicitly defines a reduced step set. All pipeline prompts MUST include at
+          minimum: Step 0 (initialization), Step 7 (code review), and Step 9 (commit)."
+        alternatives_rejected:
+          - name: "Per-prompt enforcement only (each prompt declares its minimum steps)"
+            reason: "Relies on prompt authors remembering to include Step 7. No systemic guarantee. A single omission would bypass security review. The systemic approach in the anti-drift anchor provides defense-in-depth."
+            confidence: "High"
+          - name: "Add minimum step set to global-operating-rules.md instead of anti-drift anchor"
+            reason: "global-operating-rules.md is read at initialization; the anti-drift anchor is the last section agents read and has highest behavioral enforcement impact. Belt-and-suspenders (both locations) could be done in a follow-up but the anchor alone provides sufficient guarantee."
+            confidence: "Medium"
+    deviation_records:
+      - id: "DR-1"
+        spec_requirement: "FR-3.6"
+        deviation: >
+          The design relies on the interactive-mode-only scope restriction in tool-access-matrix.md
+          and per-agent self-verification to enforce no-fetch_webpage-in-autonomous-mode, rather
+          than a runtime enforcement mechanism. This is consistent with the existing tool access
+          enforcement model (instruction-based, per tool-access-matrix.md §11).
+        rationale: >
+          The agent system has no runtime tool enforcement — all tool restrictions are
+          instruction-based (accepted architectural limitation per tool-access-matrix.md §11).
+          Adding runtime enforcement for fetch_webpage alone would be inconsistent. The
+          self-verification checklist item provides the same level of enforcement as other
+          mode-restricted tools (e.g., ask_questions for Spec agent).
+
+      - id: "DR-2"
+        spec_requirement: "FR-2.4 vs FR-8.6"
+        deviation: >
+          FR-2.4 requires feature-workflow.prompt.md to clarify APPROVAL_MODE priority.
+          FR-8.6 requires feature-workflow.prompt.md MUST NOT be modified. These are directly
+          contradictory. The design follows FR-8.6 (no modification) and implements FR-2.4's
+          intent by placing the APPROVAL_MODE priority clarification in orchestrator.agent.md
+          Step 0, which is the actual enforcement point for approval mode logic.
+        rationale: >
+          The orchestrator Step 0 already owns approval mode selection logic (lines 99-109).
+          Placing the "initial-request.md APPROVAL_MODE takes absolute priority" statement
+          there is architecturally cleaner than modifying the prompt file. The prompt file
+          defines what steps to run; the orchestrator defines how steps execute. Approval
+          mode enforcement is an execution-time concern, so it belongs in the orchestrator.
+          This satisfies FR-2.4's intent while honoring FR-8.6's prohibition.
+
+      - id: "DR-3"
+        spec_requirement: "FR-8.1"
+        deviation: >
+          FR-8.1 lists the fast-track step set as "Step 0 → Step 4 → Steps 5–6 → Step 7 →
+          Step 9" (omitting Step 8). The design includes Step 8: "Step 0 → 4 → 5-6 → 7 →
+          8 → 9", following FR-8.7's recommendation that fast-track SHOULD still perform
+          Step 8 (knowledge capture).
+        rationale: >
+          FR-8.7 explicitly recommends including Step 8. Knowledge capture from every
+          pipeline run improves the system even for fast-tracked changes. The time cost
+          of Step 8 (knowledge agent) is minimal relative to the knowledge retention
+          benefit. The design favors FR-8.7's recommendation over FR-8.1's literal list.
+
+    # ══════════════════════════════════════════════════════════════
+    # CHANGE SUMMARY PER ISSUE
+    # ══════════════════════════════════════════════════════════════
+    per_issue_summary:
+      - issue: 1
+        title: "E2E for all risk levels"
+        files_changed:
+          - "planner.agent.md"
+          - "verifier.agent.md"
+          - "orchestrator.agent.md"
+          - "sql-templates.md"
+          - "schemas.md"
+          - "e2e-integration.md"
+          - "dispatch-patterns.md"
+        change_type: "behavioral + structural"
+        risk: "🟡"
+
+      - issue: 2
+        title: "Approval mode clarity"
+        files_changed:
+          - "orchestrator.agent.md"
+          - "planner.agent.md"
+          - "verifier.agent.md"
+          - "implementer.agent.md"
+          - "spec.agent.md"
+          - "researcher.agent.md"
+          - "designer.agent.md"
+          - "adversarial-reviewer.agent.md"
+          - "knowledge-agent.agent.md"
+        change_type: "text-only + parameter docs"
+        risk: "🟢"
+        notes: >
+          R2: FR-2.2 requires approval_mode documented in each agent's Orchestrator-Provided
+          Parameters table. All 8 subagent files now included. feature-workflow.prompt.md
+          removed per DR-2 (FR-8.6 honored).
+
+      - issue: 3
+        title: "fetch_webpage integration"
+        files_changed:
+          - "tool-access-matrix.md"
+          - "researcher.agent.md"
+          - "designer.agent.md"
+          - "spec.agent.md"
+        change_type: "additive"
+        risk: "🟢"
+
+      - issue: 4
+        title: "No-redirect enforcement"
+        files_changed:
+          - "implementer.agent.md"
+          - "verifier.agent.md"
+        change_type: "text-only"
+        risk: "🟢"
+
+      - issue: 5
+        title: "Spec pushback granularity"
+        files_changed:
+          - "spec.agent.md"
+        change_type: "behavioral"
+        risk: "🟢"
+
+      - issue: 6
+        title: "Copilot Skills integration"
+        files_changed:
+          - "e2e-integration.md"
+          - "schemas.md"
+          - "verifier.agent.md"
+          - "researcher.agent.md"
+        change_type: "additive"
+        risk: "🟡"
+
+      - issue: 7
+        title: "SQLite DB auto-archive"
+        files_changed:
+          - "orchestrator.agent.md"
+          - "tool-access-matrix.md"
+          - "sql-templates.md"
+        change_type: "behavioral"
+        risk: "🟢"
+
+      - issue: 8
+        title: "Fast-track pipeline prompt"
+        files_changed:
+          - "plan-and-implement.prompt.md (new)"
+          - "orchestrator.agent.md"
+          - "planner.agent.md"
+          - "tool-access-matrix.md"
+        change_type: "structural + additive"
+        risk: "🟡"
+
+  completion:
+    status: "DONE"
+    summary: "Design R2 complete: 14 decisions (D-14 added for minimum step set), 3 deviation records (DR-2 FR-2.4/FR-8.6, DR-3 FR-8.1), 15 files (1 new, 14 modified), all 38 sub-requirements addressed. 5 Major findings from R1 adversarial review resolved."
+    severity: null
+    findings_count: 0
+    risk_level: "🟡"
+    output_paths:
+      - "design-output.yaml"
+      - "design.md"

@@ -1,0 +1,86 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-05"
+  step: "step-5"
+  started_at: "2026-03-05T12:45:00Z"
+  completed_at: "2026-03-05T12:55:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-05"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/planner.agent.md"
+        action: "modified"
+        description: >
+          Four changes applied: (1) Decoupled e2e_required from workflow_lane — split Workflow
+          Lane Derivation table into lane-only table plus new E2E Required Derivation section
+          (D-2, D-3) with independent boolean logic based on contract presence + planner
+          assessment. (2) Added Fast-Track Fallback Input Path section with ask_questions
+          (🔒 fast-track + interactive only) and Orchestrator-Provided Parameters table
+          including approval_mode and pipeline_mode. (3) Updated self-verification check #11
+          to require explicit e2e_required assessment for every task based on contract presence
+          and verification value. (4) Updated Tool Access section to reflect 8 tools (added
+          ask_questions with restriction). (5) Updated task schema example comment for
+          e2e_required to reflect new derivation.
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+    behavioral_coverage:
+      - ac_id: "AC-1"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — Workflow Lane Derivation table now shows e2e_required as independent of workflow_lane. Lanes map risk→tier only. E2E Required Derivation section sets e2e_required independently."
+      - ac_id: "AC-2"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — E2E Required Derivation table shows 🟢/🟡 tasks with contract get 'Planner assessment' allowing false for trivial tasks."
+      - ac_id: "AC-3"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — E2E Required Derivation table shows 🔴+contract → true (mandatory). Derivation rule #3 states no override."
+      - ac_id: "AC-18"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — Fast-Track Fallback Input Path section added with initial-request.md + ask_questions as inputs when spec/design absent."
+      - ac_id: "FR-1.8"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — Self-verification check #11 updated to 'e2e_required is explicitly set for every task based on contract presence and verification value assessment'."
+      - ac_id: "FR-2.2"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — Orchestrator-Provided Parameters table added with approval_mode documented."
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+      verify_phase:
+        get_errors_clean: true
+        typecheck_clean: true
+        tests_passing: true
+      tdd_fallback_reason: "task_type='documentation' — no production source files modified, only agent definition markdown. TDD not applicable."
+completion:
+  status: "DONE"
+  summary: "task-05 — planner.agent.md updated with E2E decoupling, fast-track fallback, approval_mode params, and self-verification #11 fix"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths: ["implementation-reports/task-05.yaml"]

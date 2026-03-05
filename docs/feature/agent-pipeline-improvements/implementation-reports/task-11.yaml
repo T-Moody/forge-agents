@@ -1,0 +1,66 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-11"
+  step: "step-5"
+  started_at: "2026-03-05T13:20:00Z"
+  completed_at: "2026-03-05T13:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-11"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/prompts/plan-and-implement.prompt.md"
+        action: "created"
+        description: >
+          Fast-track pipeline prompt. YAML frontmatter with name and agent fields.
+          Sets pipeline_mode=fast-track. Defines reduced step set: Step 0 → Step 4 →
+          Steps 5-6 → Step 7 → Step 8 → Step 9. Includes scope guardrails (small/🟢
+          features only), APPROVAL_MODE gate behavior, and immutable minimum step set
+          reference (D-14). Matches feature-workflow.prompt.md structural conventions.
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+    behavioral_coverage:
+      - ac_id: "AC-16"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — file existence and content verified by inspection"
+      - ac_id: "AC-20"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — git diff confirms feature-workflow.prompt.md not in changed files"
+      - ac_id: "FR-8.2"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — prompt contains pipeline_mode: fast-track literal"
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+      verify_phase:
+        get_errors_clean: true
+        typecheck_clean: true
+        tests_passing: true
+      tdd_fallback_reason: "task_type is 'documentation'; no production source files modified. Only a new .prompt.md documentation file was created."
+completion:
+  status: "DONE"
+  summary: "Created plan-and-implement.prompt.md fast-track pipeline prompt with reduced step set (0→4→5-6→7→8→9), pipeline_mode=fast-track variable, scope guardrails, and immutable minimum step set reference."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths: ["implementation-reports/task-11.yaml"]

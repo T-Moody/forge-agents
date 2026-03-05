@@ -1,0 +1,54 @@
+task:
+  id: "task-07"
+  title: "Restructure spec.agent.md pushback system and add fetch_webpage + approval_mode"
+  description: >
+    Four changes to spec.agent.md: (1) Restructure pushback system for interactive mode —
+    present each pushback concern as a separate question in a single ask_questions call using
+    the questions[] array. Each question includes concern severity, title, and description.
+    Each offers options: (a) 'Accept as known risk', (b) 'Modify scope to address'
+    (allowFreeformInput=true), (c) 'Dismiss'. After collecting responses, aggregate:
+    if ALL accepted/dismissed → proceed; if ANY 'modify' → incorporate direction. (2) Autonomous
+    mode: auto-resolve each concern individually as 'Accept as known risk', logged individually
+    in pushback_log with per-concern user_response fields. (3) Add fetch_webpage to tool summary
+    with interactive-mode-only restriction and usage for researching requirement feasibility.
+    Update tool count. (4) Add approval_mode to Orchestrator-Provided Parameters table.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on:
+    - "task-02"
+  acceptance_criteria:
+    - id: "AC-11"
+      text: "In interactive mode, spec agent presents separate ask_questions entries per pushback concern. Each question has severity, title, description, and three options: accept/modify/dismiss. The 'Modify' option has allowFreeformInput=true."
+      test_method: "inspection"
+    - id: "AC-12"
+      text: "pushback_log in spec-output.yaml records per-concern user_response fields (not a single aggregate response)."
+      test_method: "inspection"
+    - id: "AC-7"
+      text: "fetch_webpage usage documentation exists in spec.agent.md with interactive-mode-only restriction and usage guidance for requirement feasibility research."
+      test_method: "inspection"
+    - id: "FR-5.4"
+      text: "In autonomous mode, each concern is auto-resolved as 'Accept as known risk' and logged individually in pushback_log."
+      test_method: "inspection"
+    - id: "FR-2.2"
+      text: "approval_mode is documented in spec.agent.md Orchestrator-Provided Parameters table."
+      test_method: "inspection"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-5']"
+      - "design-output.yaml#payload.decisions[id='D-7']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/spec.agent.md']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5'][sub_requirements.id='FR-5.1']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5'][sub_requirements.id='FR-5.2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5'][sub_requirements.id='FR-5.3']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5'][sub_requirements.id='FR-5.4']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5'][sub_requirements.id='FR-5.5']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3'][sub_requirements.id='FR-3.5']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2'][sub_requirements.id='FR-2.2']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/spec.agent.md"
+        risk: "🟡"
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null

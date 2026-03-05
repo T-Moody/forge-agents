@@ -1,0 +1,194 @@
+agent_output:
+  agent: "knowledge-agent"
+  instance: "knowledge-agent"
+  step: "step-8"
+  started_at: "2026-03-05T18:20:00Z"
+  completed_at: "2026-03-05T18:45:00Z"
+  schema_version: "1.0"
+  payload:
+    knowledge_updates:
+      - type: "convention"
+        key: "e2e-decoupled-from-risk"
+        value: "e2e_required is an independent boolean based on contract presence + planner assessment; NOT gated by workflow_lane or risk level. 🔴 tasks with a contract MUST have e2e; 🟢/🟡 tasks MAY have e2e."
+        stored_via: "store_memory"
+
+      - type: "convention"
+        key: "approval-mode-user-authoritative"
+        value: "User''s selected APPROVAL_MODE is authoritative. Never default to autonomous. If absent, safe-default to interactive. Pass approval_mode as named parameter in every subagent dispatch."
+        stored_via: "store_memory"
+
+      - type: "convention"
+        key: "no-file-redirect"
+        value: "NEVER redirect terminal output to files (>, >>, | tee). Read output directly from terminal. This applies to all agents (implementer, verifier, etc.) and is enforced in global-operating-rules.md, anti-drift anchors, and self-verification checklists."
+        stored_via: "store_memory"
+
+      - type: "pattern"
+        key: "per-concern-pushback"
+        value: "Spec agent pushback uses per-concern accept/modify/dismiss via ask_questions (interactive mode). Each concern gets its own multiple-choice response, replacing bulk proceed/modify/abandon. Pushback log records user decisions with timestamps."
+        stored_via: "store_memory"
+
+      - type: "pattern"
+        key: "fast-track-pipeline"
+        value: "plan-and-implement.prompt.md triggers reduced pipeline: Steps 0→4→5-6→7→8→9 (skipping Steps 1-3b). Minimum immutable step set is {0, 7, 9}. Planner uses ask_questions for clarification when spec/design inputs are absent. 🔴 risk tasks escalate to full pipeline."
+        stored_via: "store_memory"
+
+      - type: "convention"
+        key: "db-archive-on-new-run"
+        value: "Step 0 checks if verification-ledger.db run_id mismatches current; if so, renames to verification-ledger-{timestamp}.db.archive. Uses filesystem-safe timestamp (no colons). Corrupt/unreadable DB archived unconditionally."
+        stored_via: "store_memory"
+
+      - type: "convention"
+        key: "fetch-webpage-interactive-only"
+        value: "fetch_webpage tool granted to researcher, designer, spec agents — interactive mode ONLY (🔒). Autonomous mode MUST NOT use fetch_webpage. Self-verification checklist item enforces autonomous guard."
+        stored_via: "store_memory"
+
+      - type: "lesson"
+        key: "cross-reference-consistency"
+        value: "Cross-file references (e.g., sql-templates.md §11 vs §1.1, EG-10 thresholds) are a top source of Critical code review findings. Always verify section numbers, threshold values, and check_names match across all referencing files."
+        stored_via: "store_memory"
+
+      - type: "lesson"
+        key: "design-review-catches-cross-file-gaps"
+        value: "Design review R1 caught 5 Major findings (minimum step set, FR contradiction, line budget, approval_mode coverage, dual anti-drift). All resolved in R2. The 2-round review cycle is effective for catching structural gaps before implementation."
+        stored_via: "store_memory"
+
+      - type: "lesson"
+        key: "code-review-critical-findings-pattern"
+        value: "Code review R1 Critical findings (2): fast-track 🔴 risk bypass + §11 broken cross-ref. Both arose from new functionality referencing existing structures that changed. Pattern: when adding new orchestrator features, verify all existing cross-references still resolve."
+        stored_via: "store_memory"
+
+      - type: "command"
+        key: "copilot-skills-dual-format"
+        value: "Verifier Tier 5 supports both Copilot Skill format (SKILL.md + copilot-skill:/ URI) and existing Playwright YAML format for E2E testing. E2E contract e2e-contract.yaml specifies which format."
+        stored_via: "decisions.yaml"
+
+    decision_log_entries:
+      - id: "DL-001"
+        title: "D-2: E2E decoupled from workflow_lane"
+        rationale: "User reported E2E only triggered for 🔴 risk. Decoupling e2e_required from risk level allows E2E verification for any task where it adds value, while keeping it optional for trivial changes."
+        confidence: "High"
+
+      - id: "DL-002"
+        title: "D-4: Approval mode — user selection authoritative, interactive safe default"
+        rationale: "''Default to autonomous'' language in orchestrator caused agents to override user''s explicit mode selection. Making user selection authoritative and defaulting to interactive (the safer mode) eliminates the confusion."
+        confidence: "High"
+
+      - id: "DL-003"
+        title: "D-5: fetch_webpage for researcher/designer/spec (interactive-only)"
+        rationale: "User wants agents to research like real developers. Interactive-only restriction ensures user approves each web fetch, preventing autonomous network access. Tool-access-matrix updated with 🔒 marker."
+        confidence: "High"
+
+      - id: "DL-004"
+        title: "D-6: Per-concern pushback with accept/modify/dismiss"
+        rationale: "Bulk pushback (proceed/modify/abandon) didn''t let users address individual concerns. Per-concern multiple-choice via ask_questions gives precise control in interactive mode."
+        confidence: "High"
+
+      - id: "DL-005"
+        title: "D-7: No-redirect explicit bans across all agents"
+        rationale: "Terminal output redirected to files caused repo clutter and constant approval prompts. Explicit ban (>, >>, | tee) added to global rules, anti-drift anchors, and self-verification checklists in implementer and verifier."
+        confidence: "High"
+
+      - id: "DL-006"
+        title: "D-8: Copilot Skills dual format for E2E"
+        rationale: "User wants E2E testing via GitHub Copilot Skills. Supporting both SKILL.md format and existing Playwright YAML provides flexibility without breaking existing E2E contracts."
+        confidence: "Medium"
+
+      - id: "DL-007"
+        title: "D-9: DB archive on new run"
+        rationale: "User reported sqlite DB frequently out of date with agent changes. Archive-on-mismatch approach avoids migration complexity while preserving historical data."
+        confidence: "High"
+
+      - id: "DL-008"
+        title: "D-10: Fast-track pipeline via plan-and-implement.prompt.md"
+        rationale: "User wanted shorter flow for smaller tasks. Separate prompt (not dynamic detection) keeps full pipeline intact per CR-6. Planner uses ask_questions to compensate for missing spec/design inputs."
+        confidence: "High"
+
+      - id: "DL-009"
+        title: "D-14: Immutable minimum step set {0, 7, 9}"
+        rationale: "Security-sentinel R1 finding: fast-track could bypass Step 7 code review. Minimum set {Step 0 init, Step 7 review, Step 9 completion} enforced in anti-drift anchor prevents security bypass."
+        confidence: "High"
+
+      - id: "DL-010"
+        title: "Direction C: Hybrid modification strategy"
+        rationale: "Complex additions (fast-track, DB archive, E2E overhaul) extracted to reference docs; simple changes (approval mode, no-redirect) edited in-place. Keeps orchestrator within 550-line budget (539 final)."
+        confidence: "High"
+
+      - id: "DL-011"
+        title: "DR-2: APPROVAL_MODE clarification relocated to orchestrator"
+        rationale: "Design R1 found FR-2.4/FR-8.6 contradiction — feature-workflow.prompt.md was being modified which violated FR-8.6 (no modification of existing prompts). Relocated approval logic to orchestrator Step 0."
+        confidence: "High"
+
+      - id: "DL-012"
+        title: "Code review R1 fixes: 10 corrections across 7 files"
+        rationale: "2 Critical + 6 Major + 7 Minor findings across 3 reviewers. All resolved in single fix round. Key fixes: §11→§1.1 cross-ref, 🔴 fast-track escalation, EG-10 threshold ≥4→≥3, pushback option names, self-verification items."
+        confidence: "High"
+
+    evidence_bundle:
+      overall_confidence: "High"
+      verification_summary:
+        tasks_verified: 11
+        total_checks: 92
+        passed: 92
+        failed: 0
+        regressions: 0
+      review_summary:
+        design_review:
+          round: 2
+          verdicts:
+            security-sentinel: "approve"
+            architecture-guardian: "approve"
+            pragmatic-verifier: "approve"
+        code_review:
+          round: 2
+          verdicts:
+            security-sentinel: "approve"
+            architecture-guardian: "approve"
+            pragmatic-verifier: "approve"
+      rollback_command: "git revert --no-commit pipeline-baseline-2026-03-05..HEAD"
+      blast_radius:
+        files_modified: 15
+        risk_red_files: 1
+        risk_yellow_files: 7
+        risk_green_files: 7
+        regressions: 0
+      known_issues:
+        - description: "pushback_log schema not formally defined in schemas.md (deferred to future iteration)"
+          severity: "Minor"
+
+    pipeline_telemetry_summary:
+      total_dispatches: 56
+      total_duration_seconds: 37740.0
+      error_count: 0
+      slowest_steps:
+        - step: "step-2 (spec)"
+          duration_s: 2700.0
+        - step: "step-5 (implementer wave-2 tasks 01-03,08)"
+          duration_s: 1200.0
+        - step: "step-7-fix (code-review-fixes-r2)"
+          duration_s: 1200.0
+      retries: []
+
+    evaluation_summary:
+      total_evaluations: 26
+      mean_usefulness: 8.0
+      mean_clarity: 8.42
+      worst_artifacts:
+        - path: "docs/feature/agent-pipeline-improvements/tasks/task-02.yaml"
+          avg_usefulness: 4.0
+        - path: "docs/feature/agent-pipeline-improvements/implementation-reports/task-11.yaml"
+          avg_usefulness: 7.0
+        - path: "NewAgents/.github/agents/"
+          avg_usefulness: 7.5
+
+completion:
+  status: "DONE"
+  summary: "Knowledge capture complete: 11 updates, 12 decisions, evidence bundle assembled, post-mortem generated"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "knowledge-output.yaml"
+    - "decisions.yaml"
+    - "evidence-bundle.md"
+    - "agent-metrics/2026-03-05-run-log.md"
+    - "post-mortems/2026-03-05-agent-pipeline-improvements.md"

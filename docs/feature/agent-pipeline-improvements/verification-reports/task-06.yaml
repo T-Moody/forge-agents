@@ -1,0 +1,86 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-06"
+  step: "step-6"
+  started_at: "2026-03-05T13:00:00Z"
+  completed_at: "2026-03-05T13:12:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-06"
+    run_id: "2026-03-05T12:00:00Z"
+    evidence_gate:
+      total_checks: 4
+      passed: 4
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/verifier.agent.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline tag exists. Baseline has old Tier 5 gate (workflow_lane condition), no approval_mode, no rule #10, no anti-drift redirect phrase, no copilot-skill. All 5 changes confirmed genuine against baseline."
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: "get_errors on verifier.agent.md"
+        exit_code: null
+        passed: true
+        output_snippet: "After: 2 errors (schemas.md link not found x2), 0 warnings. Baseline: 2 errors, 0 warnings. No new errors introduced. Pre-existing link errors unchanged."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: "Structural validity of verifier.agent.md"
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file is structurally valid. YAML frontmatter (lines 1-4) valid. All markdown headings, tables, code blocks properly formatted. No broken structural elements."
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: "N/A"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Documentation-only task (verifier.agent.md is a markdown instruction file). No executable modules to import or smoke-test. Tier 3 runtime checks are infeasible for agent definition files."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/verifier.agent.md"
+      discrepancies_found: false
+    acceptance_criteria_inspection:
+      - id: "AC-9"
+        text: "Operating Rules contains no-file-redirect with example patterns"
+        result: "PASS"
+        evidence: "Line 455: Rule #10 'No file redirection. NEVER redirect terminal output to files. Do not use >, >>, | tee, 2>&1 > or any output redirection in run_in_terminal commands.'"
+      - id: "AC-10"
+        text: "Anti-drift anchor contains 'NEVER redirect terminal output to files.'"
+        result: "PASS"
+        evidence: "Line 535: Anti-drift anchor includes 'NEVER redirect terminal output to files.' embedded in the REMEMBER paragraph."
+      - id: "FR-1.3"
+        text: "Tier 5 gate changed to e2e_required=true only, workflow_lane removed"
+        result: "PASS"
+        evidence: "Line 267: Gate reads 'Execute this section ONLY when e2e_required=true in the task definition'. workflow_lane='full-tdd-e2e' condition fully removed (zero grep matches). Line 513: Self-verification checklist updated to match. D-2 reference added."
+      - id: "FR-6.3"
+        text: "Dual skill format support (playwright-yaml + copilot-skill)"
+        result: "PASS"
+        evidence: "Line 282: Step 5b 'Load skill files (dual format — D-8)' with playwright-yaml (existing .yaml) and copilot-skill (.md files read as interaction guides, converted to Playwright CLI commands). References e2e-integration.md §2 skill_format field."
+      - id: "FR-2.2"
+        text: "approval_mode documented in Orchestrator-Provided Parameters table"
+        result: "PASS"
+        evidence: "Line 42: approval_mode row added — type: string, required: No, description includes interactive/autonomous values and safe default behavior."
+completion:
+  status: "DONE"
+  summary: "Verified task-06: 4 checks passed, 0 failed, 0 regressions. All 5 acceptance criteria satisfied."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-pipeline-improvements/verification-reports/task-06.yaml"
+  evidence_summary:
+    total_checks: 4
+    passed: 4
+    failed: 0
+    security_blockers: 0

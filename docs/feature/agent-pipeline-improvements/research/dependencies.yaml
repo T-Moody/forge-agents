@@ -1,0 +1,508 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-dependencies"
+  step: "step-1"
+  started_at: "2026-03-05T12:00:00Z"
+  completed_at: "2026-03-05T12:28:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "dependencies"
+    findings:
+      - id: "F-1"
+        title: "Complete inter-file cross-reference graph for all 19 files in .github/agents/"
+        category: "dependency"
+        detail: |
+          The agent system comprises 9 agent definition files and 10 shared reference documents.
+          Cross-reference map (agent → referenced docs):
+
+          orchestrator.agent.md → global-operating-rules.md (§1–§2), sql-templates.md (§0, §1, §3, §6),
+            tool-access-matrix.md (§1, §2), dispatch-patterns.md, e2e-integration.md (§1, §6)
+          researcher.agent.md → schemas.md (Schema 2), e2e-integration.md (§2), context7-integration.md
+          spec.agent.md → schemas.md (Schema 2 input, Schema 3 output), global-operating-rules.md (§6),
+            tool-access-matrix.md (§4)
+          designer.agent.md → schemas.md (Schema 4), global-operating-rules.md (§1–§3, §6)
+          planner.agent.md → schemas.md (Schema 5, Schema 6), dispatch-patterns.md,
+            severity-taxonomy.md, global-operating-rules.md (§1–§2, §6), tool-access-matrix.md (§6)
+          implementer.agent.md → global-operating-rules.md (§1–§6), sql-templates.md (§0–§4),
+            tool-access-matrix.md (§7), evaluation-schema.md, severity-taxonomy.md, context7-integration.md
+          verifier.agent.md → schemas.md (Schema 8), sql-templates.md (§0, §1, §2, §2a, §6),
+            evaluation-schema.md (§3, §4), e2e-integration.md (§1–§6), tool-access-matrix.md (§8)
+          adversarial-reviewer.agent.md → review-perspectives.md (primary), sql-templates.md (§2),
+            tool-access-matrix.md (§9)
+          knowledge-agent.agent.md → schemas.md (Schema 10), sql-templates.md (§5, §7),
+            evaluation-schema.md, global-operating-rules.md (§9)
+
+          Reference doc → reference doc cross-refs:
+          e2e-integration.md → tool-access-matrix.md (§8.2 allowlist), dispatch-patterns.md (concurrency)
+          dispatch-patterns.md → review-perspectives.md, severity-taxonomy.md
+          tool-access-matrix.md → e2e-integration.md (§5 allowlist source)
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 25-27, 39, 43"
+          - "NewAgents/.github/agents/implementer.agent.md line 21 (shared references list)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 47, 105-108, 272"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md lines 19, 46, 61"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 39, 55, 65, 158, 168, 194"
+        relevance: "Any change to a shared reference doc (schemas.md, sql-templates.md, tool-access-matrix.md, global-operating-rules.md) propagates to all agents that reference it. The designer must trace all impacted consumers when modifying shared docs."
+
+      - id: "F-2"
+        title: "Tool access dependencies: tool-access-matrix.md as single authority, 2 agents use ask_questions"
+        category: "dependency"
+        detail: |
+          tool-access-matrix.md (§1) is the single-source-of-truth master matrix for all 9 agents.
+          Current tool assignments relevant to the 8 issues:
+
+          ask_questions: Orchestrator (✅), Spec (🔒 interactive-only). All other agents ❌.
+          fetch_webpage: NOT listed in the matrix at all — not assigned to any agent.
+          run_in_terminal: Orchestrator (🔒 SQLite+git only), Implementer (✅ full),
+            Verifier (✅ with Tier 5 expansion), Adversarial Reviewer (🔒 git diff + SQL INSERT),
+            Knowledge Agent (🔒 SELECT + INSERT instruction_updates).
+          memory: Orchestrator (✅), Knowledge Agent (✅). All others ❌.
+
+          For Issue 3 (add fetch_webpage): The tool does not exist anywhere in tool-access-matrix.md.
+          Adding it requires a new row in §1 master matrix AND per-agent section updates.
+
+          For Issue 5 (spec pushback via ask_questions): Spec already has ask_questions 🔒 (§4),
+          restricted to interactive mode only. The mechanism exists but the pushback prompt needs
+          restructuring to per-concern multiple-choice rather than aggregate.
+
+          For Issue 4 (file redirect): No agent definition explicitly prohibits file redirect.
+          copilot-instructions.md (global) has "No File-Redirect" rule but it must be reinforced
+          in implementer.agent.md and verifier.agent.md since they have run_in_terminal access.
+        evidence:
+          - "NewAgents/.github/agents/tool-access-matrix.md §1 master matrix (lines 8-22)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §4 Spec (lines 38-39)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §7 Implementer (lines 50-51)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §8 Verifier (lines 54-55)"
+          - ".github/copilot-instructions.md — No File-Redirect rule"
+        relevance: "Adding fetch_webpage creates a new tool dependency. The tool-access-matrix is the authoritative file — all per-agent section citations (§2–§10) must be updated in sync with §1. Issue 4 fix requires both copilot-instructions.md enforcement AND per-agent reinforcement."
+
+      - id: "F-3"
+        title: "Schema dependency chain: schemas.md consumed by all 9 agents through producer/consumer table"
+        category: "dependency"
+        detail: |
+          schemas.md defines 14 schemas. The producer/consumer dependency table (Schema reference §Producer/Consumer):
+
+          Schema 1 (completion-contract): ALL agents produce → Orchestrator consumes
+          Schema 2 (research-output): Researcher → Spec, Designer
+          Schema 3 (spec-output): Spec → Designer, Planner, Implementer, Verifier
+          Schema 4 (design-output): Designer → Planner, Implementer, Adversarial Reviewer
+          Schema 5 (plan-output): Planner → Orchestrator (risk summary), Implementer, Verifier
+          Schema 6 (task-schema): Planner → Implementer, Verifier
+          Schema 7 (implementation-report): Implementer → Verifier
+          Schema 8 (verification-report): Verifier → Orchestrator, Adversarial Reviewer
+          Schema 9 (review-findings): Adversarial Reviewer → Orchestrator, Knowledge Agent
+          Schema 10 (knowledge-output): Knowledge Agent → (terminal, no consumers)
+          Schema 13 (e2e-contract): Project author/Researcher → Orchestrator, Planner, Verifier
+          Schema 14 (e2e-skill): Project author/Researcher → Verifier
+
+          Key for proposed changes: Issue 1 (E2E for all risk levels) would change who produces/consumes
+          Schema 13 and 14. Currently only 🔴 tasks reach Verifier Tier 5 E2E. Expanding means Planner's
+          workflow_lane derivation table must change (F-5), and Schema 6 (task-schema) field e2e_required
+          would need new derivation logic.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md — Producer/Consumer Dependency Table (lines ~50-78)"
+          - "NewAgents/.github/agents/schemas.md — Schema 2 definition (lines ~100-170)"
+          - "NewAgents/.github/agents/schemas.md — Schema 6 referenced from planner task output"
+        relevance: "Schema changes cascade through the producer/consumer chain. Modifying Schema 6 (task-schema) to change e2e_required derivation affects Planner, Implementer, and Verifier. The designer must trace full impact."
+
+      - id: "F-4"
+        title: "SQLite dependency map: 6 agents write/read verification-ledger.db across 4 tables"
+        category: "dependency"
+        detail: |
+          verification-ledger.db has 4 tables. Writer/reader map per sql-templates.md:
+
+          anvil_checks (Table 1):
+            Writers: Orchestrator (DDL+contract checks), Implementer (baseline+after), Verifier (all tiers),
+              Adversarial Reviewer (review verdicts — 3 INSERTs per reviewer per round)
+            Readers: Orchestrator (evidence gates EG-1 through EG-10), Knowledge Agent (analysis)
+
+          pipeline_telemetry (Table 2):
+            Writer: Orchestrator only (INSERT after each dispatch, §3)
+            Reader: Knowledge Agent (post-mortem queries, §7)
+
+          artifact_evaluations (Table 3):
+            Writers: Implementer, Verifier, Adversarial Reviewer (Phase 1 agents, §4)
+            Reader: Knowledge Agent (quality analysis, §7)
+
+          instruction_updates (Table 4):
+            Writer: Knowledge Agent only (§5)
+            Reader: Orchestrator (audit query)
+
+          For Issue 7 (SQLite staleness/archive): The archive-on-new-run strategy must be implemented
+          in the Orchestrator's Step 0 before DDL execution. This affects only the Orchestrator since
+          it owns DB initialization. However, all agents that read/write must handle the case where
+          the DB was just recreated (fresh schema, no historical data). Verifier's "safety net
+          initialization" (line 108) already handles missing DB — but archive logic is new.
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md §1 DDL (Table comments: Writers lines)"
+          - "NewAgents/.github/agents/sql-templates.md §2 anvil_checks INSERT"
+          - "NewAgents/.github/agents/sql-templates.md §3 pipeline_telemetry INSERT"
+          - "NewAgents/.github/agents/sql-templates.md §4 artifact_evaluations INSERT"
+          - "NewAgents/.github/agents/sql-templates.md §5 instruction_updates INSERT"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 112-113 (Step 0 SQLite init)"
+          - "NewAgents/.github/agents/verifier.agent.md line 108 (safety net DB init)"
+        relevance: "SQLite archive strategy (Issue 7) is a Step 0 orchestrator change with downstream impact on all DB-writing agents. The designer must ensure archive-then-recreate doesn't break the safety net pattern in verifier.agent.md."
+
+      - id: "F-5"
+        title: "E2E dependency chain: 5-file cascade from risk gating to execution"
+        category: "dependency"
+        detail: |
+          The current E2E dependency chain for Issue 1 (E2E for all risk levels):
+
+          1. planner.agent.md — Workflow Lane Derivation (lines 160-172):
+             🟢 → unit-only (e2e_required=false)
+             🟡 → unit-integration (e2e_required=false)
+             🔴 → full-tdd-e2e (e2e_required=true IF contract exists)
+             THIS IS THE GATING POINT. Only 🔴 tasks can get e2e_required=true.
+
+          2. orchestrator.agent.md — Step 0 E2E contract discovery (line 118-122):
+             "Not found + interactive mode + 🔴 risk tasks" → prompt for contract.
+             The 🔴 condition is hardcoded in Step 0 E2E discovery too.
+
+          3. orchestrator.agent.md — Evidence gate EG-10 (lines in Evidence Gate Logic section):
+             EG-10 has 3 lane variants; full-tdd-e2e variant requires ≥4 passed checks
+             including e2e-test-execution. Unit-only and unit-integration lanes never check E2E.
+
+          4. verifier.agent.md — Tier 5 conditional gate (line 266):
+             "Execute this section ONLY when e2e_required=true AND workflow_lane='full-tdd-e2e'"
+             Verifier completely skips E2E for non-🔴 tasks.
+
+          5. sql-templates.md — EG-10 lane variants (§6):
+             Three separate SQL queries for unit-only, unit-integration, full-tdd-e2e.
+             Only full-tdd-e2e variant checks for e2e-test-execution.
+
+          6. e2e-integration.md — §0 Per-Agent Reading Guide:
+             Only Orchestrator, Verifier, Planner, and Adversarial Reviewer are listed.
+
+          7. tool-access-matrix.md — §8.1 Tier 5 expansion:
+             "When e2e_required=true in the task definition" — gated on task field.
+
+          To allow E2E for all risk levels: ALL 7 files above must be modified consistently.
+          The planner derivation table is the root dependency — changes cascade downward.
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md lines 160-172 (Workflow Lane Derivation table)"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 122 (🔴 risk gating for E2E prompt)"
+          - "NewAgents/.github/agents/verifier.agent.md line 266 (Tier 5 conditional gate)"
+          - "NewAgents/.github/agents/sql-templates.md §6 EG-10 lane variants"
+          - "NewAgents/.github/agents/e2e-integration.md §0 Per-Agent Reading Guide"
+          - "NewAgents/.github/agents/tool-access-matrix.md §8.1 (e2e_required gate)"
+        relevance: "Issue 1 requires coordinated changes across 7 files. The planner's lane derivation table is the root — downstream files must be updated in dependency order. This is the highest-impact change in the feature request."
+
+      - id: "F-6"
+        title: "Approval mode dependency chain: orchestrator sets, 3 files consume"
+        category: "dependency"
+        detail: |
+          Approval mode (autonomous|interactive) flows through the system:
+
+          1. SOURCE: feature-workflow.prompt.md — references APPROVAL_MODE but does NOT set it.
+             The prompt tells the orchestrator to "Follow APPROVAL_MODE for gate behavior."
+
+          2. SETTER: orchestrator.agent.md — Step 0, sub-step 2.a:
+             Uses ask_questions to prompt user. Stores in pipeline_state.approval_mode.
+             Current language: "default to autonomous" if user doesn't respond.
+
+          3. CONSUMER: orchestrator.agent.md — Steps 1a, 4a, and all gate management:
+             "If interactive mode selected in Step 0 show multiple choice, else Autonomous: auto-select"
+
+          4. CONSUMER: spec.agent.md — Pushback system (lines 142-198):
+             Reads approval mode to choose between ask_questions (interactive) and auto-proceed (autonomous).
+
+          5. CONSUMER: e2e-integration.md — §1 Trust Levels:
+             "Contracts generated in interactive mode are pipeline-generated and require user approval
+             via ask_questions before commands execute."
+
+          For Issue 2 (approval mode confusion): The orchestrator is the single setter.
+          The phrase "default to autonomous" at line 107 is the problematic language.
+          However, the approval mode also appears in spec.agent.md and e2e-integration.md.
+          A clean fix must define the exact phrase used system-wide.
+
+          The mode value propagates ONLY through dispatch context (orchestrator passes it
+          as parameter to subagents). It is NOT stored in any file — it's in-context only.
+        evidence:
+          - "NewAgents/.github/prompts/feature-workflow.prompt.md (full file, line 8)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 55, 99-109, 157, 235"
+          - "NewAgents/.github/agents/spec.agent.md lines 142-198 (pushback interactive/autonomous)"
+          - "NewAgents/.github/agents/e2e-integration.md line 39 (interactive mode trust)"
+        relevance: "Issue 2 fix is localized to orchestrator.agent.md Step 0 language, but the designer should audit all 3 consumers to ensure consistent terminology. The mode is in-context only — no schema or SQL change needed."
+
+      - id: "F-7"
+        title: "fetch_webpage is absent from the entire agent system — zero references"
+        category: "dependency"
+        detail: |
+          A grep across all files in NewAgents/.github/agents/ for 'fetch_webpage' returns
+          zero matches. The tool does not appear in:
+          - tool-access-matrix.md (not in §1 master matrix)
+          - Any agent definition file
+          - Any reference document
+
+          fetch_webpage is a VS Code Copilot built-in tool (available in the current runtime
+          as confirmed by the tool list in this session). It requires user approval per invocation
+          in VS Code Copilot.
+
+          For Issue 3 (add web fetching): Adding fetch_webpage requires:
+          1. New row in tool-access-matrix.md §1 master matrix
+          2. Per-agent section updates for agents that get access
+          3. Scope restriction definition (interactive mode only, per user request)
+          4. Agent definition updates to describe when/how to use it
+
+          Candidate agents for fetch_webpage access (based on Issue 3 context):
+          - Researcher (research tasks — currently uses semantic_search + grep_search only)
+          - Designer (design research, stack info lookup)
+          - Possibly Knowledge Agent (documentation lookup)
+
+          Context7 MCP (context7-integration.md) already serves a similar role for library docs,
+          but fetch_webpage would serve broader web research needs.
+        evidence:
+          - "grep_search for 'fetch_webpage' in NewAgents/.github/agents/** — zero matches"
+          - "NewAgents/.github/agents/tool-access-matrix.md §1 — fetch_webpage not listed"
+          - "NewAgents/.github/agents/context7-integration.md §5 — only Implementer and Researcher use Context7"
+        relevance: "fetch_webpage is a completely new tool dependency. Adding it requires coordinated updates to tool-access-matrix.md and each authorized agent's instructions. The interactive-mode-only restriction adds a conditional dependency on approval_mode."
+
+      - id: "F-8"
+        title: "Prompt → orchestrator → agent dispatch dependency chain"
+        category: "dependency"
+        detail: |
+          The pipeline entry point dependency chain:
+
+          feature-workflow.prompt.md:
+            - References: orchestrator.agent.md (via agent: orchestrator)
+            - Passes: {{USER_FEATURE}} variable, APPROVAL_MODE instructions
+            - Contains 4 execution rules referencing: orchestrator.agent.md, schemas.md
+
+          orchestrator.agent.md dispatches in order:
+            Step 0: Self (initialization)
+            Step 1: researcher.agent.md ×4 parallel
+            Step 1a: Self (approval gate)
+            Step 2: spec.agent.md ×1
+            Step 3: designer.agent.md ×1
+            Step 3b: adversarial-reviewer.agent.md ×3 parallel
+            Step 4: planner.agent.md ×1
+            Step 4a: Self (approval gate)
+            Steps 5-6: implementer.agent.md ≤4, verifier.agent.md ≤4 (loop)
+            Step 6a: Self (runtime smoke test)
+            Step 7: adversarial-reviewer.agent.md ×3 parallel
+            Step 8: knowledge-agent.agent.md ×1
+            Step 9: Self (auto-commit)
+
+          For Issue 8 (shorter pipeline prompt): A new prompt file must be created that
+          references the same orchestrator.agent.md but instructs it to start at Step 4
+          (planning). This requires:
+          1. New prompt file (e.g., quick-plan.prompt.md)
+          2. Orchestrator must support a "start_step" parameter or recognize the prompt context
+          3. Planner must handle ask_questions for clarifying questions (currently not in its tool set)
+          4. The orchestrator's Pipeline State Recovery (EC-5) already supports resume — but
+             starting at Step 4 means no research/spec/design outputs exist.
+
+          The planner currently has NO ask_questions access (tool-access-matrix.md §6: 7 tools,
+          none is ask_questions). Issue 8 would require adding ask_questions to the planner
+          OR having the orchestrator ask questions before dispatching the planner.
+        evidence:
+          - "NewAgents/.github/prompts/feature-workflow.prompt.md (full file)"
+          - "NewAgents/.github/agents/orchestrator.agent.md Steps 0-9 dispatch sequence"
+          - "NewAgents/.github/agents/tool-access-matrix.md §6 Planner — 7 tools, no ask_questions"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 68-73 (EC-5 resume)"
+        relevance: "Issue 8 creates a new entry point into the pipeline. The dependency on upstream outputs (research, spec, design) being absent means the planner/orchestrator must compensate with user interaction. This is the most architecturally complex issue."
+
+      - id: "F-9"
+        title: "File redirect prohibition: copilot-instructions.md rule vs. agent enforcement gap"
+        category: "dependency"
+        detail: |
+          The no-file-redirect rule exists in .github/copilot-instructions.md:
+          "NEVER redirect terminal command output to a file (e.g., command > output.txt,
+          command | tee output.txt, command 2>&1 > log.txt)"
+
+          However, this rule is NOT explicitly referenced or reinforced in:
+          - implementer.agent.md (has full run_in_terminal access, §7)
+          - verifier.agent.md (has run_in_terminal access, §8)
+
+          The copilot-instructions.md is a global instruction file loaded by VS Code for all agents,
+          but agents may not always follow global rules when their own instructions don't mention them.
+
+          For Issue 4: Reinforcement needed in both implementer.agent.md and verifier.agent.md.
+          The fix should add an explicit prohibition in the Operating Rules section of each agent.
+          Additionally, tool-access-matrix.md could add a note under §7 and §8.
+        evidence:
+          - ".github/copilot-instructions.md — 'No File-Redirect' section"
+          - "NewAgents/.github/agents/implementer.agent.md — no mention of redirect prohibition"
+          - "NewAgents/.github/agents/verifier.agent.md — no mention of redirect prohibition"
+          - "NewAgents/.github/agents/tool-access-matrix.md §7, §8 — no redirect restriction noted"
+        relevance: "Issue 4 is about behavioral compliance. The dependency chain is copilot-instructions.md → agent-specific reinforcement → tool-access-matrix documentation. All three layers should be consistent."
+
+      - id: "F-10"
+        title: "Spec pushback → ask_questions dependency: already wired but structure is aggregate"
+        category: "dependency"
+        detail: |
+          The spec agent's current pushback system (spec.agent.md lines 111-199):
+          1. Evaluates pushback criteria (implementation + requirements concerns)
+          2. Classifies concerns by severity (Blocker/Critical/Major/Minor)
+          3. Interactive mode: presents ALL concerns in ONE ask_questions call with 3 options
+             (proceed/modify/abandon)
+          4. Autonomous mode: logs concerns and auto-proceeds
+
+          Current prompt structure (lines 147-168):
+          ```
+          question: "The Spec agent identified [N] concerns..."
+          options: proceed | modify | abandon
+          ```
+
+          For Issue 5 (per-concern multiple-choice): The ask_questions tool supports
+          multiple questions in a single call (verified from the tool schema — it accepts
+          a questions[] array with per-question options). The change would restructure
+          the single aggregate question into N separate questions, one per concern.
+
+          Dependencies: spec.agent.md only. No cascade to other files needed because:
+          - The spec's tool access (ask_questions 🔒) is already granted
+          - The pushback_log schema in spec-output.yaml would need to record per-concern
+            user responses instead of a single overall response
+          - schemas.md Schema 3 (spec-output) does not formally define pushback_log fields,
+            so schema changes may not be needed (it's an optional section)
+        evidence:
+          - "NewAgents/.github/agents/spec.agent.md lines 111-199 (pushback system)"
+          - "NewAgents/.github/agents/spec.agent.md lines 147-168 (current prompt structure)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §4 (ask_questions 🔒 in Spec)"
+          - "VS Code ask_questions tool schema — supports questions[] array with per-question options"
+        relevance: "Issue 5 is well-contained to spec.agent.md with minimal cascade. The ask_questions tool already supports the required multi-question pattern."
+
+      - id: "F-11"
+        title: "E2E skills dependency: Copilot skills infrastructure for Issue 6"
+        category: "dependency"
+        detail: |
+          For Issue 6 (E2E via Copilot Skills), the current system references:
+
+          1. e2e-integration.md §2 — Skills Schema & Storage: defines skill YAML structure
+             with fields (id, name, type, interaction, steps[], expected_outcomes[], etc.)
+          2. researcher.agent.md Step 1.5 — E2E Skill File Generation:
+             Researcher generates skill files in .e2e/skills/ when e2e_required=true.
+          3. verifier.agent.md Tier 5 — Executes skills during E2E verification phases.
+          4. tool-access-matrix.md §8.2 — tier5_command_allowlist includes playwright-cli.
+          5. tool-access-matrix.md §8.4 — Playwright CLI Session Management protocol.
+
+          The system already has a skill-based E2E framework, but it uses Playwright CLI
+          commands rather than GitHub Copilot built-in skills. Issue 6 asks about using
+          "GitHub Copilot skills" which are a different concept — VS Code extension skills
+          (.skill.yaml files) that agents can discover and use.
+
+          Dependencies for adding Copilot skill support:
+          - e2e-integration.md §2 (skill schema may need updating)
+          - researcher.agent.md Step 1.5 (skill generation)
+          - verifier.agent.md Tier 5 (skill execution)
+          - The pipeline already generates skills; the question is whether to use
+            Copilot's native skill discovery vs. custom skill execution.
+        evidence:
+          - "NewAgents/.github/agents/e2e-integration.md §2 Skills Schema (lines 102-160)"
+          - "NewAgents/.github/agents/researcher.agent.md Step 1.5 (lines 98-130)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 264-350 (Tier 5)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §8.2, §8.4"
+        relevance: "Issue 6 may require updating the skill generation and execution pipeline. The existing Playwright CLI skill infrastructure is comprehensive — the designer must evaluate whether to extend it or replace it with native Copilot skills."
+
+      - id: "F-12"
+        title: "Ordering constraints for implementing all 8 issues"
+        category: "dependency"
+        detail: |
+          Based on the dependency analysis, the 8 issues have the following ordering constraints:
+
+          INDEPENDENT (can be done in any order, minimal cross-deps):
+          - Issue 2 (approval mode) — localized to orchestrator.agent.md Step 0 language
+          - Issue 4 (file redirect) — additive to implementer/verifier + tool-access-matrix
+          - Issue 5 (spec pushback) — localized to spec.agent.md
+          - Issue 7 (SQLite archive) — localized to orchestrator.agent.md Step 0
+
+          MUST PRECEDE Issue 1:
+          - Issue 7 (SQLite archive) should be done before Issue 1 because E2E expansion
+            will increase DB usage and staleness risk
+
+          HIGHEST CASCADE (do last or in dedicated wave):
+          - Issue 1 (E2E for all risk levels) — requires 7 file changes, most complex cascade
+          - Issue 6 (Copilot skills) — overlaps with Issue 1's E2E chain
+          - Issues 1+6 should be designed together as they both affect the E2E pipeline
+
+          REQUIRES NEW FILE:
+          - Issue 3 (fetch_webpage) — new tool, new row in matrix, new agent instructions
+          - Issue 8 (shorter pipeline) — new prompt file, possible new orchestrator mode
+
+          DEPENDENCY PAIRS:
+          - Issue 1 + Issue 6 — both modify E2E chain, must be coordinated
+          - Issue 2 + Issue 3 — both involve approval_mode (fetch_webpage is interactive-only)
+          - Issue 7 + Issue 1 — DB freshness supports heavier E2E usage
+        evidence:
+          - "Cross-file impact analysis from F-1 through F-11"
+          - "NewAgents/.github/agents/planner.agent.md — workflow lane derivation (root of E2E chain)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — Step 0 is foundation for Issues 2, 7"
+        relevance: "The designer and planner must respect these ordering constraints to avoid breaking partial implementations. Wave decomposition should group independent issues early and cascading issues late."
+
+      - id: "F-13"
+        title: "Global operating rules and safety constraints form an immutable dependency layer"
+        category: "dependency"
+        detail: |
+          global-operating-rules.md contains several immutable rules that constrain all 8 issues:
+
+          §9 Safety Constraint Filter — Immutable Rules:
+          1. Terminal-only testing (constrains Issue 4 fix options)
+          2. No-file-redirect (IS the rule Issue 4 wants to enforce better)
+          3. Agent boundary integrity (constrains Issue 8 — new prompt can't modify agents at runtime)
+          4. Bounded loop invariants (constrains any E2E retry additions for Issue 1)
+          5. Evidence-first principle (constrains Issue 7 — archive must not lose evidence)
+          6. Mandatory TDD for code tasks (constrains E2E expansion — TDD still required)
+
+          §9 Protected Phrase Patterns — constrains how text can be modified:
+          - MUST NOT, NEVER, RESTRICTED, PROHIBITED phrases cannot be removed
+          - This constrains how the designer can reword approval mode (Issue 2)
+          - This constrains any tool-access-matrix changes (RESTRICTED → ALLOWED rejected)
+
+          All 8 issues must comply with these immutable rules. The Knowledge Agent's
+          Safety Constraint Filter (§9) would block any change that weakens them.
+        evidence:
+          - "NewAgents/.github/agents/global-operating-rules.md §9 (lines 100-175)"
+          - "NewAgents/.github/agents/global-operating-rules.md §9.3 Pattern-Matching Rejection"
+          - "NewAgents/.github/agents/global-operating-rules.md §9.1 Immutable Rules"
+        relevance: "The immutable safety rules form a hard constraint on all design decisions. The designer must verify every proposed change against §9. This is especially critical for Issues 1 (E2E expansion), 3 (new tool), and 8 (new pipeline mode)."
+
+    summary: |
+      The agent pipeline system has a densely interconnected dependency graph centered on 4 hub files:
+      tool-access-matrix.md (tool authority), schemas.md (data contracts), sql-templates.md (DB operations),
+      and global-operating-rules.md (immutable constraints). The orchestrator.agent.md is the coordination
+      hub referencing all 4 hub files.
+
+      Key dependency findings for the 8 proposed issues:
+      - Issue 1 (E2E for all risk) has the highest cascade: 7 files must change in sync, starting from
+        planner.agent.md's workflow lane derivation table.
+      - Issue 8 (shorter pipeline) is architecturally complex: requires new prompt file, possible planner
+        tool additions, and handling missing upstream artifacts.
+      - Issues 2, 4, 5, 7 are well-contained with minimal cascade (1-3 files each).
+      - Issue 3 (fetch_webpage) introduces a completely new tool dependency across the matrix.
+      - Issues 1+6 form a coupled pair sharing the E2E dependency chain.
+      - The immutable safety rules in global-operating-rules.md §9 constrain all changes.
+      - SQLite is written by 6 agents across 4 tables; the archive strategy (Issue 7) must handle
+        all table data atomically at Step 0.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/e2e-integration.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/context7-integration.md"
+      - "NewAgents/.github/agents/review-perspectives.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "NewAgents/.github/prompts/feature-workflow.prompt.md"
+      - ".github/copilot-instructions.md"
+
+completion:
+  status: DONE
+  summary: "Dependencies research complete: 13 findings mapping the full inter-file, tool, schema, SQLite, and ordering dependency graph for 8 proposed pipeline improvements"
+  severity: null
+  findings_count: 13
+  risk_level: null
+  output_paths:
+    - "research/dependencies.yaml"

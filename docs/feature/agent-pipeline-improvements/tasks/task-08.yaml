@@ -1,0 +1,40 @@
+task:
+  id: "task-08"
+  title: "Add no-redirect enforcement and approval_mode to implementer.agent.md"
+  description: >
+    Two changes to implementer.agent.md: (1) Add explicit no-file-redirect rule to Operating Rules
+    section with banned pattern examples (>, >>, | tee, 2>&1 >). The rule text: 'NEVER redirect
+    terminal output to files. Do not use >, >>, | tee, 2>&1 > or any output redirection in
+    run_in_terminal commands. Read output directly from the terminal.' (2) Add 'NEVER redirect
+    terminal output to files' to anti-drift anchor section. (3) Add approval_mode to
+    Orchestrator-Provided Parameters table documenting that the orchestrator passes approval_mode
+    when dispatching implementer instances.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟢"
+  depends_on: []
+  acceptance_criteria:
+    - id: "AC-8"
+      text: "implementer.agent.md Operating Rules section contains an explicit no-file-redirect prohibition with example patterns (>, >>, | tee, 2>&1 >)."
+      test_method: "inspection"
+    - id: "AC-10"
+      text: "implementer.agent.md anti-drift anchor contains the phrase 'NEVER redirect terminal output to files.'"
+      test_method: "inspection"
+    - id: "FR-2.2"
+      text: "approval_mode is documented in implementer.agent.md Orchestrator-Provided Parameters table as a named parameter passed by the orchestrator."
+      test_method: "inspection"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-6']"
+      - "design-output.yaml#payload.decisions[id='D-4']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/implementer.agent.md']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4'][sub_requirements.id='FR-4.1']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4'][sub_requirements.id='FR-4.3']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2'][sub_requirements.id='FR-2.2']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        risk: "🟢"
+  workflow_lane: "unit-only"
+  e2e_required: false
+  e2e_contract_path: null

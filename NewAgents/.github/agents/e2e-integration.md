@@ -11,11 +11,13 @@
 
 Agents MUST read only the sections relevant to their role. This enables conditional loading and reduces context pressure.
 
+> **E2E applicability:** E2E testing is available for **all risk levels** (🟢, 🟡, 🔴), not restricted to 🔴 tasks. When an `e2e-contract.yaml` exists and the planner sets `e2e_required: true`, E2E sections apply regardless of task risk level or workflow lane. The sections below are relevant whenever E2E is enabled for a task.
+
 | Agent                    | Required Sections | Purpose                                         |
 | ------------------------ | ----------------- | ----------------------------------------------- |
 | **Orchestrator**         | §1, §6            | Contract discovery, timeout enforcement         |
 | **Verifier**             | §2, §3, §4, §5    | Interaction protocol, sanitization, allowlist   |
-| **Planner**              | §1 only           | Contract fields for lane derivation             |
+| **Planner**              | §1 only           | Contract fields for `e2e_required` derivation   |
 | **Adversarial Reviewer** | §4, §5            | Sanitization audit, allowlist compliance review |
 
 ---
@@ -158,19 +160,20 @@ Skills define reusable interaction procedures. Per D-18, all steps are **pre-def
 
 ### Skill Structure
 
-| Field                    | Type    | Required | Purpose                                             |
-| ------------------------ | ------- | -------- | --------------------------------------------------- |
-| `id`                     | string  | Yes      | Unique identifier (e.g., `SKILL-001`)               |
-| `name`                   | string  | Yes      | Human-readable name                                 |
-| `type`                   | enum    | Yes      | `test-suite` \| `exploratory` \| `adversarial`      |
-| `interaction`            | enum    | Yes      | `browser` \| `api` \| `cli` \| `test-command`       |
-| `app_type_filter`        | list    | No       | App types this skill applies to, or `['*']` for all |
-| `preconditions`          | list    | No       | Conditions required before skill runs               |
-| `steps`                  | list    | Yes      | Ordered interaction steps                           |
-| `expected_outcomes`      | list    | No       | Overall skill outcome assertions                    |
-| `adversarial_variations` | list    | No       | Override objects for adversarial testing            |
-| `tags`                   | list    | No       | Categorization tags                                 |
-| `timeout_ms`             | integer | No       | Max time for entire skill (default `60000`)         |
+| Field                    | Type    | Required | Purpose                                                    |
+| ------------------------ | ------- | -------- | ---------------------------------------------------------- |
+| `id`                     | string  | Yes      | Unique identifier (e.g., `SKILL-001`)                      |
+| `name`                   | string  | Yes      | Human-readable name                                        |
+| `skill_format`           | enum    | No       | `playwright-yaml` (default) \| `copilot-skill` — see below |
+| `type`                   | enum    | Yes      | `test-suite` \| `exploratory` \| `adversarial`             |
+| `interaction`            | enum    | Yes      | `browser` \| `api` \| `cli` \| `test-command`              |
+| `app_type_filter`        | list    | No       | App types this skill applies to, or `['*']` for all        |
+| `preconditions`          | list    | No       | Conditions required before skill runs                      |
+| `steps`                  | list    | Yes      | Ordered interaction steps                                  |
+| `expected_outcomes`      | list    | No       | Overall skill outcome assertions                           |
+| `adversarial_variations` | list    | No       | Override objects for adversarial testing                   |
+| `tags`                   | list    | No       | Categorization tags                                        |
+| `timeout_ms`             | integer | No       | Max time for entire skill (default `60000`)                |
 
 ### Skill Types
 
@@ -209,6 +212,44 @@ Skills define reusable interaction procedures. Per D-18, all steps are **pre-def
 ### Adversarial Variations
 
 Each variation: `id` (string, required), `name` (string, required), `description` (string), `severity_if_missed` (enum: `critical|high|medium|low`, required), `overrides` (list of `{step_order, field, override_value}`, required), `expected_behavior` (string, required — what SHOULD happen when attack is blocked), `assert` (object — machine-checkable assertion).
+
+### Skill Formats
+
+The `skill_format` field determines how a skill is authored and consumed:
+
+| Format            | File Type | Authoring                                                    | Execution                                                             |
+| ----------------- | --------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `playwright-yaml` | `.yaml`   | Structured YAML with step actions, selectors, and assertions | Verifier translates steps directly to Playwright CLI commands         |
+| `copilot-skill`   | `.md`     | Markdown SKILL.md files describing interaction procedures    | Verifier reads as interaction guide, converts steps to Playwright CLI |
+
+**Default:** When `skill_format` is omitted, `playwright-yaml` is assumed.
+
+**Layering principle (D-8):** Copilot skills describe **WHAT** to test — interaction procedures for an application. The existing Playwright CLI infrastructure remains **HOW** to execute browser interactions. Copilot skills are a declarative input format layered on top of the Playwright CLI execution pipeline, not a replacement for it.
+
+#### Copilot Skill Discovery
+
+The researcher agent (Step 1.5 E2E Skill File Generation) checks for existing Copilot skill files at these locations:
+
+- `.github/copilot/skills/` — VS Code Copilot custom skills directory
+- `.github/agents/` — Agent definition directory containing `SKILL.md` files
+- `skills/playwright-cli/` — Skills installed by `playwright-cli install --skills`
+
+When Copilot skill files are found, they SHOULD be referenced in the `e2e-contract.yaml` with `skill_format: copilot-skill`.
+
+#### Copilot Skill → Playwright CLI Conversion
+
+The Verifier Tier 5 converts `copilot-skill` format to Playwright CLI commands:
+
+1. Read the `.md` skill file and parse its interaction steps (numbered lists, action descriptions)
+2. Map each described interaction to the corresponding Playwright CLI command:
+   - "Navigate to /login" → `playwright-cli -s=<session> goto <base_url>/login`
+   - "Enter email in the email field" → `playwright-cli -s=<session> fill <ref> <value>`
+   - "Click the submit button" → `playwright-cli -s=<session> click <ref>`
+   - "Verify the dashboard loads" → `playwright-cli -s=<session> snapshot` + assertion check
+3. Execute the mapped commands through the standard Playwright CLI interaction protocol (§3)
+4. Apply the same command sanitization (§4), allowlist validation (§5), and evidence capture rules
+
+> **Determinism:** Copilot skill steps MUST map to concrete Playwright CLI commands. Ambiguous interaction descriptions that cannot be deterministically mapped are logged as warnings and skipped.
 
 ### Storage (D-4)
 

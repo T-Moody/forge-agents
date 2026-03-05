@@ -1,0 +1,120 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-agent-pipeline-improvements-code-review-fixes-r2"
+  step: "step-5"
+  started_at: "2026-03-05T12:00:00Z"
+  completed_at: "2026-03-05T12:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "agent-pipeline-improvements-code-review-fixes-r2"
+    task_type: "configuration"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/orchestrator.agent.md"
+        action: "modified"
+        description: "Fix 1: §11→§1.1 cross-ref. Fix 2: fast-track 🔴 risk enforcement. Fix 3: DR-1 scope add archive rename + anti-drift anchor. Fix 4: EG-10 threshold ≥4→≥3 with e2e-additive. Fix 5: gate eval order add e2e-additive. Fix 6: filesystem-safe timestamp note. Fix 10: -corrupt suffix on archive failure."
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        action: "modified"
+        description: "Fix 6: Added filesystem-safe timestamp format note in §1.1 for Windows NTFS compatibility."
+      - path: "NewAgents/.github/prompts/plan-and-implement.prompt.md"
+        action: "modified"
+        description: "Fix 7: Added safe default 'interactive' when APPROVAL_MODE is absent."
+      - path: "NewAgents/.github/agents/spec.agent.md"
+        action: "modified"
+        description: "Fix 8: Updated pushback options from 'proceed/modify/abandon' to 'accept/modify/dismiss'. Fix 9: Added fetch_webpage autonomous guard self-verification item."
+      - path: "NewAgents/.github/agents/researcher.agent.md"
+        action: "modified"
+        description: "Fix 9: Added fetch_webpage autonomous guard self-verification item."
+      - path: "NewAgents/.github/agents/designer.agent.md"
+        action: "modified"
+        description: "Fix 9: Added fetch_webpage autonomous guard self-verification item."
+      - path: "NewAgents/.github/agents/implementer.agent.md"
+        action: "modified"
+        description: "Fix 9: Added no-terminal-redirect self-verification item."
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "fix-1-section-ref"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        notes: "§11 no longer present; §1.1 confirmed at line 111"
+      - check_name: "fix-2-red-risk-enforcement"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        notes: "Fast-track 🔴 risk escalation clause added at line 119"
+      - check_name: "fix-3-dr1-scope"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        notes: "DR-1 updated to permit archive rename; anti-drift anchor updated"
+      - check_name: "fix-4-eg10-threshold"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        notes: "full-tdd-e2e ≥3 with e2e-additive confirmed at line 434"
+      - check_name: "fix-5-gate-order"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        notes: "EG-10(e2e-additive) step added at line 431"
+      - check_name: "fix-6-filesystem-safe"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        notes: "Filesystem-safe timestamp note in orchestrator and sql-templates"
+      - check_name: "fix-7-approval-default"
+        phase: "after"
+        tool: "read_file"
+        passed: true
+        notes: "APPROVAL_MODE defaults to interactive"
+      - check_name: "fix-8-pushback-options"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        notes: "Options updated to accept/modify/dismiss"
+      - check_name: "fix-9-self-verification"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        notes: "Self-verification items added to 4 agent files"
+      - check_name: "fix-10-corrupt-suffix"
+        phase: "after"
+        tool: "grep_search"
+        passed: true
+        notes: "-corrupt suffix on archive failure added at line 111"
+      - check_name: "line-budget"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+        notes: "Orchestrator remains at 539/550 lines"
+    behavioral_coverage: []
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+      verify_phase:
+        get_errors_clean: true
+        typecheck_clean: true
+        tests_passing: true
+      tdd_fallback_reason: "Configuration-only task modifying agent instruction files (markdown). No production source code. TDD not applicable."
+completion:
+  status: "DONE"
+  summary: "Fixed all 10 code review findings (2 Critical, 6 Major, 2 Minor) across 7 files. Orchestrator at 539/550 lines."
+  severity: null
+  findings_count: 10
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-pipeline-improvements/implementation-reports/code-review-fixes-r2.yaml"

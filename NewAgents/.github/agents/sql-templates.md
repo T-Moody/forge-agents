@@ -79,6 +79,8 @@ Before executing any SQL INSERT via `run_in_terminal`, every SQL-writing agent M
 
 The Orchestrator executes this DDL at Step 0 via `run_in_terminal`. Single database: `verification-ledger.db`.
 
+> **Archive prerequisite:** Before executing DDL, the orchestrator checks whether an existing `verification-ledger.db` contains data from a prior `run_id`. If so, the DB is renamed to `verification-ledger-{ISO8601-timestamp}.db` (archived) and a fresh DB is created. See [§1.1 Archive Check Query](#11-archive-check-query) for the detection query.
+
 ```sql
 -- ═══════════════════════════════════════════════════════════════
 -- verification-ledger.db — Step 0 Initialization
@@ -191,6 +193,28 @@ CREATE INDEX IF NOT EXISTS idx_instr_run ON instruction_updates(run_id);
 | `change_summary`      | TEXT | No       | Max 1000 chars.                                                                      |
 | `artifact_path`       | TEXT | No       | Path traversal CHECK: no `../` prefix, no `/` prefix (SEC-6).                        |
 | `file_path`           | TEXT | No       | Restricted to `.github/instructions/*` or `.github/copilot-instructions.md` (SEC-6). |
+
+---
+
+### §1.1 Archive Check Query
+
+Used by the Orchestrator at Step 0 **before** DDL execution to detect stale data from a prior pipeline run. If the query returns a `run_id` that differs from the current `run_id`, the orchestrator archives the existing DB by renaming it to `verification-ledger-{ISO8601-timestamp}.db` and creates a fresh DB. The `{ISO8601-timestamp}` MUST use filesystem-safe format (replace `:` with `-`, e.g., `2026-03-05T12-00-00Z`) for Windows NTFS compatibility.
+
+```sql
+-- Archive detection: check if existing DB belongs to a different run
+-- If result is non-empty AND differs from current run_id → archive (rename) the DB
+-- If query fails (table doesn't exist or DB corrupt) → archive unconditionally
+SELECT DISTINCT run_id FROM pipeline_telemetry LIMIT 1;
+```
+
+**Usage guidance (Orchestrator Step 0):**
+
+1. Run the archive check query against the existing `verification-ledger.db`.
+2. If the query succeeds and returns a `run_id` **different** from the current `run_id` → rename the DB to `verification-ledger-{timestamp}.db`.
+3. If the query **fails** (e.g., table missing, DB corrupt) → rename the DB to `verification-ledger-{timestamp}-corrupt.db`.
+4. If the query returns the **same** `run_id` → keep the existing DB (pipeline resume scenario).
+5. If the DB does not exist → skip archive, proceed to DDL.
+6. After archiving, create a fresh `verification-ledger.db` and execute the §1 DDL.
 
 ---
 
@@ -628,9 +652,9 @@ WHERE run_id = '{run_id}'
 
 ### EG-10: Lane-Aware Verification (parameterized, replaces EG-2 — D-16)
 
-> **Replaces old EG-2.** Consolidates verification-sufficient checks into three parameterized lane variants. The orchestrator selects the appropriate variant based on the task's `workflow_lane` field. Each variant checks for specific `check_name` values with `passed=1`.
+> **Replaces old EG-2.** Consolidates verification-sufficient checks into lane variants for non-E2E checks. The orchestrator selects the appropriate variant based on the task's `workflow_lane` field. E2E verification is handled separately as an **additive check** gated on `e2e_required=true` (independent of `workflow_lane`) — see [EG-10(e2e-additive)](#eg-10e2e-additive-e2e-verification-when-e2e_requiredtrue) below.
 >
-> **Gate evaluation order:** EG-1 → EG-10 → EG-7 → EG-8 → EG-9 → EG-3..EG-6
+> **Gate evaluation order:** EG-1 → EG-10 (lane variant) → EG-10(e2e-additive) if applicable → EG-7 → EG-8 → EG-9 → EG-3..EG-6
 
 #### EG-10(unit-only): Baseline + TDD Compliance
 
@@ -664,19 +688,36 @@ WHERE run_id = '{run_id}'
   AND passed = 1;
 ```
 
-#### EG-10(full-tdd-e2e): Baseline + TDD + Behavioral Coverage + E2E
+#### EG-10(full-tdd-e2e): Baseline + TDD + Behavioral Coverage
 
-For tasks with `workflow_lane='full-tdd-e2e'` (🔴 risk). Minimum 4 passed checks including `e2e-test-execution`.
+For tasks with `workflow_lane='full-tdd-e2e'` (🔴 risk). Minimum 3 passed non-E2E checks. E2E verification is handled by the additive check below.
 
 ```sql
--- EG-10(full-tdd-e2e): baseline + TDD + behavioral coverage + E2E
--- Expected: 4 (including at least 1 e2e-test-execution with passed=1)
--- Producer: verifier (baseline-captured Tier 0/1, tdd-compliance Tier 2, behavioral-coverage Tier 2, e2e-test-execution Tier 5)
+-- EG-10(full-tdd-e2e): baseline + TDD + behavioral coverage (non-E2E checks)
+-- Expected: 3
+-- Producer: verifier (baseline-captured Tier 0/1, tdd-compliance Tier 2, behavioral-coverage Tier 2)
 SELECT COUNT(*) FROM anvil_checks
 WHERE run_id = '{run_id}'
   AND task_id = '{task_id}'
   AND phase = 'after'
-  AND check_name IN ('baseline-captured', 'tdd-compliance', 'behavioral-coverage', 'e2e-test-execution')
+  AND check_name IN ('baseline-captured', 'tdd-compliance', 'behavioral-coverage')
+  AND passed = 1;
+```
+
+#### EG-10(e2e-additive): E2E Verification (when `e2e_required=true`)
+
+**Additive check** — evaluated for ANY task where `e2e_required=true`, regardless of `workflow_lane` or risk level. This decouples E2E gating from the lane model: a 🟢 task with `e2e_required=true` triggers this check just as a 🔴 task does. Skipped entirely when `e2e_required=false`.
+
+```sql
+-- EG-10(e2e-additive): E2E test execution (independent of workflow_lane)
+-- Expected: ≥1 (at least 1 e2e-test-execution with passed=1)
+-- Producer: verifier Tier 5 (e2e-test-execution)
+-- Gate condition: only evaluated when task.e2e_required=true
+SELECT COUNT(*) FROM anvil_checks
+WHERE run_id = '{run_id}'
+  AND task_id = '{task_id}'
+  AND phase = 'after'
+  AND check_name = 'e2e-test-execution'
   AND passed = 1;
 ```
 

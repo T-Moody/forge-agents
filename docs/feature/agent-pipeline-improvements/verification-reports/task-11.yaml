@@ -1,0 +1,78 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-11"
+  step: "step-6"
+  started_at: "2026-03-05T14:00:00Z"
+  completed_at: "2026-03-05T14:15:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-11"
+    run_id: "2026-03-05T12:00:00Z"
+    evidence_gate:
+      total_checks: 4
+      passed: 4
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-05:NewAgents/.github/prompts/plan-and-implement.prompt.md"
+        exit_code: 1
+        passed: true
+        output_snippet: "File does not exist at baseline tag (expected: new file). Implementer reports action=created. No discrepancy."
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "No errors in plan-and-implement.prompt.md or feature-workflow.prompt.md. No new errors introduced."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Valid YAML frontmatter (name, agent fields). Valid markdown structure. Matches feature-workflow.prompt.md conventions."
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Documentation task: .prompt.md file cannot be imported or executed as a module. No runtime verification possible. Content verified via inspection."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-05:<path>"
+      discrepancies_found: false
+    content_inspection:
+      ac_16_file_exists: true
+      ac_16_step_set: "Step 0 → Step 4 → Steps 5-6 → Step 7 → Step 8 → Step 9"
+      ac_20_feature_workflow_unchanged: true
+      ac_20_method: "git diff pipeline-baseline-2026-03-05 HEAD -- NewAgents/.github/prompts/feature-workflow.prompt.md (empty diff)"
+      fr_8_2_pipeline_mode: "pipeline_mode: fast-track present in Pipeline Mode section"
+      d_10_separate_prompt: true
+      d_14_minimum_step_set: "Minimum Required Steps (Immutable) section references Step 0, Step 7, Step 9"
+      scope_guardrails: "small, low-risk (🟢) features only documented"
+      yaml_frontmatter: "name and agent fields present, matches feature-workflow.prompt.md convention"
+      git_staged: "A  NewAgents/.github/prompts/plan-and-implement.prompt.md"
+      approval_mode_gate: "APPROVAL_MODE gate behavior documented in Pipeline Execution Rules #4"
+      step_8_included: "Step 8 (Knowledge Capture) included per DR-3/FR-8.7"
+completion:
+  status: "DONE"
+  summary: "Verified task-11: 4 checks passed, 0 failed, 0 regressions. All ACs satisfied."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "verification-reports/task-11.yaml"
+  evidence_summary:
+    total_checks: 4
+    passed: 4
+    failed: 0
+    security_blockers: 0

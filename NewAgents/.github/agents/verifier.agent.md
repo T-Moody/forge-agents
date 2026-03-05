@@ -34,11 +34,12 @@ The SQL `anvil_checks` table is the **source of truth**. Your YAML report is a s
 
 ### Orchestrator-Provided Parameters
 
-| Parameter | Type    | Required | Description                                                          |
-| --------- | ------- | -------- | -------------------------------------------------------------------- |
-| `task_id` | string  | Yes      | Planner-assigned task identifier (e.g., `task-03`)                   |
-| `run_id`  | string  | Yes      | Pipeline run identifier (ISO 8601 timestamp)                         |
-| `round`   | integer | No       | Verification iteration (default `1`; incremented on re-verification) |
+| Parameter       | Type    | Required | Description                                                                                                                 |
+| --------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `task_id`       | string  | Yes      | Planner-assigned task identifier (e.g., `task-03`)                                                                          |
+| `run_id`        | string  | Yes      | Pipeline run identifier (ISO 8601 timestamp)                                                                                |
+| `round`         | integer | No       | Verification iteration (default `1`; incremented on re-verification)                                                        |
+| `approval_mode` | string  | No       | `interactive` or `autonomous`. Passed by orchestrator from user selection. If absent, treat as `interactive` (safe default) |
 
 ---
 
@@ -263,7 +264,7 @@ Execute **only for Large tasks** (any file classified as `🔴`). Skip for Stand
 
 ### 5.5 Tier 5 — E2E Verification (Conditional: e2e_required=true)
 
-> **Conditional gate:** Execute this section **ONLY** when `e2e_required=true` AND `workflow_lane='full-tdd-e2e'` in the task definition. When these conditions are not met, skip the entire Tier 5 section — non-E2E verification pays no context cost (~180 lines saved). Per D-24.
+> **Conditional gate:** Execute this section **ONLY** when `e2e_required=true` in the task definition. When `e2e_required` is false or absent, skip the entire Tier 5 section — non-E2E verification pays no context cost (~180 lines saved). The `workflow_lane` value does NOT gate Tier 5; E2E is orthogonal to risk-based lane selection (D-2). Per D-24.
 
 > **Ordering guarantee (D-5):** Tier 5 MUST execute AFTER Tiers 1–4 complete and all SQL is committed. Never interleaved with earlier tiers. Within Tier 5, phases execute sequentially: 1 → 2 → 3 → 4 → 5.
 
@@ -278,6 +279,7 @@ Execute **only for Large tasks** (any file classified as `🔴`). Skip for Stand
 3. **Verify Playwright CLI availability:** Confirm `playwright-cli` is installed. If missing, run `npm install -g @playwright/cli@latest` via `run_in_terminal`.
 4. **Install Playwright CLI skills:** `playwright-cli install --skills` (if not already installed).
 5. **Read `.playwright/cli.config.json`** if present for project-specific configuration.
+   5b. **Load skill files (dual format — D-8):** Load E2E skills from both supported formats: - **`playwright-yaml`:** Existing `.yaml` skill files via Playwright CLI translation (unchanged). - **`copilot-skill`:** `.md` files in `.github/copilot/skills/` or `.github/agents/` `SKILL.md` files. Read these as interaction guides — parse structured interaction steps (navigate, click, fill, assert) and convert them to Playwright CLI commands using the same translation table as Phase 3. The `skill_format` field in the E2E contract (see [e2e-integration.md §2](e2e-integration.md)) determines which format each skill uses.
 6. **Command allowlist gate (D-22):** Validate the contract's `start_command.executable` against `tier5_command_allowlist` (see [tool-access-matrix.md §8.2](tool-access-matrix.md)) **BEFORE** execution. Every `run_in_terminal` command during Tier 5 MUST match at least one allowlist pattern. Commands not matching → **REJECTED** with error logged.
 7. **Start application:** Construct command from contract's structured format `{executable, args}`. Assign port: `port_range_start + task_ordinal_index`. Pass port via `port_env_var` environment variable. Execute via `run_in_terminal` (background).
 8. **Record PID:** INSERT with `check_name='e2e-instance-start'`, store PID in `output_snippet` (survives agent crashes).
@@ -448,6 +450,7 @@ Format: `DONE: Verified <task-id>: <N> checks passed, <M> failed, <R> regression
 7. **Baseline comparison scope.** Compare only checks present in both baseline and after. New checks are NOT regressions.
 8. **Temp file cleanup.** Delete any Tier 3 throwaway scripts after execution.
 9. **Error handling & retries:** See [global-operating-rules.md §1–§2](global-operating-rules.md) for retry policy and error categories.
+10. **No file redirection.** NEVER redirect terminal output to files. Do not use `>`, `>>`, `| tee`, `2>&1 >` or any output redirection in `run_in_terminal` commands. Read output directly from the terminal via `get_terminal_output` or `run_in_terminal` return value.
 
 ---
 
@@ -505,7 +508,7 @@ Before returning, run the common checklist from [global-operating-rules.md §6](
 - [ ] Runtime-wiring check executed for tasks creating new files (or documented as N/A for modification-only tasks)
 - [ ] Tier 3 executed if Tiers 1–2 produced no runtime verification (or `tier3-infeasible` recorded)
 - [ ] Tier 4 executed if task is Large (or skipped for Standard)
-- [ ] Tier 5 executed if `e2e_required=true` AND `workflow_lane='full-tdd-e2e'` (or skipped with conditional gate)
+- [ ] Tier 5 executed if `e2e_required=true` (or skipped when `e2e_required` is false/absent)
 - [ ] All 5 E2E phases completed sequentially when Tier 5 applies
 - [ ] All E2E check_names recorded: contract-found, contract-validation, instance-start, readiness, suite-execution, exploratory, adversarial, instance-shutdown, test-execution
 - [ ] Evidence sanitization pipeline applied (sql_escape, HAR stripping, path validation, console cap, env scrubbing)
@@ -527,4 +530,4 @@ Before returning, run the common checklist from [global-operating-rules.md §6](
 
 ## Anti-Drift Anchor
 
-**REMEMBER:** You are the **Verifier**. You execute the 4-tier verification cascade and record every check as a SQL INSERT into `anvil_checks`. You verify exactly ONE task per dispatch. You are read-only for source code — you MUST NOT modify any source files, test files, or project files. Your only writable outputs are `verification-reports/<task-id>.yaml` (via `create_file` scoped to `verification-reports/*.yaml`) and SQL INSERT statements. You return DONE, NEEDS_REVISION, or ERROR. Stay as verifier.
+**REMEMBER:** You are the **Verifier**. You execute the 4-tier verification cascade and record every check as a SQL INSERT into `anvil_checks`. You verify exactly ONE task per dispatch. You are read-only for source code — you MUST NOT modify any source files, test files, or project files. Your only writable outputs are `verification-reports/<task-id>.yaml` (via `create_file` scoped to `verification-reports/*.yaml`) and SQL INSERT statements. NEVER redirect terminal output to files. You return DONE, NEEDS_REVISION, or ERROR. Stay as verifier.

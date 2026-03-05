@@ -1,0 +1,89 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-08"
+  step: "step-6"
+  started_at: "2026-03-05T14:00:00Z"
+  completed_at: "2026-03-05T14:20:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-08"
+    run_id: "2026-03-05T12:00:00Z"
+    evidence_gate:
+      total_checks: 4
+      passed: 4
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "git show"
+        command: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/implementer.agent.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "No discrepancies. Baseline lacked approval_mode, rule 11, and no-redirect anchor phrase. All three added as claimed."
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "0 errors, 5 warnings (all pre-existing markdown link resolution). Matches baseline (0 errors, 5 warnings). No new diagnostics introduced."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown heading hierarchy valid (# > ## > ###). Table formatting correct. No broken structure detected. 20+ sections with proper nesting."
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "All 3 ACs use test_method=inspection. AC-8: Rule 11 at L313 has all patterns. AC-10: Anti-drift at L464 has phrase. FR-2.2: approval_mode at L46 in params table. Coverage: 3/3 verified by inspection."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/implementer.agent.md"
+      discrepancies_found: false
+    acceptance_criteria_verification:
+      - id: "AC-8"
+        result: "PASS"
+        evidence: "Line 313: Rule 11 contains 'NEVER redirect terminal output to files' with all four banned patterns (>, >>, | tee, 2>&1 >)."
+      - id: "AC-10"
+        result: "PASS"
+        evidence: "Line 464 anti-drift anchor contains 'You NEVER redirect terminal output to files.'"
+      - id: "FR-2.2"
+        result: "PASS"
+        evidence: "Line 46: approval_mode row in Orchestrator-Provided Parameters table — type string, required No, description 'Pipeline approval mode — autonomous or interactive'."
+    design_alignment:
+      - decision: "D-6"
+        title: "No-redirect enforcement in Operating Rules AND anti-drift anchor"
+        aligned: true
+        notes: "Both locations updated as specified."
+      - decision: "D-4"
+        title: "Approval mode: user selection authoritative"
+        aligned: true
+        notes: "approval_mode parameter documented in implementer's Orchestrator-Provided Parameters table."
+    tier_summary:
+      tier_1: "Executed. IDE diagnostics: 0 new errors (5 pre-existing warnings unchanged). Syntax: valid markdown structure."
+      tier_2: "Behavioral coverage: 3/3 ACs verified by inspection (all test_method=inspection). No build/test/lint tooling for .md files. TDD N/A (documentation task)."
+      tier_3: "Not required — Tiers 1-2 produced 4 verification signals (exceeds Standard minimum of 2)."
+      tier_4: "Skipped — Standard task (🟢 risk), not Large."
+completion:
+  status: "DONE"
+  summary: "Verified task-08: 4 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-pipeline-improvements/verification-reports/task-08.yaml"
+  evidence_summary:
+    total_checks: 4
+    passed: 4
+    failed: 0
+    security_blockers: 0

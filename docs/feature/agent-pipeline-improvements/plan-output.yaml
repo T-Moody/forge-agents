@@ -1,0 +1,119 @@
+agent_output:
+  agent: "planner"
+  instance: "planner"
+  step: "step-4"
+  started_at: "2026-03-05T12:35:00Z"
+  completed_at: "2026-03-05T13:05:00Z"
+  schema_version: "1.0"
+  payload:
+    overall_risk_summary: "🔴"
+    total_tasks: 11
+    waves:
+      - id: "wave-1"
+        tasks: ["task-01", "task-02", "task-03", "task-08", "task-10"]
+        max_concurrent: 4
+      - id: "wave-2"
+        tasks: ["task-04", "task-05", "task-06", "task-07", "task-09"]
+        max_concurrent: 4
+      - id: "wave-3"
+        tasks: ["task-11"]
+        max_concurrent: 1
+    tasks:
+      - id: "task-01"
+        title: "Update schemas.md and sql-templates.md for E2E decoupling and archive support"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-02"
+        title: "Update tool-access-matrix.md with fetch_webpage, planner ask_questions, and orchestrator scope"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-03"
+        title: "Update e2e-integration.md and dispatch-patterns.md for risk-independent E2E and Copilot Skills"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-04"
+        title: "Apply all orchestrator.agent.md changes (approval mode, DB archive, fast-track, E2E, anti-drift)"
+        size: "Large"
+        risk: "🔴"
+        depends_on: ["task-01", "task-02"]
+        agent: "implementer"
+      - id: "task-05"
+        title: "Update planner.agent.md for E2E decoupling, fast-track fallback, and self-verification"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-01", "task-02"]
+        agent: "implementer"
+      - id: "task-06"
+        title: "Update verifier.agent.md for Tier 5 gate, no-redirect, Copilot skill support, and approval_mode"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-03"]
+        agent: "implementer"
+      - id: "task-07"
+        title: "Restructure spec.agent.md pushback system and add fetch_webpage + approval_mode"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-02"]
+        agent: "implementer"
+      - id: "task-08"
+        title: "Add no-redirect enforcement and approval_mode to implementer.agent.md"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-09"
+        title: "Add fetch_webpage, Copilot skill discovery, and approval_mode to researcher and designer agents"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: ["task-02"]
+        agent: "implementer"
+      - id: "task-10"
+        title: "Add approval_mode to adversarial-reviewer.agent.md and knowledge-agent.agent.md"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-11"
+        title: "Create plan-and-implement.prompt.md fast-track pipeline prompt"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: ["task-04"]
+        agent: "implementer"
+    dependency_graph:
+      task-01: []
+      task-02: []
+      task-03: []
+      task-04: ["task-01", "task-02"]
+      task-05: ["task-01", "task-02"]
+      task-06: ["task-03"]
+      task-07: ["task-02"]
+      task-08: []
+      task-09: ["task-02"]
+      task-10: []
+      task-11: ["task-04"]
+completion:
+  status: "DONE"
+  summary: "11 tasks created, 3 waves, overall risk 🔴"
+  severity: null
+  findings_count: 0
+  risk_level: "🔴"
+  output_paths:
+    - "plan-output.yaml"
+    - "plan.md"
+    - "tasks/task-01.yaml"
+    - "tasks/task-02.yaml"
+    - "tasks/task-03.yaml"
+    - "tasks/task-04.yaml"
+    - "tasks/task-05.yaml"
+    - "tasks/task-06.yaml"
+    - "tasks/task-07.yaml"
+    - "tasks/task-08.yaml"
+    - "tasks/task-09.yaml"
+    - "tasks/task-10.yaml"
+    - "tasks/task-11.yaml"

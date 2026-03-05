@@ -1,0 +1,94 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-05"
+  step: "step-6"
+  started_at: "2026-03-05T13:20:00Z"
+  completed_at: "2026-03-05T13:28:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-05"
+    run_id: "2026-03-05T12:00:00Z"
+    evidence_gate:
+      total_checks: 5
+      passed: 5
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/planner.agent.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline tag exists. Baseline file has coupled e2e_required/lane table, no Fast-Track section, no Orchestrator-Provided Params, old check #11. All match implementation report claims. No discrepancies."
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "get_errors on planner.agent.md: No errors found. Baseline reported 0 errors, 0 warnings. No new errors introduced."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown structural validity verified: YAML frontmatter present with name/description fields, all markdown headings/tables/code blocks well-formed, no broken link syntax. 450 lines, all parseable."
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "task_type=documentation. All 6 ACs use test_method=inspection. AC-1: e2e_required decoupled from lane (L194-201). AC-2: planner assessment allows false for trivial tasks (L207). AC-3: 🔴+contract=true mandatory (L205,L213). AC-18: Fast-Track section (L45-63). FR-1.8: check #11 updated (L432). FR-2.2: approval_mode in params (L70). D-2/D-3/D-4/D-10/D-12 alignment confirmed."
+      - check_name: "tdd-compliance"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "task_type=documentation — TDD not applicable. No production source files modified, only agent definition markdown. TDD fallback reason accepted per EC-2."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/planner.agent.md"
+      discrepancies_found: false
+    design_alignment:
+      - decision: "D-2"
+        title: "E2E decoupling: independent boolean e2e_required"
+        aligned: true
+        detail: "e2e_required is independent of workflow_lane. Separate derivation section with contract+assessment logic."
+      - decision: "D-3"
+        title: "E2E for 🟢/🟡 opt-in, mandatory for 🔴 with contract"
+        aligned: true
+        detail: "E2E Required Derivation table shows planner assessment for 🟢/🟡, mandatory true for 🔴+contract."
+      - decision: "D-4"
+        title: "Approval mode: user selection authoritative"
+        aligned: true
+        detail: "approval_mode documented in Orchestrator-Provided Parameters table."
+      - decision: "D-10"
+        title: "Fast-track: separate prompt, planner fallback path"
+        aligned: true
+        detail: "Fast-Track Fallback Input Path section added with initial-request.md + ask_questions inputs."
+      - decision: "D-12"
+        title: "Planner ask_questions: 🔒 fast-track AND interactive restriction"
+        aligned: true
+        detail: "ask_questions listed as 🔒 fast-track mode + interactive only in both Fast-Track section and Tool Access section (8 tools)."
+completion:
+  status: "DONE"
+  summary: "Verified task-05: 5 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 5
+  risk_level: null
+  output_paths:
+    - "verification-reports/task-05.yaml"
+  evidence_summary:
+    total_checks: 5
+    passed: 5
+    failed: 0
+    security_blockers: 0

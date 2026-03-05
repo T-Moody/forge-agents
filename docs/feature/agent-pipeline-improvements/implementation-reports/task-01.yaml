@@ -1,0 +1,87 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-01"
+  step: "step-5"
+  started_at: "2026-03-05T12:00:00Z"
+  completed_at: "2026-03-05T12:30:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-01"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 3 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "NewAgents/.github/agents/schemas.md"
+        action: "modified"
+        description: >
+          Schema 6 task.e2e_required field definition updated: replaced old derivation rule
+          ('true when workflow_lane=full-tdd-e2e AND E2E contract exists') with independent
+          boolean based on contract presence + planner assessment, not gated on risk level.
+          Schema 13 e2e-contract gains skill_format field with allowed values 'playwright-yaml'
+          and 'copilot-skill'.
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        action: "modified"
+        description: >
+          §1 header gains archive prerequisite note referencing §1.1. New §1.1 Archive Check
+          Query section added with SELECT DISTINCT run_id FROM pipeline_telemetry LIMIT 1 and
+          6-step usage guidance for orchestrator Step 0. EG-10 restructured: full-tdd-e2e
+          variant no longer includes e2e-test-execution inline; new EG-10(e2e-additive) variant
+          added as independent check gated on e2e_required=true regardless of workflow_lane.
+          Non-E2E lane check counts preserved (unit-only=2, unit-integration=3, full-tdd-e2e=3).
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 5 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "self-check-ide-diagnostics"
+        phase: "after"
+        tool: "get_errors"
+        passed: true
+    behavioral_coverage:
+      - ac_id: "AC-1"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — Schema 6 e2e_required field definition verified by visual inspection of modified text"
+      - ac_id: "AC-13"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — Schema 13 skill_format field added with playwright-yaml and copilot-skill values"
+      - ac_id: "FR-1.5"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — EG-10 restructured with e2e-additive variant gated on e2e_required=true independent of workflow_lane"
+      - ac_id: "FR-7.2"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — Archive check query template added as §1.1 with usage guidance for Step 0"
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+      verify_phase:
+        get_errors_clean: true
+        typecheck_clean: true
+        tests_passing: true
+      tdd_fallback_reason: "task_type='documentation' — no production source files modified, only markdown instruction files"
+completion:
+  status: "DONE"
+  summary: "Updated schemas.md (Schema 6 e2e_required decoupled from lane, Schema 13 skill_format added) and sql-templates.md (§1 archive note, §1.1 archive query, EG-10 e2e-additive restructure)"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    [
+      "docs/feature/agent-pipeline-improvements/implementation-reports/task-01.yaml",
+    ]

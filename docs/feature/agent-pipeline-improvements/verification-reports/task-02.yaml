@@ -1,0 +1,107 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-02"
+  step: "step-6"
+  started_at: "2026-03-05T14:00:00Z"
+  completed_at: "2026-03-05T14:15:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-02"
+    run_id: "2026-03-05T12:00:00Z"
+    evidence_gate:
+      total_checks: 5
+      passed: 5
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/tool-access-matrix.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline compared: 7 changes verified — fetch_webpage row added, Planner ask_questions ❌→🔒, §2 archive rename scope, §3 6→7 tools, §4 8→9 tools, §5 7→8 tools, §6 7→8 tools. No discrepancies."
+
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "No errors found in tool-access-matrix.md"
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown structural validity confirmed: §1 matrix has 15 tool rows (14 original + fetch_webpage), all with consistent 10-column pipe format. Section headers (§1-§11) properly formatted."
+
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "All 5 ACs (AC-6, AC-15, AC-17, FR-3.2, FR-3.6) have test_method=inspection. Verified by content inspection: AC-6 fetch_webpage row §1 PASS, AC-15 §2 archive scope PASS, AC-17 Planner §1+§6 PASS, FR-3.2 scope text §3/§4/§5 PASS, FR-3.6 autonomous prohibition §3/§4/§5 PASS."
+
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: null
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Documentation-only task (tool-access-matrix.md). No importable modules, no executable code, no runtime to smoke-test."
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/tool-access-matrix.md"
+      discrepancies_found: false
+
+    ac_verification_detail:
+      - id: "AC-6"
+        result: "PASS"
+        evidence: "§1 line 23: fetch_webpage row — Orch=❌, Res=🔒, Spec=🔒, Des=🔒, Plan=❌, Impl=❌, Verif=❌, AdvRev=❌, Know=❌"
+      - id: "AC-15"
+        result: "PASS"
+        evidence: "§2 lines 30-31: run_in_terminal scope includes 'verification-ledger.db archive rename' with narrowly scoped Rename-Item/mv permissions"
+      - id: "AC-17"
+        result: "PASS"
+        evidence: "§1 line 21: Plan=🔒 for ask_questions. §6 lines 53-54: 'Fast-track mode only AND interactive mode only' scope restriction"
+      - id: "FR-3.2"
+        result: "PASS"
+        evidence: "§3 line 37, §4 line 43, §5 line 48: All contain required scope text — 'Interactive mode only. Requires user approval per invocation in VS Code. Used for researching architecture patterns, stack updates, best practices, and current documentation. NOT for fetching arbitrary URLs or scraping.'"
+      - id: "FR-3.6"
+        result: "PASS"
+        evidence: "§3 line 37, §4 line 43, §5 line 48: All contain 'Agents in autonomous mode MUST NOT attempt to use fetch_webpage.'"
+
+    design_alignment:
+      - decision: "D-5"
+        title: "fetch_webpage granted to Researcher, Designer, Spec (🔒 interactive-only)"
+        aligned: true
+        notes: "Implementation matches D-5 exactly — three agents get 🔒 access, all others ❌"
+      - decision: "D-4"
+        title: "Approval mode: user selection authoritative, interactive as safe default"
+        aligned: true
+        notes: "Planner ask_questions 🔒 in §6 with fast-track+interactive restriction supports D-4 fast-track fallback path"
+
+completion:
+  status: "DONE"
+  summary: "Verified task-02: 5 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-pipeline-improvements/verification-reports/task-02.yaml"
+  evidence_summary:
+    total_checks: 5
+    passed: 5
+    failed: 0
+    security_blockers: 0

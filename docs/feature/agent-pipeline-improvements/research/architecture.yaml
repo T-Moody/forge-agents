@@ -1,0 +1,467 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-architecture"
+  step: "step-1"
+  started_at: "2026-03-05T12:00:00Z"
+  completed_at: "2026-03-05T12:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "architecture"
+    findings:
+      - id: "F-1"
+        title: "19-file agent system with 9 agent definitions and 10 reference documents"
+        category: "structure"
+        detail: |
+          The agent system in NewAgents/.github/ comprises 19 files split into two directories:
+          - agents/ (18 files): 9 agent definitions (.agent.md) and 9 shared reference documents (.md)
+          - prompts/ (1 file): feature-workflow.prompt.md
+
+          Agent definitions (9):
+            1. orchestrator.agent.md (~540 lines) — Pipeline coordinator, Steps 0-9
+            2. researcher.agent.md (~200 lines) — Codebase investigation, 4 parallel instances
+            3. spec.agent.md (~300 lines) — Feature specification with pushback system
+            4. designer.agent.md (~250 lines) — Technical design with decision records
+            5. planner.agent.md (~370 lines) — Task decomposition with risk classification
+            6. implementer.agent.md (~370 lines) — TDD implementation with baseline capture
+            7. verifier.agent.md (~530 lines) — 4-tier verification cascade + Tier 5 E2E
+            8. adversarial-reviewer.agent.md (~290 lines) — Perspective-based adversarial review
+            9. knowledge-agent.agent.md (~280 lines) — Knowledge capture, post-mortem, evidence bundle
+
+          Shared reference documents (9):
+            1. global-operating-rules.md — Retry policy, error categories, self-verification
+            2. schemas.md — All typed YAML schema definitions (14 schemas)
+            3. tool-access-matrix.md — Per-agent tool access rules (master matrix)
+            4. dispatch-patterns.md — Dispatch patterns A (parallel) and B (sequential with replan)
+            5. sql-templates.md — All SQL DDL/DML templates for verification-ledger.db
+            6. e2e-integration.md (~700 lines) — E2E contract, skills, Playwright CLI protocol
+            7. review-perspectives.md — 3 reviewer perspectives with per-category guidance
+            8. evaluation-schema.md — Artifact evaluation rubric and scoring
+            9. severity-taxonomy.md — Blocker/Critical/Major/Minor definitions
+            10. context7-integration.md — Optional MCP docs lookup integration
+
+          Prompt file (1):
+            1. feature-workflow.prompt.md — Entry point that invokes orchestrator with {{USER_FEATURE}}
+        evidence:
+          - "NewAgents/.github/agents/ — 18 files listed via list_dir"
+          - "NewAgents/.github/prompts/ — 1 file (feature-workflow.prompt.md)"
+        relevance: "Establishes the complete file inventory. All 8 issues require modifications across this file set. The 19-file architecture is the scope boundary for all changes."
+
+      - id: "F-2"
+        title: "10-step pipeline flow with typed YAML completion contracts"
+        category: "structure"
+        detail: |
+          The orchestrator coordinates a 10-step pipeline (Steps 0-9):
+            Step 0: Setup & Initialization (orchestrator-only) — git hygiene, pushback, approval mode, run_id, SQLite init, E2E contract discovery
+            Step 1: Research (x4 parallel researchers) — architecture, impact, dependencies, patterns
+            Step 1a: Approval Gate — Post-Research (interactive only)
+            Step 2: Specification (sequential, spec agent)
+            Step 3: Design (sequential, designer agent)
+            Step 3b: Adversarial Design Review (x3 parallel reviewers)
+            Step 4: Planning (sequential, planner agent)
+            Step 4a: Approval Gate — Post-Planning (interactive only)
+            Steps 5-6: Implementation + Verification Loop (Pattern B, max 3 iterations)
+            Step 6a: Runtime Smoke Test (mandatory for bugfix features)
+            Step 7: Adversarial Code Review (x3 parallel reviewers)
+            Step 8: Knowledge Capture (non-blocking)
+            Step 8b: Evidence Bundle Assembly
+            Step 9: Auto-Commit (conditional on confidence >= Medium)
+
+          Agent coordination uses:
+            - Typed YAML completion contracts (DONE/NEEDS_REVISION/ERROR)
+            - SQL evidence gates (EG-1 through EG-10) on verification-ledger.db
+            - Dispatch Pattern A (fully parallel, max 4 concurrent) and Pattern B (sequential with replan loop)
+            - Pipeline state tracked in-context only (not persisted to disk)
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — Steps 0-9 defined in Pipeline Steps section"
+          - "NewAgents/.github/agents/dispatch-patterns.md — Pattern A and Pattern B definitions"
+          - "NewAgents/.github/agents/schemas.md — 14 schemas in Producer/Consumer Dependency Table"
+        relevance: "The 10-step pipeline is the backbone architecture. Issue #8 (shorter pipeline) requires understanding which steps can be skipped. The step ordering is rigid — no dynamic step selection mechanism exists."
+
+      - id: "F-3"
+        title: "E2E testing is hard-coupled to risk level 🔴 through workflow_lane derivation"
+        category: "structure"
+        detail: |
+          E2E testing is gated behind a deterministic risk-to-lane mapping in the planner:
+            🟢 risk → workflow_lane='unit-only' → e2e_required=false
+            🟡 risk → workflow_lane='unit-integration' → e2e_required=false
+            🔴 risk → workflow_lane='full-tdd-e2e' → e2e_required=true (if E2E contract exists)
+
+          This mapping is defined in planner.agent.md (lines 161-173) and enforced in:
+            - planner.agent.md: "Lane is deterministic from risk — no manual override" (line 171)
+            - schemas.md: task.workflow_lane field definition (line 483)
+            - sql-templates.md: EG-10 lane-aware verification query variants (lines 637-669)
+            - orchestrator.agent.md: E2E contract discovery only prompted for 🔴 risk in interactive mode (line 122)
+            - verifier.agent.md: Tier 5 conditional gate on e2e_required=true AND workflow_lane='full-tdd-e2e' (line 265)
+
+          The coupling points are spread across 5+ files. Decoupling E2E from risk level requires changes to:
+            1. planner.agent.md — workflow_lane derivation rules
+            2. schemas.md — task.workflow_lane and task.e2e_required field constraints
+            3. sql-templates.md — EG-10 verification gate variants
+            4. orchestrator.agent.md — E2E contract discovery logic (Step 0)
+            5. verifier.agent.md — Tier 5 conditional entry gate
+            6. e2e-integration.md — references to risk-based E2E gating
+        evidence:
+          - "NewAgents/.github/agents/planner.agent.md lines 161-173 — Workflow Lane Derivation table"
+          - "NewAgents/.github/agents/planner.agent.md line 171 — 'Lane is deterministic from risk — no manual override'"
+          - "NewAgents/.github/agents/orchestrator.agent.md line 122 — E2E prompt only for '🔴 risk tasks'"
+          - "NewAgents/.github/agents/verifier.agent.md line 265 — Tier 5 conditional on e2e_required=true"
+          - "NewAgents/.github/agents/sql-templates.md lines 637-669 — Three EG-10 variants by lane"
+          - "NewAgents/.github/agents/schemas.md line 483-484 — workflow_lane and e2e_required field definitions"
+        relevance: "Directly impacts Issue #1. The risk-to-lane coupling is the root architectural constraint preventing E2E for 🟢/🟡 tasks. The coupling is spread across 5+ files, making it a cross-cutting change."
+
+      - id: "F-4"
+        title: "Approval mode propagation uses in-context state with 'default to autonomous' fallback"
+        category: "structure"
+        detail: |
+          The approval_mode is:
+            1. Selected at Step 0 via ask_questions (orchestrator.agent.md line 101)
+            2. Stored in pipeline_state.approval_mode (in-context only, not persisted)
+            3. Propagated to downstream agents implicitly through dispatch context
+
+          The confusion stems from multiple references to defaulting:
+            - Line 105: "If the user does not respond in the interactive gate, default to autonomous"
+            - Line 109: "If the user does not respond, default to autonomous"
+            - The user_prompt may contain an explicit APPROVAL_MODE, but the orchestrator still says "preserve and use that value rather than overriding it; still confirm it via ask_questions when in interactive mode"
+
+          The approval_mode is NOT explicitly passed as a parameter to subagents. Instead:
+            - The orchestrator controls gate behavior based on its in-context state
+            - Individual agents like spec.agent.md reference "interactive mode" for ask_questions usage
+            - The spec agent's pushback system has separate autonomous/interactive behavior paths
+
+          There is no formal contract for how approval_mode reaches downstream agents. The orchestrator embeds it in dispatch context, but agents must infer the mode. The phrase "default to auto" from the user's complaint likely reflects that agents see "autonomous" as the default path and take it even when interactive was selected, because the mode propagation is implicit rather than an explicit parameter.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md line 55 — pipeline_state.approval_mode definition"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 101-109 — approval mode selection and defaulting"
+          - "NewAgents/.github/agents/spec.agent.md lines 142-144 — references 'interactive mode' for ask_questions"
+          - "NewAgents/.github/agents/spec.agent.md lines 168-173 — autonomous mode auto-selects 'proceed'"
+          - "NewAgents/.github/agents/tool-access-matrix.md line 39 — ask_questions restricted to interactive mode"
+        relevance: "Directly impacts Issue #2. The approval mode propagation is structurally weak — it relies on in-context state rather than explicit parameters, and the multiple 'default to autonomous' references create ambiguity."
+
+      - id: "F-5"
+        title: "fetch_webpage tool is completely absent from the agent system"
+        category: "structure"
+        detail: |
+          The tool fetch_webpage does not appear anywhere in the 19-file agent system:
+            - tool-access-matrix.md master matrix (§1) does not list fetch_webpage
+            - No agent definition references fetch_webpage
+            - No reference document mentions web fetching capability
+
+          The only external information sources available are:
+            1. context7-integration.md — MCP integration for library documentation lookup (available to implementer and researcher only)
+            2. The researcher's semantic_search and grep_search tools for codebase investigation
+
+          No agent has any mechanism to fetch live web content, check documentation updates, or research best practices online. The system is entirely closed to external web resources. Adding fetch_webpage would require:
+            1. Adding it to tool-access-matrix.md master matrix
+            2. Defining scope restrictions (interactive mode only per user request)
+            3. Adding it to specific agent definitions (researcher, designer per user suggestion)
+            4. The tool requires user approval in VS Code, so it's naturally gated to interactive mode
+        evidence:
+          - "NewAgents/.github/agents/tool-access-matrix.md §1 — fetch_webpage not listed in master matrix"
+          - "grep_search for 'fetch_webpage' across NewAgents/.github/** returned 0 matches"
+          - "NewAgents/.github/agents/context7-integration.md — only external docs source, limited to Context7 MCP"
+        relevance: "Directly impacts Issue #3. The complete absence of web fetching is an architectural gap. The tool-access-matrix.md is the single point of truth for tool access and must be updated."
+
+      - id: "F-6"
+        title: "No-file-redirect rule exists but terminal output patterns not explicitly prohibited in agent instructions"
+        category: "structure"
+        detail: |
+          The no-file-redirect rule exists in two locations:
+            1. .github/copilot-instructions.md (workspace root) — "NEVER redirect terminal command output to a file"
+            2. global-operating-rules.md §9 line 128 — "No-file-redirect — Never redirect terminal output to files" (listed as an immutable safety rule)
+            3. global-operating-rules.md §9 line 139 — Protected phrase '"NEVER redirect"'
+
+          However, the implementer.agent.md and verifier.agent.md do NOT contain explicit prohibitions against file redirection in their operating rules or tool access sections. The agents that most heavily use run_in_terminal (implementer with 12 tools including unrestricted run_in_terminal, verifier with 9 tools) rely on:
+            1. The copilot-instructions.md global rule being loaded into context
+            2. The global-operating-rules.md reference being followed
+
+          The user reports that "implementers and verifiers constantly run commands that I have to approve in github copilot. This is mostly sending build and test info to files from terminal." This suggests the agents are generating commands like:
+            - `dotnet test > test-results.txt`
+            - `npm test 2>&1 | tee output.log`
+            - `dotnet build > build-output.txt`
+
+          These patterns violate the No-file-redirect immutable rule, but the rule is defined in reference documents rather than directly in the agent definitions that perform terminal operations. The enforcement gap is structural — the rule exists but is two hops away from where the violation occurs.
+        evidence:
+          - "NewAgents/.github/agents/global-operating-rules.md line 128 — immutable 'No-file-redirect' rule"
+          - "NewAgents/.github/agents/global-operating-rules.md line 139 — protected phrase 'NEVER redirect'"
+          - "NewAgents/.github/agents/implementer.agent.md — no explicit file-redirect prohibition in Operating Rules section"
+          - "NewAgents/.github/agents/verifier.agent.md — no explicit file-redirect prohibition in operating rules"
+          - "NewAgents/.github/agents/tool-access-matrix.md §7 — implementer has full unrestricted run_in_terminal"
+        relevance: "Directly impacts Issue #4. The architectural gap is that the no-redirect rule is in reference documents but not enforced at the agent instruction level where terminal commands are generated. Agents that most use run_in_terminal need the prohibition directly in their operating rules."
+
+      - id: "F-7"
+        title: "Spec agent pushback uses a single monolithic question rather than per-concern multi-choice"
+        category: "structure"
+        detail: |
+          The spec agent's pushback system (spec.agent.md lines 142-173) presents concerns as a single ask_questions prompt with 3 options: proceed / modify / abandon. The structure is:
+
+          ```
+          question: "The Spec agent identified [N] concerns with this request. How would you like to proceed?"
+          context: |
+            Concerns identified:
+            1. [Severity]: [Concern title] — [Brief description]
+            2. [Severity]: [Concern title] — [Brief description]
+          options:
+            - id: "proceed"
+            - id: "modify"
+            - id: "abandon"
+          ```
+
+          This is a monolithic choice — the user gets one decision for ALL concerns. There is no per-concern granularity. The user wanted "multiple multiple choice sections using the ask tool in VS Code so I can answer each concern in interactive mode."
+
+          The ask_questions tool in VS Code supports:
+            - Multiple questions in a single call (questions array)
+            - Per-question options with multiSelect capability
+            - allowFreeformInput for custom responses
+
+          The spec agent does not leverage these capabilities. It also only has ask_questions as a 🔒 restricted tool (interactive mode only), which is correct for this use case.
+
+          Additionally, the spec agent is the ONLY pipeline agent (besides orchestrator) with ask_questions access. The tool-access-matrix.md confirms:
+            - Orchestrator: ✅ ask_questions
+            - Spec: 🔒 ask_questions (interactive mode only)
+            - All other agents: ❌ ask_questions
+        evidence:
+          - "NewAgents/.github/agents/spec.agent.md lines 144-167 — monolithic pushback prompt structure"
+          - "NewAgents/.github/agents/tool-access-matrix.md line 21 — ask_questions access: only Orch (✅) and Spec (🔒)"
+          - "NewAgents/.github/agents/spec.agent.md line 218 — workflow step: 'present them via ask_questions with structured multiple-choice options (proceed / modify / abandon)'"
+        relevance: "Directly impacts Issue #5. The monolithic pushback format is an architectural limitation in how the spec agent uses ask_questions. The fix requires restructuring the pushback prompt to use per-concern questions with the ask_questions tool's multi-question capability."
+
+      - id: "F-8"
+        title: "Prompt system architecture is minimal — single prompt file triggers full pipeline"
+        category: "structure"
+        detail: |
+          The prompt system consists of exactly one file:
+            NewAgents/.github/prompts/feature-workflow.prompt.md
+
+          Content:
+          ```yaml
+          ---
+          name: Feature Development Pipeline
+          agent: orchestrator
+          ---
+          # Feature Development Pipeline
+          ## Initial Request
+          {{USER_FEATURE}}
+          ## Pipeline Execution Rules
+          1. Execute the pipeline defined in orchestrator.agent.md All steps.
+          2. Follow APPROVAL_MODE for gate behavior
+          3. All agent outputs use typed YAML schemas defined in schemas.md
+          4. The orchestrator validates every agent output before routing to the next step.
+          ```
+
+          Key observations:
+            - Only 1 prompt exists: always invokes orchestrator, always executes all steps
+            - No mechanism to start at planning (Step 4) or any other step
+            - No concept of "short pipeline" vs "full pipeline"
+            - The orchestrator.agent.md has pipeline state recovery (EC-5) that can resume from incomplete steps, but this is for crash recovery, not intentional step-skipping
+            - The orchestrator explicitly states "You NEVER skip pipeline steps" (orchestrator.agent.md)
+
+          For a shorter pipeline prompt (Issue #8), the options are:
+            A. Create a second prompt file that tells orchestrator to start at Step 4 (planning)
+            B. Add dynamic scope detection to the orchestrator itself
+            C. Create a separate lightweight prompt that invokes the planner directly
+
+          Option A conflicts with "You NEVER skip pipeline steps" in the orchestrator.
+          Option B would require the orchestrator to assess task complexity and skip steps.
+          Option C bypasses the orchestrator entirely.
+        evidence:
+          - "NewAgents/.github/prompts/feature-workflow.prompt.md — complete file content (8 lines of meaningful content)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — 'You NEVER skip pipeline steps' in Anti-Drift Anchor"
+          - "NewAgents/.github/agents/orchestrator.agent.md — EC-5 pipeline state recovery scans for existing outputs"
+          - "NewAgents/.github/ directory listing — only agents/ and prompts/ subdirectories exist"
+        relevance: "Directly impacts Issue #8. The prompt architecture is the entry point that must change. The orchestrator's 'never skip steps' rule is a direct conflict that must be addressed."
+
+      - id: "F-9"
+        title: "SQLite lifecycle management uses in-place migration, no archive strategy"
+        category: "structure"
+        detail: |
+          The current SQLite lifecycle in the pipeline:
+            1. Step 0 creates verification-ledger.db with CREATE TABLE IF NOT EXISTS (sql-templates.md §1)
+            2. PRAGMA integrity_check validates existing DB
+            3. Schema evolution uses in-place migrations (sql-templates.md §9):
+               - Additive: ALTER TABLE ADD COLUMN
+               - Enum expansion: table recreation (CREATE new → COPY → DROP old → RENAME)
+               - Version tracking via schema_meta table
+
+          There is NO archive mechanism:
+            - No rename/backup of old DB before new pipeline run
+            - The run_id filter on all queries (global-operating-rules.md §4) prevents data mixing
+            - But the DB accumulates all historical data indefinitely
+            - The user explicitly states "I do not want migration plans" and wants archive-on-new-run
+
+          The run_id-based filtering means the data is logically separated, but:
+            - DB file grows over time
+            - integrity_check becomes slower
+            - Old data from previous feature runs is never cleaned up
+            - The user perceives the DB as "stale" and wants fresh starts
+
+          The archive strategy would need to be added to Step 0 (orchestrator.agent.md) before the SQLite init sequence. It would also need to be referenced in sql-templates.md §1 documentation.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 113-117 — Step 0 SQLite init sequence"
+          - "NewAgents/.github/agents/sql-templates.md §1 — DDL uses CREATE TABLE IF NOT EXISTS"
+          - "NewAgents/.github/agents/sql-templates.md §9 — Schema Evolution Strategy (migration-based)"
+          - "NewAgents/.github/agents/global-operating-rules.md §4 — run_id as universal namespace filter"
+        relevance: "Directly impacts Issue #7. The absence of an archive mechanism is a gap in the SQLite lifecycle management. Step 0 in orchestrator.agent.md is the insertion point for archive logic."
+
+      - id: "F-10"
+        title: "E2E skill system uses Playwright CLI, not GitHub Copilot skills"
+        category: "structure"
+        detail: |
+          The current E2E skill architecture (e2e-integration.md §2-§3) defines a custom skill schema:
+            - Skills are YAML files with structured steps (order, action, target, value, assert)
+            - Skills are stored inline in the E2E contract or in .e2e/skills/ directory
+            - Three skill types: test-suite, exploratory, adversarial
+            - The verifier translates skill steps into playwright-cli CLI commands
+            - The researcher (Step 1.5) generates project-specific skill YAML files
+
+          The system references Playwright CLI skills installation:
+            - 'playwright-cli install --skills' installs skill guides into skills/playwright-cli/ and .claude/skills/dev/
+            - e2e-integration.md line 111: "also read by GitHub Copilot"
+            - But this only installs HOW-TO guides for playwright-cli commands, not project-specific interaction skills
+
+          The user's Issue #6 wants "looking up github copilot skills on the web and understanding how they work, then actually building a skill so the copilot can use it to interact with the app." This is a different concept from the current skill system — it refers to VS Code Copilot's skill files (.skill.md) which are a native VS Code feature, not the custom YAML skills defined in e2e-integration.md.
+
+          The current architecture has no integration with VS Code's native Copilot skill system. The e2e-integration.md skill schema is an independent, pipeline-specific skill format.
+        evidence:
+          - "NewAgents/.github/agents/e2e-integration.md §2 — Custom skill schema (not Copilot native skills)"
+          - "NewAgents/.github/agents/e2e-integration.md §3 — Playwright CLI interaction protocol"
+          - "NewAgents/.github/agents/e2e-integration.md line 111 — 'also read by GitHub Copilot' (referring to playwright-cli skill guides only)"
+          - "NewAgents/.github/agents/researcher.agent.md Step 1.5 — E2E Skill File Generation procedure"
+        relevance: "Directly impacts Issue #6. The current skill architecture is custom YAML, not GitHub Copilot native skills. Understanding the gap between the current pipeline-specific skills and VS Code's native skill system is prerequisite for this change."
+
+      - id: "F-11"
+        title: "Agent coordination uses implicit context passing with no formal parameter interface"
+        category: "structure"
+        detail: |
+          The orchestrator dispatches agents via runSubagent with context provided in the dispatch prompt. However:
+            1. There is no formal parameter schema for dispatch calls — the orchestrator builds dispatch context ad-hoc
+            2. The Orchestrator-Provided Parameters tables in each agent definition list expected parameters, but there is no validation that the orchestrator actually provides them
+            3. Pipeline state (approval_mode, overall_risk, run_id) is in-context only — not serialized
+            4. Agents infer pipeline mode from context clues rather than explicit parameters
+
+          This implicit context passing is relevant to multiple issues:
+            - Issue #2: approval_mode is not explicitly passed as a named parameter
+            - Issue #8: a shorter pipeline would need to pass different context (e.g., 'skip research/spec/design')
+            - Issue #1: E2E eligibility information needs to reach the planner as a parameter
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — 'All state is in-context only' (Pipeline State Model)"
+          - "NewAgents/.github/agents/orchestrator.agent.md — no formal dispatch parameter schema"
+          - "NewAgents/.github/agents/researcher.agent.md — 'Orchestrator-Provided Parameters' table as expected inputs"
+          - "NewAgents/.github/agents/planner.agent.md — no mention of receiving approval_mode parameter"
+        relevance: "Cross-cutting architectural concern affecting Issues #1, #2, and #8. The implicit context model makes it harder to guarantee parameter propagation and mode enforcement."
+
+      - id: "F-12"
+        title: "Orchestrator line budget is near capacity at 540/550 lines"
+        category: "risk"
+        detail: |
+          The orchestrator.agent.md has an NFR-1 exception allowing up to 550 lines (vs standard 350-line target). It currently uses approximately 540 lines. Adding new functionality (archive strategy, shorter pipeline support, modified E2E gating) will push it over budget.
+
+          The existing pattern for handling this is extracting rules to reference documents (per repository memory: 'agent line budget management' — orchestrator stayed within budget by extracting E2E rules into e2e-integration.md).
+
+          The 8 issues collectively require significant orchestrator changes:
+            - Issue #1: Modified E2E contract discovery logic in Step 0
+            - Issue #2: Stricter approval mode propagation in dispatch calls
+            - Issue #7: Archive logic before SQLite init in Step 0
+            - Issue #8: Conditional step-skipping or a new entry point
+
+          Step 0 alone (currently the longest step at ~30 lines of instructions) will need expansion.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md — NFR-1 Exception: 'allowed ≤550 lines'"
+          - "NewAgents/.github/agents/orchestrator.agent.md — estimated ~540 lines current"
+          - "Repository memory: 'agent line budget management' — extract to reference docs pattern"
+        relevance: "Architectural constraint on all orchestrator changes. New features must either extract existing content to reference documents or use the reference-doc extraction pattern to stay within budget."
+
+      - id: "F-13"
+        title: "Reference document architecture enables modular extension without agent bloat"
+        category: "pattern"
+        detail: |
+          The system uses a two-tier architecture:
+            Tier 1: Agent definitions (.agent.md) — contain role, workflow, tool access, completion contract
+            Tier 2: Reference documents (.md) — contain shared rules, schemas, templates, perspectives
+
+          This pattern is used consistently:
+            - e2e-integration.md (~700 lines) extracted from orchestrator/verifier to stay within line budgets
+            - tool-access-matrix.md centralizes tool access instead of inlining in each agent
+            - schemas.md is the single-source-of-truth for all YAML schemas
+            - sql-templates.md centralizes all SQL operations
+            - global-operating-rules.md centralizes cross-cutting rules
+
+          Each agent references specific sections of reference docs (e.g., 'See global-operating-rules.md §3').
+          The Per-Agent Reading Guide in e2e-integration.md §0 shows conditional loading by role.
+
+          This architecture supports the needed changes:
+            - New tool access (fetch_webpage) → add to tool-access-matrix.md
+            - New E2E gating rules → modify e2e-integration.md
+            - New SQL archive logic → add to sql-templates.md
+            - New prompt → add to prompts/ directory
+        evidence:
+          - "NewAgents/.github/agents/e2e-integration.md §0 — Per-Agent Reading Guide pattern"
+          - "NewAgents/.github/agents/tool-access-matrix.md §1 — centralized master matrix"
+          - "NewAgents/.github/agents/schemas.md — single-source-of-truth for 14 schemas"
+          - "NewAgents/.github/agents/global-operating-rules.md — cross-cutting rules referenced by all agents"
+        relevance: "The reference-document architecture is the primary mechanism for extending the system without violating agent line budgets. All 8 issues can leverage this pattern."
+
+      - id: "F-14"
+        title: "Tool access control is instruction-enforced, not runtime-enforced"
+        category: "risk"
+        detail: |
+          Tool access restrictions are enforced through:
+            1. Agent prompt instructions in each .agent.md
+            2. Self-verification checklists agents run before returning
+            3. Regex validation patterns documented in tool-access-matrix.md §2-§10
+            4. Verifier as secondary enforcement (reviews other agents' outputs)
+
+          tool-access-matrix.md §11 explicitly acknowledges: "Scope restrictions are enforced via agent instructions. VS Code's agent runtime does not support parameterized tool access policies. Compliance depends on LLM instruction-following."
+
+          This is labeled as "accepted risk (residual threat level: Medium)."
+
+          Adding fetch_webpage to specific agents (Issue #3) means adding it to the tool-access-matrix.md master matrix and to individual agent instructions. The interactive-mode-only restriction must be enforced through instructions and self-verification, not runtime gates.
+        evidence:
+          - "NewAgents/.github/agents/tool-access-matrix.md §11 — enforcement note explaining instruction-based enforcement"
+          - "NewAgents/.github/agents/tool-access-matrix.md §1 — master matrix with ✅/❌/🔒 legend"
+        relevance: "Structural constraint for Issue #3 (web fetching). Any new tool addition follows the same instruction-based enforcement pattern."
+
+    summary: |
+      The agent pipeline system comprises 19 files (9 agent definitions, 9 reference documents, 1 prompt file) coordinating a 10-step pipeline through typed YAML completion contracts and SQL evidence gates. Key architectural findings relevant to the 8 improvement issues:
+
+      1. E2E testing is hard-coupled to 🔴 risk level through a deterministic workflow_lane derivation in the planner, with enforcement spread across 5+ files (planner, schemas, sql-templates, orchestrator, verifier).
+      2. Approval mode propagation is implicit through dispatch context with multiple 'default to autonomous' fallbacks, creating ambiguity.
+      3. fetch_webpage is completely absent from the system — no agent has web access capability.
+      4. The no-file-redirect rule exists in reference documents but is not directly stated in implementer/verifier agent instructions where terminal operations occur.
+      5. The spec agent's pushback uses a monolithic single-choice prompt rather than per-concern multi-choice, despite ask_questions supporting multi-question format.
+      6. The prompt system has only one entry point (feature-workflow.prompt.md) that always runs all steps, with the orchestrator explicitly prohibiting step-skipping.
+      7. SQLite lifecycle uses in-place migration with no archive strategy — the DB accumulates data indefinitely.
+      8. The orchestrator is near its 540/550 line budget, requiring reference-doc extraction for any new functionality.
+
+      The reference-document architecture (Tier 1 agents + Tier 2 shared docs) provides a clean extension pattern for all changes.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+      - "NewAgents/.github/agents/e2e-integration.md"
+      - "NewAgents/.github/agents/review-perspectives.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "NewAgents/.github/agents/context7-integration.md"
+      - "NewAgents/.github/prompts/feature-workflow.prompt.md"
+      - "docs/feature/agent-pipeline-improvements/initial-request.md"
+
+completion:
+  status: "DONE"
+  summary: "Architecture research complete: 14 findings covering file structure, pipeline flow, E2E-risk coupling, approval mode propagation, tool gaps, and prompt architecture"
+  severity: null
+  findings_count: 14
+  risk_level: null
+  output_paths:
+    - "research/architecture.yaml"

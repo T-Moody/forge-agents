@@ -1,0 +1,51 @@
+task:
+  id: "task-09"
+  title: "Add fetch_webpage, Copilot skill discovery, and approval_mode to researcher and designer agents"
+  description: >
+    Changes to two agent files: (1) researcher.agent.md — Add fetch_webpage to tool summary
+    and workflow step for web research in interactive mode. Update tool count. Add check for
+    existing GitHub Copilot skill files in .github/copilot/skills/ and .github/agents/ SKILL.md
+    files during E2E skill generation step. Add approval_mode to Orchestrator-Provided Parameters
+    table. (2) designer.agent.md — Add fetch_webpage to tool summary. Document when to use
+    fetch_webpage (stack research, design pattern lookup) vs Context7 (library API docs). Update
+    tool count. Add approval_mode to Orchestrator-Provided Parameters table.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟢"
+  depends_on:
+    - "task-02"
+  acceptance_criteria:
+    - id: "AC-7a"
+      text: "fetch_webpage usage documentation exists in researcher.agent.md with interactive-mode-only restriction, workflow step for web research, and updated tool count."
+      test_method: "inspection"
+    - id: "AC-7b"
+      text: "fetch_webpage usage documentation exists in designer.agent.md with interactive-mode-only restriction, guidance on fetch_webpage vs Context7 usage, and updated tool count."
+      test_method: "inspection"
+    - id: "FR-6.2"
+      text: "researcher.agent.md E2E skill generation step includes check for existing Copilot skill files in .github/copilot/skills/ and .github/agents/ SKILL.md files."
+      test_method: "inspection"
+    - id: "FR-2.2a"
+      text: "approval_mode is documented in researcher.agent.md Orchestrator-Provided Parameters table."
+      test_method: "inspection"
+    - id: "FR-2.2b"
+      text: "approval_mode is documented in designer.agent.md Orchestrator-Provided Parameters table."
+      test_method: "inspection"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-5']"
+      - "design-output.yaml#payload.decisions[id='D-8']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/researcher.agent.md']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/designer.agent.md']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3'][sub_requirements.id='FR-3.3']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3'][sub_requirements.id='FR-3.4']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-6'][sub_requirements.id='FR-6.2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2'][sub_requirements.id='FR-2.2']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/researcher.agent.md"
+        risk: "🟢"
+      - path: "NewAgents/.github/agents/designer.agent.md"
+        risk: "🟢"
+  workflow_lane: "unit-only"
+  e2e_required: false
+  e2e_contract_path: null

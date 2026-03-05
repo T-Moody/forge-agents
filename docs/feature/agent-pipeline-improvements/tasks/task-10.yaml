@@ -1,0 +1,35 @@
+task:
+  id: "task-10"
+  title: "Add approval_mode to adversarial-reviewer.agent.md and knowledge-agent.agent.md"
+  description: >
+    Trivial additive changes to two agent files: (1) adversarial-reviewer.agent.md — Add
+    approval_mode to Orchestrator-Provided Parameters table documenting that the orchestrator
+    passes approval_mode when dispatching adversarial reviewers at Step 7. (2) knowledge-agent.agent.md
+    — Add approval_mode to Orchestrator-Provided Parameters table documenting that the orchestrator
+    passes approval_mode when dispatching the knowledge agent at Step 8.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟢"
+  depends_on: []
+  acceptance_criteria:
+    - id: "FR-2.2a"
+      text: "adversarial-reviewer.agent.md Orchestrator-Provided Parameters table includes approval_mode as a named parameter passed by the orchestrator."
+      test_method: "inspection"
+    - id: "FR-2.2b"
+      text: "knowledge-agent.agent.md Orchestrator-Provided Parameters table includes approval_mode as a named parameter passed by the orchestrator."
+      test_method: "inspection"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-4']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/adversarial-reviewer.agent.md']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/knowledge-agent.agent.md']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2'][sub_requirements.id='FR-2.2']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+        risk: "🟢"
+      - path: "NewAgents/.github/agents/knowledge-agent.agent.md"
+        risk: "🟢"
+  workflow_lane: "unit-only"
+  e2e_required: false
+  e2e_contract_path: null

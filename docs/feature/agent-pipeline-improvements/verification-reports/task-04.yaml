@@ -1,0 +1,169 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-04"
+  step: "step-6"
+  started_at: "2026-03-05T13:00:00Z"
+  completed_at: "2026-03-05T13:20:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-04"
+    run_id: "2026-03-05T12:00:00Z"
+    evidence_gate:
+      total_checks: 9
+      passed: 9
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/orchestrator.agent.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline exists. Diff confirms 9 hunks matching all 9 claimed changes. No discrepancies between baseline and self-report."
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "No errors found in orchestrator.agent.md"
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "markdown structural check"
+        exit_code: 0
+        passed: true
+        output_snippet: "37 headings, 4 code fences (balanced), 539 lines. YAML frontmatter present. Valid markdown."
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: "grep + line count for AC-5 and AC-21"
+        exit_code: 0
+        passed: true
+        output_snippet: >
+          AC-4: APPROVAL_MODE authoritative language present at line 102 (PASS).
+          AC-5: grep 'default to autonomous' = 0 matches (PASS).
+          AC-14: DB archive at line 111, covers all 4 cases (PASS).
+          AC-19: Conditional never-skip at lines 29 and 539, consistent (PASS).
+          AC-21: 539 lines <= 550 (PASS).
+          FR-2.5: Typos corrected — stoping→stopping, presetnt→present (PASS).
+          FR-1.4: E2E discovery no longer 🔴-gated at line 122 (PASS). 7/7 ACs covered.
+      - check_name: "tdd-compliance"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: "TDD fallback evaluation"
+        exit_code: 0
+        passed: true
+        output_snippet: "task_type=documentation. No production source files modified; only agent instruction markdown. TDD fallback accepted per EC-2."
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown agent instruction file. Cannot import/load or smoke-execute. All verification via content inspection (Tiers 1-2)."
+      - check_name: "readiness-observability"
+        tier: 4
+        phase: "after"
+        tool: "grep_search"
+        command: "grep ERROR|error|failure|retry"
+        exit_code: 0
+        passed: true
+        output_snippet: "Error logging present: error_log in state model, Error categorization (resp #3), retry budgets, escalation paths. Structured error handling throughout."
+      - check_name: "readiness-degradation"
+        tier: 4
+        phase: "after"
+        tool: "read_file"
+        command: "Retry budgets and escalation section review"
+        exit_code: 0
+        passed: true
+        output_snippet: "Graceful degradation: retry budgets (1 agent, 3 verify, 1 design, 2 code review). Deterministic 0 retries. Security blocker halt. DB archive handles corrupt DB."
+      - check_name: "readiness-secrets"
+        tier: 4
+        phase: "after"
+        tool: "grep_search"
+        command: "grep password|secret|api_key|token|Bearer"
+        exit_code: 0
+        passed: true
+        output_snippet: "No hardcoded secrets. 0 matches for password, secret, api_key, token, Bearer, connection string patterns."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-05:NewAgents/.github/agents/orchestrator.agent.md"
+      discrepancies_found: false
+    acceptance_criteria_verification:
+      - id: "AC-4"
+        result: "PASS"
+        evidence: "Line 102: 'If initial-request.md contains an explicit APPROVAL_MODE, the user''s selection is authoritative — use it without re-prompting.'"
+      - id: "AC-5"
+        result: "PASS"
+        evidence: "grep_search for 'default to autonomous' returned 0 matches. Old baseline had it at lines 105, 109 — both removed."
+      - id: "AC-14"
+        result: "PASS"
+        evidence: "Line 111: DB archive check covers all 4 cases — no DB (skip), same run_id (keep), different run_id (archive), query fails (archive unconditionally). References sql-templates.md §11."
+      - id: "AC-19"
+        result: "PASS"
+        evidence: "Line 29: 'You NEVER skip pipeline steps unless the active prompt explicitly defines a reduced step set (minimum: Steps 0, 7, 9).' Line 539: consistent language with minimum step set {0, 7, 9}."
+      - id: "AC-21"
+        result: "PASS"
+        evidence: "Get-Content line count = 539. 539 ≤ 550 budget. Net change: 0 lines (baseline was also 539)."
+      - id: "FR-2.5"
+        result: "PASS"
+        evidence: "Git diff confirms line 24: stoping→stopping, presetnt→present. Baseline had typos; current file does not."
+      - id: "FR-1.4"
+        result: "PASS"
+        evidence: "Baseline line 122 had '🔴 risk tasks' condition. Current line 122: 'Not found: record in pipeline_telemetry, all tasks proceed as unit-only/unit-integration. In interactive mode, prompt via ask_questions.' No risk gating."
+    changes_verified:
+      - change: "1. Typo fixes (line 24): stoping→stopping, presetnt→present"
+        status: "confirmed"
+        design_ref: "FR-2.5"
+      - change: "2. Role & Purpose never-skip (line 29): conditional with minimum {0, 7, 9}"
+        status: "confirmed"
+        design_ref: "D-14"
+      - change: "3. Pipeline state model (line 56): added pipeline_mode: full | fast-track"
+        status: "confirmed"
+        design_ref: "D-10"
+      - change: "4. Approval mode rewrite (lines 102-108): APPROVAL_MODE authoritative, interactive safe default"
+        status: "confirmed"
+        design_ref: "D-4"
+      - change: "5. DB archive (line 111): 4-case archive logic referencing sql-templates.md §11"
+        status: "confirmed"
+        design_ref: "D-9"
+      - change: "6. Pipeline mode detection (line 119): fast-track from plan-and-implement.prompt.md"
+        status: "confirmed"
+        design_ref: "D-10"
+      - change: "7. E2E discovery decoupled from risk (lines 120-122): removed 🔴/autonomous/interactive split"
+        status: "confirmed"
+        design_ref: "D-2"
+      - change: "8. Gate routing updated (line 129): Step 1 (full) or Step 4 (fast-track)"
+        status: "confirmed"
+        design_ref: "D-10"
+      - change: "9. Anti-drift anchor (line 539): conditional never-skip with minimum step set"
+        status: "confirmed"
+        design_ref: "D-14"
+    functional_preservation:
+      existing_features_intact: true
+      notes: >
+        All existing pipeline steps (0-9), evidence gates (EG-1 through EG-10),
+        retry budgets, security blocker policy, concurrency rules, telemetry recording,
+        and completion contract remain unchanged. Only targeted changes per design decisions.
+        No accidental removal of functionality detected via diff analysis.
+completion:
+  status: "DONE"
+  summary: "Verified task-04: 9 checks passed, 0 failed, 0 regressions. All 9 changes confirmed. 539/550 lines."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-pipeline-improvements/verification-reports/task-04.yaml"
+  evidence_summary:
+    total_checks: 9
+    passed: 9
+    failed: 0
+    security_blockers: 0

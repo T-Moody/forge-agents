@@ -1,0 +1,13 @@
+reviewer_perspective: "architecture-guardian"
+scope: "code"
+verdicts:
+  security: "approve"
+  architecture: "needs_revision"
+  correctness: "needs_revision"
+overall: "needs_revision"
+findings_count:
+  blocker: 0
+  critical: 0
+  major: 4
+  minor: 2
+summary: "Orchestrator EG-10 gate description (≥4 including e2e-test-execution) contradicts updated sql-templates.md (≥3 non-E2E + additive E2E gate). Gate evaluation order missing EG-10(e2e-additive). Broken §11→§1.1 cross-reference for archive query. Spec pushback workflow summary uses stale option names. Security posture is clean."

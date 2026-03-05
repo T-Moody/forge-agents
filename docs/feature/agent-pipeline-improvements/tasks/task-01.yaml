@@ -1,0 +1,48 @@
+task:
+  id: "task-01"
+  title: "Update schemas.md and sql-templates.md for E2E decoupling and archive support"
+  description: >
+    Two foundation reference documents updated: (1) schemas.md — Update Schema 6 task.e2e_required
+    field definition to reflect independent boolean derivation (based on contract presence + planner
+    assessment, not gated on risk level). Extend Schema 13 e2e-contract with skill_format field
+    supporting 'playwright-yaml' and 'copilot-skill' values. (2) sql-templates.md — Restructure
+    EG-10 to make e2e-test-execution an additive check gated on e2e_required=true, independent of
+    workflow_lane. Add archive check query template (SELECT DISTINCT run_id FROM pipeline_telemetry
+    LIMIT 1) for orchestrator Step 0 DB archive procedure.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: []
+  acceptance_criteria:
+    - id: "AC-1"
+      text: "Schema 6 task.e2e_required field definition states: independent boolean based on contract presence + planner assessment, not gated on risk level. The old derivation rule ('true when workflow_lane=full-tdd-e2e AND E2E contract exists') is replaced."
+      test_method: "inspection"
+    - id: "AC-13"
+      text: "Schema 13 e2e-contract includes a skill_format field with allowed values 'playwright-yaml' and 'copilot-skill'."
+      test_method: "inspection"
+    - id: "FR-1.5"
+      text: "EG-10 in sql-templates.md restructured: e2e-test-execution is an additive check gated on e2e_required=true, independent of workflow_lane. Existing lane-based minimum check counts for non-E2E checks are preserved."
+      test_method: "inspection"
+    - id: "FR-7.2"
+      text: "sql-templates.md contains an archive check query template: SELECT DISTINCT run_id FROM pipeline_telemetry LIMIT 1, with usage guidance for orchestrator Step 0."
+      test_method: "inspection"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-2']"
+      - "design-output.yaml#payload.decisions[id='D-8']"
+      - "design-output.yaml#payload.decisions[id='D-9']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/schemas.md']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/sql-templates.md']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1'][sub_requirements.id='FR-1.5']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1'][sub_requirements.id='FR-1.6']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-6'][sub_requirements.id='FR-6.1']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7'][sub_requirements.id='FR-7.2']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/schemas.md"
+        risk: "🟡"
+      - path: "NewAgents/.github/agents/sql-templates.md"
+        risk: "🟡"
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null

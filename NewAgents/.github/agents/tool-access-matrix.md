@@ -18,34 +18,40 @@ Per-agent tool access rules for all 9 pipeline agents. Agents reference this doc
 | get_terminal_output          | ✅   | ❌  | ❌   | ❌  | ❌   | ✅   | ✅    | ❌     | ❌   |
 | get_errors                   | ❌   | ❌  | ❌   | ❌  | ❌   | ✅   | ✅    | ❌     | ❌   |
 | memory                       | ✅   | ❌  | ❌   | ❌  | ❌   | ❌   | ❌    | ❌     | ✅   |
-| ask_questions                | ✅   | ❌  | 🔒   | ❌  | ❌   | ❌   | ❌    | ❌     | ❌   |
+| ask_questions                | ✅   | ❌  | 🔒   | ❌  | 🔒   | ❌   | ❌    | ❌     | ❌   |
 | list_code_usages             | ❌   | ❌  | ❌   | ❌  | ❌   | ✅   | ❌    | ❌     | ❌   |
+| fetch_webpage                | ❌   | 🔒  | 🔒   | 🔒  | ❌   | ❌   | ❌    | ❌     | ❌   |
 
 **Legend:** ✅ Allowed — ❌ Restricted — 🔒 Allowed with scope restriction (see §2–§10)
 
 ## §2 Orchestrator
 
 - **7 allowed:** read_file, list_dir, get_terminal_output, memory, ask_questions, run_in_terminal 🔒, agent/runSubagent
-- **run_in_terminal 🔒** — SQLite queries (SELECT, DDL) + git operations only. No builds, tests, or code execution.
+- **run_in_terminal 🔒** — SQLite queries (SELECT, DDL) + git operations + verification-ledger.db archive rename. No builds, tests, or code execution.
+- **Archive rename scope:** `Rename-Item`/`mv` permitted ONLY for renaming `verification-ledger.db` to `verification-ledger-{timestamp}.db` during Step 0 DB initialization. No other filesystem rename/move/delete operations.
 
 ## §3 Researcher
 
-- **6 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file 🔒
+- **7 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file 🔒, fetch_webpage 🔒
 - **create_file 🔒** — `research/*.yaml` only. Path must match: `research/.*\.yaml$`
+- **fetch_webpage 🔒** — Interactive mode only. Requires user approval per invocation in VS Code. Used for researching architecture patterns, stack updates, best practices, and current documentation. NOT for fetching arbitrary URLs or scraping. Agents in autonomous mode MUST NOT attempt to use fetch_webpage.
 
 ## §4 Spec
 
-- **8 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, replace_string_in_file, ask_questions 🔒
-- **ask_questions 🔒** — Interactive mode only (user-facing clarification questions).
+- **9 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, replace_string_in_file, ask_questions 🔒, fetch_webpage 🔒
+- **ask_questions 🔒** — Interactive mode only. Each pushback concern MUST be presented as a separate question in the questions[] array, with per-concern options (accept/modify/dismiss). The 'modify' option sets allowFreeformInput=true.
+- **fetch_webpage 🔒** — Interactive mode only. Requires user approval per invocation in VS Code. Used for researching architecture patterns, stack updates, best practices, and current documentation. NOT for fetching arbitrary URLs or scraping. Agents in autonomous mode MUST NOT attempt to use fetch_webpage.
 
 ## §5 Designer
 
-- **7 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, replace_string_in_file
+- **8 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, replace_string_in_file, fetch_webpage 🔒
+- **fetch_webpage 🔒** — Interactive mode only. Requires user approval per invocation in VS Code. Used for researching architecture patterns, stack updates, best practices, and current documentation. NOT for fetching arbitrary URLs or scraping. Agents in autonomous mode MUST NOT attempt to use fetch_webpage.
 - No run_in_terminal access.
 
 ## §6 Planner
 
-- **7 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, replace_string_in_file
+- **8 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, replace_string_in_file, ask_questions 🔒
+- **ask_questions 🔒** — Fast-track mode only AND interactive mode only. When pipeline_mode='fast-track', the planner uses ask_questions to ask the user clarifying questions about scope, requirements, and constraints since no research/spec/design outputs exist. In full pipeline mode or autonomous mode, ask_questions is NOT available to the planner.
 - No run_in_terminal access.
 
 ## §7 Implementer

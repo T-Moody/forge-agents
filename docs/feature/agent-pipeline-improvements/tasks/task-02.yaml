@@ -1,0 +1,49 @@
+task:
+  id: "task-02"
+  title: "Update tool-access-matrix.md with fetch_webpage, planner ask_questions, and orchestrator scope"
+  description: >
+    Five changes to tool-access-matrix.md batched per spec pushback concern #4 (avoid merge
+    conflicts): (1) Add fetch_webpage row to §1 master matrix — Researcher=🔒, Designer=🔒,
+    Spec=🔒, all others=❌. (2) Change Planner ask_questions from ❌ to 🔒 in §1. (3) Add
+    fetch_webpage scope details (interactive-only, user approval per invocation, research purposes
+    only) in §3 (Researcher), §4 (Spec), §5 (Designer). (4) Add ask_questions scope details
+    in §6 (Planner — fast-track mode only, interactive mode only). (5) Expand §2 orchestrator
+    run_in_terminal scope to include 'verification-ledger.db archive rename' as permitted.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: []
+  acceptance_criteria:
+    - id: "AC-6"
+      text: "fetch_webpage row present in §1 master matrix with 🔒 access for Researcher, Designer, and Spec agents; ❌ for all other agents."
+      test_method: "inspection"
+    - id: "AC-15"
+      text: "§2 orchestrator run_in_terminal scope explicitly includes 'verification-ledger.db archive rename' as a permitted filesystem operation."
+      test_method: "inspection"
+    - id: "AC-17"
+      text: "Planner has ask_questions access (🔒) in §1 master matrix AND §6 Planner section with scope restriction: fast-track mode only, interactive mode only."
+      test_method: "inspection"
+    - id: "FR-3.2"
+      text: "fetch_webpage scope restriction in §3/§4/§5 states: 'Interactive mode only. Requires user approval per invocation. Used for researching architecture patterns, stack updates, best practices, and current documentation. NOT for fetching arbitrary URLs or scraping.'"
+      test_method: "inspection"
+    - id: "FR-3.6"
+      text: "fetch_webpage scope notes include: agents in autonomous mode MUST NOT attempt to use fetch_webpage."
+      test_method: "inspection"
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.decisions[id='D-5']"
+      - "design-output.yaml#payload.decisions[id='D-12']"
+      - "design-output.yaml#payload.decisions[id='D-9']"
+      - "design-output.yaml#payload.file_inventory[path='NewAgents/.github/agents/tool-access-matrix.md']"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3'][sub_requirements.id='FR-3.1']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3'][sub_requirements.id='FR-3.2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3'][sub_requirements.id='FR-3.6']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7'][sub_requirements.id='FR-7.5']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-8'][sub_requirements.id='FR-8.3']"
+    files_to_modify:
+      - path: "NewAgents/.github/agents/tool-access-matrix.md"
+        risk: "🟡"
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
