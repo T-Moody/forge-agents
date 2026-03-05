@@ -58,6 +58,61 @@ Per-agent tool access rules for all 9 pipeline agents. Agents reference this doc
 - **9 allowed:** read_file, list_dir, grep_search, file_search, run_in_terminal, get_terminal_output, get_errors, create_file 🔒
 - **create_file 🔒** — `verification-reports/*.yaml` only. Path must match: `verification-reports/.*\.yaml$`
 
+### §8.1 Tier 5 run_in_terminal Expansion (D-11)
+
+When `e2e_required=true` in the task definition, the verifier's `run_in_terminal` access is expanded to Tier 5 scope. This enables live application testing via E2E verification phases (Setup → Test Suite → Exploratory → Adversarial → Teardown).
+
+**Phase gating:** Tier 5 commands are permitted **only** during E2E verification phases (Phases 1–5 per FR-4.2). During Tiers 1–4 (static checks, build verification, unit/integration tests, documentation review), `run_in_terminal` remains restricted to standard verifier commands (test runners, build commands). The verifier MUST NOT execute Tier 5 commands outside an active E2E verification sequence.
+
+**Command constraint:** Every `run_in_terminal` invocation during Tier 5 MUST match at least one pattern in the `tier5_command_allowlist` below. Commands not matching any pattern are **REJECTED** and logged in the `interaction_log` with `matched_pattern: 'REJECTED'`.
+
+### §8.2 tier5_command_allowlist (D-22)
+
+The following regex patterns define the complete set of allowed Tier 5 commands. This follows the §10 Knowledge Agent precedent for command-restricted tool access. Canonical source: [e2e-integration.md §5](e2e-integration.md).
+
+| #   | Pattern                                               | Purpose                                                                                               |
+| --- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 1   | `^npx playwright test .+`                             | Execute generated E2E test scripts                                                                    |
+| 2   | `^playwright-cli .+`                                  | Playwright CLI browser interaction (open, goto, click, fill, screenshot, snapshot, close, etc.)       |
+| 3   | `^npm (run\|start\|test)`                             | Application lifecycle management                                                                      |
+| 4   | `^node \.[\\/].+\.m?[jt]s$`                           | Local Node.js script execution (file path only, no `-e` flag)                                         |
+| 5   | `^dotnet (run\|test)`                                 | .NET application lifecycle                                                                            |
+| 6   | `^python -m (pytest\|uvicorn\|flask)`                 | Python application lifecycle                                                                          |
+| 7   | `^curl -sf?o? https?://localhost[:/]`                 | Health check HTTP requests (localhost only)                                                           |
+| 8   | `^(kill (-[0-9]+ )?[0-9]+\|taskkill /F /PID [0-9]+)$` | Process cleanup during teardown (numeric PID only — must match tracked PID from `e2e-instance-start`) |
+
+**Evaluation:** The verifier checks its command against patterns **before** execution. First matching pattern wins. If no pattern matches, execution is blocked.
+
+### §8.3 Tier 5 Audit Trail
+
+Every Tier 5 `run_in_terminal` execution MUST be logged in the `interaction_log` with the following fields:
+
+| Field             | Type            | Description                                                     |
+| ----------------- | --------------- | --------------------------------------------------------------- |
+| `command_text`    | string          | The full command string as submitted                            |
+| `matched_pattern` | string          | The regex pattern that matched, or `'REJECTED'` if none matched |
+| `timestamp`       | ISO 8601        | When the command was submitted                                  |
+| `exit_code`       | integer \| null | Process exit code (`null` if rejected before execution)         |
+
+This provides a complete audit trail for adversarial review per D-11. Rejected commands are logged but never executed.
+
+### §8.4 Playwright CLI Session Management
+
+The verifier uses `playwright-cli` with named sessions for browser interaction during E2E verification. All session commands match the `^playwright-cli .+` allowlist pattern (#2).
+
+**Session lifecycle:**
+
+| Phase             | Command                                              | Purpose                                                                  |
+| ----------------- | ---------------------------------------------------- | ------------------------------------------------------------------------ |
+| Creation          | `playwright-cli -s=verify-{task-id} open {base_url}` | Launch browser with named session                                        |
+| Interaction       | `playwright-cli -s=verify-{task-id} <command>`       | Execute browser commands (goto, click, fill, screenshot, snapshot, etc.) |
+| Cleanup           | `playwright-cli -s=verify-{task-id} close`           | Close specific session                                                   |
+| Emergency cleanup | `playwright-cli close-all`                           | Close all active sessions                                                |
+| Emergency cleanup | `playwright-cli kill-all`                            | Force-kill all sessions                                                  |
+| Listing           | `playwright-cli list`                                | List active sessions (for audit/debugging)                               |
+
+**Session isolation:** The `-s=verify-{task-id}` naming convention ensures parallel verifier instances do not share browser state. Each verifier instance uses its own task ID as the session identifier.
+
 ## §9 Adversarial Reviewer
 
 - **7 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, run_in_terminal 🔒

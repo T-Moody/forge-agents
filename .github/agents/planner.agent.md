@@ -99,6 +99,9 @@ task:
     - id: "AC-2"
       text: "Rate limiting returns 429 after 5 attempts per minute"
       test_method: "test"
+  workflow_lane: "full-tdd-e2e" # Derived from risk: 🟢→unit-only, 🟡→unit-integration, 🔴→full-tdd-e2e
+  e2e_required: true # true when workflow_lane='full-tdd-e2e' AND E2E contract exists
+  e2e_contract_path: ".e2e/contract.yaml" # Discovered E2E contract path, or null
   relevant_context:
     design_sections:
       - "design-output.yaml#payload.decisions[id='D-8']" # Risk classification
@@ -152,6 +155,32 @@ Every file proposed for modification MUST be individually classified:
 | -------------------------- | -------------- | -------------------- | --------------- |
 | **Standard** (no 🔴 files) | No 🔴 in task  | ≥ 2                  | No              |
 | **Large** (any 🔴 file)    | Any 🔴 in task | ≥ 3                  | Yes             |
+
+### Workflow Lane Derivation (D-8)
+
+Every task is assigned a `workflow_lane` derived from its risk classification:
+
+| Task Risk | `workflow_lane`    | `e2e_required`                            |
+| --------- | ------------------ | ----------------------------------------- |
+| 🟢        | `unit-only`        | `false`                                   |
+| 🟡        | `unit-integration` | `false`                                   |
+| 🔴        | `full-tdd-e2e`     | _derived_ — `true` if E2E contract exists |
+
+**Derivation rules:**
+
+1. Lane is deterministic from risk — no manual override.
+2. For 🔴 tasks, `e2e_required` is derived: if an E2E contract is discovered at a known path → `true`; otherwise → `false`.
+3. `e2e_contract_path` records the discovered path (or `null` if none found).
+
+### E2E Contract Path Discovery
+
+When assigning `workflow_lane='full-tdd-e2e'` to a 🔴 task, the planner MUST attempt to discover an E2E contract by checking:
+
+1. Paths documented in `design-output.yaml` or `feature.md`.
+2. Standard locations: `.e2e/contract.yaml`, `e2e-contract.yaml` (relative to workspace root).
+3. References in `spec-output.yaml` acceptance criteria.
+
+If a contract is found, set `e2e_required: true` and `e2e_contract_path: "<relative-path>"`. If no contract is found, set `e2e_required: false` and `e2e_contract_path: null`.
 
 ### `overall_risk_summary`
 
@@ -332,6 +361,7 @@ Before returning, verify all items in [global-operating-rules.md](global-operati
 8. [ ] No code, build commands, or implementation details in outputs.
 9. [ ] Every acceptance criterion specifies an observable behavior with a clear pass/fail definition. No criterion uses vague terms like 'works correctly', 'performs well', or 'is user-friendly' without measurable qualifiers.
 10. [ ] Spec AC IDs and `test_method` propagated to task-level acceptance criteria for all tasks with `task_type='code'`.
+11. [ ] Every 🔴 task has `workflow_lane='full-tdd-e2e'` and `e2e_required` is explicitly set (derived from E2E contract existence).
 
 ## Tool Access
 

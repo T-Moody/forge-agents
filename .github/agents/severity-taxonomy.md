@@ -27,6 +27,9 @@ across all pipeline stages. No agent may use a different severity vocabulary.
 - Hardcoded secrets or credentials in source
 - Data loss or corruption path in storage logic
 - Cryptographic weakness (e.g., broken algorithm, weak key)
+- Orphaned process: app or browser PID left running after E2E teardown
+- Credential exposure: token/password found in evidence artifacts
+- Command allowlist bypass: run_in_terminal executed a command not in tier5_command_allowlist
 
 **Resolution:** Must fix the issue and re-run the review. The only path forward is remediation.
 
@@ -45,6 +48,9 @@ across all pipeline stages. No agent may use a different severity vocabulary.
 - Specification violation in a required behavior
 - Race condition or concurrency bug in shared resource access
 - Schema/API contract violation breaking downstream consumers
+- Evidence fabrication: interaction_log references steps that don't match skill definition
+- Missing teardown: Phase 5 (Teardown) not executed or incomplete
+- Port collision: E2E task used a port already in use by another task
 
 **Resolution:** Implementer addresses the finding. Re-verify after fix. If found during review: triggers `NEEDS_REVISION` routing.
 
@@ -66,6 +72,9 @@ across all pipeline stages. No agent may use a different severity vocabulary.
 - Tests that do not invoke production code (self-referential tests) — test files whose assertions only verify mock setup, fixture state, or other test infrastructure rather than exercising actual production code paths
 - Business logic code changes with zero test coverage — implementation modifies or adds behavioral code yet both baseline and post-implementation `test_summary` are null, meaning no automated tests exist or were executed
 - Acceptance criterion with `test_method='test'` lacking a corresponding automated test — a task acceptance criterion explicitly requires automated verification but no test targets that criterion's observable behavior
+- Flaky E2E test: test passes/fails non-deterministically across runs
+- Missing RED phase: test was written after implementation (no failure evidence)
+- Incomplete interaction: skill defines 5 steps but only 3 were executed
 
 **Resolution:** Fix during current iteration if replan budget allows. If iteration limit reached, log as known issue with `confidence: Low`.
 
@@ -84,6 +93,9 @@ across all pipeline stages. No agent may use a different severity vocabulary.
 - Minor documentation typo or wording improvement
 - Redundant import or unused variable
 - Cosmetic UI inconsistency
+- Stale skill: skill YAML references a selector that no longer exists in the UI
+- Verbose evidence: interaction log exceeds recommended size without truncation
+- Missing duration: step_results lacks duration_ms for some steps
 
 **Resolution:** Logged as finding. Optionally addressed if time permits. Never blocks pipeline.
 

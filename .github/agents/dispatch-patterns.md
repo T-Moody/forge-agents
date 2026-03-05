@@ -178,6 +178,57 @@ Sub-wave 3: Task 9             (1 concurrent)  → wait
 - The gate condition applies per sub-wave, not across the full set.
 - If a sub-wave fails its gate, the orchestrator handles the failure before proceeding to the next sub-wave.
 
+### E2E Dispatch Constraints
+
+When a wave contains tasks with `e2e_required: true`, additional dispatch constraints apply to prevent port collisions, shared resource contention, and flaky browser behavior.
+
+#### E2E Concurrency Cap
+
+**Maximum 1 E2E-enabled task running at a time** within any wave (concurrency cap = 1 for E2E tasks).
+
+- When a wave contains multiple `e2e_required: true` tasks, sub-wave queuing applies: E2E tasks run sequentially even if `max_concurrent > 1`.
+- Non-E2E tasks in the same wave can still run in parallel up to `max_concurrent` (typically 4). The E2E queue does not block or delay non-E2E tasks.
+- **Rationale:** E2E tasks launch application instances, bind ports, and drive browser sessions. Concurrent E2E tasks risk port collisions, shared DB contention, and non-deterministic test failures.
+
+#### Port Allocation Protocol (D-6)
+
+Each E2E task receives a unique port assignment to prevent collisions:
+
+```
+port = port_range_start + task_ordinal_index
+```
+
+- `port_range_start` is defined in the project's E2E contract (`e2e-contract.yaml`).
+- `task_ordinal_index` is the zero-based index of the task within its wave (assigned by the Planner).
+- The computed port is injected into the application via the `port_env_var` environment variable specified in the E2E contract.
+- The orchestrator MUST verify port availability before dispatching an E2E task.
+- On port conflict: wait for the previous E2E task to complete full teardown before dispatching the next.
+
+See [e2e-integration.md](e2e-integration.md) §1 "Port Allocation (D-6)" for the complete contract field reference and validation rules.
+
+#### Sub-Wave Queuing Mechanics
+
+E2E tasks within a wave form a **FIFO queue** with strict lifecycle isolation:
+
+1. E2E tasks are ordered by `task_ordinal_index` (FIFO).
+2. The first E2E task is dispatched while non-E2E tasks run in parallel as normal.
+3. Each E2E task must complete its **full Tier 5 lifecycle** — including application startup, skill execution, evidence capture, and teardown — before the next E2E task is dispatched.
+4. **Independent failure handling:** If an E2E task fails, the remaining E2E tasks in the wave still execute. Failure of one E2E task does not cancel or skip subsequent E2E tasks in the queue.
+5. Non-E2E tasks are completely unaffected by the E2E queue. They execute under normal Pattern A concurrency rules regardless of E2E queue state.
+
+**Example — Wave with 3 E2E tasks and 2 non-E2E tasks:**
+
+```
+Time →
+Non-E2E: [Task-A, Task-B]  ──── run in parallel (Pattern A) ────────────
+E2E:     [Task-C] ── run ── teardown ── [Task-D] ── run ── teardown ── [Task-E] ── run ── teardown
+```
+
+#### Cross-References
+
+- **Port allocation protocol & E2E contract fields:** [e2e-integration.md](e2e-integration.md) §1
+- **E2E safety rules & global constraints:** [global-operating-rules.md](global-operating-rules.md)
+
 ---
 
 ## Pattern Usage Table
