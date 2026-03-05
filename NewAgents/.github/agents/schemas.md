@@ -461,28 +461,28 @@ completion:
 
 ### Fields
 
-| Field                                          | Type            | Required    | Constraint / Allowed Values                                        |
-| ---------------------------------------------- | --------------- | ----------- | ------------------------------------------------------------------ |
-| `task.id`                                      | string          | Yes         | Task identifier assigned by Planner (e.g., `task-03`)              |
-| `task.title`                                   | string          | Yes         | Task title                                                         |
-| `task.description`                             | string          | Yes         | Detailed description of work to be done                            |
-| `task.agent`                                   | string          | Yes         | Assigned agent (e.g., `implementer`)                               |
-| `task.size`                                    | string          | Yes         | `Standard` \| `Large`                                              |
-| `task.risk`                                    | string          | Yes         | `"🟢"` \| `"🟡"` \| `"🔴"`                                         |
-| `task.depends_on`                              | list of strings | No          | Task IDs this task depends on                                      |
-| `task.acceptance_criteria`                     | list of objects | Yes         | ≥ 1 entry; structured acceptance criteria (v2.0)                   |
-| `task.acceptance_criteria[].id`                | string          | Yes         | AC identifier from spec (e.g., `AC-1`)                             |
-| `task.acceptance_criteria[].text`              | string          | Yes         | Testable acceptance criterion text                                 |
-| `task.acceptance_criteria[].test_method`       | string          | Yes         | `inspection` \| `demonstration` \| `test` \| `analysis`            |
-| `task.relevant_context`                        | object          | Yes         | Pointers to specific upstream sections (bounds read amplification) |
-| `task.relevant_context.design_sections`        | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `design-output.yaml`   |
-| `task.relevant_context.spec_requirements`      | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `spec-output.yaml`     |
-| `task.relevant_context.files_to_modify`        | list of objects | No          | Files to create or modify                                          |
-| `task.relevant_context.files_to_modify[].path` | string          | Conditional | Relative file path                                                 |
-| `task.relevant_context.files_to_modify[].risk` | string          | Conditional | `"🟢"` \| `"🟡"` \| `"🔴"`                                         |
+| Field                                          | Type            | Required    | Constraint / Allowed Values                                                                                                                                 |
+| ---------------------------------------------- | --------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task.id`                                      | string          | Yes         | Task identifier assigned by Planner (e.g., `task-03`)                                                                                                       |
+| `task.title`                                   | string          | Yes         | Task title                                                                                                                                                  |
+| `task.description`                             | string          | Yes         | Detailed description of work to be done                                                                                                                     |
+| `task.agent`                                   | string          | Yes         | Assigned agent (e.g., `implementer`)                                                                                                                        |
+| `task.size`                                    | string          | Yes         | `Standard` \| `Large`                                                                                                                                       |
+| `task.risk`                                    | string          | Yes         | `"🟢"` \| `"🟡"` \| `"🔴"`                                                                                                                                  |
+| `task.depends_on`                              | list of strings | No          | Task IDs this task depends on                                                                                                                               |
+| `task.acceptance_criteria`                     | list of objects | Yes         | ≥ 1 entry; structured acceptance criteria (v2.0)                                                                                                            |
+| `task.acceptance_criteria[].id`                | string          | Yes         | AC identifier from spec (e.g., `AC-1`)                                                                                                                      |
+| `task.acceptance_criteria[].text`              | string          | Yes         | Testable acceptance criterion text                                                                                                                          |
+| `task.acceptance_criteria[].test_method`       | string          | Yes         | `inspection` \| `demonstration` \| `test` \| `analysis`                                                                                                     |
+| `task.relevant_context`                        | object          | Yes         | Pointers to specific upstream sections (bounds read amplification)                                                                                          |
+| `task.relevant_context.design_sections`        | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `design-output.yaml`                                                                                            |
+| `task.relevant_context.spec_requirements`      | list of strings | Yes         | ≥ 1 entry; paths with section pointers into `spec-output.yaml`                                                                                              |
+| `task.relevant_context.files_to_modify`        | list of objects | No          | Files to create or modify                                                                                                                                   |
+| `task.relevant_context.files_to_modify[].path` | string          | Conditional | Relative file path                                                                                                                                          |
+| `task.relevant_context.files_to_modify[].risk` | string          | Conditional | `"🟢"` \| `"🟡"` \| `"🔴"`                                                                                                                                  |
 | `task.workflow_lane`                           | string          | Yes         | `'unit-only'` \| `'unit-integration'` \| `'full-tdd-e2e'`; default derived from risk (`🟢` → `unit-only`, `🟡` → `unit-integration`, `🔴` → `full-tdd-e2e`) |
-| `task.e2e_required`                            | boolean         | Yes         | `true` when `workflow_lane='full-tdd-e2e'` AND E2E contract exists; default `false` |
-| `task.e2e_contract_path`                       | string \| null  | Yes         | Path to discovered E2E contract; required when `e2e_required=true`; default `null`  |
+| `task.e2e_required`                            | boolean         | Yes         | `true` when `workflow_lane='full-tdd-e2e'` AND E2E contract exists; default `false`                                                                         |
+| `task.e2e_contract_path`                       | string \| null  | Yes         | Path to discovered E2E contract; required when `e2e_required=true`; default `null`                                                                          |
 
 ### Example
 
@@ -531,53 +531,53 @@ task:
 
 ### Fields
 
-| Field                                         | Type            | Required    | Constraint / Allowed Values                                             |
-| --------------------------------------------- | --------------- | ----------- | ----------------------------------------------------------------------- |
-| `agent_output` (header)                       | object          | Yes         | Common header                                                           |
-| `payload.task_id`                             | string          | Yes         | Matches `task.id` from assigned task schema                             |
-| `payload.task_type`                           | string          | Yes         | `code` \| `documentation` \| `configuration`                            |
-| `payload.baseline`                            | object          | Yes         | Pre-implementation state capture                                        |
-| `payload.baseline.ide_diagnostics`            | object          | Yes         | IDE error/warning counts before changes                                 |
-| `payload.baseline.ide_diagnostics.errors`     | integer         | Yes         | ≥ 0                                                                     |
-| `payload.baseline.ide_diagnostics.warnings`   | integer         | Yes         | ≥ 0                                                                     |
-| `payload.baseline.build_exit_code`            | integer \| null | Yes         | Build exit code before changes; `null` if no build system               |
-| `payload.baseline.test_summary`               | object \| null  | Yes         | Test results before changes; `null` if no tests                         |
-| `payload.baseline.test_summary.total`         | integer         | Conditional | Total tests                                                             |
-| `payload.baseline.test_summary.passed`        | integer         | Conditional | Passing tests                                                           |
-| `payload.baseline.test_summary.failed`        | integer         | Conditional | Failing tests                                                           |
-| `payload.changes`                             | list of objects | Yes         | ≥ 1 entry; files created or modified                                    |
-| `payload.changes[].path`                      | string          | Yes         | Relative file path                                                      |
-| `payload.changes[].action`                    | string          | Yes         | `created` \| `modified` \| `deleted`                                    |
-| `payload.changes[].description`               | string          | Yes         | Brief description of the change                                         |
-| `payload.self_check`                          | object          | Yes         | Post-implementation self-verification results                           |
-| `payload.self_check.ide_diagnostics`          | object          | Yes         | IDE error/warning counts after changes                                  |
-| `payload.self_check.ide_diagnostics.errors`   | integer         | Yes         | ≥ 0                                                                     |
-| `payload.self_check.ide_diagnostics.warnings` | integer         | Yes         | ≥ 0                                                                     |
-| `payload.self_check.build_exit_code`          | integer \| null | Yes         | Build exit code after changes; `null` if no build system                |
-| `payload.self_check.test_summary`             | object \| null  | Yes         | Test results after changes; `null` if no tests                          |
-| `payload.self_check.self_fix_attempts`        | integer         | Yes         | 0–2; number of self-fix iterations performed                            |
-| `payload.self_check.git_staged`               | boolean         | Yes         | `true` if `git add -A` was executed after completion                    |
-| `payload.verification_entries`                | list of objects | No          | Baseline-phase SQL entries for `anvil_checks` (recorded by Implementer) |
-| `payload.verification_entries[].check_name`   | string          | Conditional | Check name for SQL INSERT                                               |
-| `payload.verification_entries[].phase`        | string          | Conditional | Always `baseline` for Implementer entries                               |
-| `payload.verification_entries[].tool`         | string          | Conditional | Tool used (e.g., `ide-get_diagnostics`, `dotnet build`)                 |
-| `payload.verification_entries[].passed`       | boolean         | Conditional | Whether the check passed                                                |
-| `payload.behavioral_coverage`                 | list of objects | Conditional | Required for `task_type='code'`; maps each AC to its verifying test     |
-| `payload.behavioral_coverage[].ac_id`         | string          | Yes         | AC identifier (e.g., `AC-1`)                                            |
-| `payload.behavioral_coverage[].test_file`     | string          | Conditional | Relative path to test file; required when `status='covered'`            |
-| `payload.behavioral_coverage[].test_name`     | string          | Conditional | Test function/method name; required when `status='covered'`             |
-| `payload.behavioral_coverage[].status`        | string          | Yes         | `covered` \| `not_applicable`                                           |
-| `payload.behavioral_coverage[].justification` | string          | Conditional | Required when `status='not_applicable'`; explains why no test exists    |
-| `payload.tdd_red_green`                       | object          | Conditional | Required for `task_type='code'` when TDD applies; records TDD cycle     |
-| `payload.tdd_red_green.tests_written_first`   | boolean         | Yes         | `true` if tests were written before production code                     |
-| `payload.tdd_red_green.initial_run_failures`  | integer         | Yes         | Number of test failures on initial (red) run                            |
-| `payload.tdd_red_green.initial_run_exit_code` | integer         | Yes         | Exit code of the initial (red) test run                                 |
-| `payload.tdd_red_green.verify_phase`                    | object          | Conditional | Required for `task_type='code'`; VERIFY step results after GREEN phase  |
-| `payload.tdd_red_green.verify_phase.get_errors_clean`   | boolean         | Yes         | `true` if `get_errors` produced no new errors after GREEN phase         |
-| `payload.tdd_red_green.verify_phase.typecheck_clean`    | boolean         | Yes         | `true` if type checker passed after GREEN phase                         |
-| `payload.tdd_red_green.verify_phase.tests_passing`      | boolean         | Yes         | `true` if all tests pass after GREEN phase                              |
-| `payload.tdd_red_green.tdd_fallback_reason`             | string \| null  | Yes         | Reason TDD was skipped; `null` when TDD was performed normally          |
-| `completion` (contract)                       | object          | Yes         | See Schema 1                                                            |
+| Field                                                 | Type            | Required    | Constraint / Allowed Values                                             |
+| ----------------------------------------------------- | --------------- | ----------- | ----------------------------------------------------------------------- |
+| `agent_output` (header)                               | object          | Yes         | Common header                                                           |
+| `payload.task_id`                                     | string          | Yes         | Matches `task.id` from assigned task schema                             |
+| `payload.task_type`                                   | string          | Yes         | `code` \| `documentation` \| `configuration`                            |
+| `payload.baseline`                                    | object          | Yes         | Pre-implementation state capture                                        |
+| `payload.baseline.ide_diagnostics`                    | object          | Yes         | IDE error/warning counts before changes                                 |
+| `payload.baseline.ide_diagnostics.errors`             | integer         | Yes         | ≥ 0                                                                     |
+| `payload.baseline.ide_diagnostics.warnings`           | integer         | Yes         | ≥ 0                                                                     |
+| `payload.baseline.build_exit_code`                    | integer \| null | Yes         | Build exit code before changes; `null` if no build system               |
+| `payload.baseline.test_summary`                       | object \| null  | Yes         | Test results before changes; `null` if no tests                         |
+| `payload.baseline.test_summary.total`                 | integer         | Conditional | Total tests                                                             |
+| `payload.baseline.test_summary.passed`                | integer         | Conditional | Passing tests                                                           |
+| `payload.baseline.test_summary.failed`                | integer         | Conditional | Failing tests                                                           |
+| `payload.changes`                                     | list of objects | Yes         | ≥ 1 entry; files created or modified                                    |
+| `payload.changes[].path`                              | string          | Yes         | Relative file path                                                      |
+| `payload.changes[].action`                            | string          | Yes         | `created` \| `modified` \| `deleted`                                    |
+| `payload.changes[].description`                       | string          | Yes         | Brief description of the change                                         |
+| `payload.self_check`                                  | object          | Yes         | Post-implementation self-verification results                           |
+| `payload.self_check.ide_diagnostics`                  | object          | Yes         | IDE error/warning counts after changes                                  |
+| `payload.self_check.ide_diagnostics.errors`           | integer         | Yes         | ≥ 0                                                                     |
+| `payload.self_check.ide_diagnostics.warnings`         | integer         | Yes         | ≥ 0                                                                     |
+| `payload.self_check.build_exit_code`                  | integer \| null | Yes         | Build exit code after changes; `null` if no build system                |
+| `payload.self_check.test_summary`                     | object \| null  | Yes         | Test results after changes; `null` if no tests                          |
+| `payload.self_check.self_fix_attempts`                | integer         | Yes         | 0–2; number of self-fix iterations performed                            |
+| `payload.self_check.git_staged`                       | boolean         | Yes         | `true` if `git add -A` was executed after completion                    |
+| `payload.verification_entries`                        | list of objects | No          | Baseline-phase SQL entries for `anvil_checks` (recorded by Implementer) |
+| `payload.verification_entries[].check_name`           | string          | Conditional | Check name for SQL INSERT                                               |
+| `payload.verification_entries[].phase`                | string          | Conditional | Always `baseline` for Implementer entries                               |
+| `payload.verification_entries[].tool`                 | string          | Conditional | Tool used (e.g., `ide-get_diagnostics`, `dotnet build`)                 |
+| `payload.verification_entries[].passed`               | boolean         | Conditional | Whether the check passed                                                |
+| `payload.behavioral_coverage`                         | list of objects | Conditional | Required for `task_type='code'`; maps each AC to its verifying test     |
+| `payload.behavioral_coverage[].ac_id`                 | string          | Yes         | AC identifier (e.g., `AC-1`)                                            |
+| `payload.behavioral_coverage[].test_file`             | string          | Conditional | Relative path to test file; required when `status='covered'`            |
+| `payload.behavioral_coverage[].test_name`             | string          | Conditional | Test function/method name; required when `status='covered'`             |
+| `payload.behavioral_coverage[].status`                | string          | Yes         | `covered` \| `not_applicable`                                           |
+| `payload.behavioral_coverage[].justification`         | string          | Conditional | Required when `status='not_applicable'`; explains why no test exists    |
+| `payload.tdd_red_green`                               | object          | Conditional | Required for `task_type='code'` when TDD applies; records TDD cycle     |
+| `payload.tdd_red_green.tests_written_first`           | boolean         | Yes         | `true` if tests were written before production code                     |
+| `payload.tdd_red_green.initial_run_failures`          | integer         | Yes         | Number of test failures on initial (red) run                            |
+| `payload.tdd_red_green.initial_run_exit_code`         | integer         | Yes         | Exit code of the initial (red) test run                                 |
+| `payload.tdd_red_green.verify_phase`                  | object          | Conditional | Required for `task_type='code'`; VERIFY step results after GREEN phase  |
+| `payload.tdd_red_green.verify_phase.get_errors_clean` | boolean         | Yes         | `true` if `get_errors` produced no new errors after GREEN phase         |
+| `payload.tdd_red_green.verify_phase.typecheck_clean`  | boolean         | Yes         | `true` if type checker passed after GREEN phase                         |
+| `payload.tdd_red_green.verify_phase.tests_passing`    | boolean         | Yes         | `true` if all tests pass after GREEN phase                              |
+| `payload.tdd_red_green.tdd_fallback_reason`           | string \| null  | Yes         | Reason TDD was skipped; `null` when TDD was performed normally          |
+| `completion` (contract)                               | object          | Yes         | See Schema 1                                                            |
 
 > **`behavioral_coverage.status` values:**
 >
@@ -682,54 +682,54 @@ completion:
 
 ### Fields
 
-| Field                                              | Type            | Required    | Constraint / Allowed Values                                 |
-| -------------------------------------------------- | --------------- | ----------- | ----------------------------------------------------------- |
-| `agent_output` (header)                            | object          | Yes         | Common header                                               |
-| `payload.task_id`                                  | string          | Yes         | Matches task being verified                                 |
-| `payload.run_id`                                   | string          | Yes         | Pipeline run identifier (ISO 8601)                          |
-| `payload.evidence_gate`                            | object          | Yes         | Gate summary for orchestrator routing                       |
-| `payload.evidence_gate.total_checks`               | integer         | Yes         | ≥ 1                                                         |
-| `payload.evidence_gate.passed`                     | integer         | Yes         | ≥ 0                                                         |
-| `payload.evidence_gate.failed`                     | integer         | Yes         | ≥ 0                                                         |
-| `payload.evidence_gate.gate_status`                | string          | Yes         | `passed` \| `failed`                                        |
-| `payload.findings`                                 | list of objects | Yes         | ≥ 1 entry; individual check results                         |
-| `payload.findings[].check_name`                    | string          | Yes         | Check identifier used in SQL INSERT                         |
-| `payload.findings[].tier`                          | integer         | Yes         | 1–4; which verification tier                                |
-| `payload.findings[].phase`                         | string          | Yes         | `baseline` \| `after`                                       |
-| `payload.findings[].tool`                          | string          | Yes         | Tool used for the check                                     |
-| `payload.findings[].command`                       | string \| null  | No          | Command executed; `null` if not applicable                  |
-| `payload.findings[].exit_code`                     | integer \| null | No          | Command exit code; `null` if not applicable                 |
-| `payload.findings[].passed`                        | boolean         | Yes         | Whether the check passed                                    |
-| `payload.findings[].output_snippet`                | string \| null  | No          | ≤ 500 chars; first 500 characters of output                 |
-| `payload.regressions`                              | list of objects | No          | Checks that passed in baseline but failed in after          |
-| `payload.regressions[].check_name`                 | string          | Conditional | Name of the regressed check                                 |
-| `payload.regressions[].baseline_result`            | boolean         | Conditional | Always `true` (passed in baseline)                          |
-| `payload.regressions[].after_result`               | boolean         | Conditional | Always `false` (failed in after)                            |
-| `payload.regressions[].detail`                     | string          | Conditional | Description of the regression                               |
-| `payload.baseline_cross_check`                     | object \| null  | No          | Results of independent baseline verification via `git show` |
-| `payload.baseline_cross_check.method`              | string          | Conditional | Always `"git show pipeline-baseline-{run_id}:<path>"`       |
-| `payload.baseline_cross_check.discrepancies_found` | boolean         | Conditional | `true` if Implementer baseline claims don't match           |
-| `payload.e2e_results`                              | object \| null  | No          | E2E verification results; `null` when `e2e_required=false`  |
-| `payload.e2e_results.suite_passed`                 | boolean \| null | Conditional | Test suite execution result; `null` if no test-suite skills  |
-| `payload.e2e_results.exploratory_passed`           | boolean \| null | Conditional | Exploratory interaction result; `null` if no exploratory skills |
-| `payload.e2e_results.adversarial_passed`           | boolean \| null | Conditional | Adversarial interaction result; `null` if no adversarial skills |
-| `payload.e2e_results.interaction_logs`             | list of objects | Conditional | Per-skill interaction logs                                   |
-| `payload.e2e_results.interaction_logs[].skill_id`  | string          | Yes         | Skill identifier                                             |
-| `payload.e2e_results.interaction_logs[].skill_type`| string          | Yes         | `test-suite` \| `exploratory` \| `adversarial`              |
-| `payload.e2e_results.interaction_logs[].steps_executed` | integer    | Yes         | Total steps executed                                         |
-| `payload.e2e_results.interaction_logs[].steps_passed`   | integer    | Yes         | Steps that passed assertions                                 |
-| `payload.e2e_results.interaction_logs[].steps_failed`   | integer    | Yes         | Steps that failed assertions                                 |
-| `payload.e2e_results.interaction_logs[].step_results`   | list of objects | Yes   | Per-step result details                                      |
-| `payload.e2e_results.interaction_logs[].step_results[].order`    | integer  | Yes  | Step execution order                                         |
-| `payload.e2e_results.interaction_logs[].step_results[].action`   | string   | Yes  | Action performed                                             |
-| `payload.e2e_results.interaction_logs[].step_results[].target`   | string   | Yes  | Target of the action                                         |
-| `payload.e2e_results.interaction_logs[].step_results[].result`   | string   | Yes  | `passed` \| `failed` \| `skipped`                           |
-| `payload.e2e_results.interaction_logs[].step_results[].actual_behavior` | string \| null | No | Observed behavior description                         |
-| `payload.e2e_results.interaction_logs[].step_results[].evidence_path`   | string \| null | No | Path to evidence file (screenshot, HAR, etc.)         |
-| `payload.e2e_results.interaction_logs[].step_results[].duration_ms`     | integer        | Yes | Time taken for this step in milliseconds              |
-| `payload.e2e_results.artifact_paths`               | list of strings | Conditional | Paths to evidence files (screenshots, traces, videos) |
-| `payload.e2e_results.evidence_manifest_path`       | string \| null  | Conditional | Path to evidence-manifest.yaml                        |
-| `completion` (contract)                            | object          | Yes         | See Schema 1                                                |
+| Field                                                                   | Type            | Required    | Constraint / Allowed Values                                     |
+| ----------------------------------------------------------------------- | --------------- | ----------- | --------------------------------------------------------------- |
+| `agent_output` (header)                                                 | object          | Yes         | Common header                                                   |
+| `payload.task_id`                                                       | string          | Yes         | Matches task being verified                                     |
+| `payload.run_id`                                                        | string          | Yes         | Pipeline run identifier (ISO 8601)                              |
+| `payload.evidence_gate`                                                 | object          | Yes         | Gate summary for orchestrator routing                           |
+| `payload.evidence_gate.total_checks`                                    | integer         | Yes         | ≥ 1                                                             |
+| `payload.evidence_gate.passed`                                          | integer         | Yes         | ≥ 0                                                             |
+| `payload.evidence_gate.failed`                                          | integer         | Yes         | ≥ 0                                                             |
+| `payload.evidence_gate.gate_status`                                     | string          | Yes         | `passed` \| `failed`                                            |
+| `payload.findings`                                                      | list of objects | Yes         | ≥ 1 entry; individual check results                             |
+| `payload.findings[].check_name`                                         | string          | Yes         | Check identifier used in SQL INSERT                             |
+| `payload.findings[].tier`                                               | integer         | Yes         | 1–4; which verification tier                                    |
+| `payload.findings[].phase`                                              | string          | Yes         | `baseline` \| `after`                                           |
+| `payload.findings[].tool`                                               | string          | Yes         | Tool used for the check                                         |
+| `payload.findings[].command`                                            | string \| null  | No          | Command executed; `null` if not applicable                      |
+| `payload.findings[].exit_code`                                          | integer \| null | No          | Command exit code; `null` if not applicable                     |
+| `payload.findings[].passed`                                             | boolean         | Yes         | Whether the check passed                                        |
+| `payload.findings[].output_snippet`                                     | string \| null  | No          | ≤ 500 chars; first 500 characters of output                     |
+| `payload.regressions`                                                   | list of objects | No          | Checks that passed in baseline but failed in after              |
+| `payload.regressions[].check_name`                                      | string          | Conditional | Name of the regressed check                                     |
+| `payload.regressions[].baseline_result`                                 | boolean         | Conditional | Always `true` (passed in baseline)                              |
+| `payload.regressions[].after_result`                                    | boolean         | Conditional | Always `false` (failed in after)                                |
+| `payload.regressions[].detail`                                          | string          | Conditional | Description of the regression                                   |
+| `payload.baseline_cross_check`                                          | object \| null  | No          | Results of independent baseline verification via `git show`     |
+| `payload.baseline_cross_check.method`                                   | string          | Conditional | Always `"git show pipeline-baseline-{run_id}:<path>"`           |
+| `payload.baseline_cross_check.discrepancies_found`                      | boolean         | Conditional | `true` if Implementer baseline claims don't match               |
+| `payload.e2e_results`                                                   | object \| null  | No          | E2E verification results; `null` when `e2e_required=false`      |
+| `payload.e2e_results.suite_passed`                                      | boolean \| null | Conditional | Test suite execution result; `null` if no test-suite skills     |
+| `payload.e2e_results.exploratory_passed`                                | boolean \| null | Conditional | Exploratory interaction result; `null` if no exploratory skills |
+| `payload.e2e_results.adversarial_passed`                                | boolean \| null | Conditional | Adversarial interaction result; `null` if no adversarial skills |
+| `payload.e2e_results.interaction_logs`                                  | list of objects | Conditional | Per-skill interaction logs                                      |
+| `payload.e2e_results.interaction_logs[].skill_id`                       | string          | Yes         | Skill identifier                                                |
+| `payload.e2e_results.interaction_logs[].skill_type`                     | string          | Yes         | `test-suite` \| `exploratory` \| `adversarial`                  |
+| `payload.e2e_results.interaction_logs[].steps_executed`                 | integer         | Yes         | Total steps executed                                            |
+| `payload.e2e_results.interaction_logs[].steps_passed`                   | integer         | Yes         | Steps that passed assertions                                    |
+| `payload.e2e_results.interaction_logs[].steps_failed`                   | integer         | Yes         | Steps that failed assertions                                    |
+| `payload.e2e_results.interaction_logs[].step_results`                   | list of objects | Yes         | Per-step result details                                         |
+| `payload.e2e_results.interaction_logs[].step_results[].order`           | integer         | Yes         | Step execution order                                            |
+| `payload.e2e_results.interaction_logs[].step_results[].action`          | string          | Yes         | Action performed                                                |
+| `payload.e2e_results.interaction_logs[].step_results[].target`          | string          | Yes         | Target of the action                                            |
+| `payload.e2e_results.interaction_logs[].step_results[].result`          | string          | Yes         | `passed` \| `failed` \| `skipped`                               |
+| `payload.e2e_results.interaction_logs[].step_results[].actual_behavior` | string \| null  | No          | Observed behavior description                                   |
+| `payload.e2e_results.interaction_logs[].step_results[].evidence_path`   | string \| null  | No          | Path to evidence file (screenshot, HAR, etc.)                   |
+| `payload.e2e_results.interaction_logs[].step_results[].duration_ms`     | integer         | Yes         | Time taken for this step in milliseconds                        |
+| `payload.e2e_results.artifact_paths`                                    | list of strings | Conditional | Paths to evidence files (screenshots, traces, videos)           |
+| `payload.e2e_results.evidence_manifest_path`                            | string \| null  | Conditional | Path to evidence-manifest.yaml                                  |
+| `completion` (contract)                                                 | object          | Yes         | See Schema 1                                                    |
 
 ### Example
 
@@ -1049,110 +1049,110 @@ completion:
 
 #### App Lifecycle
 
-| Field                          | Type            | Required | Constraint / Allowed Values                                                  |
-| ------------------------------ | --------------- | -------- | ---------------------------------------------------------------------------- |
-| `app_type`                     | string          | Yes      | `web` \| `api` \| `cli` \| `desktop` \| `library`                           |
-| `start_command`                | object          | Yes      | Structured command format (D-21) — NOT a raw shell string                    |
-| `start_command.executable`     | string          | Yes      | Binary name; must match `tier5_command_allowlist` (D-22). No path separators, spaces, or shell metacharacters |
-| `start_command.args`           | list of strings | Yes      | Command arguments; `{port}` placeholder validated as integer [1024, 65535]   |
-| `start_command.env`            | map             | No       | Environment variables; values validated against pattern allowlist (alphanumeric + common path chars, no shell metacharacters `;\|&\`$`) |
-| `ready_check`                  | string          | Yes      | URL (e.g., `http://localhost:{port}/health`) or structured command object    |
-| `ready_timeout_ms`             | integer         | Yes      | Max wait for readiness; default `30000`                                      |
-| `base_url`                     | string          | Yes      | Application base URL (e.g., `http://localhost:{port}`)                       |
-| `shutdown_command`             | object \| null  | No       | Structured command format; `null` if process kill is sufficient               |
-| `shutdown_command.executable`  | string          | Conditional | Binary name; must match command allowlist                                  |
-| `shutdown_command.args`        | list of strings | Conditional | Shutdown command arguments                                                |
-| `shutdown_timeout_ms`          | integer         | No       | Max wait for graceful shutdown; default `10000`                              |
+| Field                         | Type            | Required    | Constraint / Allowed Values                                                                                                             |
+| ----------------------------- | --------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `app_type`                    | string          | Yes         | `web` \| `api` \| `cli` \| `desktop` \| `library`                                                                                       |
+| `start_command`               | object          | Yes         | Structured command format (D-21) — NOT a raw shell string                                                                               |
+| `start_command.executable`    | string          | Yes         | Binary name; must match `tier5_command_allowlist` (D-22). No path separators, spaces, or shell metacharacters                           |
+| `start_command.args`          | list of strings | Yes         | Command arguments; `{port}` placeholder validated as integer [1024, 65535]                                                              |
+| `start_command.env`           | map             | No          | Environment variables; values validated against pattern allowlist (alphanumeric + common path chars, no shell metacharacters `;\|&\`$`) |
+| `ready_check`                 | string          | Yes         | URL (e.g., `http://localhost:{port}/health`) or structured command object                                                               |
+| `ready_timeout_ms`            | integer         | Yes         | Max wait for readiness; default `30000`                                                                                                 |
+| `base_url`                    | string          | Yes         | Application base URL (e.g., `http://localhost:{port}`)                                                                                  |
+| `shutdown_command`            | object \| null  | No          | Structured command format; `null` if process kill is sufficient                                                                         |
+| `shutdown_command.executable` | string          | Conditional | Binary name; must match command allowlist                                                                                               |
+| `shutdown_command.args`       | list of strings | Conditional | Shutdown command arguments                                                                                                              |
+| `shutdown_timeout_ms`         | integer         | No          | Max wait for graceful shutdown; default `10000`                                                                                         |
 
 #### Port Management
 
-| Field              | Type    | Required | Constraint / Allowed Values                                   |
-| ------------------ | ------- | -------- | ------------------------------------------------------------- |
-| `default_port`     | integer | Yes      | Port number; validated range [1024, 65535]                    |
-| `port_env_var`     | string  | No       | Environment variable name for port override (e.g., `PORT`)   |
+| Field              | Type    | Required | Constraint / Allowed Values                                         |
+| ------------------ | ------- | -------- | ------------------------------------------------------------------- |
+| `default_port`     | integer | Yes      | Port number; validated range [1024, 65535]                          |
+| `port_env_var`     | string  | No       | Environment variable name for port override (e.g., `PORT`)          |
 | `port_range_start` | integer | No       | Start of port range for parallel instances; validated [1024, 65535] |
 
 #### Runner
 
-| Field            | Type         | Required | Constraint / Allowed Values                                        |
-| ---------------- | ------------ | -------- | ------------------------------------------------------------------ |
-| `e2e_runner`     | string       | No       | `playwright` \| `cypress` \| `custom` \| `none`                    |
-| `e2e_command`    | string \| null | No     | Test execution command; `null` if no pre-written suite              |
-| `e2e_config_path`| string \| null | No     | Path to runner configuration file                                  |
-| `e2e_env`        | map          | No       | Additional environment variables for test execution                |
+| Field             | Type           | Required | Constraint / Allowed Values                            |
+| ----------------- | -------------- | -------- | ------------------------------------------------------ |
+| `e2e_runner`      | string         | No       | `playwright` \| `cypress` \| `custom` \| `none`        |
+| `e2e_command`     | string \| null | No       | Test execution command; `null` if no pre-written suite |
+| `e2e_config_path` | string \| null | No       | Path to runner configuration file                      |
+| `e2e_env`         | map            | No       | Additional environment variables for test execution    |
 
 #### Parallelism
 
-| Field                        | Type    | Required | Constraint / Allowed Values                                                    |
-| ---------------------------- | ------- | -------- | ------------------------------------------------------------------------------ |
-| `supports_parallel`          | boolean | No       | Whether app supports parallel test instances; default `false`                  |
-| `requires_isolated_instance` | boolean | No       | Whether each test needs its own app instance; default `true`                   |
-| `max_concurrent_instances`   | integer | No       | Maximum parallel app instances; default `2`, max `4`                           |
+| Field                        | Type    | Required | Constraint / Allowed Values                                                                     |
+| ---------------------------- | ------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `supports_parallel`          | boolean | No       | Whether app supports parallel test instances; default `false`                                   |
+| `requires_isolated_instance` | boolean | No       | Whether each test needs its own app instance; default `true`                                    |
+| `max_concurrent_instances`   | integer | No       | Maximum parallel app instances; default `2`, max `4`                                            |
 | `db_isolation_strategy`      | string  | No       | `per-instance-db` \| `transaction-rollback` \| `shared-with-locking`; default `per-instance-db` |
 
 #### Interaction
 
-| Field                               | Type            | Required | Constraint / Allowed Values                                              |
-| ----------------------------------- | --------------- | -------- | ------------------------------------------------------------------------ |
-| `interaction_type`                  | string          | Yes      | `browser` \| `api` \| `cli` \| `none`                                   |
-| `interaction_tools`                 | object          | No       | Tool configuration per interaction type                                  |
-| `interaction_tools.browser`         | object          | Conditional | Required when `interaction_type='browser'`                            |
-| `interaction_tools.browser.tool`    | string          | Conditional | `playwright` \| `puppeteer` \| `custom`                              |
-| `interaction_tools.browser.install_command` | string \| null | Conditional | Installation command; `null` if pre-installed                   |
-| `interaction_tools.api`             | object          | Conditional | Required when `interaction_type='api'`                                |
-| `interaction_tools.api.tool`        | string          | Conditional | `curl` \| `fetch` \| `custom`                                        |
-| `interaction_tools.api.base_headers`| map \| null     | No       | Default HTTP headers for API interaction                                 |
-| `interaction_tools.api.auth_setup`  | string \| null  | No       | Authentication setup command or token reference                          |
-| `interaction_tools.cli`             | object          | Conditional | Required when `interaction_type='cli'`                                |
-| `interaction_tools.cli.tool`        | string          | Conditional | `terminal`                                                            |
-| `interaction_tools.cli.shell`       | string \| null  | No       | Shell to use; `null` for system default                                  |
-| `interaction_tools.cli.working_dir` | string \| null  | No       | Working directory for CLI commands                                       |
-| `readiness_checks`                  | list of objects | No       | Checks run before interaction begins                                     |
-| `readiness_checks[].type`           | string          | Conditional | `http` \| `tcp` \| `command`                                         |
-| `readiness_checks[].target`         | string          | Conditional | URL, host:port, or command                                            |
-| `readiness_checks[].expect`         | string \| null  | No       | Expected response pattern                                                |
-| `readiness_checks[].timeout_ms`     | integer         | Conditional | Max wait for this check; default `5000`                               |
-| `evidence_capture`                  | object          | No       | Evidence capture methods                                                 |
-| `evidence_capture.screenshots`      | boolean         | No       | Capture screenshots; default `true`                                      |
-| `evidence_capture.har_files`        | boolean         | No       | Capture HAR network logs; default `false`                                |
-| `evidence_capture.response_logs`    | boolean         | No       | Capture API response logs; default `true`                                |
-| `evidence_capture.console_logs`     | boolean         | No       | Capture browser/CLI console output; default `true`                       |
-| `evidence_capture.video`            | boolean         | No       | Record video; default `false`                                            |
-| `evidence_capture.dom_snapshots`    | boolean         | No       | Capture DOM snapshots; default `false`                                   |
+| Field                                       | Type            | Required    | Constraint / Allowed Values                        |
+| ------------------------------------------- | --------------- | ----------- | -------------------------------------------------- |
+| `interaction_type`                          | string          | Yes         | `browser` \| `api` \| `cli` \| `none`              |
+| `interaction_tools`                         | object          | No          | Tool configuration per interaction type            |
+| `interaction_tools.browser`                 | object          | Conditional | Required when `interaction_type='browser'`         |
+| `interaction_tools.browser.tool`            | string          | Conditional | `playwright` \| `puppeteer` \| `custom`            |
+| `interaction_tools.browser.install_command` | string \| null  | Conditional | Installation command; `null` if pre-installed      |
+| `interaction_tools.api`                     | object          | Conditional | Required when `interaction_type='api'`             |
+| `interaction_tools.api.tool`                | string          | Conditional | `curl` \| `fetch` \| `custom`                      |
+| `interaction_tools.api.base_headers`        | map \| null     | No          | Default HTTP headers for API interaction           |
+| `interaction_tools.api.auth_setup`          | string \| null  | No          | Authentication setup command or token reference    |
+| `interaction_tools.cli`                     | object          | Conditional | Required when `interaction_type='cli'`             |
+| `interaction_tools.cli.tool`                | string          | Conditional | `terminal`                                         |
+| `interaction_tools.cli.shell`               | string \| null  | No          | Shell to use; `null` for system default            |
+| `interaction_tools.cli.working_dir`         | string \| null  | No          | Working directory for CLI commands                 |
+| `readiness_checks`                          | list of objects | No          | Checks run before interaction begins               |
+| `readiness_checks[].type`                   | string          | Conditional | `http` \| `tcp` \| `command`                       |
+| `readiness_checks[].target`                 | string          | Conditional | URL, host:port, or command                         |
+| `readiness_checks[].expect`                 | string \| null  | No          | Expected response pattern                          |
+| `readiness_checks[].timeout_ms`             | integer         | Conditional | Max wait for this check; default `5000`            |
+| `evidence_capture`                          | object          | No          | Evidence capture methods                           |
+| `evidence_capture.screenshots`              | boolean         | No          | Capture screenshots; default `true`                |
+| `evidence_capture.har_files`                | boolean         | No          | Capture HAR network logs; default `false`          |
+| `evidence_capture.response_logs`            | boolean         | No          | Capture API response logs; default `true`          |
+| `evidence_capture.console_logs`             | boolean         | No          | Capture browser/CLI console output; default `true` |
+| `evidence_capture.video`                    | boolean         | No          | Record video; default `false`                      |
+| `evidence_capture.dom_snapshots`            | boolean         | No          | Capture DOM snapshots; default `false`             |
 
 #### Browser Tool Config (`@playwright/cli`)
 
-| Field                    | Type   | Required    | Constraint / Allowed Values                                                |
-| ------------------------ | ------ | ----------- | -------------------------------------------------------------------------- |
-| `browser`                | object | Conditional | Required when `interaction_type='browser'`                                 |
-| `browser.tool`           | string | Yes         | `"playwright-cli"` — the CLI binary from `@playwright/cli`                |
-| `browser.install`        | string | Yes         | `"npm install -g @playwright/cli@latest"` — global install command        |
+| Field                    | Type   | Required    | Constraint / Allowed Values                                                    |
+| ------------------------ | ------ | ----------- | ------------------------------------------------------------------------------ |
+| `browser`                | object | Conditional | Required when `interaction_type='browser'`                                     |
+| `browser.tool`           | string | Yes         | `"playwright-cli"` — the CLI binary from `@playwright/cli`                     |
+| `browser.install`        | string | Yes         | `"npm install -g @playwright/cli@latest"` — global install command             |
 | `browser.skills_install` | string | Yes         | `"playwright-cli install --skills"` — installs agent-discoverable skill guides |
-| `browser.session_prefix` | string | Yes         | `"verify-{task-id}"` — session isolation via `-s=<name>` flag             |
-| `browser.config`         | string | Yes         | `".playwright/cli.config.json"` — per-project configuration path          |
+| `browser.session_prefix` | string | Yes         | `"verify-{task-id}"` — session isolation via `-s=<name>` flag                  |
+| `browser.config`         | string | Yes         | `".playwright/cli.config.json"` — per-project configuration path               |
 
 #### Skills
 
-| Field                  | Type            | Required | Constraint / Allowed Values                                               |
-| ---------------------- | --------------- | -------- | ------------------------------------------------------------------------- |
-| `skills`               | list            | No       | Inline skill objects or path references; see Schema 14 for skill format   |
-| `skill_discovery_path` | string \| null  | No       | Directory path for skill YAML files (organized by type: `test-suite/`, `exploratory/`, `adversarial/`) |
+| Field                  | Type           | Required | Constraint / Allowed Values                                                                            |
+| ---------------------- | -------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `skills`               | list           | No       | Inline skill objects or path references; see Schema 14 for skill format                                |
+| `skill_discovery_path` | string \| null | No       | Directory path for skill YAML files (organized by type: `test-suite/`, `exploratory/`, `adversarial/`) |
 
 #### Evidence
 
-| Field                   | Type    | Required | Constraint / Allowed Values                              |
-| ----------------------- | ------- | -------- | -------------------------------------------------------- |
-| `screenshot_on_failure` | boolean | No       | Capture screenshot on step failure; default `true`       |
-| `trace_on_failure`      | boolean | No       | Capture trace on failure; default `true`                 |
-| `video_recording`       | boolean | No       | Record video during interaction; default `false`         |
-| `har_capture`           | boolean | No       | Capture HAR network log; default `false` for API apps    |
+| Field                   | Type    | Required | Constraint / Allowed Values                                     |
+| ----------------------- | ------- | -------- | --------------------------------------------------------------- |
+| `screenshot_on_failure` | boolean | No       | Capture screenshot on step failure; default `true`              |
+| `trace_on_failure`      | boolean | No       | Capture trace on failure; default `true`                        |
+| `video_recording`       | boolean | No       | Record video during interaction; default `false`                |
+| `har_capture`           | boolean | No       | Capture HAR network log; default `false` for API apps           |
 | `evidence_output_dir`   | string  | No       | Output directory for evidence files; default `'.e2e-evidence/'` |
 
 #### Trust Level
 
-| Field         | Type   | Required | Constraint / Allowed Values                                               |
-| ------------- | ------ | -------- | ------------------------------------------------------------------------- |
-| `trust_level` | string | No       | `project-trusted` \| `pipeline-generated`; default `project-trusted`      |
+| Field         | Type   | Required | Constraint / Allowed Values                                          |
+| ------------- | ------ | -------- | -------------------------------------------------------------------- |
+| `trust_level` | string | No       | `project-trusted` \| `pipeline-generated`; default `project-trusted` |
 
 ### Example
 
@@ -1237,54 +1237,54 @@ trust_level: "project-trusted"
 
 ### Skill Metadata Fields
 
-| Field              | Type            | Required | Constraint / Allowed Values                                           |
-| ------------------ | --------------- | -------- | --------------------------------------------------------------------- |
-| `id`               | string          | Yes      | Unique skill identifier (e.g., `SKILL-001`)                           |
-| `name`             | string          | Yes      | Human-readable skill name                                             |
-| `description`      | string          | Yes      | What this skill verifies                                              |
-| `type`             | string          | Yes      | `test-suite` \| `exploratory` \| `adversarial`                        |
-| `interaction`      | string          | Yes      | `browser` \| `api` \| `cli` \| `test-command`                         |
-| `app_type_filter`  | list of strings | No       | App types this skill applies to; `['*']` for all; default `['*']`     |
-| `preconditions`    | list of strings | No       | Conditions that must be true before the skill runs                    |
-| `tags`             | list of strings | No       | Categorization tags                                                   |
-| `timeout_ms`       | integer         | No       | Max time for entire skill execution; default `60000`                  |
+| Field             | Type            | Required | Constraint / Allowed Values                                       |
+| ----------------- | --------------- | -------- | ----------------------------------------------------------------- |
+| `id`              | string          | Yes      | Unique skill identifier (e.g., `SKILL-001`)                       |
+| `name`            | string          | Yes      | Human-readable skill name                                         |
+| `description`     | string          | Yes      | What this skill verifies                                          |
+| `type`            | string          | Yes      | `test-suite` \| `exploratory` \| `adversarial`                    |
+| `interaction`     | string          | Yes      | `browser` \| `api` \| `cli` \| `test-command`                     |
+| `app_type_filter` | list of strings | No       | App types this skill applies to; `['*']` for all; default `['*']` |
+| `preconditions`   | list of strings | No       | Conditions that must be true before the skill runs                |
+| `tags`            | list of strings | No       | Categorization tags                                               |
+| `timeout_ms`      | integer         | No       | Max time for entire skill execution; default `60000`              |
 
 ### Step Fields
 
-| Field        | Type            | Required | Constraint / Allowed Values                                                                           |
-| ------------ | --------------- | -------- | ----------------------------------------------------------------------------------------------------- |
-| `steps`      | list of objects | Yes      | ≥ 1 entry; ordered interaction steps                                                                  |
-| `order`      | integer         | Yes      | Execution sequence number                                                                             |
-| `action`     | string          | Yes      | Action to perform: `navigate`, `click`, `fill`, `submit`, `http_request`, `run_command`, `assert_visible`, `assert_text`, `scroll`, `hover`, `wait_for`, `send_input`, `assert_output`, `assert_exit_code`, `assert_status`, `assert_body`, `assert_header`, `screenshot` |
-| `target`     | string          | Yes      | CSS selector, URL path, API endpoint, or CLI command (depends on interaction type)                    |
-| `value`      | string \| null  | No       | Input value for `fill`/`submit`/request body actions; `null` if not applicable                        |
-| `method`     | string \| null  | No       | HTTP method for API interactions: `GET` \| `POST` \| `PUT` \| `DELETE` \| `PATCH`                    |
-| `headers`    | map \| null     | No       | HTTP headers for API interactions                                                                     |
-| `expect`     | string \| null  | No       | Human-readable expected result for agent judgment                                                     |
-| `assert`     | object \| null  | No       | Machine-checkable assertion                                                                           |
-| `assert.type`| string          | Conditional | `status_code` \| `text_contains` \| `element_visible` \| `element_not_visible` \| `url_matches` \| `response_body_contains` \| `exit_code_equals` |
-| `assert.value`| string \| integer | Conditional | Expected value for the assertion                                                                   |
-| `capture`    | string \| null  | No       | Evidence capture: `screenshot` \| `response` \| `har` \| `dom` \| `console`                          |
-| `timeout_ms` | integer         | No       | Max wait for this step; default `5000`                                                                |
-| `on_failure` | string          | No       | `fail` \| `continue` \| `skip_remaining`; default `fail`                                             |
+| Field          | Type              | Required    | Constraint / Allowed Values                                                                                                                                                                                                                                               |
+| -------------- | ----------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `steps`        | list of objects   | Yes         | ≥ 1 entry; ordered interaction steps                                                                                                                                                                                                                                      |
+| `order`        | integer           | Yes         | Execution sequence number                                                                                                                                                                                                                                                 |
+| `action`       | string            | Yes         | Action to perform: `navigate`, `click`, `fill`, `submit`, `http_request`, `run_command`, `assert_visible`, `assert_text`, `scroll`, `hover`, `wait_for`, `send_input`, `assert_output`, `assert_exit_code`, `assert_status`, `assert_body`, `assert_header`, `screenshot` |
+| `target`       | string            | Yes         | CSS selector, URL path, API endpoint, or CLI command (depends on interaction type)                                                                                                                                                                                        |
+| `value`        | string \| null    | No          | Input value for `fill`/`submit`/request body actions; `null` if not applicable                                                                                                                                                                                            |
+| `method`       | string \| null    | No          | HTTP method for API interactions: `GET` \| `POST` \| `PUT` \| `DELETE` \| `PATCH`                                                                                                                                                                                         |
+| `headers`      | map \| null       | No          | HTTP headers for API interactions                                                                                                                                                                                                                                         |
+| `expect`       | string \| null    | No          | Human-readable expected result for agent judgment                                                                                                                                                                                                                         |
+| `assert`       | object \| null    | No          | Machine-checkable assertion                                                                                                                                                                                                                                               |
+| `assert.type`  | string            | Conditional | `status_code` \| `text_contains` \| `element_visible` \| `element_not_visible` \| `url_matches` \| `response_body_contains` \| `exit_code_equals`                                                                                                                         |
+| `assert.value` | string \| integer | Conditional | Expected value for the assertion                                                                                                                                                                                                                                          |
+| `capture`      | string \| null    | No          | Evidence capture: `screenshot` \| `response` \| `har` \| `dom` \| `console`                                                                                                                                                                                               |
+| `timeout_ms`   | integer           | No          | Max wait for this step; default `5000`                                                                                                                                                                                                                                    |
+| `on_failure`   | string            | No          | `fail` \| `continue` \| `skip_remaining`; default `fail`                                                                                                                                                                                                                  |
 
 ### Adversarial Variation Fields
 
-| Field                                          | Type            | Required    | Constraint / Allowed Values                                              |
-| ---------------------------------------------- | --------------- | ----------- | ------------------------------------------------------------------------ |
-| `adversarial_variations`                       | list of objects | No          | Adversarial test variations; typically used with `type='adversarial'`     |
-| `adversarial_variations[].id`                  | string          | Yes         | Variation identifier                                                     |
-| `adversarial_variations[].name`                | string          | Yes         | Human-readable variation name                                            |
-| `adversarial_variations[].description`         | string          | Yes         | What this variation tests                                                |
-| `adversarial_variations[].severity_if_missed`  | string          | Yes         | `critical` \| `high` \| `medium` \| `low`                               |
-| `adversarial_variations[].overrides`           | list of objects | Yes         | Step overrides for this variation                                        |
-| `adversarial_variations[].overrides[].step_order`    | integer   | Yes         | Which step to override (references `steps[].order`)                      |
-| `adversarial_variations[].overrides[].field`         | string    | Yes         | Step field to override (e.g., `value`, `target`, `headers`)              |
-| `adversarial_variations[].overrides[].override_value`| string \| map | Yes    | Adversarial replacement value                                            |
-| `adversarial_variations[].expected_behavior`   | string          | Yes         | What SHOULD happen (e.g., `"Error message displayed, no redirect"`)      |
-| `adversarial_variations[].assert`              | object \| null  | No          | Machine-checkable assertion for expected adversarial outcome             |
-| `adversarial_variations[].assert.type`         | string          | Conditional | Same types as step `assert.type`                                         |
-| `adversarial_variations[].assert.value`        | string \| integer | Conditional | Expected value for the adversarial assertion                           |
+| Field                                                 | Type              | Required    | Constraint / Allowed Values                                           |
+| ----------------------------------------------------- | ----------------- | ----------- | --------------------------------------------------------------------- |
+| `adversarial_variations`                              | list of objects   | No          | Adversarial test variations; typically used with `type='adversarial'` |
+| `adversarial_variations[].id`                         | string            | Yes         | Variation identifier                                                  |
+| `adversarial_variations[].name`                       | string            | Yes         | Human-readable variation name                                         |
+| `adversarial_variations[].description`                | string            | Yes         | What this variation tests                                             |
+| `adversarial_variations[].severity_if_missed`         | string            | Yes         | `critical` \| `high` \| `medium` \| `low`                             |
+| `adversarial_variations[].overrides`                  | list of objects   | Yes         | Step overrides for this variation                                     |
+| `adversarial_variations[].overrides[].step_order`     | integer           | Yes         | Which step to override (references `steps[].order`)                   |
+| `adversarial_variations[].overrides[].field`          | string            | Yes         | Step field to override (e.g., `value`, `target`, `headers`)           |
+| `adversarial_variations[].overrides[].override_value` | string \| map     | Yes         | Adversarial replacement value                                         |
+| `adversarial_variations[].expected_behavior`          | string            | Yes         | What SHOULD happen (e.g., `"Error message displayed, no redirect"`)   |
+| `adversarial_variations[].assert`                     | object \| null    | No          | Machine-checkable assertion for expected adversarial outcome          |
+| `adversarial_variations[].assert.type`                | string            | Conditional | Same types as step `assert.type`                                      |
+| `adversarial_variations[].assert.value`               | string \| integer | Conditional | Expected value for the adversarial assertion                          |
 
 ### Example
 
@@ -1453,35 +1453,35 @@ adversarial_variations:
 
 ### Patterns
 
-| Pattern                     | Phase      | Used By              | Description                                                                                                                                                                                                                                     |
-| --------------------------- | ---------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `baseline-{type}`           | `baseline` | Implementer          | Baseline capture checks (e.g., `baseline-ide-diagnostics`, `baseline-build`, `baseline-tests`)                                                                                                                                                  |
-| `ide-diagnostics`           | `after`    | Verifier             | Tier 1: IDE diagnostic check                                                                                                                                                                                                                    |
-| `syntax-check`              | `after`    | Verifier             | Tier 1: Syntax/parse check                                                                                                                                                                                                                      |
-| `build`                     | `after`    | Verifier             | Tier 2: Build/compile                                                                                                                                                                                                                           |
-| `type-check`                | `after`    | Verifier             | Tier 2: Type checker (tsc, mypy, pyright)                                                                                                                                                                                                       |
-| `lint`                      | `after`    | Verifier             | Tier 2: Linter (eslint, ruff, clippy)                                                                                                                                                                                                           |
-| `tests`                     | `after`    | Verifier             | Tier 2: Test execution                                                                                                                                                                                                                          |
-| `import-check`              | `after`    | Verifier             | Tier 3: Import/load test                                                                                                                                                                                                                        |
-| `smoke-execution`           | `after`    | Verifier             | Tier 3: Smoke execution (throwaway script)                                                                                                                                                                                                      |
-| `tier3-infeasible`          | `after`    | Verifier             | Tier 3: Recorded when Tier 3 cannot be performed                                                                                                                                                                                                |
-| `readiness-{type}`          | `after`    | Verifier             | Tier 4: Operational readiness (Large tasks only). Types: `observability`, `degradation`, `secrets`                                                                                                                                              |
-| `review-{scope}-{category}` | `review`   | Adversarial Reviewer | Review verdict per category where `{scope}` is `design` or `code` and `{category}` is `security`, `architecture`, or `correctness` (e.g., `review-code-security`, `review-design-architecture`). Reviewer identity stored in `instance` column. |
-| `baseline-discrepancy`      | `after`    | Verifier             | Flagged when Implementer baseline claims don't match `git show`                                                                                                                                                                                 |
-| `behavioral-coverage`       | `after`    | Verifier             | Tier 2: Behavioral coverage verification — confirms each `test_method='test'` AC has a corresponding automated test that invokes production code                                                                                                |
-| `runtime-wiring`            | `after`    | Verifier             | Tier 2: Runtime wiring verification — confirms new source files are imported/referenced by at least one pre-existing source file (new-file tasks only)                                                                                          |
-| `tdd-compliance`            | `after`    | Verifier             | TDD cycle verified — RED-GREEN-VERIFY phases completed with evidence                                                                                                                                                                            |
-| `tdd-fallback`              | `after`    | Verifier             | TDD was skipped with recorded reason (fallback documented)                                                                                                                                                                                      |
-| `e2e-contract-found`        | `after`    | Verifier             | E2E contract exists at discovered path and is structurally valid                                                                                                                                                                                |
-| `e2e-contract-validation`   | `after`    | Verifier             | E2E contract field-level validation result (required fields, type compatibility, port ranges)                                                                                                                                                   |
-| `e2e-instance-start`        | `after`    | Verifier             | Application started on assigned port; PID recorded in `output_snippet`                                                                                                                                                                          |
-| `e2e-readiness`             | `after`    | Verifier             | Application passed `ready_check` within `ready_timeout_ms`                                                                                                                                                                                      |
-| `e2e-suite-execution`       | `after`    | Verifier             | Pre-written test suite execution result (Tier 5 Phase 2)                                                                                                                                                                                        |
-| `e2e-exploratory`           | `after`    | Verifier             | Exploratory interaction result — all exploratory skill steps passed (Tier 5 Phase 3)                                                                                                                                                            |
-| `e2e-adversarial`           | `after`    | Verifier             | Adversarial interaction aggregate result (Tier 5 Phase 4)                                                                                                                                                                                       |
-| `e2e-adversarial-{variation}`| `after`   | Verifier             | Per-variation adversarial result (D-26); `{variation}` is the variation name in kebab-case                                                                                                                                                      |
-| `e2e-instance-shutdown`     | `after`    | Verifier             | Application and interaction tools shut down cleanly; no orphaned processes (Tier 5 Phase 5)                                                                                                                                                     |
-| `e2e-test-execution`        | `after`    | Verifier             | Composite: all E2E phases passed (suite + exploratory + adversarial). Used by evidence gate EG-10 for `full-tdd-e2e` lane verification                                                                                                          |
+| Pattern                       | Phase      | Used By              | Description                                                                                                                                                                                                                                     |
+| ----------------------------- | ---------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `baseline-{type}`             | `baseline` | Implementer          | Baseline capture checks (e.g., `baseline-ide-diagnostics`, `baseline-build`, `baseline-tests`)                                                                                                                                                  |
+| `ide-diagnostics`             | `after`    | Verifier             | Tier 1: IDE diagnostic check                                                                                                                                                                                                                    |
+| `syntax-check`                | `after`    | Verifier             | Tier 1: Syntax/parse check                                                                                                                                                                                                                      |
+| `build`                       | `after`    | Verifier             | Tier 2: Build/compile                                                                                                                                                                                                                           |
+| `type-check`                  | `after`    | Verifier             | Tier 2: Type checker (tsc, mypy, pyright)                                                                                                                                                                                                       |
+| `lint`                        | `after`    | Verifier             | Tier 2: Linter (eslint, ruff, clippy)                                                                                                                                                                                                           |
+| `tests`                       | `after`    | Verifier             | Tier 2: Test execution                                                                                                                                                                                                                          |
+| `import-check`                | `after`    | Verifier             | Tier 3: Import/load test                                                                                                                                                                                                                        |
+| `smoke-execution`             | `after`    | Verifier             | Tier 3: Smoke execution (throwaway script)                                                                                                                                                                                                      |
+| `tier3-infeasible`            | `after`    | Verifier             | Tier 3: Recorded when Tier 3 cannot be performed                                                                                                                                                                                                |
+| `readiness-{type}`            | `after`    | Verifier             | Tier 4: Operational readiness (Large tasks only). Types: `observability`, `degradation`, `secrets`                                                                                                                                              |
+| `review-{scope}-{category}`   | `review`   | Adversarial Reviewer | Review verdict per category where `{scope}` is `design` or `code` and `{category}` is `security`, `architecture`, or `correctness` (e.g., `review-code-security`, `review-design-architecture`). Reviewer identity stored in `instance` column. |
+| `baseline-discrepancy`        | `after`    | Verifier             | Flagged when Implementer baseline claims don't match `git show`                                                                                                                                                                                 |
+| `behavioral-coverage`         | `after`    | Verifier             | Tier 2: Behavioral coverage verification — confirms each `test_method='test'` AC has a corresponding automated test that invokes production code                                                                                                |
+| `runtime-wiring`              | `after`    | Verifier             | Tier 2: Runtime wiring verification — confirms new source files are imported/referenced by at least one pre-existing source file (new-file tasks only)                                                                                          |
+| `tdd-compliance`              | `after`    | Verifier             | TDD cycle verified — RED-GREEN-VERIFY phases completed with evidence                                                                                                                                                                            |
+| `tdd-fallback`                | `after`    | Verifier             | TDD was skipped with recorded reason (fallback documented)                                                                                                                                                                                      |
+| `e2e-contract-found`          | `after`    | Verifier             | E2E contract exists at discovered path and is structurally valid                                                                                                                                                                                |
+| `e2e-contract-validation`     | `after`    | Verifier             | E2E contract field-level validation result (required fields, type compatibility, port ranges)                                                                                                                                                   |
+| `e2e-instance-start`          | `after`    | Verifier             | Application started on assigned port; PID recorded in `output_snippet`                                                                                                                                                                          |
+| `e2e-readiness`               | `after`    | Verifier             | Application passed `ready_check` within `ready_timeout_ms`                                                                                                                                                                                      |
+| `e2e-suite-execution`         | `after`    | Verifier             | Pre-written test suite execution result (Tier 5 Phase 2)                                                                                                                                                                                        |
+| `e2e-exploratory`             | `after`    | Verifier             | Exploratory interaction result — all exploratory skill steps passed (Tier 5 Phase 3)                                                                                                                                                            |
+| `e2e-adversarial`             | `after`    | Verifier             | Adversarial interaction aggregate result (Tier 5 Phase 4)                                                                                                                                                                                       |
+| `e2e-adversarial-{variation}` | `after`    | Verifier             | Per-variation adversarial result (D-26); `{variation}` is the variation name in kebab-case                                                                                                                                                      |
+| `e2e-instance-shutdown`       | `after`    | Verifier             | Application and interaction tools shut down cleanly; no orphaned processes (Tier 5 Phase 5)                                                                                                                                                     |
+| `e2e-test-execution`          | `after`    | Verifier             | Composite: all E2E phases passed (suite + exploratory + adversarial). Used by evidence gate EG-10 for `full-tdd-e2e` lane verification                                                                                                          |
 
 ### SQL LIKE Filter Usage
 

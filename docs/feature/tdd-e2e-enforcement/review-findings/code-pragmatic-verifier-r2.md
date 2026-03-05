@@ -47,15 +47,15 @@ No new architecture findings.
 
 **Status:** Fixed. All three EG-10 lane variants now reference check_names that the verifier actually produces:
 
-| EG-10 Variant | check_names in IN clause | Verifier Table Match |
-|---|---|---|
-| unit-only (≥2) | `baseline-captured`, `tdd-compliance` | L114 (Tier 0), L122 (Tier 2) ✓ |
-| unit-integration (≥3) | `baseline-captured`, `tdd-compliance`, `behavioral-coverage` | L114, L122, L121 (Tier 2) ✓ |
-| full-tdd-e2e (≥4) | `baseline-captured`, `tdd-compliance`, `behavioral-coverage`, `e2e-test-execution` | L114, L122, L121, L139 (Tier 5) ✓ |
+| EG-10 Variant         | check_names in IN clause                                                           | Verifier Table Match              |
+| --------------------- | ---------------------------------------------------------------------------------- | --------------------------------- |
+| unit-only (≥2)        | `baseline-captured`, `tdd-compliance`                                              | L114 (Tier 0), L122 (Tier 2) ✓    |
+| unit-integration (≥3) | `baseline-captured`, `tdd-compliance`, `behavioral-coverage`                       | L114, L122, L121 (Tier 2) ✓       |
+| full-tdd-e2e (≥4)     | `baseline-captured`, `tdd-compliance`, `behavioral-coverage`, `e2e-test-execution` | L114, L122, L121, L139 (Tier 5) ✓ |
 
 **Producer path for `baseline-captured`:** Verifier.agent.md L164-165 — "No discrepancies: INSERT with `check_name='baseline-captured'`, `passed=1`." This closes the producer/consumer gap that was the root cause of C-1.
 
-**Verification evidence:** The verifier's own `eg-10-syntax-valid` check confirmed: "3 lane variants present. unit-only(≥2 checks), unit-integration(≥3), full-tdd-e2e(≥4 incl e2e-test-execution). All use SELECT COUNT(*) with IN clause and passed=1."
+**Verification evidence:** The verifier's own `eg-10-syntax-valid` check confirmed: "3 lane variants present. unit-only(≥2 checks), unit-integration(≥3), full-tdd-e2e(≥4 incl e2e-test-execution). All use SELECT COUNT(\*) with IN clause and passed=1."
 
 **Cross-check:** `check-names-consistent` check confirmed: "All 12 new check_names in INSERT templates match those referenced in EG-8/EG-9/EG-10 queries. Cross-verified: tdd-compliance(EG-8,EG-10), e2e-test-execution(EG-9,EG-10), suite/exploratory/adversarial-composite(EG-9 sub-phase)."
 

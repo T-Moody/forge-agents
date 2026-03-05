@@ -97,4 +97,5 @@ completion:
   severity: null
   findings_count: 0
   risk_level: null
-  output_paths: ["docs/feature/tdd-e2e-enforcement/implementation-reports/TASK-007.yaml"]
+  output_paths:
+    ["docs/feature/tdd-e2e-enforcement/implementation-reports/TASK-007.yaml"]

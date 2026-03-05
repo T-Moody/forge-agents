@@ -99,9 +99,9 @@ task:
     - id: "AC-2"
       text: "Rate limiting returns 429 after 5 attempts per minute"
       test_method: "test"
-  workflow_lane: "full-tdd-e2e"       # Derived from risk: 🟢→unit-only, 🟡→unit-integration, 🔴→full-tdd-e2e
-  e2e_required: true                  # true when workflow_lane='full-tdd-e2e' AND E2E contract exists
-  e2e_contract_path: ".e2e/contract.yaml"  # Discovered E2E contract path, or null
+  workflow_lane: "full-tdd-e2e" # Derived from risk: 🟢→unit-only, 🟡→unit-integration, 🔴→full-tdd-e2e
+  e2e_required: true # true when workflow_lane='full-tdd-e2e' AND E2E contract exists
+  e2e_contract_path: ".e2e/contract.yaml" # Discovered E2E contract path, or null
   relevant_context:
     design_sections:
       - "design-output.yaml#payload.decisions[id='D-8']" # Risk classification
@@ -160,11 +160,11 @@ Every file proposed for modification MUST be individually classified:
 
 Every task is assigned a `workflow_lane` derived from its risk classification:
 
-| Task Risk | `workflow_lane`    | `e2e_required`                              |
-| --------- | ------------------ | ------------------------------------------- |
-| 🟢        | `unit-only`        | `false`                                     |
-| 🟡        | `unit-integration` | `false`                                     |
-| 🔴        | `full-tdd-e2e`     | *derived* — `true` if E2E contract exists   |
+| Task Risk | `workflow_lane`    | `e2e_required`                            |
+| --------- | ------------------ | ----------------------------------------- |
+| 🟢        | `unit-only`        | `false`                                   |
+| 🟡        | `unit-integration` | `false`                                   |
+| 🔴        | `full-tdd-e2e`     | _derived_ — `true` if E2E contract exists |
 
 **Derivation rules:**
 

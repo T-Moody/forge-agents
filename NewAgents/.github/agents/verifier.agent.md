@@ -109,35 +109,35 @@ Every verification check — regardless of tier, result, or significance — MUS
 
 ### `check_name` Quick Reference
 
-| Tier | `check_name`              | Description                           |
-| ---- | ------------------------- | ------------------------------------- |
-| 0    | `baseline-captured`       | Baseline cross-check passed (no discrepancies) |
-| 1    | `ide-diagnostics`         | IDE diagnostic check via `get_errors` |
-| 1    | `syntax-check`            | Syntax/parse verification             |
-| 2    | `build`                   | Build/compile                         |
-| 2    | `type-check`              | Type checker                          |
-| 2    | `lint`                    | Linter                                |
-| 2    | `tests`                   | Test execution                        |
-| 2    | `behavioral-coverage`     | Behavioral coverage (BLOCKING for code tasks) |
-| 2    | `tdd-compliance`          | TDD compliance verification (BLOCKING for code tasks) |
-| 2    | `runtime-wiring`          | Runtime wiring for new files          |
-| 3    | `import-check`            | Import/load test                      |
-| 3    | `smoke-execution`         | Smoke execution                       |
-| 3    | `tier3-infeasible`        | Tier 3 cannot be performed            |
-| 4    | `readiness-observability` | Observability hooks present           |
-| 4    | `readiness-degradation`   | Graceful degradation paths            |
-| 4    | `readiness-secrets`       | No hardcoded secrets                  |
-| 5    | `e2e-contract-found`      | E2E contract exists and is readable   |
-| 5    | `e2e-contract-validation` | Runtime contract validation passed    |
-| 5    | `e2e-instance-start`      | App started on assigned port (PID in output_snippet) |
-| 5    | `e2e-readiness`           | App passed `ready_check`              |
-| 5    | `e2e-suite-execution`     | Test suite execution pass/fail        |
-| 5    | `e2e-exploratory`         | Exploratory interaction result        |
-| 5    | `e2e-adversarial`         | Per-variation adversarial result      |
-| 5    | `e2e-adversarial-composite` | Composite adversarial summary       |
-| 5    | `e2e-instance-shutdown`   | App + sessions shut down cleanly      |
-| 5    | `e2e-test-execution`      | Composite: ALL E2E phases passed      |
-| —    | `baseline-discrepancy`    | Baseline claims mismatch `git show`   |
+| Tier | `check_name`                | Description                                           |
+| ---- | --------------------------- | ----------------------------------------------------- |
+| 0    | `baseline-captured`         | Baseline cross-check passed (no discrepancies)        |
+| 1    | `ide-diagnostics`           | IDE diagnostic check via `get_errors`                 |
+| 1    | `syntax-check`              | Syntax/parse verification                             |
+| 2    | `build`                     | Build/compile                                         |
+| 2    | `type-check`                | Type checker                                          |
+| 2    | `lint`                      | Linter                                                |
+| 2    | `tests`                     | Test execution                                        |
+| 2    | `behavioral-coverage`       | Behavioral coverage (BLOCKING for code tasks)         |
+| 2    | `tdd-compliance`            | TDD compliance verification (BLOCKING for code tasks) |
+| 2    | `runtime-wiring`            | Runtime wiring for new files                          |
+| 3    | `import-check`              | Import/load test                                      |
+| 3    | `smoke-execution`           | Smoke execution                                       |
+| 3    | `tier3-infeasible`          | Tier 3 cannot be performed                            |
+| 4    | `readiness-observability`   | Observability hooks present                           |
+| 4    | `readiness-degradation`     | Graceful degradation paths                            |
+| 4    | `readiness-secrets`         | No hardcoded secrets                                  |
+| 5    | `e2e-contract-found`        | E2E contract exists and is readable                   |
+| 5    | `e2e-contract-validation`   | Runtime contract validation passed                    |
+| 5    | `e2e-instance-start`        | App started on assigned port (PID in output_snippet)  |
+| 5    | `e2e-readiness`             | App passed `ready_check`                              |
+| 5    | `e2e-suite-execution`       | Test suite execution pass/fail                        |
+| 5    | `e2e-exploratory`           | Exploratory interaction result                        |
+| 5    | `e2e-adversarial`           | Per-variation adversarial result                      |
+| 5    | `e2e-adversarial-composite` | Composite adversarial summary                         |
+| 5    | `e2e-instance-shutdown`     | App + sessions shut down cleanly                      |
+| 5    | `e2e-test-execution`        | Composite: ALL E2E phases passed                      |
+| —    | `baseline-discrepancy`      | Baseline claims mismatch `git show`                   |
 
 ---
 
@@ -300,14 +300,14 @@ Execute **only for Large tasks** (any file classified as `🔴`). Skip for Stand
 
 For each `exploratory` type skill, translate skill steps into `playwright-cli` commands using the named session:
 
-| Skill Action   | Playwright CLI Command                                              |
-| -------------- | ------------------------------------------------------------------- |
-| `navigate`     | `playwright-cli -s=verify-{task-id} goto {url}`                     |
-| `click`        | `playwright-cli -s=verify-{task-id} click {ref}`                    |
-| `fill`         | `playwright-cli -s=verify-{task-id} fill {ref} {text}`              |
-| `type`         | `playwright-cli -s=verify-{task-id} type {text}`                    |
-| `press`        | `playwright-cli -s=verify-{task-id} press {key}`                    |
-| `assert`       | `playwright-cli -s=verify-{task-id} snapshot` + verify in a11y tree |
+| Skill Action | Playwright CLI Command                                              |
+| ------------ | ------------------------------------------------------------------- |
+| `navigate`   | `playwright-cli -s=verify-{task-id} goto {url}`                     |
+| `click`      | `playwright-cli -s=verify-{task-id} click {ref}`                    |
+| `fill`       | `playwright-cli -s=verify-{task-id} fill {ref} {text}`              |
+| `type`       | `playwright-cli -s=verify-{task-id} type {text}`                    |
+| `press`      | `playwright-cli -s=verify-{task-id} press {key}`                    |
+| `assert`     | `playwright-cli -s=verify-{task-id} snapshot` + verify in a11y tree |
 
 **Evidence capture at each step:**
 
@@ -369,13 +369,13 @@ Apply to ALL evidence before SQL insertion or file storage:
 
 #### Timeout Budget (D-9)
 
-| Phase              | Max Duration | On Expiry                                    |
-| ------------------ | ------------ | -------------------------------------------- |
-| Startup (Phase 1)  | 60s          | Kill PID, `e2e-readiness` `passed=0`         |
-| Suite (Phase 2)    | 300s         | Kill test runner, `e2e-suite-execution` `passed=0` |
-| Exploratory (Ph 3) | 180s/skill   | Kill browser/tool, skip remaining steps      |
-| Adversarial (Ph 4) | 120s/skill   | Kill browser/tool, skip remaining variations |
-| Shutdown (Phase 5)  | 30s          | Force-kill all PIDs                          |
+| Phase              | Max Duration | On Expiry                                                          |
+| ------------------ | ------------ | ------------------------------------------------------------------ |
+| Startup (Phase 1)  | 60s          | Kill PID, `e2e-readiness` `passed=0`                               |
+| Suite (Phase 2)    | 300s         | Kill test runner, `e2e-suite-execution` `passed=0`                 |
+| Exploratory (Ph 3) | 180s/skill   | Kill browser/tool, skip remaining steps                            |
+| Adversarial (Ph 4) | 120s/skill   | Kill browser/tool, skip remaining variations                       |
+| Shutdown (Phase 5) | 30s          | Force-kill all PIDs                                                |
 | **Total per task** | **600s**     | **Kill all processes + sessions, `e2e-test-execution` `passed=0`** |
 
 Timeout triggers force-kill of app process + all `playwright-cli` sessions via tracked PIDs and `playwright-cli kill-all`.

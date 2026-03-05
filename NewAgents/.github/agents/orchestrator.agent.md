@@ -288,12 +288,12 @@ When dispatching multiple verifiers, invoke them concurrently using separate `ru
 
 **Evidence gate** (per task, via [sql-templates.md](sql-templates.md) §6):
 
-| Gate               | Query | Expected                                           |
-| ------------------ | ----- | -------------------------------------------------- |
-| Baseline exists    | EG-1  | ≥1                                                 |
-| Lane verification  | EG-10 | unit-only ≥2, unit-integration ≥3, full-tdd-e2e ≥4 |
-| TDD compliance     | EG-8  | passed=1 (code tasks) — BLOCKING                   |
-| E2E completion     | EG-9  | passed=1 when e2e_required=true — BLOCKING         |
+| Gate              | Query | Expected                                           |
+| ----------------- | ----- | -------------------------------------------------- |
+| Baseline exists   | EG-1  | ≥1                                                 |
+| Lane verification | EG-10 | unit-only ≥2, unit-integration ≥3, full-tdd-e2e ≥4 |
+| TDD compliance    | EG-8  | passed=1 (code tasks) — BLOCKING                   |
+| E2E completion    | EG-9  | passed=1 when e2e_required=true — BLOCKING         |
 
 **Telemetry:** INSERT per §3 for each verifier.
 

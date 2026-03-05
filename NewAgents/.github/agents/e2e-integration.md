@@ -11,12 +11,12 @@
 
 Agents MUST read only the sections relevant to their role. This enables conditional loading and reduces context pressure.
 
-| Agent                | Required Sections | Purpose                                        |
-| -------------------- | ----------------- | ---------------------------------------------- |
-| **Orchestrator**     | §1, §6            | Contract discovery, timeout enforcement         |
-| **Verifier**         | §2, §3, §4, §5   | Interaction protocol, sanitization, allowlist   |
-| **Planner**          | §1 only           | Contract fields for lane derivation             |
-| **Adversarial Reviewer** | §4, §5        | Sanitization audit, allowlist compliance review |
+| Agent                    | Required Sections | Purpose                                         |
+| ------------------------ | ----------------- | ----------------------------------------------- |
+| **Orchestrator**         | §1, §6            | Contract discovery, timeout enforcement         |
+| **Verifier**             | §2, §3, §4, §5    | Interaction protocol, sanitization, allowlist   |
+| **Planner**              | §1 only           | Contract fields for lane derivation             |
+| **Adversarial Reviewer** | §4, §5            | Sanitization audit, allowlist compliance review |
 
 ---
 
@@ -29,12 +29,12 @@ The E2E contract is a project-level YAML file defining how to start the applicat
 
 ### Trust Levels (D-3)
 
-| Content Category    | Trust Level  | Validation                                              |
-| ------------------- | ------------ | ------------------------------------------------------- |
-| Contract structure  | Trusted      | Schema validation at Step 0 (D-23)                      |
-| Command executables | Semi-Trusted | Must match `tier5_command_allowlist` regex (D-22)       |
-| Skill content       | Untrusted    | Selectors/values sanitized; confined to scripts (D-20)  |
-| Evidence artifacts  | Untrusted    | Sanitization pipeline (D-25) before storage             |
+| Content Category    | Trust Level  | Validation                                             |
+| ------------------- | ------------ | ------------------------------------------------------ |
+| Contract structure  | Trusted      | Schema validation at Step 0 (D-23)                     |
+| Command executables | Semi-Trusted | Must match `tier5_command_allowlist` regex (D-22)      |
+| Skill content       | Untrusted    | Selectors/values sanitized; confined to scripts (D-20) |
+| Evidence artifacts  | Untrusted    | Sanitization pipeline (D-25) before storage            |
 
 Project-root contracts are **project-trusted** (same trust as source code). Contracts generated in interactive mode are **pipeline-generated** and require user approval via `ask_questions` before commands execute.
 
@@ -51,13 +51,14 @@ All lifecycle commands use a structured format — **NOT raw shell strings**:
 
 ```yaml
 start_command:
-  executable: "npm"        # Must match tier5_command_allowlist (D-22)
+  executable: "npm" # Must match tier5_command_allowlist (D-22)
   args: ["run", "dev", "--", "--port", "{port}"]
   env:
-    NODE_ENV: "test"       # Values validated against pattern allowlist
+    NODE_ENV: "test" # Values validated against pattern allowlist
 ```
 
 **Executable validation rules:**
+
 - No path separators (`/`, `\`)
 - No spaces
 - No shell metacharacters (`;`, `|`, `&`, `` ` ``, `$`)
@@ -85,25 +86,28 @@ db_isolation_strategy: "per-instance-db"
 # Options: "per-instance-db" | "transaction-rollback" | "shared-with-locking"
 ```
 
-| Strategy               | Mechanism                                              | When to Use                      |
-| ---------------------- | ------------------------------------------------------ | -------------------------------- |
-| `per-instance-db`      | Append `_task_ordinal` to DB name/path                 | Default, safest                  |
-| `transaction-rollback` | Wrap each skill in a transaction, rollback after        | Shared DB, stateless skills      |
-| `shared-with-locking`  | Advisory lock before each skill, release after          | Complex shared-state apps        |
+| Strategy               | Mechanism                                        | When to Use                 |
+| ---------------------- | ------------------------------------------------ | --------------------------- |
+| `per-instance-db`      | Append `_task_ordinal` to DB name/path           | Default, safest             |
+| `transaction-rollback` | Wrap each skill in a transaction, rollback after | Shared DB, stateless skills |
+| `shared-with-locking`  | Advisory lock before each skill, release after   | Complex shared-state apps   |
 
 Warning is logged if `supports_parallel=true` with no `db_isolation_strategy`.
 
 ### Playwright CLI Configuration
 
 **Installation:**
+
 ```bash
 npm install -g @playwright/cli@latest
 ```
 
 **Skills installation:**
+
 ```bash
 playwright-cli install --skills
 ```
+
 This installs agent-discoverable skill guides into `skills/playwright-cli/` and `.claude/skills/dev/` (also read by GitHub Copilot).
 
 **Per-project config:** `.playwright/cli.config.json`
@@ -114,37 +118,37 @@ This installs agent-discoverable skill guides into `skills/playwright-cli/` and 
 
 ### Complete Contract Field Reference
 
-| Group           | Field                      | Type              | Default           | Purpose                                   |
-| --------------- | -------------------------- | ----------------- | ----------------- | ----------------------------------------- |
-| App Lifecycle   | `app_type`                 | enum              | —                 | `web\|api\|cli\|desktop\|library`         |
-| App Lifecycle   | `start_command`            | object            | —                 | `{executable, args[], env{}}`             |
-| App Lifecycle   | `ready_check`              | string            | —                 | URL or command for readiness              |
-| App Lifecycle   | `ready_timeout_ms`         | integer           | `30000`           | Max wait for readiness                    |
-| App Lifecycle   | `base_url`                 | string            | —                 | Application base URL                      |
-| App Lifecycle   | `shutdown_command`         | object\|null      | —                 | `{executable, args[]}`                    |
-| App Lifecycle   | `shutdown_timeout_ms`      | integer           | `10000`           | Max wait for shutdown                     |
-| Port            | `default_port`             | integer           | —                 | Non-parallel port                         |
-| Port            | `port_env_var`             | string            | —                 | Env var name for port injection           |
-| Port            | `port_range_start`         | integer           | —                 | Base port for parallel allocation         |
-| Runner          | `e2e_runner`               | string            | —                 | `playwright\|cypress\|custom\|none`       |
-| Runner          | `e2e_command`              | string\|null      | `null`            | Pre-written suite command                 |
-| Runner          | `e2e_config_path`          | string\|null      | `null`            | Runner config path                        |
-| Runner          | `e2e_env`                  | map               | `{}`              | Runner environment vars                   |
-| Parallelism     | `supports_parallel`        | boolean           | `false`           | Can run concurrent instances              |
-| Parallelism     | `requires_isolated_instance`| boolean          | `true`            | Each instance needs own port/DB           |
-| Parallelism     | `max_concurrent_instances` | integer           | `2`               | Hard cap: 4                               |
-| Parallelism     | `db_isolation_strategy`    | enum              | `per-instance-db` | See DB Isolation table above              |
-| Interaction     | `interaction_type`         | enum              | —                 | `browser\|api\|cli\|none`                 |
-| Interaction     | `interaction_tools`        | map               | —                 | Tool config per interaction type          |
-| Interaction     | `readiness_checks`         | list              | `[]`              | Pre-interaction verification checks       |
-| Interaction     | `evidence_capture`         | map               | —                 | Capture methods config                    |
-| Skills          | `skills`                   | list              | `[]`              | Inline skill objects                      |
-| Skills          | `skill_discovery_path`     | string\|null      | `null`            | Directory of skill YAML files             |
-| Evidence        | `screenshot_on_failure`    | boolean           | `true`            | Capture screenshot on step failure        |
-| Evidence        | `trace_on_failure`         | boolean           | `true`            | Capture trace on failure                  |
-| Evidence        | `video_recording`          | boolean           | `false`           | Record video of browser sessions          |
-| Evidence        | `har_capture`              | boolean           | `false`           | Capture HAR network logs                  |
-| Evidence        | `evidence_output_dir`      | string            | `.e2e-evidence/`  | Output directory for evidence files       |
+| Group         | Field                        | Type         | Default           | Purpose                             |
+| ------------- | ---------------------------- | ------------ | ----------------- | ----------------------------------- |
+| App Lifecycle | `app_type`                   | enum         | —                 | `web\|api\|cli\|desktop\|library`   |
+| App Lifecycle | `start_command`              | object       | —                 | `{executable, args[], env{}}`       |
+| App Lifecycle | `ready_check`                | string       | —                 | URL or command for readiness        |
+| App Lifecycle | `ready_timeout_ms`           | integer      | `30000`           | Max wait for readiness              |
+| App Lifecycle | `base_url`                   | string       | —                 | Application base URL                |
+| App Lifecycle | `shutdown_command`           | object\|null | —                 | `{executable, args[]}`              |
+| App Lifecycle | `shutdown_timeout_ms`        | integer      | `10000`           | Max wait for shutdown               |
+| Port          | `default_port`               | integer      | —                 | Non-parallel port                   |
+| Port          | `port_env_var`               | string       | —                 | Env var name for port injection     |
+| Port          | `port_range_start`           | integer      | —                 | Base port for parallel allocation   |
+| Runner        | `e2e_runner`                 | string       | —                 | `playwright\|cypress\|custom\|none` |
+| Runner        | `e2e_command`                | string\|null | `null`            | Pre-written suite command           |
+| Runner        | `e2e_config_path`            | string\|null | `null`            | Runner config path                  |
+| Runner        | `e2e_env`                    | map          | `{}`              | Runner environment vars             |
+| Parallelism   | `supports_parallel`          | boolean      | `false`           | Can run concurrent instances        |
+| Parallelism   | `requires_isolated_instance` | boolean      | `true`            | Each instance needs own port/DB     |
+| Parallelism   | `max_concurrent_instances`   | integer      | `2`               | Hard cap: 4                         |
+| Parallelism   | `db_isolation_strategy`      | enum         | `per-instance-db` | See DB Isolation table above        |
+| Interaction   | `interaction_type`           | enum         | —                 | `browser\|api\|cli\|none`           |
+| Interaction   | `interaction_tools`          | map          | —                 | Tool config per interaction type    |
+| Interaction   | `readiness_checks`           | list         | `[]`              | Pre-interaction verification checks |
+| Interaction   | `evidence_capture`           | map          | —                 | Capture methods config              |
+| Skills        | `skills`                     | list         | `[]`              | Inline skill objects                |
+| Skills        | `skill_discovery_path`       | string\|null | `null`            | Directory of skill YAML files       |
+| Evidence      | `screenshot_on_failure`      | boolean      | `true`            | Capture screenshot on step failure  |
+| Evidence      | `trace_on_failure`           | boolean      | `true`            | Capture trace on failure            |
+| Evidence      | `video_recording`            | boolean      | `false`           | Record video of browser sessions    |
+| Evidence      | `har_capture`                | boolean      | `false`           | Capture HAR network logs            |
+| Evidence      | `evidence_output_dir`        | string       | `.e2e-evidence/`  | Output directory for evidence files |
 
 ---
 
@@ -154,43 +158,43 @@ Skills define reusable interaction procedures. Per D-18, all steps are **pre-def
 
 ### Skill Structure
 
-| Field                    | Type    | Required | Purpose                                                   |
-| ------------------------ | ------- | -------- | --------------------------------------------------------- |
-| `id`                     | string  | Yes      | Unique identifier (e.g., `SKILL-001`)                     |
-| `name`                   | string  | Yes      | Human-readable name                                       |
-| `type`                   | enum    | Yes      | `test-suite` \| `exploratory` \| `adversarial`            |
-| `interaction`            | enum    | Yes      | `browser` \| `api` \| `cli` \| `test-command`             |
-| `app_type_filter`        | list    | No       | App types this skill applies to, or `['*']` for all       |
-| `preconditions`          | list    | No       | Conditions required before skill runs                     |
-| `steps`                  | list    | Yes      | Ordered interaction steps                                 |
-| `expected_outcomes`      | list    | No       | Overall skill outcome assertions                          |
-| `adversarial_variations` | list    | No       | Override objects for adversarial testing                   |
-| `tags`                   | list    | No       | Categorization tags                                       |
-| `timeout_ms`             | integer | No       | Max time for entire skill (default `60000`)               |
+| Field                    | Type    | Required | Purpose                                             |
+| ------------------------ | ------- | -------- | --------------------------------------------------- |
+| `id`                     | string  | Yes      | Unique identifier (e.g., `SKILL-001`)               |
+| `name`                   | string  | Yes      | Human-readable name                                 |
+| `type`                   | enum    | Yes      | `test-suite` \| `exploratory` \| `adversarial`      |
+| `interaction`            | enum    | Yes      | `browser` \| `api` \| `cli` \| `test-command`       |
+| `app_type_filter`        | list    | No       | App types this skill applies to, or `['*']` for all |
+| `preconditions`          | list    | No       | Conditions required before skill runs               |
+| `steps`                  | list    | Yes      | Ordered interaction steps                           |
+| `expected_outcomes`      | list    | No       | Overall skill outcome assertions                    |
+| `adversarial_variations` | list    | No       | Override objects for adversarial testing            |
+| `tags`                   | list    | No       | Categorization tags                                 |
+| `timeout_ms`             | integer | No       | Max time for entire skill (default `60000`)         |
 
 ### Skill Types
 
-| Type           | Interaction Mode | Description                                                      |
-| -------------- | ---------------- | ---------------------------------------------------------------- |
-| `test-suite`   | `test-command`   | Runs a pre-written test command. Steps: `run_command`, `assert_exit_code`, `capture_output` |
-| `exploratory`  | `browser\|api\|cli` | Drives agent to navigate/use the app. Full step action set.   |
-| `adversarial`  | `browser\|api\|cli` | Designed to break things: malformed input, injection, boundary values, auth bypass |
+| Type          | Interaction Mode    | Description                                                                                 |
+| ------------- | ------------------- | ------------------------------------------------------------------------------------------- |
+| `test-suite`  | `test-command`      | Runs a pre-written test command. Steps: `run_command`, `assert_exit_code`, `capture_output` |
+| `exploratory` | `browser\|api\|cli` | Drives agent to navigate/use the app. Full step action set.                                 |
+| `adversarial` | `browser\|api\|cli` | Designed to break things: malformed input, injection, boundary values, auth bypass          |
 
 ### Step Schema
 
-| Field        | Type         | Required | Purpose                                           |
-| ------------ | ------------ | -------- | ------------------------------------------------- |
-| `order`      | integer      | Yes      | Execution sequence                                |
-| `action`     | string       | Yes      | Action to perform (see Action Reference below)    |
-| `target`     | string       | Yes      | CSS selector, URL, endpoint, or command           |
-| `value`      | string\|null | No       | Input value for fill/submit/request body          |
-| `method`     | string\|null | No       | HTTP method (`GET\|POST\|PUT\|DELETE\|PATCH`)     |
-| `headers`    | map\|null    | No       | HTTP headers for API interactions                 |
-| `expect`     | string\|null | No       | Human-readable expected result (logged, not judged)|
-| `assert`     | object\|null | No       | Machine-checkable assertion (determines pass/fail)|
+| Field        | Type         | Required | Purpose                                                     |
+| ------------ | ------------ | -------- | ----------------------------------------------------------- |
+| `order`      | integer      | Yes      | Execution sequence                                          |
+| `action`     | string       | Yes      | Action to perform (see Action Reference below)              |
+| `target`     | string       | Yes      | CSS selector, URL, endpoint, or command                     |
+| `value`      | string\|null | No       | Input value for fill/submit/request body                    |
+| `method`     | string\|null | No       | HTTP method (`GET\|POST\|PUT\|DELETE\|PATCH`)               |
+| `headers`    | map\|null    | No       | HTTP headers for API interactions                           |
+| `expect`     | string\|null | No       | Human-readable expected result (logged, not judged)         |
+| `assert`     | object\|null | No       | Machine-checkable assertion (determines pass/fail)          |
 | `capture`    | string\|null | No       | Evidence capture: `screenshot\|response\|har\|dom\|console` |
-| `timeout_ms` | integer      | No       | Max wait for this step (default `5000`)           |
-| `on_failure` | enum         | No       | `fail` \| `continue` \| `skip_remaining` (default `fail`) |
+| `timeout_ms` | integer      | No       | Max wait for this step (default `5000`)                     |
+| `on_failure` | enum         | No       | `fail` \| `continue` \| `skip_remaining` (default `fail`)   |
 
 ### Step Action Reference
 
@@ -254,28 +258,28 @@ Named sessions ensure parallel verifier instances do not share browser state.
 
 #### Core Interaction
 
-| Command | Syntax | Purpose |
-| ------- | ------ | ------- |
-| Open    | `playwright-cli -s=<session> open [url]` | Launch browser |
-| Navigate| `playwright-cli -s=<session> goto <url>` | Navigate to URL |
-| Click   | `playwright-cli -s=<session> click <ref>` | Click element by accessibility ref |
-| Fill    | `playwright-cli -s=<session> fill <ref> <text>` | Fill form field |
-| Type    | `playwright-cli -s=<session> type <text>` | Type text |
-| Press   | `playwright-cli -s=<session> press <key>` | Press keyboard key |
-| Check   | `playwright-cli -s=<session> check <ref>` | Check checkbox |
-| Select  | `playwright-cli -s=<session> select <ref> <value>` | Select dropdown option |
-| Hover   | `playwright-cli -s=<session> hover <ref>` | Hover over element |
+| Command  | Syntax                                             | Purpose                            |
+| -------- | -------------------------------------------------- | ---------------------------------- |
+| Open     | `playwright-cli -s=<session> open [url]`           | Launch browser                     |
+| Navigate | `playwright-cli -s=<session> goto <url>`           | Navigate to URL                    |
+| Click    | `playwright-cli -s=<session> click <ref>`          | Click element by accessibility ref |
+| Fill     | `playwright-cli -s=<session> fill <ref> <text>`    | Fill form field                    |
+| Type     | `playwright-cli -s=<session> type <text>`          | Type text                          |
+| Press    | `playwright-cli -s=<session> press <key>`          | Press keyboard key                 |
+| Check    | `playwright-cli -s=<session> check <ref>`          | Check checkbox                     |
+| Select   | `playwright-cli -s=<session> select <ref> <value>` | Select dropdown option             |
+| Hover    | `playwright-cli -s=<session> hover <ref>`          | Hover over element                 |
 
 #### Evidence Capture
 
-| Command    | Syntax | Purpose |
-| ---------- | ------ | ------- |
-| Screenshot | `playwright-cli -s=<session> screenshot [--filename <path>]` | Capture screenshot |
-| Snapshot   | `playwright-cli -s=<session> snapshot [--filename <path>]` | Capture accessibility snapshot |
-| Console    | `playwright-cli -s=<session> console [min-level]` | Get console messages |
-| Network    | `playwright-cli -s=<session> network` | Get network requests |
-| Tracing    | `playwright-cli -s=<session> tracing-start` / `tracing-stop` | Record traces |
-| Video      | `playwright-cli -s=<session> video-start` / `video-stop` | Record video |
+| Command    | Syntax                                                       | Purpose                        |
+| ---------- | ------------------------------------------------------------ | ------------------------------ |
+| Screenshot | `playwright-cli -s=<session> screenshot [--filename <path>]` | Capture screenshot             |
+| Snapshot   | `playwright-cli -s=<session> snapshot [--filename <path>]`   | Capture accessibility snapshot |
+| Console    | `playwright-cli -s=<session> console [min-level]`            | Get console messages           |
+| Network    | `playwright-cli -s=<session> network`                        | Get network requests           |
+| Tracing    | `playwright-cli -s=<session> tracing-start` / `tracing-stop` | Record traces                  |
+| Video      | `playwright-cli -s=<session> video-start` / `video-stop`     | Record video                   |
 
 #### Navigation & Session Management
 
@@ -318,6 +322,7 @@ All commands from the E2E contract use the structured format. The verifier MUST 
 ### Executable Validation
 
 The `executable` field MUST satisfy ALL of:
+
 - No path separators (`/`, `\`)
 - No spaces
 - No shell metacharacters: `;`, `|`, `&`, `` ` ``, `$`, `(`, `)`, `{`, `}`
@@ -330,12 +335,14 @@ Arguments are passed as array elements — **never through shell interpolation**
 ### Env Value Validation
 
 Environment variable values are validated against a pattern allowlist:
+
 - **Allowed:** Alphanumeric characters, common path characters (`/`, `\`, `.`, `-`, `_`, `:`)
 - **Rejected:** Shell metacharacters: `;`, `|`, `&`, `` ` ``, `$`
 
 ### Port Placeholder
 
 The `{port}` placeholder in `args`:
+
 - Validated as integer
 - Range: `[1024, 65535]`
 - Substituted **after** validation, **before** command execution
@@ -343,6 +350,7 @@ The `{port}` placeholder in `args`:
 ### Secret Pattern Scrubbing
 
 Environment variable names matching these patterns have their values replaced with `[REDACTED]` in all evidence:
+
 - `API_KEY`
 - `SECRET`
 - `TOKEN`
@@ -355,15 +363,15 @@ Environment variable names matching these patterns have their values replaced wi
 
 **Canonical copy.** The verifier's `run_in_terminal` during Tier 5 is restricted to commands matching these regex patterns:
 
-| #   | Pattern                                 | Purpose                            |
-| --- | --------------------------------------- | ---------------------------------- |
-| 1   | `^playwright-cli .+`                    | Playwright CLI browser interaction |
-| 2   | `^npx playwright test .+`              | Execute generated E2E test scripts |
-| 3   | `^npm (run\|start\|test)`              | Application lifecycle management   |
-| 4   | `^node \.[\\/].+\.m?[jt]s$`             | Local Node.js script execution (file path only, no `-e` flag) |
-| 5   | `^dotnet (run\|test)`                  | .NET application lifecycle         |
-| 6   | `^python -m (pytest\|uvicorn\|flask)`  | Python application lifecycle       |
-| 7   | `^curl -sf?o? https?://localhost[:/]`    | Health check HTTP requests (localhost only) |
+| #   | Pattern                                               | Purpose                                                                                               |
+| --- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 1   | `^playwright-cli .+`                                  | Playwright CLI browser interaction                                                                    |
+| 2   | `^npx playwright test .+`                             | Execute generated E2E test scripts                                                                    |
+| 3   | `^npm (run\|start\|test)`                             | Application lifecycle management                                                                      |
+| 4   | `^node \.[\\/].+\.m?[jt]s$`                           | Local Node.js script execution (file path only, no `-e` flag)                                         |
+| 5   | `^dotnet (run\|test)`                                 | .NET application lifecycle                                                                            |
+| 6   | `^python -m (pytest\|uvicorn\|flask)`                 | Python application lifecycle                                                                          |
+| 7   | `^curl -sf?o? https?://localhost[:/]`                 | Health check HTTP requests (localhost only)                                                           |
 | 8   | `^(kill (-[0-9]+ )?[0-9]+\|taskkill /F /PID [0-9]+)$` | Process cleanup during teardown (numeric PID only — must match tracked PID from `e2e-instance-start`) |
 
 ### Enforcement
@@ -376,12 +384,12 @@ Environment variable names matching these patterns have their values replaced wi
 
 Every Tier 5 command execution is recorded:
 
-| Field             | Description                           |
-| ----------------- | ------------------------------------- |
-| `command_text`    | The full command string               |
+| Field             | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `command_text`    | The full command string                         |
 | `matched_pattern` | Which allowlist pattern matched (or `REJECTED`) |
-| `timestamp`       | ISO 8601 execution timestamp          |
-| `exit_code`       | Command exit code                     |
+| `timestamp`       | ISO 8601 execution timestamp                    |
+| `exit_code`       | Command exit code                               |
 
 ---
 
@@ -392,6 +400,7 @@ All E2E evidence MUST pass through this pipeline before SQL insertion or file st
 ### Step 1: SQL Escaping (Mandatory)
 
 All free-text string values use `sql_escape()` (replace `'` with `''`) before INSERT into `anvil_checks` or `pipeline_telemetry`. This applies to:
+
 - `interaction_log` entries
 - Error messages
 - Assertion results
@@ -399,12 +408,12 @@ All free-text string values use `sql_escape()` (replace `'` with `''`) before IN
 
 ### Step 2: HAR Log Stripping
 
-| Header                | Action                      |
-| --------------------- | --------------------------- |
-| `Authorization`       | → `[REDACTED]`              |
-| `Cookie`              | → `[REDACTED]`              |
-| `Set-Cookie`          | → `[REDACTED]`              |
-| Request/response body | > 10KB → `[TRUNCATED]`     |
+| Header                | Action                 |
+| --------------------- | ---------------------- |
+| `Authorization`       | → `[REDACTED]`         |
+| `Cookie`              | → `[REDACTED]`         |
+| `Set-Cookie`          | → `[REDACTED]`         |
+| Request/response body | > 10KB → `[TRUNCATED]` |
 
 ### Step 3: Response Masking
 
@@ -415,6 +424,7 @@ All free-text string values use `sql_escape()` (replace `'` with `''`) before IN
 ### Step 4: start_env Scrubbing
 
 Environment variable values matching secret patterns are replaced with `[REDACTED]`:
+
 - Pattern list: `API_KEY`, `SECRET`, `TOKEN`, `PASSWORD`, `CREDENTIAL`
 - Applied in ALL evidence artifacts (SQL records, log files, manifests)
 
@@ -439,18 +449,18 @@ Environment variable values matching secret patterns are replaced with `[REDACTE
 
 E2E phases produce these `check_name` values in `anvil_checks`:
 
-| check_name                | Phase     | Description                                |
-| ------------------------- | --------- | ------------------------------------------ |
-| `e2e-contract-found`      | Setup     | Contract exists and is valid               |
-| `e2e-contract-validation` | Setup     | Contract validation details                |
-| `e2e-instance-start`      | Setup     | App started on assigned port (PID stored)  |
-| `e2e-readiness`           | Setup     | App passed `ready_check`                   |
-| `e2e-suite-execution`     | Suite     | Test suite execution pass/fail             |
-| `e2e-exploratory`         | Exploratory | Exploratory interaction composite result |
-| `e2e-adversarial`         | Adversarial | Per-variation adversarial result         |
-| `e2e-adversarial-summary` | Adversarial | Composite adversarial summary            |
-| `e2e-instance-shutdown`   | Teardown  | App + tools shut down cleanly              |
-| `e2e-test-execution`      | Composite | ALL E2E phases passed                      |
+| check_name                | Phase       | Description                               |
+| ------------------------- | ----------- | ----------------------------------------- |
+| `e2e-contract-found`      | Setup       | Contract exists and is valid              |
+| `e2e-contract-validation` | Setup       | Contract validation details               |
+| `e2e-instance-start`      | Setup       | App started on assigned port (PID stored) |
+| `e2e-readiness`           | Setup       | App passed `ready_check`                  |
+| `e2e-suite-execution`     | Suite       | Test suite execution pass/fail            |
+| `e2e-exploratory`         | Exploratory | Exploratory interaction composite result  |
+| `e2e-adversarial`         | Adversarial | Per-variation adversarial result          |
+| `e2e-adversarial-summary` | Adversarial | Composite adversarial summary             |
+| `e2e-instance-shutdown`   | Teardown    | App + tools shut down cleanly             |
+| `e2e-test-execution`      | Composite   | ALL E2E phases passed                     |
 
 Per-variation adversarial records use `check_name='e2e-adversarial-<variation-name>'`. Variation names: alphanumeric + hyphens only, max 50 chars, `sql_escape()` applied (D-26).
 
@@ -635,14 +645,14 @@ adversarial_variation:
 
 ### Per-Phase Limits
 
-| Phase                   | Timeout            | On Expiry                                       |
-| ----------------------- | ------------------ | ----------------------------------------------- |
-| App startup             | 60s (max)          | Kill PID, record `e2e-readiness` passed=0       |
-| Suite execution         | 300s per task      | Kill test runner, record `e2e-suite-execution` passed=0 |
-| Exploratory interaction | 180s per skill     | Kill browser/tool, skip remaining steps         |
-| Adversarial interaction | 120s per skill     | Kill browser/tool, skip remaining variations    |
-| App shutdown            | 30s (max)          | Force-kill PID                                  |
-| **Total E2E per task**  | **600s (hard cap)**| **Kill all processes, record `e2e-test-execution` passed=0** |
+| Phase                   | Timeout             | On Expiry                                                    |
+| ----------------------- | ------------------- | ------------------------------------------------------------ |
+| App startup             | 60s (max)           | Kill PID, record `e2e-readiness` passed=0                    |
+| Suite execution         | 300s per task       | Kill test runner, record `e2e-suite-execution` passed=0      |
+| Exploratory interaction | 180s per skill      | Kill browser/tool, skip remaining steps                      |
+| Adversarial interaction | 120s per skill      | Kill browser/tool, skip remaining variations                 |
+| App shutdown            | 30s (max)           | Force-kill PID                                               |
+| **Total E2E per task**  | **600s (hard cap)** | **Kill all processes, record `e2e-test-execution` passed=0** |
 
 ### Realistic Budget Example
 
@@ -667,13 +677,13 @@ Per-phase maximums sum to 690s > 600s. For tasks with skills in all phases, effe
 
 ### Verifier E2E Lifecycle (5-Phase Summary)
 
-| Phase | Name         | Key Actions                                                                |
-| ----- | ------------ | -------------------------------------------------------------------------- |
-| 1     | Setup        | Read contract, validate (runtime), start app, poll readiness, record PIDs  |
-| 2     | Suite        | Execute `test-suite` skills via script generation or CLI                   |
-| 3     | Exploratory  | Execute `exploratory` skills step-by-step via Playwright CLI               |
-| 4     | Adversarial  | Execute `adversarial` skills with step overrides, record per-variation SQL |
-| 5     | Teardown     | Shutdown app, close browser sessions, write evidence manifest + SHA-256    |
+| Phase | Name        | Key Actions                                                                |
+| ----- | ----------- | -------------------------------------------------------------------------- |
+| 1     | Setup       | Read contract, validate (runtime), start app, poll readiness, record PIDs  |
+| 2     | Suite       | Execute `test-suite` skills via script generation or CLI                   |
+| 3     | Exploratory | Execute `exploratory` skills step-by-step via Playwright CLI               |
+| 4     | Adversarial | Execute `adversarial` skills with step overrides, record per-variation SQL |
+| 5     | Teardown    | Shutdown app, close browser sessions, write evidence manifest + SHA-256    |
 
 **Ordering guarantee (D-5):** Tier 5 MUST execute AFTER Tiers 1–4 complete and SQL committed — never interleaved. Within Tier 5, phases execute sequentially: 1 → 2 → 3 → 4 → 5.
 

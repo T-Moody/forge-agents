@@ -176,6 +176,7 @@ Execute the mandatory 3-phase TDD cycle for all code tasks. Each phase MUST be c
 5. If tests PASS before production code exists, they are not testing new behavior — **rewrite them** until they fail.
 
 **RED Phase Evidence (mandatory):**
+
 - Record `tdd_red_green.tests_written_first: true`
 - Record `tdd_red_green.initial_run_failures: <count>` — MUST be > 0
 - Record `tdd_red_green.initial_run_exit_code: <code>` — MUST be ≠ 0
@@ -360,7 +361,7 @@ If **any** production source file is modified, TDD is **mandatory** regardless o
 
 All tests written by the implementer MUST follow these guidelines:
 
-1. **Behavior-based testing:** Tests MUST verify observable behavior through public interfaces, not internal implementation details. Test *what* the code does, not *how* it does it.
+1. **Behavior-based testing:** Tests MUST verify observable behavior through public interfaces, not internal implementation details. Test _what_ the code does, not _how_ it does it.
 2. **No type-system testing:** Tests MUST NOT test what the type system already guarantees (e.g., do not assert that a typed parameter rejects wrong types at compile time).
 3. **Public interfaces only:** Tests MUST interact with production code through its public API. Do NOT test private/internal methods directly.
 4. **No test-only hooks:** Tests MUST NOT expose internals or create test-only backdoors in production code. Do NOT add test-specific exports, flags, or configuration.

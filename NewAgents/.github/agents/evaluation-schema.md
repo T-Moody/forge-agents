@@ -87,11 +87,11 @@ Phase 2 agents will be onboarded after Phase 1 evaluation quality is validated b
 
 Evaluates the completeness and determinism of E2E interaction logs (per D-18 determinism model).
 
-| Score | Label    | Criteria                                                                                                            |
-| ----- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| 0     | Missing  | `interaction_log` absent or empty for skills that require it                                                        |
+| Score | Label    | Criteria                                                                                                                                            |
+| ----- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Missing  | `interaction_log` absent or empty for skills that require it                                                                                        |
 | 1     | Partial  | `interaction_log` present but incomplete — missing fields (`action`, `target`, `result`, or `evidence_path`) or steps out of skill-definition order |
-| 2     | Complete | All steps present with `action`, `target`, `result`, `evidence_path`, and `duration_ms`; step order matches skill definition exactly (FR-14.1) |
+| 2     | Complete | All steps present with `action`, `target`, `result`, `evidence_path`, and `duration_ms`; step order matches skill definition exactly (FR-14.1)      |
 
 **Required fields per step:** `action`, `target`, `result`, `evidence_path`, `duration_ms`.
 
@@ -99,10 +99,10 @@ Evaluates the completeness and determinism of E2E interaction logs (per D-18 det
 
 Evaluates the presence, integrity, and safety of E2E evidence artifacts.
 
-| Score | Label      | Criteria                                                                                                  |
-| ----- | ---------- | --------------------------------------------------------------------------------------------------------- |
-| 0     | Missing    | `evidence-manifest.yaml` absent                                                                           |
-| 1     | Incomplete | `evidence-manifest.yaml` present but: SHA-256 hashes missing, referenced files not on disk, or sanitization not verified |
+| Score | Label      | Criteria                                                                                                                               |
+| ----- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Missing    | `evidence-manifest.yaml` absent                                                                                                        |
+| 1     | Incomplete | `evidence-manifest.yaml` present but: SHA-256 hashes missing, referenced files not on disk, or sanitization not verified               |
 | 2     | Verified   | Manifest present with SHA-256 hashes, all referenced evidence files exist on disk, no credential/token leakage (sanitization verified) |
 
 **Checklist:** manifest presence → SHA-256 hash per entry → file existence → credential sanitization.
@@ -111,10 +111,10 @@ Evaluates the presence, integrity, and safety of E2E evidence artifacts.
 
 Evaluates adherence to the RED → GREEN → VERIFY TDD cycle.
 
-| Score | Label   | Criteria                                                                                                   |
-| ----- | ------- | ---------------------------------------------------------------------------------------------------------- |
-| 0     | None    | No TDD evidence — `tdd_red_green` section missing or `tests_written_first` is false with no justification  |
-| 1     | Partial | Partial cycle — e.g., failing test evidenced (RED) but implementation is speculative (GREEN violated), or structured `check_name` results absent in SQL (VERIFY missing) |
+| Score | Label   | Criteria                                                                                                                                                                                              |
+| ----- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | None    | No TDD evidence — `tdd_red_green` section missing or `tests_written_first` is false with no justification                                                                                             |
+| 1     | Partial | Partial cycle — e.g., failing test evidenced (RED) but implementation is speculative (GREEN violated), or structured `check_name` results absent in SQL (VERIFY missing)                              |
 | 2     | Full    | Complete RED → GREEN → VERIFY cycle: failing test committed before implementation, minimal production code (no speculative additions), and structured `check_name` results recorded in `anvil_checks` |
 
 **Phases:** RED (failing test before code) → GREEN (minimal implementation) → VERIFY (structured SQL check results).

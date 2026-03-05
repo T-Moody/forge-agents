@@ -41,8 +41,9 @@ No security findings through the architecture lens. Security boundaries are prop
   - `orchestrator.agent.md` line 486: "enforce `max_concurrent_instances` from contract (default 2, cap 4)"
   - `dispatch-patterns.md` line 187: "Maximum 1 E2E-enabled task running at a time within any wave (concurrency cap = 1 for E2E tasks)"
   - `e2e-integration.md` line 684: "Max concurrent: `max_concurrent_instances` from contract (default 2, hard cap 4)"
-  
+
   The orchestrator says to respect the contract's `max_concurrent_instances` (allowing 2–4 parallel E2E tasks). `dispatch-patterns.md` mandates strict serial execution (1 at a time). These are irreconcilable — an agent following one source will violate the other. The dispatch-patterns document is the canonical source for dispatch logic, but the orchestrator's inline rule and the e2e-integration reference both contradict it.
+
 - **Affected artifacts:**
   - `NewAgents/.github/agents/orchestrator.agent.md` line 486 — says use contract value (default 2)
   - `NewAgents/.github/agents/dispatch-patterns.md` line 187 — says always 1
@@ -65,12 +66,13 @@ No security findings through the architecture lens. Security boundaries are prop
 ### Finding C-1: EG-10 gates are dead code — queries return 0 for all tasks
 
 - **Severity:** Major
-- **Description:** Because `baseline-verified` and `integration-tests-passed` check_names are never inserted into `anvil_checks` by any agent (see A-1), the EG-10 queries will always return COUNT(*) = 0 for all tasks, regardless of workflow lane. This means:
+- **Description:** Because `baseline-verified` and `integration-tests-passed` check_names are never inserted into `anvil_checks` by any agent (see A-1), the EG-10 queries will always return COUNT(\*) = 0 for all tasks, regardless of workflow lane. This means:
   - `unit-only` tasks need ≥2 but get 0 (only `tdd-compliance` could match, yielding at most 1)
   - `unit-integration` tasks need ≥3 but get at most 1
   - `full-tdd-e2e` tasks need ≥4 but get at most 2 (`tdd-compliance` + `e2e-test-execution`)
-  
+
   Every task in the pipeline would fail its lane verification gate. The EG-10 mechanism is architecturally sound in concept but the queries reference check_names that don't exist in the verifier's vocabulary.
+
 - **Affected artifacts:**
   - `NewAgents/.github/agents/sql-templates.md` lines 629–678 — all three EG-10 query variants
   - `NewAgents/.github/agents/orchestrator.agent.md` lines 293–296 — gate table referencing EG-10

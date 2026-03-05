@@ -102,6 +102,7 @@ Execute these steps in order:
 When the task has `e2e_required=true` AND an `e2e_contract_path`, generate project-specific skill YAML files before the main research workflow:
 
 **Playwright CLI Skills Integration:**
+
 - **Built-in skills** (`playwright-cli install --skills`): Teach agents HOW to use playwright-cli commands (`open`, `goto`, `click`, `fill`, `screenshot`, `snapshot`, etc.). Installed into `skills/playwright-cli/` and `.claude/skills/dev/`.
 - **Custom skills** (Step 1.5 output): Define WHAT to test — project-specific interaction procedures expressed as sequences of playwright-cli commands. Complement built-in skills with domain knowledge.
 
@@ -122,6 +123,7 @@ When the task has `e2e_required=true` AND an `e2e_contract_path`, generate proje
 **Naming convention:** `<interaction-type>-<target>.skill.yaml` (e.g., `exploratory-login.skill.yaml`, `adversarial-search.skill.yaml`).
 
 **Skill Generation Rules:**
+
 - **Deterministic selectors:** Prefer `data-testid`, `aria-label`, `role` attributes over CSS classes or positional selectors.
 - **Playwright CLI commands:** Use `goto`, `click`, `fill`, `type`, `press`, `screenshot`, `snapshot` — no raw Playwright API calls.
 - **Assertion format:** `snapshot` → parse accessibility tree → verify element presence/text content.
