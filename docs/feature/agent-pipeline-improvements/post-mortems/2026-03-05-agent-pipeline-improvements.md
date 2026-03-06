@@ -33,25 +33,25 @@ The agent-pipeline-improvements feature addressed 8 user-reported issues across 
 
 ## Bottleneck Analysis (Top 3)
 
-| Rank | Step | Duration | Cause | Mitigation |
-|------|------|----------|-------|-----------|
-| 1 | step-2 (spec) | 2,700s | 8 FRs × 42 sub-requirements from 8 user issues | Split large features into smaller specs |
-| 2 | step-5 wave-2 (impl) | 1,200s | 5 parallel tasks, task-04 (🔴 orchestrator) was critical path | Orchestrator changes inherently slow — acceptable |
-| 3 | step-7-fix | 1,200s | 10 corrections across 7 files in single pass | Multi-file fix rounds are efficient — no mitigation needed |
+| Rank | Step                 | Duration | Cause                                                         | Mitigation                                                 |
+| ---- | -------------------- | -------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| 1    | step-2 (spec)        | 2,700s   | 8 FRs × 42 sub-requirements from 8 user issues                | Split large features into smaller specs                    |
+| 2    | step-5 wave-2 (impl) | 1,200s   | 5 parallel tasks, task-04 (🔴 orchestrator) was critical path | Orchestrator changes inherently slow — acceptable          |
+| 3    | step-7-fix           | 1,200s   | 10 corrections across 7 files in single pass                  | Multi-file fix rounds are efficient — no mitigation needed |
 
 ---
 
 ## Agent Reliability Metrics
 
-| Agent | Dispatches | Success Rate | Avg Duration (s) |
-|-------|-----------|-------------|-----------------|
-| researcher | 4 | 100% | 300 |
-| spec | 2 | 100% | 1,500 |
-| designer | 2 | 100% | 300 |
-| planner | 1 | 100% | 300 |
-| implementer | 24 | 100% | 688 |
-| verifier | 11 | 100% | 709 |
-| adversarial-reviewer | 12 | 100% | 550 |
+| Agent                | Dispatches | Success Rate | Avg Duration (s) |
+| -------------------- | ---------- | ------------ | ---------------- |
+| researcher           | 4          | 100%         | 300              |
+| spec                 | 2          | 100%         | 1,500            |
+| designer             | 2          | 100%         | 300              |
+| planner              | 1          | 100%         | 300              |
+| implementer          | 24         | 100%         | 688              |
+| verifier             | 11         | 100%         | 709              |
+| adversarial-reviewer | 12         | 100%         | 550              |
 
 **No agents required retries.** This is the highest reliability observed in a 🔴-risk pipeline run.
 
@@ -70,11 +70,13 @@ The agent-pipeline-improvements feature addressed 8 user-reported issues across 
 ## Root Cause Analysis — Code Review Findings
 
 ### Critical Finding #1: Broken §11 cross-reference
+
 - **Root cause**: Orchestrator referenced sql-templates.md §11 for archive query, but the section was created as §1.1. The implementer used the section number from the design document rather than verifying the actual heading in the modified file.
 - **Fix**: Corrected to §1.1 across all references.
 - **Prevention**: Add cross-file reference check to implementer self-verification.
 
 ### Critical Finding #2: Fast-track 🔴 risk bypass
+
 - **Root cause**: plan-and-implement.prompt.md defined reduced step set but had no enforcement preventing 🔴-risk tasks from skipping design review. The design specified D-14 (minimum steps) but the implementation didn't add the escalation clause.
 - **Fix**: Added 🔴 risk escalation clause to fast-track prompt.
 - **Prevention**: Security-sensitive constraints in anti-drift anchors should be cross-referenced in all entry points (prompts, agents).
@@ -83,13 +85,13 @@ The agent-pipeline-improvements feature addressed 8 user-reported issues across 
 
 ## Key Decisions & Their Outcomes
 
-| Decision | Outcome |
-|----------|---------|
-| D-2 (E2E decouple) | Clean implementation, 0 verification failures |
-| D-4 (Approval mode fix) | Required touching all 8 subagent files — correctly identified in design R2 |
-| D-10 (Fast-track prompt) | Required 🔴 escalation clause (caught in code review R1) |
-| D-14 (Minimum step set) | Successfully prevented security bypass in fast-track |
-| Direction C (Hybrid) | Net +0 lines on orchestrator (539→539) — excellent budget management |
+| Decision                 | Outcome                                                                    |
+| ------------------------ | -------------------------------------------------------------------------- |
+| D-2 (E2E decouple)       | Clean implementation, 0 verification failures                              |
+| D-4 (Approval mode fix)  | Required touching all 8 subagent files — correctly identified in design R2 |
+| D-10 (Fast-track prompt) | Required 🔴 escalation clause (caught in code review R1)                   |
+| D-14 (Minimum step set)  | Successfully prevented security bypass in fast-track                       |
+| Direction C (Hybrid)     | Net +0 lines on orchestrator (539→539) — excellent budget management       |
 
 ---
 
@@ -102,4 +104,4 @@ The agent-pipeline-improvements feature addressed 8 user-reported issues across 
 
 ---
 
-*Generated by knowledge-agent | Run 2026-03-05T12:00:00Z*
+_Generated by knowledge-agent | Run 2026-03-05T12:00:00Z_
