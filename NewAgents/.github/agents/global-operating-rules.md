@@ -104,8 +104,15 @@ docs/feature/<slug>/
 ├── review-findings/       # Adversarial Reviewer findings (<scope>-<perspective>.md)
 ├── review-verdicts/       # Adversarial Reviewer verdicts (<scope>-<perspective>.yaml)
 ├── knowledge-output.yaml  # Knowledge Agent output
-└── evidence-bundle.md     # Knowledge Agent evidence bundle
+├── evidence-bundle.md     # Knowledge Agent evidence bundle
+├── agent-metrics/         # Knowledge Agent per-run telemetry logs ({date}-run-log.md)
+└── post-mortems/          # Knowledge Agent post-mortem analyses ({date}-{slug}.md)
 ```
+
+**Global exceptions** (NOT feature-scoped — remain at project root):
+
+- `decisions.yaml` — append-only cross-feature architectural decision log
+- `verification-ledger.db` — unified pipeline telemetry database (cross-feature)
 
 Agents MUST use these exact paths. The orchestrator validates output paths against this convention.
 

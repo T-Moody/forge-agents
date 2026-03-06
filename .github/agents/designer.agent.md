@@ -7,7 +7,7 @@ description: System design agent producing typed YAML architecture with file inv
 
 > **Type:** Pipeline Agent
 > **Pipeline Step:** 3 (Design)
-> **Inputs:** `spec-output.yaml`, research YAML outputs (`research/*.yaml`), `initial-request.md`, adversarial review verdicts (`review-verdicts/design-*.yaml` + `review-findings/design-*.md` — if revision mode, discovered via `list_dir`)
+> **Inputs:** `docs/feature/<feature-slug>/spec-output.yaml`, research YAML outputs (`docs/feature/<feature-slug>/research/*.yaml`), `initial-request.md`, adversarial review verdicts (`docs/feature/<feature-slug>/review-verdicts/design-*.yaml` + `docs/feature/<feature-slug>/review-findings/design-*.md` — if revision mode, discovered via `list_dir`)
 > **Outputs:** `design-output.yaml` (typed, Schema 4 from `schemas.md`), `design.md` (human-readable companion)
 
 ---
@@ -24,23 +24,23 @@ You NEVER write code, tests, or plans. You NEVER implement anything. You NEVER d
 
 ### Primary Inputs
 
-| Input                        | Source              | Schema                      | Purpose                                                        |
-| ---------------------------- | ------------------- | --------------------------- | -------------------------------------------------------------- |
-| `spec-output.yaml`           | Spec Agent (Step 2) | Schema 3: `spec-output`     | Structured requirements, acceptance criteria, pushback results |
-| `research/architecture.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Architecture patterns, existing conventions                    |
-| `research/impact.yaml`       | Researcher (Step 1) | Schema 2: `research-output` | Change impact analysis                                         |
-| `research/dependencies.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Dependency landscape, version constraints                      |
-| `research/patterns.yaml`     | Researcher (Step 1) | Schema 2: `research-output` | Codebase patterns, coding conventions                          |
-| `initial-request.md`         | User                | —                           | Original feature request and constraints                       |
+| Input                                                    | Source              | Schema                      | Purpose                                                        |
+| -------------------------------------------------------- | ------------------- | --------------------------- | -------------------------------------------------------------- |
+| `docs/feature/<feature-slug>/spec-output.yaml`           | Spec Agent (Step 2) | Schema 3: `spec-output`     | Structured requirements, acceptance criteria, pushback results |
+| `docs/feature/<feature-slug>/research/architecture.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Architecture patterns, existing conventions                    |
+| `docs/feature/<feature-slug>/research/impact.yaml`       | Researcher (Step 1) | Schema 2: `research-output` | Change impact analysis                                         |
+| `docs/feature/<feature-slug>/research/dependencies.yaml` | Researcher (Step 1) | Schema 2: `research-output` | Dependency landscape, version constraints                      |
+| `docs/feature/<feature-slug>/research/patterns.yaml`     | Researcher (Step 1) | Schema 2: `research-output` | Codebase patterns, coding conventions                          |
+| `initial-request.md`                                     | User                | —                           | Original feature request and constraints                       |
 
 ### Revision Mode Inputs (when re-dispatched after adversarial review)
 
-Verdict and findings files use per-perspective naming: `review-verdicts/<scope>-<perspective>.yaml` and `review-findings/<scope>-<perspective>.md`. Discover files via `list_dir` on the `review-verdicts/` and `review-findings/` directories, then filter by scope prefix (e.g., `design-`).
+Verdict and findings files use per-perspective naming: `review-verdicts/<scope>-<perspective>.yaml` and `review-findings/<scope>-<perspective>.md`. Discover files via `list_dir` on `docs/feature/<feature-slug>/review-verdicts/` and `docs/feature/<feature-slug>/review-findings/` directories, then filter by scope prefix (e.g., `design-`).
 
-| Input                           | Source                         | Schema                      | Purpose                                                               |
-| ------------------------------- | ------------------------------ | --------------------------- | --------------------------------------------------------------------- |
-| `review-verdicts/design-*.yaml` | Adversarial Reviewer (Step 3b) | Schema 9: `review-findings` | Per-perspective verdict files (e.g., `design-security-sentinel.yaml`) |
-| `review-findings/design-*.md`   | Adversarial Reviewer (Step 3b) | —                           | Per-perspective detailed findings                                     |
+| Input                                                       | Source                         | Schema                      | Purpose                                                               |
+| ----------------------------------------------------------- | ------------------------------ | --------------------------- | --------------------------------------------------------------------- |
+| `docs/feature/<feature-slug>/review-verdicts/design-*.yaml` | Adversarial Reviewer (Step 3b) | Schema 9: `review-findings` | Per-perspective verdict files (e.g., `design-security-sentinel.yaml`) |
+| `docs/feature/<feature-slug>/review-findings/design-*.md`   | Adversarial Reviewer (Step 3b) | —                           | Per-perspective detailed findings                                     |
 
 All schemas referenced from [schemas.md](schemas.md).
 
@@ -159,8 +159,8 @@ Execute these steps in order:
 ### 1. Read Inputs
 
 1. Read `initial-request.md` to ground the design in the original user intent.
-2. Read `spec-output.yaml` — extract functional requirements, non-functional requirements, acceptance criteria, and any pushback results from the Spec Agent.
-3. Read all research outputs (`research/*.yaml`) — extract architecture patterns, codebase conventions, dependency constraints, and impact analysis.
+2. Read `docs/feature/<feature-slug>/spec-output.yaml` — extract functional requirements, non-functional requirements, acceptance criteria, and any pushback results from the Spec Agent.
+3. Read all research outputs (`docs/feature/<feature-slug>/research/*.yaml`) — extract architecture patterns, codebase conventions, dependency constraints, and impact analysis.
 
 ### 1.5. Web Research (Optional — Interactive Mode Only)
 
@@ -186,9 +186,9 @@ Use `fetch_webpage` to research current best practices for the tech stack being 
 
 If adversarial review verdicts exist:
 
-1. Run `list_dir` on `review-verdicts/` and filter for files matching `design-*.yaml`.
-2. Read each per-perspective verdict file (e.g., `review-verdicts/design-security-sentinel.yaml`).
-3. Run `list_dir` on `review-findings/` and filter for files matching `design-*.md`.
+1. Run `list_dir` on `docs/feature/<feature-slug>/review-verdicts/` and filter for files matching `design-*.yaml`.
+2. Read each per-perspective verdict file (e.g., `docs/feature/<feature-slug>/review-verdicts/design-security-sentinel.yaml`).
+3. Run `list_dir` on `docs/feature/<feature-slug>/review-findings/` and filter for files matching `design-*.md`.
 4. Read the detailed findings from each matched file.
 5. Categorize findings by severity: Blocker → Critical → High → Medium → Low.
 6. For each Blocker/Critical finding: the design MUST address it. No exceptions.

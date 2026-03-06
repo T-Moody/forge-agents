@@ -67,17 +67,17 @@ Steps 1–3b (research, spec, design, design review) are skipped. Steps 0, 7, an
 
 ## Agent Inventory
 
-| #   | Agent                    | File                            | Pipeline Step              | Key Capability                                                                        |
-| --- | ------------------------ | ------------------------------- | -------------------------- | ------------------------------------------------------------------------------------- |
-| 1   | **Orchestrator**         | `orchestrator.agent.md`         | All (coordinator)          | Dispatch routing, approval gates, SQL evidence verification, retry & error handling   |
+| #   | Agent                    | File                            | Pipeline Step              | Key Capability                                                                       |
+| --- | ------------------------ | ------------------------------- | -------------------------- | ------------------------------------------------------------------------------------ |
+| 1   | **Orchestrator**         | `orchestrator.agent.md`         | All (coordinator)          | Dispatch routing, approval gates, SQL evidence verification, retry & error handling  |
 | 2   | **Researcher**           | `researcher.agent.md`           | Step 1 (×4 parallel)       | Codebase investigation across 4 focus areas; optional Context7 + web research        |
-| 3   | **Spec**                 | `spec.agent.md`                 | Step 2                     | Feature specification with per-concern interactive pushback system                    |
-| 4   | **Designer**             | `designer.agent.md`             | Step 3                     | Technical design with confidence-scored decision justifications                       |
+| 3   | **Spec**                 | `spec.agent.md`                 | Step 2                     | Feature specification with per-concern interactive pushback system                   |
+| 4   | **Designer**             | `designer.agent.md`             | Step 3                     | Technical design with confidence-scored decision justifications                      |
 | 5   | **Planner**              | `planner.agent.md`              | Step 4                     | Task decomposition, per-file risk (🟢/🟡/🔴), `e2e_required` flag, wave ordering     |
-| 6   | **Implementer**          | `implementer.agent.md`          | Step 5 (≤4 concurrent)     | RED-GREEN-VERIFY TDD cycle, baseline capture, SQL evidence recording, self-fix loop   |
-| 7   | **Verifier**             | `verifier.agent.md`             | Step 6 (per-task)          | 5-tier cascade (Tier 5 = E2E), SQL evidence ledger, command audit trail               |
+| 6   | **Implementer**          | `implementer.agent.md`          | Step 5 (≤4 concurrent)     | RED-GREEN-VERIFY TDD cycle, baseline capture, SQL evidence recording, self-fix loop  |
+| 7   | **Verifier**             | `verifier.agent.md`             | Step 6 (per-task)          | 5-tier cascade (Tier 5 = E2E), SQL evidence ledger, command audit trail              |
 | 8   | **Adversarial Reviewer** | `adversarial-reviewer.agent.md` | Steps 3b & 7 (×3 parallel) | 3 perspectives × 3 categories = 9 review dimensions; Security Blocker halts pipeline |
-| 9   | **Knowledge Agent**      | `knowledge-agent.agent.md`      | Steps 8, 8b                | Post-mortem analysis, decisions log, evidence bundle, cross-session memory            |
+| 9   | **Knowledge Agent**      | `knowledge-agent.agent.md`      | Steps 8, 8b                | Post-mortem analysis, decisions log, evidence bundle, cross-session memory           |
 
 ## Key Features
 
@@ -96,32 +96,32 @@ All verification evidence is recorded in a SQLite `verification-ledger.db` with 
 
 Every agent boundary is governed by a typed YAML schema in `schemas.md`:
 
-| #   | Schema                  | Producer            |
-| --- | ----------------------- | ------------------- |
-| 1   | `completion-contract`   | All agents          |
-| 2   | `research-output`       | Researcher          |
-| 3   | `spec-output`           | Spec Agent          |
-| 4   | `design-output`         | Designer            |
-| 5   | `plan-output`           | Planner             |
-| 6   | `task-schema`           | Planner (sub)       |
-| 7   | `implementation-report` | Implementer         |
-| 8   | `verification-report`   | Verifier            |
-| 9   | `review-findings`       | Adversarial Review  |
-| 10  | `knowledge-output`      | Knowledge Agent     |
-| 11  | `artifact_evaluations`  | SQLite DDL          |
-| 12  | `instruction_updates`   | SQLite DDL          |
-| 13  | `e2e-contract`          | Project-level config|
-| 14  | `e2e-skill`             | Researcher (Step 1.5)|
+| #   | Schema                  | Producer              |
+| --- | ----------------------- | --------------------- |
+| 1   | `completion-contract`   | All agents            |
+| 2   | `research-output`       | Researcher            |
+| 3   | `spec-output`           | Spec Agent            |
+| 4   | `design-output`         | Designer              |
+| 5   | `plan-output`           | Planner               |
+| 6   | `task-schema`           | Planner (sub)         |
+| 7   | `implementation-report` | Implementer           |
+| 8   | `verification-report`   | Verifier              |
+| 9   | `review-findings`       | Adversarial Review    |
+| 10  | `knowledge-output`      | Knowledge Agent       |
+| 11  | `artifact_evaluations`  | SQLite DDL            |
+| 12  | `instruction_updates`   | SQLite DDL            |
+| 13  | `e2e-contract`          | Project-level config  |
+| 14  | `e2e-skill`             | Researcher (Step 1.5) |
 
 ### 9-Dimension Adversarial Review
 
 Both design (Step 3b) and code (Step 7) dispatch three parallel reviewer instances, each covering all three review categories through a distinct lens:
 
-| Perspective              | Lens                                                        |
-| ------------------------ | ----------------------------------------------------------- |
-| **security-sentinel**    | Injection, auth bypasses, data exposure, OWASP Top 10       |
-| **architecture-guardian**| Coupling, scalability, boundary violations, tech debt       |
-| **pragmatic-verifier**   | Edge cases, logic errors, spec compliance, test validity    |
+| Perspective               | Lens                                                     |
+| ------------------------- | -------------------------------------------------------- |
+| **security-sentinel**     | Injection, auth bypasses, data exposure, OWASP Top 10    |
+| **architecture-guardian** | Coupling, scalability, boundary violations, tech debt    |
+| **pragmatic-verifier**    | Edge cases, logic errors, spec compliance, test validity |
 
 3 perspectives × 3 categories = **9 review dimensions** per round. A Security Blocker from any reviewer halts the pipeline immediately; majority approval (≥2 of 3) is required to continue.
 
@@ -132,8 +132,8 @@ Each completed task gets its own Verifier dispatch:
 1. **Tier 1 — IDE Diagnostics + Syntax:** `get_errors`, syntax/parse verification, baseline cross-check
 2. **Tier 2 — Build & Test:** Build, type check, lint, test execution, behavioral coverage (BLOCKING), TDD compliance (BLOCKING)
 3. **Tier 3 — Runtime Verification:** Import/load test, smoke execution (mandatory when Tiers 1–2 lack runtime evidence)
-4. **Tier 4 — Operational Readiness** *(Large tasks only):* Observability, graceful degradation, secrets scan
-5. **Tier 5 — E2E Verification** *(when `e2e_required=true`):* 5 phases — setup, test suite, exploratory, adversarial, teardown — with full command audit trail against an allowlist
+4. **Tier 4 — Operational Readiness** _(Large tasks only):_ Observability, graceful degradation, secrets scan
+5. **Tier 5 — E2E Verification** _(when `e2e_required=true`):_ 5 phases — setup, test suite, exploratory, adversarial, teardown — with full command audit trail against an allowlist
 
 `e2e_required` is determined independently of `workflow_lane` and risk level: it activates when an `e2e-contract.yaml` exists **and** the Planner assesses E2E coverage as necessary.
 
@@ -220,15 +220,15 @@ Skips research, spec, and design. Proceeds directly to planning → implementati
 
 ### Reference Documents
 
-| Document                  | Purpose                                                                                  |
-| ------------------------- | ---------------------------------------------------------------------------------------- |
-| `schemas.md`              | 14 typed YAML schemas defining every agent I/O contract + 2 SQLite DDL schemas          |
-| `dispatch-patterns.md`    | Pattern A (fully parallel) and B (sequential with replan loop) definitions               |
-| `severity-taxonomy.md`    | Unified severity levels (Blocker / Critical / Major / Minor) used across all agents      |
-| `sql-templates.md`        | Canonical DDL/DML, SQL sanitization rules, evidence gate queries (EG-1 to EG-10)        |
-| `tool-access-matrix.md`   | Per-agent tool allowlists, scope restrictions, and Tier 5 command allowlist patterns     |
-| `e2e-integration.md`      | E2E contract schema, e2e-skill format, Tier 5 five-phase procedure, concurrency cap      |
-| `review-perspectives.md`  | Perspective configuration for security-sentinel, architecture-guardian, pragmatic-verifier |
-| `evaluation-schema.md`    | Artifact quality evaluation schema used by Implementer, Verifier, and Knowledge Agent   |
-| `context7-integration.md` | Context7 MCP integration guide for Researcher and Implementer                           |
+| Document                    | Purpose                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------- |
+| `schemas.md`                | 14 typed YAML schemas defining every agent I/O contract + 2 SQLite DDL schemas                |
+| `dispatch-patterns.md`      | Pattern A (fully parallel) and B (sequential with replan loop) definitions                    |
+| `severity-taxonomy.md`      | Unified severity levels (Blocker / Critical / Major / Minor) used across all agents           |
+| `sql-templates.md`          | Canonical DDL/DML, SQL sanitization rules, evidence gate queries (EG-1 to EG-10)              |
+| `tool-access-matrix.md`     | Per-agent tool allowlists, scope restrictions, and Tier 5 command allowlist patterns          |
+| `e2e-integration.md`        | E2E contract schema, e2e-skill format, Tier 5 five-phase procedure, concurrency cap           |
+| `review-perspectives.md`    | Perspective configuration for security-sentinel, architecture-guardian, pragmatic-verifier    |
+| `evaluation-schema.md`      | Artifact quality evaluation schema used by Implementer, Verifier, and Knowledge Agent         |
+| `context7-integration.md`   | Context7 MCP integration guide for Researcher and Implementer                                 |
 | `global-operating-rules.md` | Cross-agent rules: terminal-first testing, no file-redirect, retry policy, anti-hallucination |

@@ -60,9 +60,9 @@ pipeline_state:
 
   completed_steps:                         # built by scanning existing output files
     - step: "research"
-      outputs: ["research/architecture.yaml", "research/impact.yaml", ...]
+      outputs: ["docs/feature/{feature_slug}/research/architecture.yaml", "docs/feature/{feature_slug}/research/impact.yaml", ...]
     - step: "spec"
-      outputs: ["spec-output.yaml"]
+      outputs: ["docs/feature/{feature_slug}/spec-output.yaml"]
     # ... accumulated as pipeline progresses
 
   error_log:                               # accumulated in-context only
@@ -142,8 +142,10 @@ Invoke four researcher subagents concurrently using separate `runSubagent` calls
 | `researcher-dependencies` | `dependencies` |
 | `researcher-patterns`     | `patterns`     |
 
+**Parameters per researcher:** `focus_area: <focus>`, `run_id: {run_id}`, `feature_slug: {feature_slug}`, `approval_mode: {approval_mode}`
+
 **Gate:** ≥2 of 4 DONE. **Retry:** 1 per failed researcher.
-**Output:** `research/<focus>.yaml` per instance.
+**Output:** `docs/feature/{feature_slug}/research/<focus>.yaml` per instance.
 **Telemetry:** INSERT per [sql-templates.md](sql-templates.md) §3 after each researcher completes.
 
 **On completion:** ≥2 DONE → Step 2. <2 after retry → ERROR.
@@ -160,16 +162,16 @@ Present via `ask_questions`: **proceed** (default) | **expand** | **abort** | **
 
 ### Step 2: Specification (Sequential)
 
-**Dispatch:** Spec agent. **Input:** `research/*.yaml` + `initial-request.md`.
-**Retry:** 1. **Output:** `spec-output.yaml` + `feature.md`.
+**Dispatch:** Spec agent. **Input:** `docs/feature/{feature_slug}/research/*.yaml` + `initial-request.md`.
+**Retry:** 1. **Output:** `docs/feature/{feature_slug}/spec-output.yaml` + `docs/feature/{feature_slug}/feature.md`.
 **Telemetry:** INSERT per §3 after completion.
 
 ---
 
 ### Step 3: Design (Sequential)
 
-**Dispatch:** Designer. **Input:** `spec-output.yaml` + `research/*.yaml`.
-**Retry:** 1. **Output:** `design-output.yaml` + `design.md`.
+**Dispatch:** Designer. **Input:** `docs/feature/{feature_slug}/spec-output.yaml` + `docs/feature/{feature_slug}/research/*.yaml`.
+**Retry:** 1. **Output:** `docs/feature/{feature_slug}/design-output.yaml` + `docs/feature/{feature_slug}/design.md`.
 **Telemetry:** INSERT per §3 after completion.
 
 ---
@@ -189,14 +191,14 @@ Invoke three adversarial-reviewer subagents concurrently using separate `runSuba
 **Parameters per reviewer:**
 
 - `review_scope: design`, `review_perspective: <perspective-id>`
-- `run_id: {run_id}`, `round: {current_round}`, `task_id: {feature_slug}-design-review`
+- `run_id: {run_id}`, `round: {current_round}`, `task_id: {feature_slug}-design-review`, `feature_slug: {feature_slug}`, `approval_mode: {approval_mode}`
 
 Each reviewer covers ALL 3 categories (security, architecture, correctness) through their perspective lens. 3 perspectives × 3 categories = 9 review dimensions per round.
 
 **Output per reviewer:**
 
-- Findings: `review-findings/design-<perspective>.md`
-- Verdict: `review-verdicts/design-<perspective>.yaml` (with per-category sub-verdicts)
+- Findings: `docs/feature/{feature_slug}/review-findings/design-<perspective>.md`
+- Verdict: `docs/feature/{feature_slug}/review-verdicts/design-<perspective>.yaml` (with per-category sub-verdicts)
 - SQL: 3 INSERT into `anvil_checks` (one per category), `phase='review'`, `instance='{perspective-id}'`
 
 **Evidence gate** (via [sql-templates.md](sql-templates.md) §6):
@@ -220,11 +222,11 @@ Each reviewer covers ALL 3 categories (security, architecture, correctness) thro
 
 ### Step 4: Planning (Sequential)
 
-**Dispatch:** Planner. **Input:** `design-output.yaml` + `spec-output.yaml` + design review verdicts.
-**Retry:** 1. **Output:** `plan-output.yaml` + `plan.md` + `tasks/*.yaml`.
+**Dispatch:** Planner. **Input:** `docs/feature/{feature_slug}/design-output.yaml` + `docs/feature/{feature_slug}/spec-output.yaml` + design review verdicts.
+**Retry:** 1. **Output:** `docs/feature/{feature_slug}/plan-output.yaml` + `docs/feature/{feature_slug}/plan.md` + `docs/feature/{feature_slug}/tasks/*.yaml`.
 **Telemetry:** INSERT per §3 after completion.
 
-**On completion:** Read `overall_risk_summary` from `plan-output.yaml`. Update `overall_risk`.
+**On completion:** Read `overall_risk_summary` from `docs/feature/{feature_slug}/plan-output.yaml`. Update `overall_risk`.
 
 ---
 
@@ -267,9 +269,10 @@ Sub-wave partitioning when >4 tasks: sort by dependency, partition into ≤4 per
 
 **Per implementer:**
 
-- Input: `tasks/<task-id>.yaml` with `relevant_context` pointers
+- Input: `docs/feature/{feature_slug}/tasks/<task-id>.yaml` with `relevant_context` pointers
+- Parameters: `task_id: <task-id>`, `run_id: {run_id}`, `feature_slug: {feature_slug}`, `approval_mode: {approval_mode}`
 - Workflow: baseline capture → TDD → self-fix (max 2) → `git add -A`
-- Output: code/test files + `implementation-reports/<task-id>.yaml`
+- Output: code/test files + `docs/feature/{feature_slug}/implementation-reports/<task-id>.yaml`
 
 **Telemetry:** INSERT per §3 for each implementer.
 **On completion:** All DONE → Step 6. Any ERROR → retry once → pipeline ERROR.
@@ -282,9 +285,10 @@ When dispatching multiple verifiers, invoke them concurrently using separate `ru
 
 **Per verifier:**
 
-- Input: `implementation-reports/<task-id>.yaml` + task file + code changes
+- Input: `docs/feature/{feature_slug}/implementation-reports/<task-id>.yaml` + task file + code changes
+- Parameters: `task_id: <task-id>`, `run_id: {run_id}`, `feature_slug: {feature_slug}`, `approval_mode: {approval_mode}`
 - Baseline cross-check: `git show pipeline-baseline-{run_id}:<filepath>`
-- Output: `verification-reports/<task-id>.yaml` + SQL INSERT into `anvil_checks`
+- Output: `docs/feature/{feature_slug}/verification-reports/<task-id>.yaml` + SQL INSERT into `anvil_checks`
 
 **Evidence gate** (per task, via [sql-templates.md](sql-templates.md) §6):
 
@@ -321,13 +325,13 @@ Invoke three adversarial-reviewer subagents concurrently using separate `runSuba
 **Parameters per reviewer:**
 
 - `review_scope: code`, `review_perspective: <perspective-id>`
-- `run_id: {run_id}`, `round: {current_round}`, `task_id: {feature_slug}-code-review`
+- `run_id: {run_id}`, `round: {current_round}`, `task_id: {feature_slug}-code-review`, `feature_slug: {feature_slug}`, `approval_mode: {approval_mode}`
 - Input includes: `git diff --staged`, verification evidence, implementation reports
 
 **Output per reviewer:**
 
-- Findings: `review-findings/code-<perspective>.md`
-- Verdict: `review-verdicts/code-<perspective>.yaml`
+- Findings: `docs/feature/{feature_slug}/review-findings/code-<perspective>.md`
+- Verdict: `docs/feature/{feature_slug}/review-verdicts/code-<perspective>.yaml`
 - SQL: 3 INSERT into `anvil_checks` per category, `phase='review'`, `instance='{perspective-id}'`
 
 **Evidence gate** (via [sql-templates.md](sql-templates.md) §6 — same structure as Step 3b):
@@ -353,9 +357,10 @@ Invoke three adversarial-reviewer subagents concurrently using separate `runSuba
 ### Step 8: Knowledge Capture (Non-Blocking)
 
 **Dispatch:** Knowledge Agent.
+**Parameters:** `run_id: {run_id}`, `feature_slug: {feature_slug}`, `approval_mode: {approval_mode}`
 **Input:** All pipeline outputs, telemetry context, review verdicts.
 **Non-blocking:** ERROR does not halt. **Retry:** 1.
-**Output:** `knowledge-output.yaml` + `decisions.yaml` + `store_memory` calls.
+**Output:** `docs/feature/{feature_slug}/knowledge-output.yaml` + `decisions.yaml` (root) + `store_memory` calls.
 
 Knowledge Agent evaluates all pipeline artifacts per [evaluation-schema.md](evaluation-schema.md).
 **Telemetry:** INSERT per §3 after completion.

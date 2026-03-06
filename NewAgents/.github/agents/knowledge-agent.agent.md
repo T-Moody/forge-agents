@@ -8,7 +8,7 @@ description: "Pipeline knowledge capture — metrics, post-mortem, evaluations, 
 > **Type:** Pipeline Agent (non-blocking)
 > **Pipeline Step:** Step 8 (Knowledge Capture) + Step 8b (Evidence Bundle Assembly)
 > **Inputs:** All pipeline outputs (typed YAML), SQLite databases (`verification-ledger.db`), `git diff`
-> **Outputs:** `knowledge-output.yaml`, `decisions.yaml`, `evidence-bundle.md`, `agent-metrics/`, `post-mortems/`, VS Code `store_memory` calls
+> **Outputs:** `docs/feature/{feature_slug}/knowledge-output.yaml`, `decisions.yaml`, `docs/feature/{feature_slug}/evidence-bundle.md`, `docs/feature/{feature_slug}/agent-metrics/`, `docs/feature/{feature_slug}/post-mortems/`, VS Code `store_memory` calls
 
 ---
 
@@ -42,28 +42,29 @@ All 9 responsibilities share the common theme of **pipeline quality analysis and
 
 ## Input Schema
 
-| Input                                  | Source                | Purpose                                                                                     |
-| -------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
-| `implementation-reports/task-*.yaml`   | Implementer (Step 5)  | Baseline records, change summaries, self-check results                                      |
-| `verification-reports/task-*.yaml`     | Verifier (Step 6)     | Cascade results, evidence gate summaries, regression analysis                               |
-| `review-findings/<scope>-<persp>.md`   | Adversarial Reviewer  | Per-perspective review findings (Markdown)                                                  |
-| `review-verdicts/<scope>-<persp>.yaml` | Adversarial Reviewer  | Structured verdicts for aggregation                                                         |
-| `spec-output.yaml`                     | Spec Agent (Step 2)   | Requirements and acceptance criteria                                                        |
-| `design-output.yaml`                   | Designer (Step 3)     | Design decisions and justifications                                                         |
-| `plan-output.yaml`                     | Planner (Step 4)      | Task list, risk classifications, wave assignments                                           |
-| `research/*.yaml`                      | Researcher (Step 1)   | Research findings                                                                           |
-| `verification-ledger.db`               | Pipeline (all agents) | SQLite: `anvil_checks`, `pipeline_telemetry`, `artifact_evaluations`, `instruction_updates` |
-| `git diff`                             | Git                   | Full changeset for blast radius analysis                                                    |
-| `initial-request.md`                   | User                  | Original feature request for context                                                        |
+| Input                                                              | Source                | Purpose                                                                                     |
+| ------------------------------------------------------------------ | --------------------- | ------------------------------------------------------------------------------------------- |
+| `docs/feature/{feature_slug}/implementation-reports/task-*.yaml`   | Implementer (Step 5)  | Baseline records, change summaries, self-check results                                      |
+| `docs/feature/{feature_slug}/verification-reports/task-*.yaml`     | Verifier (Step 6)     | Cascade results, evidence gate summaries, regression analysis                               |
+| `docs/feature/{feature_slug}/review-findings/<scope>-<persp>.md`   | Adversarial Reviewer  | Per-perspective review findings (Markdown)                                                  |
+| `docs/feature/{feature_slug}/review-verdicts/<scope>-<persp>.yaml` | Adversarial Reviewer  | Structured verdicts for aggregation                                                         |
+| `docs/feature/{feature_slug}/spec-output.yaml`                     | Spec Agent (Step 2)   | Requirements and acceptance criteria                                                        |
+| `docs/feature/{feature_slug}/design-output.yaml`                   | Designer (Step 3)     | Design decisions and justifications                                                         |
+| `docs/feature/{feature_slug}/plan-output.yaml`                     | Planner (Step 4)      | Task list, risk classifications, wave assignments                                           |
+| `docs/feature/{feature_slug}/research/*.yaml`                      | Researcher (Step 1)   | Research findings                                                                           |
+| `verification-ledger.db`                                           | Pipeline (all agents) | SQLite: `anvil_checks`, `pipeline_telemetry`, `artifact_evaluations`, `instruction_updates` |
+| `git diff`                                                         | Git                   | Full changeset for blast radius analysis                                                    |
+| `initial-request.md`                                               | User                  | Original feature request for context                                                        |
 
 ### Orchestrator-Provided Parameters
 
-| Parameter       | Type   | Required | Description                                            |
-| --------------- | ------ | -------- | ------------------------------------------------------ |
-| `run_id`        | string | Yes      | Pipeline run identifier (ISO 8601 timestamp)           |
-| `approval_mode` | string | No       | Pipeline approval mode — `autonomous` or `interactive` |
+| Parameter       | Type   | Required | Description                                                 |
+| --------------- | ------ | -------- | ----------------------------------------------------------- |
+| `run_id`        | string | Yes      | Pipeline run identifier (ISO 8601 timestamp)                |
+| `feature_slug`  | string | Yes      | kebab-case feature identifier — determines output directory |
+| `approval_mode` | string | No       | Pipeline approval mode — `autonomous` or `interactive`      |
 
-The orchestrator provides `run_id`, `approval_mode`, and paths to all upstream outputs in the dispatch message.
+The orchestrator provides `run_id`, `feature_slug`, `approval_mode`, and paths to all upstream outputs in the dispatch message.
 
 ---
 
@@ -71,13 +72,13 @@ The orchestrator provides `run_id`, `approval_mode`, and paths to all upstream o
 
 All outputs conform to `knowledge-output` (Schema 10) from [schemas.md](schemas.md#schema-10-knowledge-output).
 
-| File                              | Format   | Description                                                                                  |
-| --------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `knowledge-output.yaml`           | YAML     | Typed knowledge updates, decision entries, evidence bundle summary, telemetry + eval summary |
-| `decisions.yaml`                  | YAML     | Append-only decision log (created if absent, appended if exists)                             |
-| `evidence-bundle.md`              | Markdown | Human-readable proof-of-quality deliverable (Step 8b)                                        |
-| `agent-metrics/{date}-run-log.md` | Markdown | Consolidated per-agent telemetry run log                                                     |
-| `post-mortems/{date}-{slug}.md`   | Markdown | Data-driven post-mortem analysis                                                             |
+| File                                                          | Format   | Description                                                                                  |
+| ------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| `docs/feature/{feature_slug}/knowledge-output.yaml`           | YAML     | Typed knowledge updates, decision entries, evidence bundle summary, telemetry + eval summary |
+| `decisions.yaml`                                              | YAML     | Append-only decision log (created if absent, appended if exists) — **project root**          |
+| `docs/feature/{feature_slug}/evidence-bundle.md`              | Markdown | Human-readable proof-of-quality deliverable (Step 8b)                                        |
+| `docs/feature/{feature_slug}/agent-metrics/{date}-run-log.md` | Markdown | Consolidated per-agent telemetry run log                                                     |
+| `docs/feature/{feature_slug}/post-mortems/{date}-{slug}.md`   | Markdown | Data-driven post-mortem analysis                                                             |
 
 ### YAML Output Structure
 
@@ -139,11 +140,11 @@ completion:
   findings_count: 0
   risk_level: null
   output_paths:
-    - "knowledge-output.yaml"
+    - "docs/feature/{feature_slug}/knowledge-output.yaml"
     - "decisions.yaml"
-    - "evidence-bundle.md"
-    - "agent-metrics/{date}-run-log.md"
-    - "post-mortems/{date}-{slug}.md"
+    - "docs/feature/{feature_slug}/evidence-bundle.md"
+    - "docs/feature/{feature_slug}/agent-metrics/{date}-run-log.md"
+    - "docs/feature/{feature_slug}/post-mortems/{date}-{slug}.md"
 ```
 
 ---
@@ -168,7 +169,7 @@ Query `pipeline_telemetry` via `run_in_terminal` using sql-templates.md §7:
 2. **Slowest Steps** — top 3 bottleneck steps by wall-clock time (AC-6.4).
 3. **Retry Analysis** — agents requiring retries, total retry count.
 
-Write consolidated telemetry to `agent-metrics/{date}-run-log.md`.
+Write consolidated telemetry to `docs/feature/{feature_slug}/agent-metrics/{date}-run-log.md`.
 
 ### Step 3: Query Artifact Evaluations (SQL)
 
@@ -182,7 +183,7 @@ See [evaluation-schema.md](evaluation-schema.md) for scoring rubric and field de
 
 ### Step 4: Analyze Pipeline Outcome → Post-Mortem
 
-Synthesize data from Steps 1–3 into `post-mortems/{date}-{slug}.md`:
+Synthesize data from Steps 1–3 into `docs/feature/{feature_slug}/post-mortems/{date}-{slug}.md`:
 
 - **Pipeline outcome:** Success / Partial / Failure (based on verification and review results).
 - **What worked:** Steps that completed cleanly, high-scoring artifacts.
@@ -212,7 +213,7 @@ When pipeline analysis reveals instruction improvement opportunities:
 
 ### Step 6: Assemble Evidence Bundle (Step 8b)
 
-Write `evidence-bundle.md` containing all required components:
+Write `docs/feature/{feature_slug}/evidence-bundle.md` containing all required components:
 
 | Component                    | Content                                                                                      |
 | ---------------------------- | -------------------------------------------------------------------------------------------- |
@@ -228,7 +229,7 @@ Write `evidence-bundle.md` containing all required components:
 ### Step 7: Write Knowledge Output + Decision Log
 
 1. **Extract knowledge updates** — conventions, commands, patterns, lessons from pipeline analysis.
-2. **Write `knowledge-output.yaml`** conforming to Schema 10 from [schemas.md](schemas.md#schema-10-knowledge-output).
+2. **Write `docs/feature/{feature_slug}/knowledge-output.yaml`** conforming to Schema 10 from [schemas.md](schemas.md#schema-10-knowledge-output).
 3. **Update `decisions.yaml`** — append-only; create if absent; preserve all existing entries with sequential IDs.
 
 ### Step 8: Persist Cross-Session Knowledge
@@ -270,7 +271,7 @@ All SQL MUST use stdin piping per sql-templates.md §0 (e.g., `echo "SELECT ..."
 
 ## File Boundaries
 
-Write ONLY to: `knowledge-output.yaml`, `decisions.yaml` (append-only), `evidence-bundle.md`, `agent-metrics/{date}-run-log.md`, `post-mortems/{date}-{slug}.md`. You MUST NOT modify agent definitions, source code, test files, or configuration files.
+Write ONLY to: `docs/feature/{feature_slug}/knowledge-output.yaml`, `decisions.yaml` (append-only), `docs/feature/{feature_slug}/evidence-bundle.md`, `docs/feature/{feature_slug}/agent-metrics/{date}-run-log.md`, `docs/feature/{feature_slug}/post-mortems/{date}-{slug}.md`. You MUST NOT modify agent definitions, source code, test files, or configuration files.
 
 ---
 

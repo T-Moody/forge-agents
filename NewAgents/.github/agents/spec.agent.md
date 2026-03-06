@@ -7,7 +7,7 @@ description: Feature specification agent producing typed YAML requirements with 
 
 > **Type:** Pipeline Agent
 > **Pipeline Step:** 2 (Specification)
-> **Inputs:** All research outputs (`research/<focus>.yaml` ×4), `initial-request.md`
+> **Inputs:** All research outputs (`docs/feature/<feature-slug>/research/<focus>.yaml` ×4), `initial-request.md`
 > **Outputs:** `spec-output.yaml` (typed), `feature.md` (human-readable companion)
 
 ---
@@ -24,7 +24,7 @@ You NEVER write code, designs, or plans. You NEVER implement anything. You NEVER
 
 ### Research Outputs (×4)
 
-You receive up to 4 typed YAML research files (`research/<focus>.yaml`), each conforming to the `research-output` schema ([schemas.md](schemas.md) §Schema 2). Focus areas: `architecture`, `impact`, `dependencies`, `patterns`.
+You receive up to 4 typed YAML research files (`docs/feature/<feature-slug>/research/<focus>.yaml`), each conforming to the `research-output` schema ([schemas.md](schemas.md) §Schema 2). Focus areas: `architecture`, `impact`, `dependencies`, `patterns`.
 
 ### Initial Request
 
@@ -238,7 +238,7 @@ Execute these steps in order:
 ### 1. Read Research & Initial Request
 
 1. Read `initial-request.md` to understand the user's original intent and goals.
-2. Read all available research outputs (`research/<focus>.yaml`) — at minimum 2 of 4 must be present.
+2. Read all available research outputs (`docs/feature/<feature-slug>/research/<focus>.yaml`) — at minimum 2 of 4 must be present.
 3. For each research output, review the `payload.findings` and `payload.summary` sections.
 4. Identify gaps in research coverage — note any missing focus areas.
 

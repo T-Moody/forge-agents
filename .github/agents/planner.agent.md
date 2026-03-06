@@ -7,7 +7,7 @@ description: Decomposes design into implementation tasks with per-file risk clas
 
 > **Type:** Pipeline Agent
 > **Pipeline Step:** 4 (Planning)
-> **Inputs:** `design-output.yaml`, `spec-output.yaml`, adversarial design review verdicts (if revision)
+> **Inputs:** `docs/feature/<feature-slug>/design-output.yaml`, `docs/feature/<feature-slug>/spec-output.yaml`, adversarial design review verdicts (if revision)
 > **Outputs:** `plan-output.yaml` (typed, Schema 5), `plan.md` (human-readable companion), `tasks/*.yaml` (per-task typed schemas, Schema 6)
 
 ---
@@ -24,22 +24,22 @@ You NEVER write code, tests, or documentation content. You NEVER implement tasks
 
 ### Primary Inputs
 
-| Input                              | Schema                    | Source Agent         | Purpose                                        |
-| ---------------------------------- | ------------------------- | -------------------- | ---------------------------------------------- |
-| `design-output.yaml`               | `design-output` (Sch 4)   | Designer             | Design decisions, justifications, architecture |
-| `spec-output.yaml`                 | `spec-output` (Sch 3)     | Spec                 | Requirements, acceptance criteria              |
-| Adversarial design review verdicts | `review-findings` (Sch 9) | Adversarial Reviewer | Design review findings (if revision mode)      |
+| Input                                            | Schema                    | Source Agent         | Purpose                                        |
+| ------------------------------------------------ | ------------------------- | -------------------- | ---------------------------------------------- |
+| `docs/feature/<feature-slug>/design-output.yaml` | `design-output` (Sch 4)   | Designer             | Design decisions, justifications, architecture |
+| `docs/feature/<feature-slug>/spec-output.yaml`   | `spec-output` (Sch 3)     | Spec                 | Requirements, acceptance criteria              |
+| Adversarial design review verdicts               | `review-findings` (Sch 9) | Adversarial Reviewer | Design review findings (if revision mode)      |
 
 ### Conditional Inputs (Replan Mode)
 
-| Input                                 | Schema                        | Source Agent | Purpose                        |
-| ------------------------------------- | ----------------------------- | ------------ | ------------------------------ |
-| `verification-reports/<task-id>.yaml` | `verification-report` (Sch 8) | Verifier     | Per-task verification failures |
-| Previous `plan-output.yaml`           | `plan-output` (Sch 5)         | Self (prior) | Existing plan to revise        |
+| Input                                                             | Schema                        | Source Agent | Purpose                        |
+| ----------------------------------------------------------------- | ----------------------------- | ------------ | ------------------------------ |
+| `docs/feature/<feature-slug>/verification-reports/<task-id>.yaml` | `verification-report` (Sch 8) | Verifier     | Per-task verification failures |
+| Previous `plan-output.yaml`                                       | `plan-output` (Sch 5)         | Self (prior) | Existing plan to revise        |
 
 ### Fast-Track Fallback Input Path
 
-When `spec-output.yaml` and `design-output.yaml` are absent (fast-track mode via `plan-and-implement.prompt.md`), the planner works from:
+When `docs/feature/<feature-slug>/spec-output.yaml` and `docs/feature/<feature-slug>/design-output.yaml` are absent (fast-track mode via `plan-and-implement.prompt.md`), the planner works from:
 
 | Input                  | Source | Purpose                                                                       |
 | ---------------------- | ------ | ----------------------------------------------------------------------------- |
@@ -48,7 +48,7 @@ When `spec-output.yaml` and `design-output.yaml` are absent (fast-track mode via
 
 In fast-track mode, the planner MUST:
 
-1. Detect missing upstream artifacts (`spec-output.yaml` and/or `design-output.yaml` not found).
+1. Detect missing upstream artifacts (`docs/feature/<feature-slug>/spec-output.yaml` and/or `docs/feature/<feature-slug>/design-output.yaml` not found).
 2. Read `initial-request.md` as the primary input.
 3. Use `ask_questions` (🔒 available only in fast-track mode AND interactive `approval_mode`) to gather clarifying information about scope, requirements, and constraints.
 4. Proceed with task decomposition using the combined input from `initial-request.md` and user responses.
@@ -218,9 +218,9 @@ Every task is assigned a `workflow_lane` derived from its risk classification:
 
 For every task (regardless of risk level), the planner MUST attempt to discover an E2E contract by checking:
 
-1. Paths documented in `design-output.yaml` or `feature.md`.
+1. Paths documented in `docs/feature/<feature-slug>/design-output.yaml` or `docs/feature/<feature-slug>/feature.md`.
 2. Standard locations: `.e2e/contract.yaml`, `e2e-contract.yaml` (relative to workspace root).
-3. References in `spec-output.yaml` acceptance criteria.
+3. References in `docs/feature/<feature-slug>/spec-output.yaml` acceptance criteria.
 
 If a contract is found, set `e2e_contract_path: "<relative-path>"` and apply E2E Required Derivation rules above. If no contract is found, set `e2e_required: false` and `e2e_contract_path: null`.
 
@@ -276,9 +276,9 @@ State the detected mode at the top of the output.
 ### Initial Mode
 
 1. **Read upstream outputs:**
-   a. Read `design-output.yaml` — extract design decisions, architecture, and file structure.
-   b. Read `spec-output.yaml` — extract requirements and acceptance criteria.
-   c. If adversarial review verdicts exist, read them for design constraints or findings.
+   a. Read `docs/feature/<feature-slug>/design-output.yaml` — extract design decisions, architecture, and file structure.
+   b. Read `docs/feature/<feature-slug>/spec-output.yaml` — extract requirements and acceptance criteria.
+   c. If adversarial review verdicts exist, read them from `docs/feature/<feature-slug>/review-verdicts/design-*.yaml`.
 2. **Classify file risk:**
    a. For every file proposed in the design, apply the Per-File Classification criteria (🟢/🟡/🔴).
    b. Document the classification rationale for any 🔴 files.
@@ -302,16 +302,16 @@ State the detected mode at the top of the output.
 7. **Compute `overall_risk_summary`:**
    a. Set to the highest risk level across all tasks.
 8. **Produce outputs:**
-   a. Write `plan-output.yaml` conforming to Schema 5.
-   b. Write `plan.md` human-readable companion.
-   c. Write one `tasks/<task-id>.yaml` per task conforming to Schema 6.
+   a. Write `docs/feature/<feature-slug>/plan-output.yaml` conforming to Schema 5.
+   b. Write `docs/feature/<feature-slug>/plan.md` human-readable companion.
+   c. Write one `docs/feature/<feature-slug>/tasks/<task-id>.yaml` per task conforming to Schema 6.
 
 ### Replan Mode
 
 When verification findings indicate task failures, the Planner is re-dispatched:
 
 1. **Read verification findings:**
-   a. Read `verification-reports/<task-id>.yaml` for each failed task.
+   a. Read `docs/feature/<feature-slug>/verification-reports/<task-id>.yaml` for each failed task.
    b. Identify failure reasons, unmet acceptance criteria, and test failures.
 2. **Cross-reference:**
    a. Match verification failures to original tasks.
@@ -325,7 +325,7 @@ When verification findings indicate task failures, the Planner is re-dispatched:
    b. Replace or split only the failing tasks with corrected scope, context, and acceptance criteria.
    c. Update wave assignments and dependency graph.
    d. Recompute `overall_risk_summary`.
-5. **Output:** Updated `plan-output.yaml`, `plan.md`, and revised `tasks/*.yaml`.
+5. **Output:** Updated `docs/feature/<feature-slug>/plan-output.yaml`, `docs/feature/<feature-slug>/plan.md`, and revised `docs/feature/<feature-slug>/tasks/*.yaml`.
 
 ---
 

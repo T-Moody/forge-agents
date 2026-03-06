@@ -8,7 +8,7 @@ description: Perspective-based adversarial reviewer covering all security/archit
 > **Type:** Pipeline Agent (1 definition, dispatched as 3 parallel instances per review phase)
 > **Pipeline Steps:** Step 3b (Design Review), Step 7 (Code Review)
 > **Inputs:** Review scope artifacts, verification evidence, `run_id`, `round` (from orchestrator context)
-> **Outputs:** `review-findings/<scope>-<perspective>.md`, `review-verdicts/<scope>-<perspective>.yaml`, 3× SQL INSERT into `anvil_checks` (one per category with `phase='review'`)
+> **Outputs:** `docs/feature/{feature_slug}/review-findings/<scope>-<perspective>.md`, `docs/feature/{feature_slug}/review-verdicts/<scope>-<perspective>.yaml`, 3× SQL INSERT into `anvil_checks` (one per category with `phase='review'`)
 
 ---
 
@@ -30,7 +30,7 @@ Your job is to find real issues that could cause failures, security vulnerabilit
 | ---------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
 | Review scope artifacts | Pipeline output     | Design artifacts (`design-output.yaml` + `design.md`) OR staged code (`git diff --staged`) |
 | Verification evidence  | Verification ledger | `verification-ledger.db` (for code review — verification results)                          |
-| Implementation reports | Implementer output  | `implementation-reports/<task-id>.yaml` (for code review)                                  |
+| Implementation reports | Implementer output  | `docs/feature/{feature_slug}/implementation-reports/<task-id>.yaml` (for code review)      |
 
 ### Orchestrator-Provided Parameters
 
@@ -39,6 +39,7 @@ Your job is to find real issues that could cause failures, security vulnerabilit
 | `review_scope`               | string  | Yes      | `design` \| `code`                                                     |
 | `review_perspective`         | string  | Yes      | `security-sentinel` \| `architecture-guardian` \| `pragmatic-verifier` |
 | `risk_level`                 | string  | Yes      | `🟢` \| `🟡` \| `🔴`                                                   |
+| `feature_slug`               | string  | Yes      | kebab-case feature identifier — determines output directory            |
 | `verification_evidence_path` | string  | No       | Path to `verification-ledger.db` (required for code review)            |
 | `run_id`                     | string  | Yes      | Pipeline run identifier (ISO 8601 timestamp)                           |
 | `round`                      | integer | Yes      | Current review round (`1` or `2`)                                      |
@@ -52,10 +53,10 @@ The orchestrator dispatches 3 instances in parallel, each with a distinct `revie
 
 ### Output Files
 
-| File                                         | Format   | Description                                             |
-| -------------------------------------------- | -------- | ------------------------------------------------------- |
-| `review-findings/<scope>-<perspective>.md`   | Markdown | Human-readable findings covering all 3 categories       |
-| `review-verdicts/<scope>-<perspective>.yaml` | YAML     | Machine-readable verdict with per-category sub-verdicts |
+| File                                                                     | Format   | Description                                             |
+| ------------------------------------------------------------------------ | -------- | ------------------------------------------------------- |
+| `docs/feature/{feature_slug}/review-findings/<scope>-<perspective>.md`   | Markdown | Human-readable findings covering all 3 categories       |
+| `docs/feature/{feature_slug}/review-verdicts/<scope>-<perspective>.yaml` | YAML     | Machine-readable verdict with per-category sub-verdicts |
 
 ### SQL Output
 
@@ -154,7 +155,7 @@ Execute these steps in order:
 #### Code Review (`review_scope: code`)
 
 1. Use `run_in_terminal` to execute `git --no-pager diff --staged` to see all staged changes.
-2. Read implementation reports from `implementation-reports/`.
+2. Read implementation reports from `docs/feature/{feature_slug}/implementation-reports/`.
 3. Query verification evidence from the ledger DB (if `verification_evidence_path` provided):
    ```sql
    SELECT check_name, passed, output_snippet FROM anvil_checks
@@ -242,8 +243,8 @@ Produce a per-category verdict AND an overall verdict:
 
 Generate all output artifacts:
 
-1. **Markdown findings** at `review-findings/<scope>-<perspective>.md` — with explicit sections for all 3 categories (Security Analysis, Architecture Analysis, Correctness Analysis).
-2. **YAML verdict** at `review-verdicts/<scope>-<perspective>.yaml` — with per-category sub-verdicts.
+1. **Markdown findings** at `docs/feature/{feature_slug}/review-findings/<scope>-<perspective>.md` — with explicit sections for all 3 categories (Security Analysis, Architecture Analysis, Correctness Analysis).
+2. **YAML verdict** at `docs/feature/{feature_slug}/review-verdicts/<scope>-<perspective>.yaml` — with per-category sub-verdicts.
 3. **3 SQL INSERTs** into `anvil_checks` via `run_in_terminal` — one per category. See [sql-templates.md §2](sql-templates.md) for template and [review-perspectives.md §8](review-perspectives.md) for the pattern.
 
 ### 6. Evaluate Upstream Artifact
@@ -272,7 +273,7 @@ The Adversarial Reviewer does **not** return `NEEDS_REVISION`. It reports findin
 
 ## Operating Rules
 
-1. **Read-only for existing files:** You MUST NOT modify any existing files. You may only create your own output files (`review-findings/` and `review-verdicts/`).
+1. **Read-only for existing files:** You MUST NOT modify any existing files. You may only create your own output files (`docs/feature/{feature_slug}/review-findings/` and `docs/feature/{feature_slug}/review-verdicts/`).
 2. **All-category coverage:** Review ALL 3 categories (security, architecture, correctness) through your perspective lens. No category may be skipped — explicitly confirm review even if zero findings.
 3. **Evidence-based findings:** Every finding MUST include concrete evidence — file paths, line numbers, code references, spec section references, or SQL query results. No vague assertions.
 4. **Consistent severity:** Use [severity-taxonomy.md](severity-taxonomy.md). Apply severity consistently across rounds.
@@ -321,8 +322,8 @@ Before returning, verify ALL of the following. See also [global-operating-rules.
 
 ### Output Completeness
 
-- [ ] Markdown findings file exists at `review-findings/<scope>-<perspective>.md`
-- [ ] YAML verdict summary exists at `review-verdicts/<scope>-<perspective>.yaml`
+- [ ] Markdown findings file exists at `docs/feature/{feature_slug}/review-findings/<scope>-<perspective>.md`
+- [ ] YAML verdict summary exists at `docs/feature/{feature_slug}/review-verdicts/<scope>-<perspective>.yaml`
 - [ ] All 3 SQL INSERTs executed successfully (security, architecture, correctness)
 - [ ] Artifact evaluation INSERT executed
 

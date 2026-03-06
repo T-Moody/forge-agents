@@ -33,19 +33,19 @@ Per-agent tool access rules for all 9 pipeline agents. Agents reference this doc
 ## §3 Researcher
 
 - **7 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file 🔒, fetch_webpage 🔒
-- **create_file 🔒** — `research/*.yaml` only. Path must match: `research/.*\.yaml$`
-- **fetch_webpage 🔒** — Interactive mode only. Requires user approval per invocation in VS Code. Used for researching architecture patterns, stack updates, best practices, and current documentation. NOT for fetching arbitrary URLs or scraping. Agents in autonomous mode MUST NOT attempt to use fetch_webpage.
+- **create_file 🔒** — Feature research output only. Path must match: `docs/feature/.+/research/.*\.yaml$`
+- **fetch_webpage 🔒** — Allowed in both interactive and autonomous modes. Use only for official technical documentation for libraries, frameworks, or tools referenced in the codebase or feature request. Do NOT fetch arbitrary URLs, user-supplied links, or non-documentation pages. Document all fetches in the output YAML under `web_research`.
 
 ## §4 Spec
 
 - **9 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, replace_string_in_file, ask_questions 🔒, fetch_webpage 🔒
 - **ask_questions 🔒** — Interactive mode only. Each pushback concern MUST be presented as a separate question in the questions[] array, with per-concern options (accept/modify/dismiss). The 'modify' option sets allowFreeformInput=true.
-- **fetch_webpage 🔒** — Interactive mode only. Requires user approval per invocation in VS Code. Used for researching architecture patterns, stack updates, best practices, and current documentation. NOT for fetching arbitrary URLs or scraping. Agents in autonomous mode MUST NOT attempt to use fetch_webpage.
+- **fetch_webpage 🔒** — Allowed in both interactive and autonomous modes. Use only for official technical documentation for libraries, frameworks, or tools referenced in the codebase or feature request. Do NOT fetch arbitrary URLs, user-supplied links, or non-documentation pages.
 
 ## §5 Designer
 
 - **8 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, replace_string_in_file, fetch_webpage 🔒
-- **fetch_webpage 🔒** — Interactive mode only. Requires user approval per invocation in VS Code. Used for researching architecture patterns, stack updates, best practices, and current documentation. NOT for fetching arbitrary URLs or scraping. Agents in autonomous mode MUST NOT attempt to use fetch_webpage.
+- **fetch_webpage 🔒** — Allowed in both interactive and autonomous modes. Use only for official technical documentation for libraries, frameworks, or tools referenced in the codebase or feature request. Do NOT fetch arbitrary URLs, user-supplied links, or non-documentation pages.
 - No run_in_terminal access.
 
 ## §6 Planner
@@ -62,7 +62,7 @@ Per-agent tool access rules for all 9 pipeline agents. Agents reference this doc
 ## §8 Verifier
 
 - **9 allowed:** read_file, list_dir, grep_search, file_search, run_in_terminal, get_terminal_output, get_errors, create_file 🔒
-- **create_file 🔒** — `verification-reports/*.yaml` only. Path must match: `verification-reports/.*\.yaml$`
+- **create_file 🔒** — Feature verification report only. Path must match: `docs/feature/.+/verification-reports/.*\.yaml$`
 
 ### §8.1 Tier 5 run_in_terminal Expansion (D-11)
 
@@ -121,7 +121,8 @@ The verifier uses `playwright-cli` with named sessions for browser interaction d
 
 ## §9 Adversarial Reviewer
 
-- **7 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file, run_in_terminal 🔒
+- **7 allowed:** read_file, list_dir, grep_search, semantic_search, file_search, create_file 🔒, run_in_terminal 🔒
+- **create_file 🔒** — Feature review outputs only. Paths must match: `docs/feature/.+/review-findings/.*\.md$` or `docs/feature/.+/review-verdicts/.*\.yaml$`
 - **run_in_terminal 🔒** — `git diff` commands + SQL INSERT only. No builds, tests, or arbitrary shell commands.
 
 ## §10 Knowledge Agent
