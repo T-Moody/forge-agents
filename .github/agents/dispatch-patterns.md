@@ -180,7 +180,7 @@ Sub-wave 3: Task 9             (1 concurrent)  → wait
 
 ### E2E Dispatch Constraints
 
-When a wave contains tasks with `e2e_required: true`, additional dispatch constraints apply to prevent port collisions, shared resource contention, and flaky browser behavior.
+When a wave contains tasks with `e2e_required: true`, additional dispatch constraints apply to prevent port collisions, shared resource contention, and flaky browser behavior. These constraints apply whenever `e2e_required=true` **regardless of task risk level (🟢/🟡/🔴) or workflow_lane**. E2E is an independent boolean — not gated by risk level or lane assignment.
 
 #### E2E Concurrency Cap
 

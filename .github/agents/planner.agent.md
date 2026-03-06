@@ -37,6 +37,32 @@ You NEVER write code, tests, or documentation content. You NEVER implement tasks
 | `verification-reports/<task-id>.yaml` | `verification-report` (Sch 8) | Verifier     | Per-task verification failures |
 | Previous `plan-output.yaml`           | `plan-output` (Sch 5)         | Self (prior) | Existing plan to revise        |
 
+### Fast-Track Fallback Input Path
+
+When `spec-output.yaml` and `design-output.yaml` are absent (fast-track mode via `plan-and-implement.prompt.md`), the planner works from:
+
+| Input                  | Source | Purpose                                                                       |
+| ---------------------- | ------ | ----------------------------------------------------------------------------- |
+| `initial-request.md`   | User   | Feature description, goals, constraints                                       |
+| `ask_questions` output | User   | Clarifying info gathered interactively (🔒 fast-track mode, interactive only) |
+
+In fast-track mode, the planner MUST:
+
+1. Detect missing upstream artifacts (`spec-output.yaml` and/or `design-output.yaml` not found).
+2. Read `initial-request.md` as the primary input.
+3. Use `ask_questions` (🔒 available only in fast-track mode AND interactive `approval_mode`) to gather clarifying information about scope, requirements, and constraints.
+4. Proceed with task decomposition using the combined input from `initial-request.md` and user responses.
+
+> **Note:** `ask_questions` is NOT available in the full pipeline (where spec/design outputs exist) or in autonomous mode.
+
+### Orchestrator-Provided Parameters
+
+| Parameter       | Type   | Required | Description                                                      |
+| --------------- | ------ | -------- | ---------------------------------------------------------------- |
+| `run_id`        | string | Yes      | Pipeline run identifier (ISO 8601 timestamp)                     |
+| `approval_mode` | string | No       | Pipeline approval mode — `autonomous` or `interactive`           |
+| `pipeline_mode` | string | No       | `full` (default) or `fast-track`. Determines input availability. |
+
 ### Reference Documents
 
 - [schemas.md](schemas.md) — Schema 5 (`plan-output`) and Schema 6 (`task-schema`) definitions
@@ -100,7 +126,7 @@ task:
       text: "Rate limiting returns 429 after 5 attempts per minute"
       test_method: "test"
   workflow_lane: "full-tdd-e2e" # Derived from risk: 🟢→unit-only, 🟡→unit-integration, 🔴→full-tdd-e2e
-  e2e_required: true # true when workflow_lane='full-tdd-e2e' AND E2E contract exists
+  e2e_required: true # Independent of lane — based on contract presence + planner assessment (mandatory for 🔴 with contract)
   e2e_contract_path: ".e2e/contract.yaml" # Discovered E2E contract path, or null
   relevant_context:
     design_sections:
@@ -160,27 +186,43 @@ Every file proposed for modification MUST be individually classified:
 
 Every task is assigned a `workflow_lane` derived from its risk classification:
 
-| Task Risk | `workflow_lane`    | `e2e_required`                            |
-| --------- | ------------------ | ----------------------------------------- |
-| 🟢        | `unit-only`        | `false`                                   |
-| 🟡        | `unit-integration` | `false`                                   |
-| 🔴        | `full-tdd-e2e`     | _derived_ — `true` if E2E contract exists |
+| Task Risk | `workflow_lane`    |
+| --------- | ------------------ |
+| 🟢        | `unit-only`        |
+| 🟡        | `unit-integration` |
+| 🔴        | `full-tdd-e2e`     |
+
+**Lane derivation rules:**
+
+1. Lane is deterministic from risk — no manual override.
+2. Lane determines which test tiers the verifier runs (unit, integration, full TDD). It does NOT determine E2E gating.
+
+### E2E Required Derivation (D-2, D-3)
+
+`e2e_required` is an **independent boolean**, set separately from `workflow_lane`:
+
+| Condition                        | `e2e_required`     | Rationale                                                                                                    |
+| -------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| No E2E contract exists           | `false`            | No contract → no E2E possible                                                                                |
+| E2E contract exists + 🔴 task    | `true` (mandatory) | Backward compatible — critical tasks always require E2E when contract available                              |
+| E2E contract exists + 🟢/🟡 task | Planner assessment | Planner MAY set `true` if E2E adds verification value, or `false` for trivial tasks (e.g., doc-only changes) |
 
 **Derivation rules:**
 
-1. Lane is deterministic from risk — no manual override.
-2. For 🔴 tasks, `e2e_required` is derived: if an E2E contract is discovered at a known path → `true`; otherwise → `false`.
-3. `e2e_contract_path` records the discovered path (or `null` if none found).
+1. `e2e_required` is independent of `workflow_lane`. Any risk level can have `e2e_required=true`.
+2. When an E2E contract exists, `e2e_required` defaults to `true`. The planner MAY override to `false` for 🟢/🟡 tasks when E2E adds no verification value (e.g., documentation-only changes, config tweaks).
+3. For 🔴 tasks with an E2E contract, `e2e_required=true` is mandatory — no override.
+4. `e2e_contract_path` records the discovered path (or `null` if none found).
 
 ### E2E Contract Path Discovery
 
-When assigning `workflow_lane='full-tdd-e2e'` to a 🔴 task, the planner MUST attempt to discover an E2E contract by checking:
+For every task (regardless of risk level), the planner MUST attempt to discover an E2E contract by checking:
 
 1. Paths documented in `design-output.yaml` or `feature.md`.
 2. Standard locations: `.e2e/contract.yaml`, `e2e-contract.yaml` (relative to workspace root).
 3. References in `spec-output.yaml` acceptance criteria.
 
-If a contract is found, set `e2e_required: true` and `e2e_contract_path: "<relative-path>"`. If no contract is found, set `e2e_required: false` and `e2e_contract_path: null`.
+If a contract is found, set `e2e_contract_path: "<relative-path>"` and apply E2E Required Derivation rules above. If no contract is found, set `e2e_required: false` and `e2e_contract_path: null`.
 
 ### `overall_risk_summary`
 
@@ -361,11 +403,11 @@ Before returning, verify all items in [global-operating-rules.md](global-operati
 8. [ ] No code, build commands, or implementation details in outputs.
 9. [ ] Every acceptance criterion specifies an observable behavior with a clear pass/fail definition. No criterion uses vague terms like 'works correctly', 'performs well', or 'is user-friendly' without measurable qualifiers.
 10. [ ] Spec AC IDs and `test_method` propagated to task-level acceptance criteria for all tasks with `task_type='code'`.
-11. [ ] Every 🔴 task has `workflow_lane='full-tdd-e2e'` and `e2e_required` is explicitly set (derived from E2E contract existence).
+11. [ ] `e2e_required` is explicitly set for every task based on contract presence and verification value assessment. For 🔴 tasks with a contract, `e2e_required` MUST be `true`.
 
 ## Tool Access
 
-See [tool-access-matrix.md](tool-access-matrix.md) §6 for Planner tool access rules. **7 tools allowed:** `read_file`, `list_dir`, `grep_search`, `semantic_search`, `file_search`, `create_file`, `replace_string_in_file`. No `run_in_terminal` access.
+See [tool-access-matrix.md](tool-access-matrix.md) §6 for Planner tool access rules. **8 tools allowed:** `read_file`, `list_dir`, `grep_search`, `semantic_search`, `file_search`, `create_file`, `replace_string_in_file`, `ask_questions` (🔒 fast-track mode + interactive only). No `run_in_terminal` access.
 
 ## Anti-Drift Anchor
 

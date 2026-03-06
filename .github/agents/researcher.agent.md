@@ -31,11 +31,12 @@ You investigate the existing codebase to produce factual, well-cited findings. Y
 
 ### Orchestrator-Provided Parameters
 
-| Parameter    | Type   | Required | Allowed Values                                             |
-| ------------ | ------ | -------- | ---------------------------------------------------------- |
-| `focus_area` | string | Yes      | `architecture` \| `impact` \| `dependencies` \| `patterns` |
+| Parameter       | Type   | Required | Allowed Values                                             |
+| --------------- | ------ | -------- | ---------------------------------------------------------- |
+| `focus_area`    | string | Yes      | `architecture` \| `impact` \| `dependencies` \| `patterns` |
+| `approval_mode` | string | Yes      | `interactive` \| `autonomous`                              |
 
-The orchestrator provides the focus area assignment in the dispatch prompt.
+The orchestrator provides the focus area assignment and the current approval mode in the dispatch prompt.
 
 ---
 
@@ -111,14 +112,18 @@ When the task has `e2e_required=true` AND an `e2e_contract_path`, generate proje
 1. Read the E2E contract YAML at `e2e_contract_path`.
 2. Parse the contract to identify required interaction patterns (endpoints, routes, forms).
 3. Check the `browser.tool` field — if `"playwright-cli"`, generate skills using playwright-cli commands.
-4. For each endpoint/route in the contract, generate a skill YAML file conforming to the skills schema in [e2e-integration.md](e2e-integration.md) §2.
-5. Map skill steps to playwright-cli commands:
+4. **Check for existing Copilot skill files:** Before generating new skills, search for existing GitHub Copilot skill files:
+   - Scan `.github/copilot/skills/` for `SKILL.md` files.
+   - Scan `.github/agents/` for `SKILL.md` files.
+   - If found, reference these in the generated skill output. Existing Copilot skills describe WHAT to test and can be used alongside `playwright-yaml` skills. Skills can be in Copilot skill format (`SKILL.md` with `copilot-skill://` URIs) or `playwright-yaml` format.
+5. For each endpoint/route in the contract, generate a skill YAML file conforming to the skills schema in [e2e-integration.md](e2e-integration.md) §2.
+6. Map skill steps to playwright-cli commands:
    - `navigate` → `goto <url>`
    - `click` → `click {ref}` (where `{ref}` is a deterministic selector)
    - `fill` → `fill {ref} {text}`
    - `assert` → `snapshot` + verify element presence in accessibility tree
    - `evidence` → `screenshot`
-6. Place generated skill YAML files in `.e2e/skills/` directory.
+7. Place generated skill YAML files in `.e2e/skills/` directory.
 
 **Naming convention:** `<interaction-type>-<target>.skill.yaml` (e.g., `exploratory-login.skill.yaml`, `adversarial-search.skill.yaml`).
 
@@ -130,6 +135,20 @@ When the task has `e2e_required=true` AND an `e2e_contract_path`, generate proje
 - **Step ordering:** `navigate` → `interact` → `assert` (logical flow per skill).
 - **Adversarial variations:** Include at least one per skill (empty input, XSS attempt `<script>alert(1)</script>`, boundary values, etc.).
 - **Session awareness:** All steps assume a named session context — prefix commands with `playwright-cli -s=verify-{task-id}` for session isolation.
+
+### 1.8. Web Research (Optional — Interactive Mode Only)
+
+> **Skip condition:** If `approval_mode` is `autonomous`, skip this step entirely. `fetch_webpage` requires user approval per invocation and is unavailable in autonomous mode.
+
+When the research focus would benefit from external context (architecture patterns, best practices, current documentation for technologies in the stack), use `fetch_webpage` to retrieve relevant web pages.
+
+**When to use:** Stack-specific best practices, architecture pattern references, technology comparison data, current API documentation not available via Context7.
+
+**Restrictions:**
+
+- Interactive mode only — requires VS Code user approval per invocation.
+- Do NOT use for fetching arbitrary URLs or scraping.
+- Complete workspace discovery (Steps 2–3) first; web research supplements, not replaces, codebase analysis.
 
 ### 2. Discover
 
@@ -220,6 +239,7 @@ Before returning, run the common self-verification checklist from [global-operat
 - [ ] Every finding has at least one evidence entry
 - [ ] Evidence entries reference actual files or concrete observations (not vague descriptions)
 - [ ] `source_files_examined` accurately reflects files that were actually read during investigation
+- [ ] `fetch_webpage` NOT used when `approval_mode='autonomous'`
 
 ---
 
@@ -227,7 +247,7 @@ Before returning, run the common self-verification checklist from [global-operat
 
 See [tool-access-matrix.md](tool-access-matrix.md) §3 for the full tool access specification.
 
-**Summary:** 6 tools allowed — `read_file`, `list_dir`, `grep_search`, `semantic_search`, `file_search`, `create_file` 🔒 (scoped to `research/*.yaml` only).
+**Summary:** 7 tools allowed — `read_file`, `list_dir`, `grep_search`, `semantic_search`, `file_search`, `create_file` 🔒 (scoped to `research/*.yaml` only), `fetch_webpage` 🔒 (interactive mode only).
 
 ---
 

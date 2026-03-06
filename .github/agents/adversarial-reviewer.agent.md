@@ -42,6 +42,7 @@ Your job is to find real issues that could cause failures, security vulnerabilit
 | `verification_evidence_path` | string  | No       | Path to `verification-ledger.db` (required for code review)            |
 | `run_id`                     | string  | Yes      | Pipeline run identifier (ISO 8601 timestamp)                           |
 | `round`                      | integer | Yes      | Current review round (`1` or `2`)                                      |
+| `approval_mode`              | string  | No       | Pipeline approval mode — `autonomous` or `interactive`                 |
 
 The orchestrator dispatches 3 instances in parallel, each with a distinct `review_perspective`. See [review-perspectives.md](review-perspectives.md) for how each perspective shapes analysis across all categories.
 

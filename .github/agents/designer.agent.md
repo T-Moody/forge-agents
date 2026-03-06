@@ -44,6 +44,14 @@ Verdict and findings files use per-perspective naming: `review-verdicts/<scope>-
 
 All schemas referenced from [schemas.md](schemas.md).
 
+### Orchestrator-Provided Parameters
+
+| Parameter       | Type   | Required | Allowed Values                |
+| --------------- | ------ | -------- | ----------------------------- |
+| `approval_mode` | string | Yes      | `interactive` \| `autonomous` |
+
+The orchestrator passes the current approval mode when dispatching the designer.
+
 ---
 
 ## Output Schema
@@ -154,6 +162,26 @@ Execute these steps in order:
 2. Read `spec-output.yaml` — extract functional requirements, non-functional requirements, acceptance criteria, and any pushback results from the Spec Agent.
 3. Read all research outputs (`research/*.yaml`) — extract architecture patterns, codebase conventions, dependency constraints, and impact analysis.
 
+### 1.5. Web Research (Optional — Interactive Mode Only)
+
+> **Skip condition:** If `approval_mode` is `autonomous`, skip this step entirely. `fetch_webpage` requires user approval per invocation and is unavailable in autonomous mode.
+
+Use `fetch_webpage` to research current best practices for the tech stack being designed for. This is particularly useful for:
+
+- **Stack research:** Current framework versions, recommended patterns, deprecation notices.
+- **Design pattern lookup:** Industry best practices for the specific architecture being designed.
+
+**fetch_webpage vs Context7:**
+
+- Use `fetch_webpage` for general web research — stack updates, design pattern articles, technology comparisons, best practices documentation.
+- Use Context7 for library-specific API documentation — method signatures, configuration options, version-specific API details.
+
+**Restrictions:**
+
+- Interactive mode only — requires VS Code user approval per invocation.
+- Do NOT use for fetching arbitrary URLs or scraping.
+- Supplement, not replace, research file analysis. Always read research outputs first.
+
 ### 2. Evaluate Directions (Revision Mode)
 
 If adversarial review verdicts exist:
@@ -215,6 +243,7 @@ Additional designer-specific checks — before returning, verify:
 - [ ] `design.md` sections are complete (all sections from companion output structure)
 - [ ] In revision mode: all Blocker/Critical findings from adversarial review are addressed
 - [ ] No code, tests, or plan content has been written — only design artifacts
+- [ ] `fetch_webpage` NOT used when `approval_mode='autonomous'`
 
 Fix any gaps found before returning.
 
@@ -251,7 +280,7 @@ For completion contract routing, see [global-operating-rules.md](global-operatin
 
 See [tool-access-matrix.md §5](tool-access-matrix.md) for the full tool access table.
 
-**7 tools allowed.** No `run_in_terminal` access. MUST NOT use `run_in_terminal`, `get_terminal_output`, `get_errors`, `multi_replace_string_in_file`, or any tools not listed in §5.
+**8 tools allowed.** No `run_in_terminal` access. MUST NOT use `run_in_terminal`, `get_terminal_output`, `get_errors`, `multi_replace_string_in_file`, or any tools not listed in §5. `fetch_webpage` 🔒 is available in interactive mode only.
 
 ---
 
