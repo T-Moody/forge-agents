@@ -13,12 +13,12 @@ Agents MUST read only the sections relevant to their role. This enables conditio
 
 > **E2E applicability:** E2E testing is available for **all risk levels** (🟢, 🟡, 🔴), not restricted to 🔴 tasks. When an `e2e-contract.yaml` exists and the planner sets `e2e_required: true`, E2E sections apply regardless of task risk level or workflow lane. The sections below are relevant whenever E2E is enabled for a task.
 
-| Agent                    | Required Sections | Purpose                                         |
-| ------------------------ | ----------------- | ----------------------------------------------- |
-| **Orchestrator**         | §1, §6            | Contract discovery, timeout enforcement         |
-| **Verifier**             | §2, §3, §4, §5    | Interaction protocol, sanitization, allowlist   |
-| **Planner**              | §1 only           | Contract fields for `e2e_required` derivation   |
-| **Adversarial Reviewer** | §4, §5            | Sanitization audit, allowlist compliance review |
+| Agent                    | Required Sections | Purpose                                                             |
+| ------------------------ | ----------------- | ------------------------------------------------------------------- |
+| **Orchestrator**         | §1, §1.2, §6, §7  | Contract discovery, interactive setup, timeout enforcement, secrets |
+| **Verifier**             | §2, §3, §4, §5    | Interaction protocol, sanitization, allowlist                       |
+| **Planner**              | §1 only           | Contract fields for `e2e_required` derivation                       |
+| **Adversarial Reviewer** | §4, §5            | Sanitization audit, allowlist compliance review                     |
 
 ---
 
@@ -154,6 +154,62 @@ This installs agent-discoverable skill guides into `skills/playwright-cli/` and 
 
 ---
 
+## §1.2 Interactive E2E Setup
+
+When no `e2e-contract.yaml` is found and the user opts in (D-23 interactive mode), the orchestrator dispatches a setup subagent to auto-generate the contract and a starter skill. This section defines the procedure the subagent follows.
+
+### Step 1 — Repo Scan & App Type Detection
+
+Inspect project root files to determine `app_type` and derive candidate contract values:
+
+| Signal File(s)                          | `app_type` | Default `executable` | Default `args`   | Default `default_port` | Default `ready_check`            |
+| --------------------------------------- | ---------- | -------------------- | ---------------- | ---------------------- | -------------------------------- |
+| `package.json` with `scripts.dev`       | `web`      | `npm`                | `["run", "dev"]` | `3000`                 | `http://localhost:{port}`        |
+| `package.json` with `scripts.start`     | `web`      | `npm`                | `["start"]`      | `3000`                 | `http://localhost:{port}`        |
+| `package.json` (no web scripts)         | `api`      | `node`               | `["index.js"]`   | `3000`                 | `http://localhost:{port}/health` |
+| `*.csproj` / `*.sln` (Blazor/MVC/MAUI)  | `web`      | `dotnet`             | `["run"]`        | `5000`                 | `http://localhost:{port}`        |
+| `*.csproj` / `*.sln` (Web API)          | `api`      | `dotnet`             | `["run"]`        | `5000`                 | `http://localhost:{port}/health` |
+| `pyproject.toml` / `setup.py` (FastAPI) | `api`      | `uvicorn`            | `["main:app"]`   | `8000`                 | `http://localhost:{port}/health` |
+| `pyproject.toml` / `setup.py` (Flask)   | `api`      | `flask`              | `["run"]`        | `5000`                 | `http://localhost:{port}/health` |
+| `go.mod`                                | `api`      | `go`                 | `["run", "."]`   | `8080`                 | `http://localhost:{port}/health` |
+| None matched                            | ask user   | ask user             | ask user         | ask user               | ask user                         |
+
+For fields that cannot be auto-derived, collect them via `ask_questions` before generating the contract. Present all undetermined fields together in a single question to minimise round-trips.
+
+### Step 2 — Skill Discovery
+
+Scan standard Agent Skill locations per §2 Copilot Skill Discovery:
+
+- **Skills found:** List discovered skill file paths to the user. Set `skill_format: copilot-skill` in the contract and reference paths in the `skills` list.
+- **No skills found:** Create a starter skill at `.github/skills/<app-slug>-e2e/SKILL.md` where `<app-slug>` is the project name from `package.json` `name` field or first `.csproj` filename, lowercased with spaces replaced by hyphens. The skill body should describe the primary user flows inferred from the repo (route files, controllers, page components, API endpoint definitions). Use the §2 SKILL.md File Format for required frontmatter.
+
+### Step 3 — Contract Synthesis
+
+Generate `e2e-contract.yaml` at project root using §1 field definitions. Always populate:
+
+- All auto-derived fields from Step 1
+- `db_isolation_strategy: "per-instance-db"` (safe default)
+- `screenshot_on_failure: true`, `trace_on_failure: true`
+- `skill_discovery_path: ".github/skills/"` if skill YAML files were found; otherwise use inline `skills` list with the starter skill reference
+- `interaction_type: "browser"` for `web` apps; `"api"` for all other app types
+- `supports_parallel: false`, `max_concurrent_instances: 2` (conservative defaults)
+
+Do **not** include credentials, API keys, or secrets in the generated contract. See §7 for secrets management.
+
+### Step 4 — User Confirmation
+
+Present the generated file content(s) to the user via `ask_questions`:
+
+> **"E2E contract generated. Choose an action:"**
+> `confirm` — write e2e-contract.yaml and skill file(s) as shown
+> `revise` — describe changes and re-present
+> `skip-skill-creation` — write contract only (no skill file)
+> `abort` — skip E2E setup, proceed unit-only/unit-integration
+
+On **confirm** or **skip-skill-creation**: write file(s), then re-run D-23 Found path validation and propagate contract to downstream dispatch context.
+
+---
+
 ## §2 Skills Schema & Storage
 
 Skills define reusable interaction procedures. Per D-18, all steps are **pre-defined** — no agent improvisation. The verifier follows steps exactly as written.
@@ -228,13 +284,41 @@ The `skill_format` field determines how a skill is authored and consumed:
 
 #### Copilot Skill Discovery
 
-The researcher agent (Step 1.5 E2E Skill File Generation) checks for existing Copilot skill files at these locations:
+The researcher agent (Step 1.5 E2E Skill File Generation) and the E2E setup subagent (§1.2) scan for existing Agent Skill files at these locations ([agentskills.io](https://agentskills.io/) open standard):
 
-- `.github/copilot/skills/` — VS Code Copilot custom skills directory
-- `.github/agents/` — Agent definition directory containing `SKILL.md` files
-- `skills/playwright-cli/` — Skills installed by `playwright-cli install --skills`
+- `.github/skills/` — Primary agentskills.io project skills directory (VS Code, Copilot CLI, Copilot coding agent)
+- `.claude/skills/` — Claude agent project skills
+- `.agents/skills/` — Generic agent project skills
+- `.github/agents/` — Agent definition directory (may contain `SKILL.md` files in agent-heavy repos)
+- `skills/playwright-cli/` — Skills installed by `playwright-cli install --skills` (playwright-cli install path)
 
-When Copilot skill files are found, they SHOULD be referenced in the `e2e-contract.yaml` with `skill_format: copilot-skill`.
+When Agent Skill files are found, they SHOULD be referenced in the `e2e-contract.yaml` with `skill_format: copilot-skill`.
+
+#### SKILL.md File Format (agentskills.io)
+
+Each Agent Skill lives in its own named directory with a `SKILL.md` file:
+
+```
+.github/skills/
+└── <skill-name>/        # Directory name MUST match the `name` field in frontmatter
+    ├── SKILL.md         # Required — defines skill metadata and instructions
+    └── ...              # Optional: scripts, examples, resources
+```
+
+**Required YAML frontmatter:**
+
+```yaml
+---
+name: skill-name # Lowercase, hyphens for spaces, max 64 chars; MUST match parent directory name
+description:
+  > # Max 1024 chars — describe WHAT the skill does AND when Copilot should load it
+  What this skill helps accomplish and when to use it.
+---
+```
+
+**Body:** Markdown instructions — what to test, when to use the skill, step-by-step procedures, and examples. Copilot loads skill body content on-demand (progressive disclosure) — only when a request matches the skill description.
+
+Generate skills from VS Code chat using `/create-skill`, or extract from an ongoing session by asking "save this as a skill".
 
 #### Copilot Skill → Playwright CLI Conversion
 
@@ -746,3 +830,57 @@ For non-browser apps, skills use API and CLI interaction modes:
 - **CLI apps:** Skills use `run_command` and `send_input` actions executed via `run_in_terminal`. Assertions on `exit_code_equals`, `assert_output`.
 - **Session management:** Not applicable for API/CLI — each step is an independent command execution.
 - **Evidence:** API responses and CLI output captured in evidence files, subject to the same sanitization pipeline (§6).
+
+---
+
+## §7 Secrets Management
+
+E2E contracts and skill files are committed to source control. **Never hardcode credentials, API keys, client secrets, or tokens** in `e2e-contract.yaml` `env` values or in SKILL.md `value` fields.
+
+### Azure Key Vault (Recommended)
+
+Retrieve secrets at runtime using the Azure CLI:
+
+```bash
+az keyvault secret show --vault-name <vault-name> --name <secret-name> --query value -o tsv
+```
+
+**Skill precondition pattern** — add a `run_command` step before any authenticated interaction:
+
+```yaml
+steps:
+  - order: 1
+    action: run_command
+    target: "az keyvault secret show --vault-name my-vault --name app-client-secret --query value -o tsv"
+    capture: console
+    expect: "Exports APP_CLIENT_SECRET env var for subsequent steps"
+  - order: 2
+    action: navigate
+    target: "/login"
+    # subsequent steps reference the secret via env var
+```
+
+**Contract env injection pattern** — reference a pre-exported env var rather than a literal value:
+
+```yaml
+start_command:
+  executable: "npm"
+  args: ["run", "dev"]
+  env:
+    CLIENT_SECRET: "${APP_CLIENT_SECRET}" # resolved from shell environment at launch time
+```
+
+> **Env value validation reminder (§1 D-21):** The `${...}` placeholder is resolved before the value reaches the env validation pipeline. The resolved value must still satisfy the alphanumeric + common path characters allowed pattern. Pure secret tokens (hex/base64) pass this check; shell metacharacters in secrets cause a validation error.
+
+### Other Secrets Managers
+
+| Provider               | Retrieval Command                                                             |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| AWS Secrets Manager    | `aws secretsmanager get-secret-value --secret-id <name> --query SecretString` |
+| GCP Secret Manager     | `gcloud secrets versions access latest --secret=<name>`                       |
+| HashiCorp Vault        | `vault kv get -field=<key> secret/<path>`                                     |
+| `.env` file (dev only) | `source .env` before running the pipeline (not for CI)                        |
+
+### Allowlist Note
+
+The `az`, `aws`, `gcloud`, and `vault` executables must be present in the `tier5_command_allowlist` in [tool-access-matrix.md](tool-access-matrix.md) §5 before Verifier Tier 5 can execute them. Adding them is a follow-on task outside the scope of the E2E contract setup flow.
