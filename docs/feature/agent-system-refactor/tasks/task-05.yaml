@@ -1,0 +1,55 @@
+task:
+  id: "task-05"
+  title: "Create planner.agent.md"
+  description: >
+    Create v2/.github/agents/planner.agent.md (~130 lines). The Planner decomposes
+    features into DAG task graphs with file ownership declarations (D-6). Uses the
+    standard 6-section body format. Workflow (~6 steps): read architecture-output.yaml,
+    decompose into tasks, assign per-task dependencies (depends_on), declare per-task
+    file ownership (files list), classify per-task risk (🟢/🟡/🔴), output plan-output.yaml.
+    YAML frontmatter: name, description, tools (read_file, list_dir, grep_search,
+    semantic_search, file_search, create_file), agents: [].
+    The Output Schema section must define the task schema with required fields:
+    id, description, depends_on, files (ownership), risk_level. This is the DAG
+    representation consumed by the orchestrator for parallel dispatch.
+    The planner MUST ensure no two tasks in the same parallel group modify the same
+    file (file ownership conflict resolution per FR-6.2).
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟢"
+  depends_on: ["task-01"]
+  acceptance_criteria:
+    - id: "AC-2"
+      text: "File does not exceed 150 lines (budget: 130)"
+      test_method: "test"
+    - id: "AC-5"
+      text: "YAML frontmatter contains name, description, and tools fields"
+      test_method: "inspection"
+    - id: "AC-7"
+      text: "YAML frontmatter has agents: [] (no subagent access)"
+      test_method: "inspection"
+    - id: "AC-12"
+      text: "Output Schema defines task fields: id, description, depends_on, files (ownership), risk_level"
+      test_method: "inspection"
+    - id: "AC-22"
+      text: "Output Schema includes completion contract (status/summary/output_paths)"
+      test_method: "inspection"
+    - id: "FR-6.2"
+      text: "Constraints or workflow section states: no two tasks in the same parallel group may modify the same file"
+      test_method: "inspection"
+  workflow_lane: "unit-only"
+  e2e_required: false
+  e2e_contract_path: null
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.component_design[agent='planner']"
+      - "design-output.yaml#payload.decisions[id='D-6']"
+      - "design-output.yaml#payload.decisions[id='D-3']"
+      - "design-output.yaml#payload.schemas.task_schema"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-6']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-12']"
+    files_to_modify:
+      - path: "v2/.github/agents/planner.agent.md"
+        risk: "🟢"

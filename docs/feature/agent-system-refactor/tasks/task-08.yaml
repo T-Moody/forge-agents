@@ -1,0 +1,67 @@
+task:
+  id: "task-08"
+  title: "Create tester.agent.md"
+  description: >
+    Create v2/.github/agents/tester.agent.md (~140 lines). The Tester merges the
+    current Verifier + proposed Test Runner into a single dual-mode agent (D-7).
+    Mode is passed by orchestrator as first line of dispatch: 'Mode: static' or
+    'Mode: dynamic'.
+    Static mode: read implementation reports, verify TDD compliance (tests exist and
+    pass), audit implementer commands_executed[] against command allowlist.
+    Dynamic mode: start application, run integration/E2E/API tests via skills
+    (playwright-ui, http-api, cli, integration-tests), stop application. SINGLETON
+    constraint for dynamic mode (only one tester instance at a time for app lifecycle).
+    Uses body sections: Role, Inputs, Static Evaluation Workflow, Dynamic Testing
+    Workflow, Output Schema, Constraints, Anti-Drift Anchor.
+    YAML frontmatter: name, description, tools (read_file, create_file, list_dir,
+    grep_search, semantic_search, file_search, run_in_terminal, get_terminal_output,
+    get_errors), agents: [].
+    Output schema: test_report with test_categories (unit/integration/e2e),
+    tdd_verification, command_allowlist_audit, verdict (pass/fail).
+    NOTE: If file exceeds 140 lines, D-7 split_trigger activates — split into two
+    agents. If >20 lines duplicated across workflows, also split.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["task-01"]
+  acceptance_criteria:
+    - id: "AC-2"
+      text: "File does not exceed 150 lines (budget: 140). If exceeds 140, D-7 split_trigger activates."
+      test_method: "test"
+    - id: "AC-5"
+      text: "YAML frontmatter contains name, description, and tools fields"
+      test_method: "inspection"
+    - id: "AC-7"
+      text: "YAML frontmatter has agents: [] (no subagent access)"
+      test_method: "inspection"
+    - id: "AC-16"
+      text: "Tools list includes run_in_terminal (can start/stop applications and execute test suites)"
+      test_method: "inspection"
+    - id: "FR-8.2"
+      text: "Static workflow verifies TDD compliance: tests exist, tests were run, all pass"
+      test_method: "inspection"
+    - id: "FR-8.4"
+      text: "Constraints section states singleton constraint for dynamic mode (only one instance for app lifecycle)"
+      test_method: "inspection"
+    - id: "FR-8.5"
+      text: "Output Schema defines test_report with pass/fail per category and overall verdict"
+      test_method: "inspection"
+    - id: "AC-22"
+      text: "Output Schema includes completion contract (status/summary/output_paths)"
+      test_method: "inspection"
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.component_design[agent='tester']"
+      - "design-output.yaml#payload.decisions[id='D-7']"
+      - "design-output.yaml#payload.trust_boundary_model.tier_2_standard_trust"
+      - "design-output.yaml#payload.schemas.test_report"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-8']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-16']"
+    files_to_modify:
+      - path: "v2/.github/agents/tester.agent.md"
+        risk: "🟡"

@@ -1,0 +1,731 @@
+agent_output:
+  agent: "spec"
+  instance: "spec"
+  step: "step-2"
+  started_at: "2026-03-08T16:00:00Z"
+  completed_at: "2026-03-08T17:30:00Z"
+  schema_version: "1.0"
+  payload:
+    feature_name: "Agent System Refactor — Clean-Slate Multi-Agent Pipeline"
+
+    # ================================================================
+    # ARCHITECTURAL DIRECTIONS EVALUATED
+    # ================================================================
+    directions:
+      - id: "A"
+        name: "Minimal Single-Agent"
+        summary: >
+          Follow SWE-Agent/OpenHands: collapse entire pipeline into a single agent with tool
+          access. ~100 lines total. Highest simplification but loses multi-perspective review,
+          parallel research, and structured quality gates — the patterns with proven value.
+
+      - id: "B"
+        name: "Incremental Simplification"
+        summary: >
+          Keep current 9-agent architecture, remove SQLite, inline references, use VS Code
+          native tools field. Preserves all patterns at lower cost. Risk: complexity spiral
+          continues — 5 prior improvement runs all added complexity, none simplified.
+
+      - id: "C"
+        name: "Clean-Slate Rebuild (Recommended)"
+        summary: >
+          Fresh implementation in new directory. 8 agents (down from 9 current + 2 proposed),
+          8-step pipeline (down from 10+), completion-contract-only routing, YAML file-based
+          evidence, VS Code native tool restrictions, hard size limits (≤1,500 total lines,
+          ≤150 per agent). Merges Spec+Designer→Architect, Verifier+TestRunner→Tester,
+          Knowledge+InstructionOptimizer→Knowledge. DAG-based task execution. Zero SQLite.
+          Breaks the complexity spiral by starting from constraints, not from existing code.
+
+    # ================================================================
+    # COMMON REQUIREMENTS (apply across all directions)
+    # ================================================================
+    common_requirements:
+      - id: "CR-1"
+        text: >
+          All agent outputs MUST use a typed YAML completion contract with status
+          (DONE/NEEDS_REVISION/ERROR), summary, and output_paths. This is the SOLE
+          routing mechanism for the orchestrator.
+        priority: "must"
+
+      - id: "CR-2"
+        text: >
+          Total system size MUST NOT exceed 1,500 lines across all agent definition files
+          and shared reference documents combined. This is a hard ceiling to prevent the
+          complexity spiral observed in the prior system (6,416 lines).
+        priority: "must"
+
+      - id: "CR-3"
+        text: >
+          Individual agent files MUST NOT exceed 150 lines each. Agent instructions should
+          define WHAT the agent does (role, inputs, outputs, constraints), not HOW the
+          framework orchestrates it.
+        priority: "must"
+
+      - id: "CR-4"
+        text: >
+          Tool access MUST be enforced via the VS Code native 'tools' YAML frontmatter
+          field in each .agent.md file. No separate tool-access-matrix document.
+        priority: "must"
+
+      - id: "CR-5"
+        text: >
+          The system MUST NOT depend on SQLite or any external database. Pipeline state
+          is managed through YAML artifact files in the feature directory and completion
+          contracts read by the orchestrator.
+        priority: "must"
+
+      - id: "CR-6"
+        text: >
+          All agents MUST use the GitHub Copilot .agent.md format with proper YAML
+          frontmatter (name, description, tools, agents fields).
+        priority: "must"
+
+      - id: "CR-7"
+        text: >
+          The refactored system MUST be implemented as a fresh directory (not
+          incremental modification of existing NewAgents/, .github/, or Forge/ directories).
+        priority: "must"
+
+      - id: "CR-8"
+        text: >
+          All decisions in the new system MUST be traceable to established industry
+          practices (Anthropic's Building Effective Agents, AutoGen patterns, SWE-Agent,
+          MetaGPT, GitHub Copilot agent docs). No invented patterns.
+        priority: "must"
+
+      - id: "CR-9"
+        text: >
+          The system MUST execute entirely on the developer's local workstation using
+          VS Code + GitHub Copilot. No cloud services, no distributed infrastructure.
+        priority: "must"
+
+      - id: "CR-10"
+        text: >
+          Cross-file section references using § notation SHOULD be eliminated.
+          Critical rules should be inlined or co-located rather than referenced
+          by fragile section numbers across files.
+        priority: "should"
+
+    # ================================================================
+    # FUNCTIONAL REQUIREMENTS
+    # ================================================================
+    functional_requirements:
+      # --- FR-1: Pipeline Structure ---
+      - id: "FR-1"
+        text: "Pipeline Structure — 8-step deterministic pipeline"
+        sub_requirements:
+          - id: "FR-1.1"
+            text: >
+              The pipeline MUST consist of exactly 8 sequential steps:
+              (1) Setup, (2) Research, (3) Architecture, (4) Planning,
+              (5) Implementation, (6) Testing, (7) Code Review, (8) Completion.
+          - id: "FR-1.2"
+            text: >
+              Each step MUST produce at least one typed YAML output file in the
+              feature directory (docs/feature/<slug>/).
+          - id: "FR-1.3"
+            text: >
+              The pipeline MUST support two modes: interactive (with approval gates
+              and web research) and autonomous (no user prompts, no web research).
+          - id: "FR-1.4"
+            text: >
+              For 🔴 (high-risk) features, Step 3 (Architecture) MUST include
+              an embedded design review sub-phase with adversarial review before
+              proceeding to Planning.
+          - id: "FR-1.5"
+            text: >
+              The orchestrator MUST ask two questions at Setup: (a) approval mode
+              (interactive/autonomous), (b) allow web research (yes/no). These
+              parameters propagate to all subsequent agents.
+
+      # --- FR-2: Agent Inventory ---
+      - id: "FR-2"
+        text: "Agent Inventory — 8 agents with clearly separated roles"
+        sub_requirements:
+          - id: "FR-2.1"
+            text: >
+              The system MUST contain exactly 8 agent definitions: Orchestrator,
+              Researcher, Architect, Planner, Implementer, Tester, Reviewer,
+              Knowledge.
+          - id: "FR-2.2"
+            text: >
+              The Architect agent MUST combine the responsibilities of the current
+              Spec and Designer agents — producing both requirements and technical
+              design in a single step.
+          - id: "FR-2.3"
+            text: >
+              The Tester agent MUST combine dynamic test execution (integration,
+              E2E, API, live validation) with evidence evaluation — merging the
+              proposed Test Runner and current Verifier roles.
+          - id: "FR-2.4"
+            text: >
+              The Knowledge agent MUST combine post-mortem analysis with instruction
+              optimization — merging the current Knowledge Agent and proposed
+              Instruction Optimizer roles.
+          - id: "FR-2.5"
+            text: >
+              No agent other than the Orchestrator may dispatch or invoke another
+              agent. Hub-and-spoke coordination only.
+
+      # --- FR-3: Orchestrator ---
+      - id: "FR-3"
+        text: "Orchestrator — DAG-aware pipeline coordinator"
+        sub_requirements:
+          - id: "FR-3.1"
+            text: >
+              The Orchestrator MUST route between steps by reading completion
+              contracts from agent output YAML files. No SQL queries.
+          - id: "FR-3.2"
+            text: >
+              The Orchestrator MUST support DAG-based parallel execution within
+              the Implementation step: dispatch tasks whose declared dependencies
+              are all satisfied, respecting file ownership to prevent conflicts.
+          - id: "FR-3.3"
+            text: >
+              The Orchestrator MUST enforce a concurrency cap of 4 parallel agent
+              dispatches per wave (VS Code Copilot runtime constraint).
+          - id: "FR-3.4"
+            text: >
+              The Orchestrator MUST provide approval gates in interactive mode
+              after Research (Step 2) and after Planning (Step 4).
+          - id: "FR-3.5"
+            text: >
+              The Orchestrator MUST classify feature risk as 🟢 (simple),
+              🟡 (standard), or 🔴 (complex) to scale verification depth.
+          - id: "FR-3.6"
+            text: >
+              The Orchestrator MUST create a git baseline tag at Setup and
+              perform git add + commit at Completion.
+
+      # --- FR-4: Researcher ---
+      - id: "FR-4"
+        text: "Researcher — parallel web and codebase research"
+        sub_requirements:
+          - id: "FR-4.1"
+            text: >
+              The Orchestrator MUST dispatch 2-4 Researcher instances in parallel,
+              each with a distinct focus area (architecture, impact, dependencies,
+              patterns).
+          - id: "FR-4.2"
+            text: >
+              Researchers MUST support web research via fetch_webpage when enabled
+              by the user at Setup. When web research is disabled, researchers
+              use only codebase analysis tools.
+          - id: "FR-4.3"
+            text: >
+              The research gate MUST require ≥2 of dispatched researchers to
+              complete successfully before proceeding.
+
+      # --- FR-5: Architect ---
+      - id: "FR-5"
+        text: "Architect — combined specification and design"
+        sub_requirements:
+          - id: "FR-5.1"
+            text: >
+              The Architect agent MUST produce: (a) functional requirements with IDs,
+              (b) acceptance criteria per requirement, (c) architectural direction
+              selection with justification, (d) key technical decisions.
+          - id: "FR-5.2"
+            text: >
+              The Architect MUST consume all available research outputs and the
+              initial-request.md as inputs.
+          - id: "FR-5.3"
+            text: >
+              For 🔴 risk features, the Orchestrator MUST dispatch 2-3 Reviewer
+              instances to review the Architect's output before proceeding to
+              Planning (embedded design review).
+
+      # --- FR-6: Planner ---
+      - id: "FR-6"
+        text: "Planner — DAG task decomposition with file ownership"
+        sub_requirements:
+          - id: "FR-6.1"
+            text: >
+              The Planner MUST decompose the feature into tasks with explicit
+              dependency declarations. Each task MUST declare: id, description,
+              depends_on (list of task IDs), files (list of file paths owned).
+          - id: "FR-6.2"
+            text: >
+              The Planner MUST ensure no two tasks in the same parallel execution
+              group modify the same file. File ownership conflicts MUST be resolved
+              by adding a dependency edge between the conflicting tasks.
+          - id: "FR-6.3"
+            text: >
+              The Planner MUST classify each task's risk level (🟢/🟡/🔴) to
+              determine verification depth in the Testing step.
+
+      # --- FR-7: Implementer ---
+      - id: "FR-7"
+        text: "Implementer — strict TDD with unit tests only"
+        sub_requirements:
+          - id: "FR-7.1"
+            text: >
+              Implementers MUST follow the RED-GREEN cycle: write failing unit
+              tests first, then write minimal production code to pass them.
+          - id: "FR-7.2"
+            text: >
+              Implementers MUST NOT run integration tests, E2E tests, or start
+              applications. Only targeted unit test execution is permitted.
+          - id: "FR-7.3"
+            text: >
+              Implementers MUST produce an implementation report declaring: files
+              modified, tests written, test results (pass/fail counts), and TDD
+              compliance (red-green evidence).
+          - id: "FR-7.4"
+            text: >
+              Implementers run in parallel within a wave. The Orchestrator uses
+              the Planner's DAG to determine safe parallel groups.
+
+      # --- FR-8: Tester ---
+      - id: "FR-8"
+        text: "Tester — dynamic testing and evidence evaluation"
+        sub_requirements:
+          - id: "FR-8.1"
+            text: >
+              The Tester agent MUST be capable of: starting the application,
+              running integration tests, running E2E tests (via Playwright or
+              similar), running API contract tests, and performing live system
+              validation.
+          - id: "FR-8.2"
+            text: >
+              The Tester MUST evaluate implementation reports and verify: (a) TDD
+              compliance (tests exist and were run), (b) all tests pass,
+              (c) no regressions in existing test suites.
+          - id: "FR-8.3"
+            text: >
+              The Tester MUST support skill-based test execution (e.g.,
+              playwright-ui, http-api, cli, integration-tests) when skill files
+              are present in the project.
+          - id: "FR-8.4"
+            text: >
+              Only ONE Tester instance may run at a time for dynamic test
+              execution (application lifecycle management requires sequential
+              access). Static evidence evaluation may run in parallel.
+          - id: "FR-8.5"
+            text: >
+              The Tester MUST produce a test report with pass/fail results for
+              each test category and an overall verification verdict.
+
+      # --- FR-9: Reviewer ---
+      - id: "FR-9"
+        text: "Reviewer — adversarial multi-perspective code review"
+        sub_requirements:
+          - id: "FR-9.1"
+            text: >
+              The Orchestrator MUST dispatch 2-3 Reviewer instances in parallel,
+              each assigned a distinct review perspective (security, architecture,
+              correctness).
+          - id: "FR-9.2"
+            text: >
+              Each Reviewer MUST produce findings with severity (blocker, critical,
+              major, minor) and a verdict (approve, request-changes).
+          - id: "FR-9.3"
+            text: >
+              The review gate MUST require: ≥2 of 3 reviewers approve AND zero
+              blocker findings. If the gate fails, the Orchestrator re-dispatches
+              the Implementer with review findings (max 2 review rounds).
+          - id: "FR-9.4"
+            text: >
+              Code Review (Step 7) is MANDATORY for all features regardless of
+              risk level. It MUST NOT be skippable.
+
+      # --- FR-10: Knowledge ---
+      - id: "FR-10"
+        text: "Knowledge — post-mortem analysis and instruction optimization"
+        sub_requirements:
+          - id: "FR-10.1"
+            text: >
+              The Knowledge agent MUST produce a post-mortem analysis: pipeline
+              duration, dispatch count, findings summary, lessons learned.
+          - id: "FR-10.2"
+            text: >
+              The Knowledge agent SHOULD analyze accumulated pipeline data and
+              propose instruction improvements for future runs.
+          - id: "FR-10.3"
+            text: >
+              The Knowledge agent MUST NOT modify copilot-instructions.md or
+              agent definition files directly. Proposed changes MUST be written
+              to a recommendation file for human review.
+
+      # --- FR-11: State Management ---
+      - id: "FR-11"
+        text: "State Management — YAML file-based evidence"
+        sub_requirements:
+          - id: "FR-11.1"
+            text: >
+              All pipeline state MUST be stored as YAML files in the feature
+              directory (docs/feature/<slug>/). File existence = evidence.
+          - id: "FR-11.2"
+            text: >
+              The Orchestrator MUST verify step completion by checking for the
+              existence and validity of required output YAML files, not by
+              querying a database.
+          - id: "FR-11.3"
+            text: >
+              Each agent's output YAML file MUST contain a completion block
+              conforming to the completion-contract schema.
+          - id: "FR-11.4"
+            text: >
+              Pipeline telemetry (dispatch count, timing) SHOULD be recorded
+              in an evidence-bundle.yaml file produced by the Knowledge agent
+              at completion.
+
+      # --- FR-12: Agent File Format ---
+      - id: "FR-12"
+        text: "Agent File Format — GitHub Copilot .agent.md standard"
+        sub_requirements:
+          - id: "FR-12.1"
+            text: >
+              Each agent MUST be a single .agent.md file with YAML frontmatter
+              containing: name, description, tools (list of allowed tools),
+              agents (list of allowed subagents, if any).
+          - id: "FR-12.2"
+            text: >
+              The Orchestrator's YAML frontmatter MUST list all other agents
+              in its 'agents' field to enable subagent dispatch.
+          - id: "FR-12.3"
+            text: >
+              Non-orchestrator agents MUST set agents: [] (no subagent access)
+              to prevent unauthorized cross-agent communication.
+          - id: "FR-12.4"
+            text: >
+              Agents MAY use the 'model' field to specify preferred LLM when
+              different capabilities are needed (e.g., larger context for
+              Researcher).
+
+      # --- FR-13: Web Research ---
+      - id: "FR-13"
+        text: "Web Research — permanent capability for development runs"
+        sub_requirements:
+          - id: "FR-13.1"
+            text: >
+              When web research is enabled at Setup, the following agents MUST
+              have fetch_webpage in their tools list: Researcher, Architect,
+              Implementer (when necessary for API docs).
+          - id: "FR-13.2"
+            text: >
+              Agents SHOULD research the target project's tech stack during
+              normal development runs (e.g., framework versions, library APIs,
+              current best practices) rather than relying solely on training data.
+
+      # --- FR-14: Risk-Based Scaling ---
+      - id: "FR-14"
+        text: "Risk-Based Scaling — proportionate pipeline depth"
+        sub_requirements:
+          - id: "FR-14.1"
+            text: >
+              🟢 Simple features: skip Research (Step 2), skip embedded design
+              review, minimal testing (unit tests only via Tester static eval).
+          - id: "FR-14.2"
+            text: >
+              🟡 Standard features: full pipeline, 2-3 researchers,
+              integration testing, 2-3 code reviewers.
+          - id: "FR-14.3"
+            text: >
+              🔴 Complex features: full pipeline, 4 researchers, embedded
+              design review, full E2E testing, 3 code reviewers, max 2
+              review-fix cycles.
+
+      # --- FR-15: Shared Reference Documents ---
+      - id: "FR-15"
+        text: "Shared Reference Documents — minimal shared infrastructure"
+        sub_requirements:
+          - id: "FR-15.1"
+            text: >
+              The system MUST have at most 2 shared reference documents:
+              (a) a global-rules.md (≤100 lines) for cross-cutting concerns
+              (retry policy, completion contract schema, anti-hallucination rule),
+              and optionally (b) a conventions.md for project-specific coding standards.
+          - id: "FR-15.2"
+            text: >
+              Output schemas MUST be co-located within each agent's .agent.md file
+              (in the body markdown), not in a separate central schemas document.
+          - id: "FR-15.3"
+            text: >
+              Dispatch patterns, SQL templates, evaluation schemas, and other
+              current reference documents MUST NOT exist in the new system as
+              separate files.
+
+    # ================================================================
+    # ACCEPTANCE CRITERIA
+    # ================================================================
+    acceptance_criteria:
+      # Size & structure
+      - id: "AC-1"
+        text: >
+          Total system size (all .agent.md files + shared reference docs) is
+          ≤1,500 lines measured by line count.
+        test_method: "test"
+
+      - id: "AC-2"
+        text: >
+          No individual .agent.md file exceeds 150 lines.
+        test_method: "test"
+
+      - id: "AC-3"
+        text: >
+          Exactly 8 .agent.md files exist in the new system directory.
+        test_method: "inspection"
+
+      - id: "AC-4"
+        text: >
+          At most 2 shared reference documents exist (excluding prompts).
+        test_method: "inspection"
+
+      # Format compliance
+      - id: "AC-5"
+        text: >
+          Every .agent.md file has YAML frontmatter with at minimum: name,
+          description, tools fields.
+        test_method: "inspection"
+
+      - id: "AC-6"
+        text: >
+          The Orchestrator's YAML frontmatter 'agents' field lists all 7
+          other agents.
+        test_method: "inspection"
+
+      - id: "AC-7"
+        text: >
+          Non-orchestrator agents have agents: [] in their YAML frontmatter.
+        test_method: "inspection"
+
+      # State management
+      - id: "AC-8"
+        text: >
+          No file in the new system contains 'sqlite', 'sqlite3',
+          'verification-ledger', or 'sql-templates' references.
+        test_method: "test"
+
+      - id: "AC-9"
+        text: >
+          The Orchestrator routes between steps solely by reading YAML
+          completion contracts — no database queries in its workflow.
+        test_method: "inspection"
+
+      # Pipeline
+      - id: "AC-10"
+        text: >
+          The pipeline has exactly 8 named steps documented in the
+          Orchestrator agent.
+        test_method: "inspection"
+
+      - id: "AC-11"
+        text: >
+          Code Review (Step 7) cannot be skipped regardless of risk
+          level — verified by inspecting the Orchestrator's step logic.
+        test_method: "inspection"
+
+      - id: "AC-12"
+        text: >
+          The Planner output schema includes per-task fields: id,
+          description, depends_on, files (ownership), risk_level.
+        test_method: "inspection"
+
+      # DAG execution
+      - id: "AC-13"
+        text: >
+          The Orchestrator's implementation step dispatches tasks based
+          on dependency satisfaction (DAG topological ordering), not
+          fixed wave assignment.
+        test_method: "inspection"
+
+      - id: "AC-14"
+        text: >
+          No two tasks dispatched in the same parallel group declare
+          overlapping file ownership.
+        test_method: "inspection"
+
+      # Agent roles
+      - id: "AC-15"
+        text: >
+          The Implementer agent's tools list does NOT include tools for
+          starting applications, running E2E tests, or curl/http requests.
+          Only file editing, terminal (for unit tests), and code analysis.
+        test_method: "inspection"
+
+      - id: "AC-16"
+        text: >
+          The Tester agent's tools list includes run_in_terminal and can
+          start/stop applications and execute test suites.
+        test_method: "inspection"
+
+      - id: "AC-17"
+        text: >
+          The Knowledge agent does NOT have write access to .agent.md files.
+          Instruction optimization proposals are written to a recommendation
+          file only.
+        test_method: "inspection"
+
+      # Cross-references
+      - id: "AC-18"
+        text: >
+          No agent file contains § (section) cross-references to other files.
+          All necessary rules are inlined or co-located.
+        test_method: "test"
+
+      # Web research
+      - id: "AC-19"
+        text: >
+          The Researcher agent's tools list includes fetch_webpage. The
+          Orchestrator passes a web_research_enabled parameter to control
+          whether agents should actively research.
+        test_method: "inspection"
+
+      # Fresh start
+      - id: "AC-20"
+        text: >
+          The new system is created in a new directory, not modifying any
+          files in NewAgents/, .github/agents/, or Forge/.
+        test_method: "inspection"
+
+      # Traceability
+      - id: "AC-21"
+        text: >
+          Every major design decision in the new agent files can be traced
+          to a specific industry source (Anthropic, AutoGen, SWE-Agent,
+          MetaGPT, GitHub Copilot docs, AgentForge) cited in comments or
+          the design document.
+        test_method: "analysis"
+
+      # Completion contracts
+      - id: "AC-22"
+        text: >
+          Every agent's output schema includes a completion block with
+          status (DONE/NEEDS_REVISION/ERROR), summary, and output_paths.
+        test_method: "inspection"
+
+    # ================================================================
+    # EDGE CASES
+    # ================================================================
+    edge_cases:
+      - id: "EC-1"
+        text: >
+          Agent returns malformed YAML — Orchestrator logs the error,
+          retries once with the same agent, then marks the step as ERROR
+          and halts the pipeline.
+
+      - id: "EC-2"
+        text: >
+          All researchers fail (0 of 4 complete) — Orchestrator halts
+          pipeline with ERROR status. Cannot proceed without research.
+
+      - id: "EC-3"
+        text: >
+          Planner produces a task DAG with a cycle — Orchestrator detects
+          the cycle (task depends on itself or transitive cycle) and
+          returns the plan to the Planner with NEEDS_REVISION.
+
+      - id: "EC-4"
+        text: >
+          Two tasks inadvertently modify the same file not declared in
+          ownership — Tester/Reviewer catches the conflict as a merge
+          issue. Orchestrator reruns the affected task with the conflict
+          noted.
+
+      - id: "EC-5"
+        text: >
+          Code review fails after 2 rounds (still has blockers) —
+          Orchestrator halts pipeline with ERROR. Manual intervention
+          required. No infinite review loops.
+
+      - id: "EC-6"
+        text: >
+          Web research is disabled but Researcher encounters a topic
+          requiring external information — Researcher completes with
+          available codebase information and notes the gap in its output.
+
+      - id: "EC-7"
+        text: >
+          Implementation step has >4 tasks ready to execute — Orchestrator
+          partitions into sub-waves of ≤4 tasks each, executing
+          sequentially between sub-waves, parallel within.
+
+      - id: "EC-8"
+        text: >
+          Feature is classified 🟢 (simple) — Research step is skipped,
+          Architect works from initial-request.md only. Pipeline proceeds
+          directly to Planning. Code Review still mandatory.
+
+      - id: "EC-9"
+        text: >
+          Tester cannot start the application (build failure) — Tester
+          returns NEEDS_REVISION with the build error. Orchestrator routes
+          back to Implementer with the error context (max 3 fix cycles).
+
+      - id: "EC-10"
+        text: >
+          Agent produces output exceeding the 150-line limit during
+          future pipeline improvements — Knowledge agent detects and flags
+          in recommendations. Reviewer catches as a Major finding.
+
+    # ================================================================
+    # CONSTRAINTS
+    # ================================================================
+    constraints:
+      - "Windows environment, VS Code GitHub Copilot agent framework"
+      - "Local execution only — no cloud, distributed, or container infrastructure"
+      - "VS Code Copilot runSubagent API for agent dispatch (native parallel semantics)"
+      - "GitHub Copilot .agent.md format with YAML frontmatter"
+      - "Max 4 concurrent agent dispatches per VS Code runtime constraint"
+      - "No npm, pip, or package manager dependencies for the agent system itself"
+      - "Only git and project-specific build tools as external CLI dependencies"
+
+    # ================================================================
+    # PUSHBACK LOG
+    # ================================================================
+    pushback_log:
+      concerns_identified: 4
+      mode: "interactive"
+      concerns:
+        - severity: "Critical"
+          title: "Pipeline Length vs Simplification Goal"
+          description: >
+            Proposed 12-step pipeline is longer than current 10-step pipeline,
+            contradicting the simplification goal. Research shows MetaGPT uses ~5
+            steps, SWE-Agent uses 1.
+          recommendation: "Consolidate to ~8 steps by merging related phases"
+          user_response: "Modify scope to address"
+          user_freeform: "Do whatever is recommended to fix this. We are going to create a new folder and create agents from scratch"
+          auto_resolved: false
+
+        - severity: "Major"
+          title: "SQLite Removal Loses Audit Trail"
+          description: >
+            SQLite evidence gates never caught a real failure in 5 runs, but
+            removing SQLite also removes the cross-run audit trail.
+          recommendation: "Replace with YAML-based evidence files"
+          user_response: "Modify scope to address"
+          user_freeform: "Do whatever is recommended to fix this. We are going to create a new folder and create agents from scratch"
+          auto_resolved: false
+
+        - severity: "Major"
+          title: "Adding Agents While Simplifying Creates Tension"
+          description: >
+            Going from 9→11 agents while targeting dramatic simplification is
+            contradictory. Test Runner overlaps with Verifier, Instruction
+            Optimizer overlaps with Knowledge Agent.
+          recommendation: "Merge overlapping agents: Tester=Verifier+TestRunner, Knowledge=Knowledge+InstructionOptimizer"
+          user_response: "Modify scope to address"
+          user_freeform: "Do whatever is recommended to fix this. We are going to create a new folder and create agents from scratch"
+          auto_resolved: false
+
+        - severity: "Minor"
+          title: "System Size Target Unclear"
+          description: >
+            Current system is ~100x GitHub's recommended size. No explicit
+            target prevents the complexity spiral from recurring.
+          recommendation: "Set hard size limits: ≤1,500 total lines, ≤150 per agent"
+          user_response: "Modify scope to address"
+          user_freeform: "Yes a hard size limit makes sense. Do whatever is recommended to fix this. We are going to create a new folder and create agents from scratch."
+          auto_resolved: false
+
+completion:
+  status: "DONE"
+  summary: "Spec complete: 10 CR, 15 FR groups, 22 AC, 10 edge cases. Clean-slate rebuild with 8 agents, 8 steps, ≤1,500 lines."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "spec-output.yaml"
+    - "feature.md"

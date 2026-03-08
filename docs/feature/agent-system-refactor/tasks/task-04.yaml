@@ -1,0 +1,63 @@
+task:
+  id: "task-04"
+  title: "Create architect.agent.md"
+  description: >
+    Create v2/.github/agents/architect.agent.md (~140 lines). The Architect merges
+    the current Spec and Designer agents into one (D-2). It produces combined
+    requirements + technical design in a single output (architecture-output.yaml,
+    NOT design-output.yaml per AG-C-1 naming convention).
+    Uses the standard 6-section body format. Workflow (~8 steps): read research
+    outputs + initial-request.md, identify requirements with IDs, define acceptance
+    criteria per requirement, evaluate architectural directions, select direction with
+    justification, make key technical decisions, produce architecture-output.yaml.
+    YAML frontmatter: name, description, tools (read_file, list_dir, grep_search,
+    semantic_search, file_search, fetch_webpage, create_file), agents: [].
+    Must handle missing research gracefully for 🟢 features (Step 2 skipped) —
+    use initial-request.md + codebase analysis as sole inputs (per PV-C-1 resolution).
+    Output includes functional requirements, acceptance criteria, architectural
+    decisions, and a completion contract.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟢"
+  depends_on: ["task-01"]
+  acceptance_criteria:
+    - id: "AC-2"
+      text: "File does not exceed 150 lines (budget: 140)"
+      test_method: "test"
+    - id: "AC-5"
+      text: "YAML frontmatter contains name, description, and tools fields"
+      test_method: "inspection"
+    - id: "AC-7"
+      text: "YAML frontmatter has agents: [] (no subagent access)"
+      test_method: "inspection"
+    - id: "AC-22"
+      text: "Output Schema includes completion contract (status/summary/output_paths)"
+      test_method: "inspection"
+    - id: "FR-5.1"
+      text: "Workflow produces: functional requirements with IDs, acceptance criteria, architectural direction, and key decisions"
+      test_method: "inspection"
+    - id: "FR-5.2a"
+      text: "Inputs section lists research outputs and initial-request.md as inputs"
+      test_method: "inspection"
+    - id: "PV-C-1"
+      text: "Workflow handles missing research for 🟢 features (conditional input path)"
+      test_method: "inspection"
+    - id: "AG-C-1"
+      text: "Output file is named architecture-output.yaml (not design-output.yaml)"
+      test_method: "inspection"
+  workflow_lane: "unit-only"
+  e2e_required: false
+  e2e_contract_path: null
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.component_design[agent='architect']"
+      - "design-output.yaml#payload.decisions[id='D-2']"
+      - "design-output.yaml#payload.decisions[id='D-3']"
+      - "design-output.yaml#payload.pipeline_design.steps[step=3]"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-14']"
+    files_to_modify:
+      - path: "v2/.github/agents/architect.agent.md"
+        risk: "🟢"

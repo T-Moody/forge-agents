@@ -1,0 +1,828 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-architecture"
+  step: "step-1"
+  started_at: "2026-03-08T15:00:00Z"
+  completed_at: "2026-03-08T16:45:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "architecture"
+    findings:
+      # ============================================================
+      # SECTION A: Current System Architecture Analysis
+      # ============================================================
+
+      - id: "F-1"
+        title: "Current system is a 19-file, 6,416-line instruction-based multi-agent pipeline"
+        category: "structure"
+        detail: |
+          The agent system in NewAgents/.github/agents/ consists of 19 files:
+
+          Agent definitions (9 files, 2,534 lines):
+            - orchestrator.agent.md: 358 lines (line budget 550) — central coordinator
+            - verifier.agent.md: 386 lines — verification across 5 tiers
+            - implementer.agent.md: 332 lines — TDD implementation
+            - planner.agent.md: 309 lines — wave decomposition and task assignment
+            - spec.agent.md: 259 lines — specification authoring
+            - knowledge-agent.agent.md: 250 lines — post-mortem and knowledge capture
+            - adversarial-reviewer.agent.md: 249 lines — 3-perspective adversarial review
+            - designer.agent.md: 213 lines — design authoring
+            - researcher.agent.md: 188 lines — 4-focus parallel research
+
+          Reference documents (10 files, 3,882 lines):
+            - schemas.md: 1,422 lines (22% of total) — 14 typed YAML schemas
+            - sql-templates.md: 936 lines (15% of total) — SQLite operations, evidence gates EG-1 to EG-10
+            - e2e-integration.md: 671 lines — E2E testing framework
+            - dispatch-patterns.md: 236 lines — Pattern A (parallel) and Pattern B (iterative loop)
+            - global-operating-rules.md: 143 lines — 9 global rules, self-verification, recovery
+            - severity-taxonomy.md: 128 lines — risk classification
+            - review-perspectives.md: 118 lines — 3×3 review matrix
+            - tool-access-matrix.md: 105 lines — 15×9 tool permission matrix
+            - evaluation-schema.md: 84 lines — artifact quality scoring
+            - context7-integration.md: 29 lines — library doc lookup
+
+          The architecture is instruction-based: all agent behavior is defined in natural language
+          Markdown files. The orchestrator routes between agents using typed YAML completion
+          contracts. State is tracked in-context (orchestrator working memory) and in SQLite
+          (verification-ledger.db) for evidence persistence.
+
+          Additionally, 12 prompt files exist in NewAgents/.github/prompts/ (~1,041 lines),
+          bringing total system size to ~7,457 lines.
+        evidence:
+          - "NewAgents/.github/agents/ — 19 files measured individually"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 1-35 (header, role description)"
+          - "NewAgents/.github/agents/schemas.md line 1 (Schemas Reference v1.0)"
+          - "NewAgents/.github/prompts/ — 12 prompt files"
+        relevance: "Establishes the baseline architecture. At 6,416+ lines of natural language instructions, this system is orders of magnitude larger than GitHub's recommended '2 pages' for copilot-instructions.md and larger than any comparable agent instruction system."
+
+      - id: "F-2"
+        title: "Orchestrator-centric hub-and-spoke architecture with 10-step linear pipeline"
+        category: "structure"
+        detail: |
+          The architecture follows a hub-and-spoke pattern where the orchestrator is the
+          sole coordinator. All agents are dispatched by and report back to the orchestrator.
+          No agent communicates directly with another agent.
+
+          Pipeline steps (defined in orchestrator.agent.md):
+            Step 0: Setup & Initialization (SQLite DDL, git hygiene, run_id generation)
+            Step 1: Research (4× parallel — Pattern A, gate: ≥2/4 complete)
+            Step 1a: Approval Gate — Post-Research (interactive only)
+            Step 2: Specification (sequential — single spec agent)
+            Step 3: Design (sequential — single designer)
+            Step 3b: Design Review (3× parallel adversarial reviewers — Pattern A)
+            Step 4: Planning (sequential — single planner)
+            Step 4a: Approval Gate — Post-Planning (interactive only)
+            Steps 5-6: Implementation + Verification Loop (Pattern B — max 3 iterations)
+            Step 6a: Runtime Smoke Test (mandatory for bugfix features)
+            Step 7: Code Review (3× parallel adversarial reviewers — Pattern A)
+            Step 8: Knowledge Capture (non-blocking)
+            Step 8b: Evidence Bundle (orchestrator produces summary)
+            Step 9: Commit (git add, commit)
+
+          The orchestrator has 5 core responsibilities:
+            1. Dispatch routing (read completion contracts → determine next step)
+            2. Approval gate management (ask_questions in interactive mode)
+            3. Error categorization and retry (transient: retry once, deterministic: escalate)
+            4. Evidence gate verification (SQL queries on verification-ledger.db)
+            5. Pipeline initialization (Step 0: SQLite schema, git baseline)
+
+          Dispatch uses VS Code Copilot's runSubagent API. Multiple runSubagent calls in
+          the same reasoning step execute in parallel (native Copilot runtime behavior).
+
+          Two dispatch patterns defined in dispatch-patterns.md:
+            Pattern A (Fully Parallel): Fan-out to N agents, wait all, evaluate gate. Concurrency cap: 4.
+            Pattern B (Sequential with Replan): Implement→Verify→Replan cycle, max 3 iterations.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 85-400 (Steps 0-9)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 15-35 (5 core responsibilities)"
+          - "NewAgents/.github/agents/dispatch-patterns.md (Pattern A and Pattern B definitions)"
+          - "NewAgents/.github/agents/orchestrator.agent.md anti-drift anchor (parallel dispatch via runSubagent)"
+        relevance: "The hub-and-spoke model is simple and proven but makes the orchestrator a bottleneck. Every inter-agent communication passes through it. This is unlike decentralized architectures (AutoGen Swarm, LangGraph conditional edges) where agents can hand off directly."
+
+      - id: "F-3"
+        title: "SQLite verification-ledger.db serves as the central state persistence layer"
+        category: "structure"
+        detail: |
+          The system uses a single SQLite database (verification-ledger.db) with 4 tables:
+            1. anvil_checks — Verification evidence records (written by 5 agents: Orchestrator,
+               Implementer, Verifier, Adversarial Reviewer, Knowledge Agent)
+            2. pipeline_telemetry — Execution tracking (written by Orchestrator only)
+            3. artifact_evaluations — Quality feedback (written by Implementer, Verifier, Adversarial Reviewer)
+            4. instruction_updates — Governed instruction change audit (written by Knowledge Agent only)
+
+          Evidence gates (EG-1 through EG-10) are SQL SELECT queries that the orchestrator
+          executes to make routing decisions. They form a formal proof chain: no step can
+          claim completion without database evidence. This is the anti-hallucination mechanism.
+
+          SQLite-specific infrastructure:
+            - WAL mode + busy_timeout=5000 (set at Step 0)
+            - SQLITE_BUSY retry: 3 attempts with exponential backoff (1s, 2s, 4s)
+            - sql_escape() sanitization for all free-text values
+            - stdin piping for all SQL execution (injection prevention)
+            - Run_id mismatch detection → archive to .db.archive with filesystem-safe timestamp
+
+          5 of 9 agents write to SQLite. The remaining 4 (Researcher, Spec, Designer, Planner)
+          have no SQLite dependency. sql-templates.md (936 lines) defines all SQL operations.
+
+          This is unique among agent systems — no other researched framework uses SQLite for
+          pipeline evidence tracking. SWE-Agent uses JSON trajectories, OpenHands uses event
+          streams, MetaGPT uses file artifacts, AutoGen uses in-memory messages, LangGraph
+          uses typed dict state (with optional SQLite/PostgreSQL checkpointing).
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md lines 1-10 (header listing all consumers)"
+          - "NewAgents/.github/agents/sql-templates.md lines 78-200 (§1 DDL: 4 tables)"
+          - "NewAgents/.github/agents/sql-templates.md lines 636-928 (§6 evidence gate queries)"
+          - "NewAgents/.github/agents/global-operating-rules.md lines 54-68 (§3 SQLITE_BUSY handling)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 90-130 (Step 0 SQLite initialization)"
+        relevance: "SQLite permeates 12 of 19 system files. The initial request explicitly asks to consider removing it. Removing SQLite would eliminate ~1,100 lines (sql-templates.md + evaluation-schema.md) but requires replacing 10 evidence gates that are the pipeline's verification backbone."
+
+      - id: "F-4"
+        title: "Three redundant system generations coexist in the repository"
+        category: "structure"
+        detail: |
+          The repository contains three separate copies of the agent system:
+            1. .github/agents/ — 19 files, 6,318 lines (deployed/active copy)
+            2. NewAgents/.github/agents/ — 19 files, 6,416 lines (canonical/development copy)
+            3. Forge/.github/agents/ — 28 files, 5,381 lines (legacy predecessor)
+          Plus the original Anvil agent (Anvil/anvil.agent.md).
+
+          Total: ~67 agent/reference files across 4 locations, ~18,115+ lines of instructions.
+          The .github/agents/ and NewAgents/.github/agents/ copies have diverged slightly
+          (e.g., e2e-integration.md is 573 vs 671 lines). This creates ambiguity about which
+          copy is authoritative and risks stale copies being used by VS Code Copilot.
+
+          The system has grown with each pipeline run — no run has ever simplified or reduced
+          the system. Five completed improvement runs all added complexity (new reference docs,
+          new schemas, new SQL templates). This is the "complexity spiral" the user wants to break.
+        evidence:
+          - ".github/agents/ — 19 files, 6,318 total lines"
+          - "NewAgents/.github/agents/ — 19 files, 6,416 total lines"
+          - "Forge/.github/agents/ — 28 files, 5,381 total lines"
+          - "Anvil/anvil.agent.md — original single-agent system"
+          - "docs/feature/ — 5 completed pipeline runs, all additive"
+        relevance: "The refactor must consolidate to a single authoritative copy and break the complexity spiral. The user explicitly grants authority for a full rewrite."
+
+      # ============================================================
+      # SECTION B: Modern Multi-Agent Orchestration Architectures
+      # ============================================================
+
+      - id: "F-5"
+        title: "SWE-Agent and mini-SWE-Agent: Single-agent simplicity achieves SOTA on coding benchmarks"
+        category: "pattern"
+        detail: |
+          SWE-Agent (Princeton/Stanford, NeurIPS 2024) is a single-agent system governed by a
+          single YAML config file. It enables an LLM to autonomously fix GitHub issues using
+          tools. No multi-agent orchestration, no review phase, no verification pipeline.
+
+          Key characteristics:
+            - Single agent with tool-use loop (edit, test, submit)
+            - Governed by one YAML configuration (config/default.yaml)
+            - "Free-flowing & generalizable: Leaves maximal agency to the LM"
+            - "Configurable & fully documented: Governed by a single yaml file"
+            - "Made for research: Simple & hackable by design"
+            - State-of-the-art on SWE-bench among open-source projects
+
+          mini-SWE-Agent (July 2025) supersedes SWE-Agent:
+            - Achieves 65% on SWE-bench verified in ~100 lines of Python
+            - Matches SWE-Agent performance while being "much simpler"
+            - The SWE-Agent team recommends mini-SWE-Agent going forward
+
+          This is the strongest evidence that simpler architectures can match or exceed complex
+          ones. A 100-line Python script outperforms 6,400+ lines of instructions on the
+          industry's primary coding benchmark.
+        evidence:
+          - "https://github.com/princeton-nlp/SWE-agent — 'Governed by a single yaml file'"
+          - "https://github.com/SWE-agent/mini-swe-agent — 65% on SWE-bench verified in ~100 lines"
+          - "SWE-Agent README: 'Most of our current development effort is on mini-swe-agent, which has superseded SWE-agent'"
+          - "SWE-Agent: 18.7k stars, 95 contributors, NeurIPS 2024"
+        relevance: "Demonstrates that extreme simplicity works for autonomous coding. The current system's 6,400+ line approach is at the opposite end of the complexity spectrum from the industry leader."
+
+      - id: "F-6"
+        title: "OpenHands: Single-agent SDK with composable tool access, no multi-agent pipeline"
+        category: "pattern"
+        detail: |
+          OpenHands (formerly OpenDevin) provides a Software Agent SDK — a composable Python
+          library for defining agents. Key architecture:
+            - Single agent with tool access (bash, file editing, web browsing)
+            - Agents defined in code, not instruction files
+            - CLI, Local GUI, and Cloud deployment options
+            - Task planning and decomposition happen internally (within a single agent turn)
+            - No multi-agent coordination — one agent handles the full task
+            - Top performer on SWE-bench, SWT-bench, multi-SWE-bench
+
+          This contradicts the assumption that multi-agent coordination is necessary for
+          complex coding tasks. OpenHands solves the same problems the current system targets
+          (feature implementation, bug fixing, code review) with a single agent architecture.
+
+          OpenHands SDK emphasizes composability: "Define agents in code, then run them locally,
+          or scale to 1000s of agents in the cloud." But the scaling is about running the SAME
+          agent on many tasks in parallel, not about agents coordinating with each other.
+        evidence:
+          - "https://docs.openhands.dev/ — OpenHands introduction and SDK documentation"
+          - "OpenHands: 'Define agents in code, then run them locally, or scale to 1000s of agents in the cloud'"
+          - "OpenHands architecture: single agent with task decomposition, not multi-agent"
+        relevance: "Another top-performing system using single-agent architecture. Validates that multi-agent coordination is a design choice, not a requirement."
+
+      - id: "F-7"
+        title: "MetaGPT: SOP-based multi-agent 'software company' simulation"
+        category: "pattern"
+        detail: |
+          MetaGPT (FoundationAgents, 64.9k stars, ICLR 2024) is the most directly comparable
+          multi-agent system to the current architecture. Its philosophy:
+            "Code = SOP(Team)" — materialize Standard Operating Procedures and apply them to
+            teams composed of LLMs.
+
+          Architecture:
+            - Roles: Product Manager, Architect, Project Manager, Engineer
+            - Each role is a Python class with defined actions and subscriptions
+            - Communication via structured messages (not file-based contracts)
+            - Sequential pipeline: Requirements → Design → Coding → QA → Review
+            - ~5 steps (vs current system's 10+)
+            - Behavior defined in Python code, not natural language instructions
+
+          Key difference from current system:
+            - MetaGPT's SOP is encoded in Python role definitions (~few hundred lines per role)
+            - Current system's SOP is encoded in Markdown instructions (~300+ lines per agent)
+            - MetaGPT's coordination is code-enforced; current system's is instruction-enforced
+            - MetaGPT has NO database-backed evidence tracking
+            - MetaGPT has NO adversarial review pattern
+
+          MGX (MetaGPT X) was launched Feb 2025 as "the world's first AI agent development team"
+          — a commercial product built on MetaGPT's multi-agent SOP pattern.
+        evidence:
+          - "https://github.com/geekan/MetaGPT — 'Code = SOP(Team)' philosophy"
+          - "MetaGPT: Product Manager, Architect, Project Manager, Engineer roles"
+          - "MetaGPT README: 'provides the entire process of a software company along with carefully orchestrated SOPs'"
+          - "MetaGPT: 64.9k stars, 112 contributors, ICLR 2024"
+        relevance: "Most architecturally similar to current system. Both use role-based multi-agent with SOP-style pipelines. Key lesson: MetaGPT achieves this in Python code, not in 6,400 lines of Markdown instructions. Both use ~5 steps (vs current 10+)."
+
+      - id: "F-8"
+        title: "AutoGen: Event-driven runtime with GraphFlow DAG-based orchestration"
+        category: "pattern"
+        detail: |
+          AutoGen (Microsoft, v0.7.5 stable) provides the most relevant DAG-based orchestration
+          model for the refactor. Key architecture:
+
+          Two-layer design:
+            - autogen-agentchat (high-level): Pre-built agent types and team patterns
+            - autogen-core (low-level): Event-driven runtime, message-based communication
+
+          Multi-agent coordination patterns:
+            1. SelectorGroupChat: Centralized selector picks next speaker (round-robin or LLM-based)
+            2. Swarm: Localized, tool-based handoff between agents (inspired by OpenAI Swarm)
+            3. GraphFlow: Directed graph execution with named nodes (agents) and edges
+            4. Magentic-One: Pre-built multi-agent system for complex tasks
+
+          GraphFlow is directly relevant to the refactor request:
+            - DAG-based: Nodes are agents, edges define execution paths
+            - Supports: sequential chains, parallel fan-outs, conditional branching, loops
+            - DiGraphBuilder API: add_node(), add_edge(condition=...), activation_group, activation_condition
+            - Message filtering: Control which messages each agent receives (reduce hallucination)
+            - Execution graph vs message graph: Separate concerns of execution order and context passing
+
+          GraphFlow features that map to current system needs:
+            - Parallel fan-out → Pattern A (research×4, review×3)
+            - Sequential chains → Pipeline steps (spec→design→plan)
+            - Conditional branching → Risk-based routing
+            - Loops with exit conditions → Pattern B (implement→verify→replan, max 3)
+            - activation_group="all" → Wait for all reviewers before proceeding
+            - activation_group="any" → Proceed when first response arrives
+
+          GraphFlow is marked as experimental in AutoGen v0.7.5.
+        evidence:
+          - "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html — AgentChat overview"
+          - "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/graph-flow.html — GraphFlow documentation"
+          - "AutoGen GraphFlow: DiGraphBuilder, add_node, add_edge, activation_group, activation_condition"
+          - "AutoGen GraphFlow: Sequential, Parallel, Conditional Loop, Message Filtering examples"
+          - "AutoGen: 'Use Graph when you need strict control over the order in which agents act'"
+        relevance: "AutoGen's GraphFlow is the closest industry equivalent to a DAG-based execution model for the current system. It demonstrates that DAG orchestration is a solved pattern in multi-agent frameworks. However, VS Code Copilot agents don't use AutoGen — the pattern must be adapted to the .agent.md + runSubagent model."
+
+      - id: "F-9"
+        title: "CrewAI: YAML-configured agents with hierarchical/sequential process types"
+        category: "pattern"
+        detail: |
+          CrewAI (v0.100+) provides a YAML-based agent configuration system:
+            - Agents defined in YAML (role, goal, backstory, tools)
+            - Tasks defined in YAML (description, expected_output, agent assignment)
+            - Two process types: sequential and hierarchical
+            - Memory backed by LanceDB (vector database) with hierarchical scopes
+            - Composite scoring: semantic + recency + importance
+
+          Architecture characteristics:
+            - YAML-first configuration (closest to .agent.md approach)
+            - Crew = team of agents with defined roles
+            - Process type defines execution order (sequential or managed by a lead agent)
+            - Memory consolidation (dedup) handled automatically via LLM
+            - No DAG execution model — sequential or hierarchical only
+
+          Relevance to refactor:
+            - YAML agent definitions validate the configuration-over-code approach
+            - Memory system (LanceDB) is more sophisticated than SQLite evidence tracking
+            - Hierarchical process type is similar to orchestrator-workers pattern
+            - No evidence gating — relies on agent outputs for routing
+
+          CrewAI's memory system contrasts with the current system's SQLite approach:
+            - CrewAI: LLM-driven analysis, semantic search, automatic dedup
+            - Current: Structured SQL INSERT/SELECT, deterministic evidence gates
+            - CrewAI trades determinism for flexibility; current system trades flexibility for rigor
+        evidence:
+          - "https://docs.crewai.com/concepts/crews — CrewAI sequential/hierarchical process"
+          - "https://docs.crewai.com/concepts/memory — CrewAI Memory: LanceDB backend, hierarchical scopes"
+          - "Other researcher findings (dependencies.yaml F-10) — detailed CrewAI memory analysis"
+        relevance: "CrewAI validates YAML-based agent configuration but uses a simpler coordination model. No evidence gates, no typed schemas — relies on natural output parsing."
+
+      # ============================================================
+      # SECTION C: DAG-Based Task Scheduling Patterns
+      # ============================================================
+
+      - id: "F-10"
+        title: "DAG-based task scheduling is standard in CI/CD and agent frameworks"
+        category: "pattern"
+        detail: |
+          DAG (Directed Acyclic Graph) task scheduling is a well-established pattern used across
+          multiple domains:
+
+          CI/CD systems:
+            - GitHub Actions: Jobs form a DAG via `needs:` dependencies. Parallel by default, sequential when dependent.
+            - Apache Airflow: Task DAGs with Python-defined dependencies. Industry standard for data pipelines.
+            - GitLab CI: Stages execute sequentially, jobs within stages execute in parallel.
+            - Azure Pipelines: Stages and jobs with dependency declarations.
+
+          Agent frameworks:
+            - AutoGen GraphFlow: DiGraph with nodes(agents) and edges(conditions). Supports fan-out, join, loops.
+            - LangGraph: Graph-based state machine with conditional edges. Checkpointing for persistence.
+            - Neither SWE-Agent nor OpenHands use DAG scheduling (single-agent).
+
+          Key DAG scheduling properties relevant to refactor:
+            1. Topological sort determines safe execution order
+            2. Tasks at the same topological level can run in parallel
+            3. Explicit dependency declarations enable resource ownership tracking
+            4. Conditional edges allow dynamic routing based on outputs
+            5. Cycle detection prevents infinite loops (loops need explicit exit conditions)
+
+          The current system already implements a basic form of DAG scheduling:
+            - Planner assigns tasks to waves based on dependency analysis
+            - Each wave runs ≤4 tasks in parallel (Pattern A)
+            - Waves execute sequentially
+            - This is equivalent to topological-level execution
+
+          The gap: Current wave assignment is done by the planner at plan time. A true DAG
+          model would declare per-task dependencies and compute parallel execution sets
+          dynamically at dispatch time. This enables: (a) tasks declared with dependencies
+          rather than manual wave assignment, (b) maximum parallelism computation, (c) file
+          ownership validation against the dependency graph.
+        evidence:
+          - "GitHub Actions: jobs.<job_id>.needs for DAG dependency declaration"
+          - "Apache Airflow: TaskDAG with set_downstream/set_upstream API"
+          - "AutoGen GraphFlow: DiGraphBuilder.add_edge with conditions and activation_groups"
+          - "NewAgents/.github/agents/planner.agent.md — wave assignment algorithm"
+          - "NewAgents/.github/agents/dispatch-patterns.md — Sub-Wave Partitioning (topological sort)"
+        relevance: "DAG scheduling is the most mature and widely-adopted approach. The current wave model is already a simplified DAG. Refactoring to explicit dependency declarations would be an incremental improvement, not a paradigm shift."
+
+      # ============================================================
+      # SECTION D: GitHub Copilot Agent Format Requirements
+      # ============================================================
+
+      - id: "F-11"
+        title: "VS Code custom agents support native tool restrictions, handoffs, and subagents"
+        category: "structure"
+        detail: |
+          The VS Code custom agent specification (as of VS Code 1.106, March 2026) defines:
+
+          File format: .agent.md in .github/agents/ directory
+          YAML frontmatter fields:
+            - name: Agent name (defaults to filename)
+            - description: Shown as placeholder in chat input
+            - argument-hint: Usage guidance text
+            - tools: Array of allowed tool names or tool sets (e.g., ['search', 'fetch'])
+                     Supports: builtin tools, MCP tools, tool sets, wildcard <server>/*
+            - agents: Array of allowed subagent names (* = all, [] = none)
+            - model: Single model name or prioritized list (tries in order)
+            - user-invocable: Boolean (default true) — show in agents dropdown
+            - disable-model-invocation: Boolean (default false) — prevent auto-invocation as subagent
+            - handoffs: List of workflow transitions with label, agent, prompt, send, model
+            - target: Execution environment (vscode or github-copilot)
+            - mcp-servers: Optional MCP server configs for cloud-hosted agents
+
+          Handoffs enable guided sequential workflows:
+            - After response completes, handoff buttons appear
+            - User can transition to next agent with context and pre-filled prompt
+            - Supports send:true for auto-submission
+            - Example: Planning → Implementation → Review workflow
+
+          Body: Markdown instructions (freeform)
+          Tool referencing: #tool:<tool-name> syntax in body text
+          File referencing: Markdown links to other instruction files
+
+          CRITICAL platform capabilities NOT used by current system:
+            1. tools YAML field: Could replace tool-access-matrix.md entirely via native enforcement
+            2. agents YAML field: Could restrict subagent access per agent
+            3. handoffs: Could replace some orchestrator dispatch logic for sequential steps
+            4. model field: Could assign different models to different agents
+            5. user-invocable/disable-model-invocation: Could create internal-only agents
+
+          Also supported:
+            - .claude/agents/ folder for Claude-format agents
+            - AGENTS.md files (nearest in directory tree takes precedence)
+            - .instructions.md files with applyTo glob patterns
+            - Organization-level shared agents
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/customization/custom-agents — full specification"
+          - "VS Code docs: tools, agents, model, handoffs YAML frontmatter fields"
+          - "VS Code docs: 'Custom agents were previously known as custom chat modes' (v1.106)"
+          - "VS Code docs: handoffs enable 'guided sequential workflows that transition between agents'"
+          - "NewAgents/.github/agents/*.agent.md — no tools or handoffs in current YAML frontmatter"
+        relevance: "The current system ignores several native VS Code capabilities that could simplify it. Using the tools field would provide code-enforced tool restrictions, eliminating the 105-line tool-access-matrix.md and the residual 'Medium' threat level of instruction-based enforcement."
+
+      - id: "F-12"
+        title: "GitHub recommends copilot-instructions.md be ≤2 pages — current system exceeds by ~100x"
+        category: "structure"
+        detail: |
+          GitHub's official custom instructions documentation states:
+            - "Instructions must be no longer than 2 pages"
+            - "Instructions must not be task specific"
+            - Focus on: build commands, project layout, coding conventions, validation steps
+            - Hierarchy: copilot-instructions.md (global) → NAME.instructions.md (path-specific) → AGENTS.md
+            - Purpose: "reducing agent search and exploration time"
+
+          The current system has ~6,416 lines across 19 files in NewAgents/.github/agents/,
+          plus ~1,041 lines across 12 prompt files. At roughly ~50 lines per page, that is
+          ~150 pages of instructions vs the recommended 2.
+
+          The system uses instruction files for two distinct purposes:
+            1. Convention documentation (GitHub's intended use): coding standards, project layout,
+               tool access rules, schema definitions
+            2. Workflow programming (beyond GitHub's scope): pipeline steps, dispatch patterns,
+               evidence gate logic, feedback loops, state machines
+
+          The workflow programming component is what drives the size beyond GitHub's recommendations.
+          GitHub Copilot's instruction model assumes agents have inherent capabilities and need
+          guidance on conventions. The current system uses instructions to PROGRAM agent behavior,
+          creating what is effectively a natural-language programming language.
+        evidence:
+          - "https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot"
+          - "GitHub docs: 'Instructions must be no longer than 2 pages'"
+          - "GitHub docs: 'Instructions must not be task specific'"
+          - "NewAgents/.github/agents/ — 6,416 lines (~128 pages at 50 lines/page)"
+          - "NewAgents/.github/prompts/ — 1,041 additional lines"
+        relevance: "The system exceeds GitHub's recommended instruction size by ~100x. This signals a fundamental architectural mismatch: the system is using an instruction mechanism for workflow programming. The refactor should separate convention documentation from workflow logic."
+
+      # ============================================================
+      # SECTION E: Architectural Simplification Patterns
+      # ============================================================
+
+      - id: "F-13"
+        title: "Anthropic's 'Building Effective Agents' guide recommends simple, composable patterns"
+        category: "pattern"
+        detail: |
+          Anthropic's authoritative engineering guide (Dec 2024, based on working with "dozens of
+          teams building LLM agents across industries") establishes the industry consensus:
+
+          Central thesis: "The most successful implementations weren't using complex frameworks
+          or specialized libraries. Instead, they were building with simple, composable patterns."
+
+          Key principle: "finding the simplest solution possible, and only increasing complexity
+          when needed."
+
+          Five composable workflow patterns identified:
+            1. Prompt Chaining: Sequential LLM calls with programmatic gates between steps
+            2. Routing: Classify input, direct to specialized handler
+            3. Parallelization: Simultaneous work (sectioning or voting)
+            4. Orchestrator-Workers: Central LLM delegates to workers dynamically
+            5. Evaluator-Optimizer: Generate → evaluate → refine loop
+
+          The current system uses ALL 5 patterns simultaneously:
+            - Prompt chaining → Sequential pipeline (research→spec→design→plan→implement)
+            - Routing → Risk-based lane classification (red/yellow/green)
+            - Parallelization → Pattern A (research×4, review×3)
+            - Orchestrator-workers → Orchestrator + implementer waves
+            - Evaluator-optimizer → Implementation→Verification→Replan loop (Pattern B)
+
+          Anthropic on frameworks: "they often create extra layers of abstraction that can
+          obscure the underlying prompts and responses, making them harder to debug."
+
+          Anthropic on complexity: "you should consider adding complexity only when it
+          demonstrably improves outcomes."
+
+          The current system stacks all 5 patterns AND adds SQLite evidence gating, 14 typed
+          YAML schemas, 3×3 adversarial review, anti-drift anchors, and self-verification
+          checklists. Anthropic presents these patterns as independent building blocks to select
+          based on need, not stack monolithically.
+        evidence:
+          - "https://www.anthropic.com/engineering/building-effective-agents — 'Building Effective Agents'"
+          - "Anthropic: 'the most successful implementations... were building with simple, composable patterns'"
+          - "Anthropic: 'finding the simplest solution possible, and only increasing complexity when needed'"
+          - "Anthropic: 5 workflow patterns as independent building blocks"
+          - "Anthropic: 'frameworks create extra layers of abstraction that can obscure the underlying prompts'"
+        relevance: "The most authoritative industry guidance directly contradicts the current system's approach of maximal complexity. The refactor should identify which patterns are essential and remove those that don't demonstrably improve outcomes."
+
+      - id: "F-14"
+        title: "Instruction-based enforcement is fundamentally weaker than code-based enforcement"
+        category: "risk"
+        detail: |
+          The current system enforces all agent behavior through natural language instructions:
+            - Tool access restrictions → Markdown table (tool-access-matrix.md)
+            - Output schema conformance → Written schema examples in schemas.md
+            - SQL safety → Written rules in sql-templates.md §0
+            - Anti-drift → Written reminders at end of each agent file
+            - Self-verification → Written checklists
+
+          This is a 4-layer instruction-based enforcement model:
+            1. Agent prompt instructions (primary)
+            2. Self-verification checklists
+            3. Regex validation patterns per agent
+            4. Verifier as secondary enforcement
+
+          The system acknowledges this as an "accepted risk" with residual threat level: Medium
+          (tool-access-matrix.md §11).
+
+          In contrast, code-based enforcement systems:
+            - AutoGen: Tools registered per-agent via Python API — enforced at runtime
+            - LangGraph: Tools bound to specific graph nodes
+            - VS Code Copilot: tools YAML field restricts available tools at platform level
+            - SWE-Agent: Tools defined in YAML config, agent can only use configured tools
+
+          The key risk: An LLM may ignore instruction-based restrictions. LLMs are probabilistic
+          and can deviate from instructions, especially with long contexts (6,400+ lines increases
+          the risk of instruction dilution). Code-enforced restrictions cannot be overridden.
+
+          The platform provides a solution: VS Code's tools YAML field in .agent.md frontmatter
+          natively restricts tool availability. This provides code-level enforcement without
+          leaving the instruction-based architecture.
+        evidence:
+          - "NewAgents/.github/agents/tool-access-matrix.md §11 — 'accepted risk (residual threat level: Medium)'"
+          - "NewAgents/.github/agents/tool-access-matrix.md — 4-layer enforcement model"
+          - "VS Code docs: tools YAML field in .agent.md frontmatter"
+          - "AutoGen docs: Tools registered per agent via Python API"
+        relevance: "Leveraging the native VS Code tools field would upgrade tool access enforcement from instruction-based (Medium risk) to platform-enforced (Low risk) while eliminating the 105-line tool-access-matrix.md."
+
+      - id: "F-15"
+        title: "Cross-file reference fragility is the architecture's structural weakness"
+        category: "risk"
+        detail: |
+          The system relies heavily on cross-file section references (§ notation). Repository
+          memory confirms these are the #1 source of Critical review findings across multiple
+          pipeline runs:
+            - orchestrator §11→§1.1 broken reference (Critical)
+            - EG-10 threshold ≥4→≥3 mismatch (Critical)
+            - Phantom check_names in evidence gate queries (Critical)
+            - Overbroad tool allowlist patterns (Critical)
+
+          High-fragility cross-reference chains:
+            - sql-templates.md §0 — referenced by 5 agents
+            - sql-templates.md §6 — referenced by orchestrator for all evidence gates
+            - schemas.md §Schema 1-14 — referenced by all 9 agents
+            - global-operating-rules.md §1-§2 — referenced by all 9 agents
+            - global-operating-rules.md §6 — referenced by all 9 agents for self-verification
+            - tool-access-matrix.md §1-§10 — each agent references its own section
+
+          Any section renumbering in a reference document silently breaks agent behavior.
+          The coupling density creates a maintenance burden: modifying any reference document
+          requires checking all 9 agent files for stale references.
+
+          This is a structural consequence of the shared-reference-document architecture.
+          Alternative approaches:
+            a) Inline critical rules into each agent (eliminates cross-references but duplicates content)
+            b) Co-locate schemas with producing agents (shrinks schemas.md)
+            c) Use named anchors instead of § numbers (reduces renumbering risk)
+            d) Use the VS Code tools field for tool access (eliminates tool-access-matrix.md entirely)
+        evidence:
+          - "Repository memory: 'Cross-file section refs are top Critical finding source'"
+          - "Repository memory: 'orchestrator §11→§1.1 and EG-10 threshold ≥4→≥3 mismatch'"
+          - "Repository memory: 'EG-10 queries referenced phantom check_names'"
+          - "All 9 agent files contain multiple [document.md](document.md) §N references"
+        relevance: "The most common class of Critical findings is a direct consequence of the architecture. Reducing cross-file references would eliminate the system's most frequent failure mode."
+
+      # ============================================================
+      # SECTION F: SQLite vs Alternative State Management
+      # ============================================================
+
+      - id: "F-16"
+        title: "No other agent system uses SQLite for evidence tracking — four alternative approaches exist"
+        category: "pattern"
+        detail: |
+          Web research confirms no other multi-agent framework uses SQLite for pipeline evidence:
+            - SWE-Agent: JSON trajectories (file-based logs)
+            - OpenHands: Event stream with in-memory processing
+            - MetaGPT: File-based artifacts, no database
+            - AutoGen: In-memory message history
+            - LangGraph: Typed dict state (in-memory or Redis/Postgres for persistence)
+            - CrewAI: LanceDB (vector database) for memory, no SQL evidence tracking
+
+          Four viable alternatives for the current system:
+
+          1. STRUCTURED YAML FILES PER STEP (recommended by dependencies researcher):
+             - One YAML file per evidence record in the feature directory
+             - Orchestrator reads evidence by reading YAML files instead of SQL SELECT
+             - Pro: Git-trackable, human-readable, zero external dependency
+             - Con: No aggregate queries across runs, no indexes for complex queries
+
+          2. COMPLETION CONTRACT AS EVIDENCE:
+             - Each agent's typed YAML output already contains completion status
+             - Orchestrator reads completion blocks to make routing decisions (already does this)
+             - Evidence gates replaced by reading agent outputs directly
+             - Pro: No new infrastructure, leverages existing contracts
+             - Con: No cross-run persistence, no audit trail
+
+          3. JSONL APPEND-ONLY LOG:
+             - Single .jsonl file with append-only evidence records
+             - Parse with grep/read_file instead of SQL
+             - Pro: Simple append model, single file
+             - Con: No transactional guarantees, no ad-hoc queries
+
+          4. IN-CONTEXT STATE ONLY:
+             - Orchestrator maintains all state in its context window (already partially does this)
+             - No external persistence during pipeline execution
+             - Pro: Zero infrastructure
+             - Con: Lost on context truncation, no audit trail
+
+          The completion-contract approach (option 2) is the most aligned with industry practice.
+          Most agent systems use structured return values for orchestration routing — exactly what
+          the current completion contracts provide. The SQLite evidence gates are an additional
+          verification layer on top of contracts that has never caught a real issue (all gates
+          have always passed across 5 pipeline runs).
+        evidence:
+          - "SWE-Agent, OpenHands, MetaGPT, AutoGen, LangGraph, CrewAI — none use SQLite for evidence"
+          - "Other researcher findings (dependencies.yaml F-10) — 4 alternatives detailed"
+          - "Other researcher findings (patterns.yaml F-6) — SQLite evidence tracking is unique"
+          - "Other researcher findings (impact.yaml F-14) — evidence gates have never blocked a pipeline"
+        relevance: "The SQLite evidence tracking system (936-line sql-templates.md + SQLITE_BUSY handling + sanitization) adds ~1,100 lines of infrastructure for a verification mechanism that has never caught an issue. The refactor should seriously evaluate replacing it with completion-contract-based verification."
+
+      # ============================================================
+      # SECTION G: Deterministic Agent Pipeline Patterns
+      # ============================================================
+
+      - id: "F-17"
+        title: "Deterministic pipelines require structured outputs, not database evidence"
+        category: "pattern"
+        detail: |
+          The term 'deterministic pipeline' appears in 3 distinct contexts across researched systems:
+
+          1. EXECUTION DETERMINISM (workflow control):
+             - Defined sequence of steps with explicit routing rules
+             - Current system: 10-step pipeline with evidence gates
+             - AutoGen GraphFlow: DAG with conditional edges
+             - LangGraph: Graph with typed state and conditional routing
+             - All use structured outputs for routing — none use SQL queries
+
+          2. OUTPUT DETERMINISM (reproducibility):
+             - Same input produces same output (or similar quality)
+             - Not achievable with LLMs — probabilistic by nature
+             - Systems accept non-deterministic outputs within deterministic workflows
+             - Control via: temperature settings, structured output prompting, typed schemas
+
+          3. VERIFICATION DETERMINISM (quality assurance):
+             - Verification checks produce consistent pass/fail results
+             - Current system: SQL evidence gates (deterministic queries)
+             - Other systems: Structured output validation (JSON schema, type checking)
+             - LangGraph: State validation via TypedDict
+
+          The current system's evidence gates provide verification determinism via SQL:
+            "SELECT COUNT(*) FROM anvil_checks WHERE check_name='tdd-compliance' AND passed=1"
+          This is deterministic but overkill — the same verification can be achieved by reading
+          the verifier's completion contract YAML:
+            "completion.status == 'DONE' AND check_name in payload.checks"
+
+          The key insight: Execution determinism (step ordering, routing rules) is essential.
+          Output determinism is unachievable. Verification determinism can be achieved with
+          structured outputs alone — SQL is unnecessary.
+        evidence:
+          - "AutoGen GraphFlow: DAG edges with conditions define deterministic routing"
+          - "LangGraph: Conditional edges with state-based routing"
+          - "Current system: completion contracts already contain DONE/NEEDS_REVISION/ERROR routing signals"
+          - "Current system: evidence gates query SQL for what's already in agent output YAML"
+        relevance: "SQLite evidence gates can be replaced by structured output validation. The completion contract pattern (already in place) provides the routing signals needed for a deterministic pipeline."
+
+      - id: "F-18"
+        title: "The completion contract pattern is industry-standard and should be the sole routing mechanism"
+        category: "pattern"
+        detail: |
+          The current system's completion contract (DONE/NEEDS_REVISION/ERROR with structured
+          metadata) is well-aligned with industry practice:
+            - AutoGen: Structured message-based routing (agents return typed messages)
+            - LangGraph: Node return values determine graph traversal
+            - MetaGPT: Python return values from role actions
+            - SWE-Agent: Exit status from tool loop
+            - OpenHands: Event completion status
+
+          The current system ALREADY uses completion contracts for primary routing (orchestrator
+          reads completion blocks to determine next step). The SQL evidence gates are a secondary
+          verification layer that duplicates this routing information in a database.
+
+          Five pipeline runs with zero functional failures demonstrate that the completion
+          contract routing is reliable. The evidence gates have never triggered a routing
+          change that wouldn't have been caught by reading the completion contract directly.
+
+          Simplification opportunity: Make the completion contract the SOLE routing mechanism.
+          Remove the SQL evidence gate layer entirely. This eliminates:
+            - sql-templates.md (936 lines)
+            - evaluation-schema.md (84 lines)
+            - SQLITE_BUSY handling in global-operating-rules.md
+            - SQL sanitization rules
+            - run_in_terminal usage for SQL in orchestrator, implementer, verifier, adversarial-reviewer, knowledge-agent
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 72-100 (Schema 1: completion-contract)"
+          - "5 pipeline runs with 0 functional failures and 0 evidence gate blocks"
+          - "All agent files include completion block in output schema"
+          - "AutoGen, LangGraph, MetaGPT — all use structured returns for routing"
+        relevance: "The completion contract is proven, industry-aligned, and sufficient for routing. Making it the sole mechanism is the highest-impact simplification available."
+
+      - id: "F-19"
+        title: "VS Code Copilot handoffs could replace orchestrator dispatch for sequential steps"
+        category: "pattern"
+        detail: |
+          VS Code's handoff feature (available since v1.106) enables guided workflow transitions
+          between agents:
+            - After an agent completes, handoff buttons appear
+            - Each handoff specifies: target agent, button label, optional prompt, auto-send flag
+            - Handoffs are defined in YAML frontmatter of .agent.md files
+
+          Example from VS Code docs:
+            handoffs:
+              - label: Start Implementation
+                agent: implementation
+                prompt: Now implement the plan outlined above.
+                send: false
+
+          This could replace orchestrator dispatch for sequential steps:
+            - spec → designer (handoff with spec output as context)
+            - designer → planner (handoff with design output)
+            - planner → implementation (handoff with task list)
+
+          Limitations:
+            - Handoffs are user-facing (buttons in chat) — not suitable for fully autonomous operation
+            - No parallel fan-out via handoffs (only one target agent per handoff)
+            - No conditional routing (handoff is always available, not gated)
+
+          For the current system's use case (interactive mode frequently used), handoffs could
+          simplify the sequential portions of the pipeline while the orchestrator handles parallel
+          dispatch and conditional routing.
+
+          This is a hybrid approach: handoffs for linear flow, orchestrator for parallel + conditional.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/customization/custom-agents — handoffs specification"
+          - "VS Code docs: 'Handoffs enable you to create guided sequential workflows'"
+          - "VS Code docs: handoff YAML fields (label, agent, prompt, send, model)"
+        relevance: "Handoffs are a platform-native workflow mechanism. Using them for sequential steps (spec→design→plan) would reduce orchestrator complexity and leverage platform features."
+
+    summary: |
+      The current system is a 19-file, 6,416-line instruction-based multi-agent pipeline with
+      hub-and-spoke orchestration, SQLite evidence persistence, and 10+ pipeline steps. This is
+      architecturally unique — no other researched system approaches this size or complexity for
+      agent instructions. Industry leaders (SWE-Agent, OpenHands) achieve SOTA with single-agent
+      architectures. Multi-agent systems (MetaGPT, AutoGen, CrewAI) use 5 or fewer steps with
+      code-defined behavior, not instruction-based. The system's most fragile patterns (cross-file
+      references, SQLite evidence gates) are also its most unique — no other system uses them.
+      The VS Code platform provides native capabilities (tools field, handoffs, subagents) that
+      the current system does not leverage. Anthropic's authoritative guidance recommends simple,
+      composable patterns — the current system stacks all 5 identified patterns plus additional
+      infrastructure. The completion contract pattern is proven and industry-aligned; making it the
+      sole routing mechanism (removing SQLite) is the highest-impact simplification. Explicit DAG
+      dependency declarations would be an incremental improvement over the current wave model.
+
+    source_files_examined:
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/e2e-integration.md"
+      - "NewAgents/.github/agents/review-perspectives.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/context7-integration.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/prompts/feature-workflow.prompt.md"
+      - "NewAgents/.github/prompts/plan-and-implement.prompt.md"
+      - ".github/copilot-instructions.md"
+      - "docs/feature/agent-system-refactor/initial-request.md"
+      - "docs/feature/agent-system-refactor/research/dependencies.yaml"
+      - "docs/feature/agent-system-refactor/research/impact.yaml"
+      - "docs/feature/agent-system-refactor/research/patterns.yaml"
+
+    web_research_attempted: true
+    web_sources_consulted:
+      - "https://code.visualstudio.com/docs/copilot/customization/custom-agents"
+      - "https://code.visualstudio.com/docs/copilot/copilot-customization"
+      - "https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot"
+      - "https://github.com/princeton-nlp/SWE-agent"
+      - "https://docs.openhands.dev/"
+      - "https://github.com/geekan/MetaGPT"
+      - "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html"
+      - "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/graph-flow.html"
+
+completion:
+  status: "DONE"
+  summary: "Architecture research: 19 findings covering current system structure, 6 modern agent frameworks, DAG scheduling, VS Code agent format, simplification patterns, SQLite alternatives, and deterministic pipeline patterns."
+  severity: null
+  findings_count: 19
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/research/architecture.yaml"

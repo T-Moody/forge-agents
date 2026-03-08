@@ -1,0 +1,65 @@
+task:
+  id: "task-09"
+  title: "Create knowledge.agent.md"
+  description: >
+    Create v2/.github/agents/knowledge.agent.md (~100 lines). The Knowledge agent
+    merges the current Knowledge Agent + proposed Instruction Optimizer (D-2). It
+    runs at Step 8 (Completion) and performs: (1) post-mortem analysis (reads
+    pipeline-log.yaml, computes timing, dispatch count, findings summary),
+    (2) evidence bundle production (evidence-bundle.yaml), (3) instruction
+    optimization recommendations (written to instruction-recommendations.md for
+    human review — MUST NOT modify .agent.md files directly per FR-10.3).
+    Uses the standard 6-section body format.
+    YAML frontmatter: name, description, tools (read_file, list_dir, grep_search,
+    semantic_search, file_search, create_file, memory), agents: [].
+    CRITICAL: Constraints section must define the output_path_allowlist —
+    Knowledge output is restricted to docs/feature/<slug>/ directory:
+    evidence-bundle.yaml, knowledge-output.yaml, instruction-recommendations.md.
+    The orchestrator validates git diff against this allowlist at pre-commit (D-14).
+    Knowledge agent MUST NOT have replace_string_in_file or write access to
+    .agent.md files — it creates new files only.
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["task-01"]
+  acceptance_criteria:
+    - id: "AC-2"
+      text: "File does not exceed 150 lines (budget: 100)"
+      test_method: "test"
+    - id: "AC-5"
+      text: "YAML frontmatter contains name, description, and tools fields"
+      test_method: "inspection"
+    - id: "AC-7"
+      text: "YAML frontmatter has agents: [] (no subagent access)"
+      test_method: "inspection"
+    - id: "AC-17"
+      text: "Knowledge agent tools list does NOT include replace_string_in_file. Does NOT have write access to .agent.md files. Instruction changes written to recommendation file only."
+      test_method: "inspection"
+    - id: "FR-10.1"
+      text: "Workflow produces post-mortem analysis: pipeline duration, dispatch count, findings summary, lessons learned"
+      test_method: "inspection"
+    - id: "FR-10.2"
+      text: "Workflow produces instruction optimization recommendations written to instruction-recommendations.md"
+      test_method: "inspection"
+    - id: "SS-S-3"
+      text: "Constraints section defines output_path_allowlist: evidence-bundle.yaml, knowledge-output.yaml, instruction-recommendations.md in docs/feature/<slug>/"
+      test_method: "inspection"
+    - id: "AC-22"
+      text: "Output Schema includes completion contract (status/summary/output_paths)"
+      test_method: "inspection"
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.component_design[agent='knowledge']"
+      - "design-output.yaml#payload.decisions[id='D-14']"
+      - "design-output.yaml#payload.decisions[id='D-15']"
+      - "design-output.yaml#payload.trust_boundary_model.tier_3_read_only_create"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-10']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-17']"
+    files_to_modify:
+      - path: "v2/.github/agents/knowledge.agent.md"
+        risk: "🟡"

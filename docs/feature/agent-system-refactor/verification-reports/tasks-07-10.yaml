@@ -1,0 +1,190 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-tasks-07-10"
+  step: "step-6"
+  started_at: "2026-03-08T22:00:00Z"
+  completed_at: "2026-03-08T22:20:00Z"
+  schema_version: "1.0"
+  payload:
+    run_id: "2026-03-08T12:00:00Z"
+    feature_slug: "agent-system-refactor"
+    tasks_verified:
+      - task_id: "task-07"
+        file: "v2/.github/agents/implementer.agent.md"
+        line_count: 101
+        line_limit: 150
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-2"
+            result: "pass"
+            detail: "101 lines ≤ 150 (budget 130)"
+          - id: "AC-5"
+            result: "pass"
+            detail: "Frontmatter has name: implementer, description, tools (12 tools listed)"
+          - id: "AC-7"
+            result: "pass"
+            detail: "agents: [] present in frontmatter"
+          - id: "AC-15"
+            result: "pass"
+            detail: "No app startup, E2E, curl/HTTP tools. Tools: file editing, terminal, get_errors, fetch_webpage"
+          - id: "D-14a"
+            result: "pass"
+            detail: "Constraints §1 defines command allowlist: dotnet build/test/run, npm run build/test, cargo build/test, go build/test, pytest, git diff/add/status"
+          - id: "AG-A-3"
+            result: "pass"
+            detail: "Constraints §2 defines file ownership rule with NEEDS_REVISION + files_requested[] mechanism"
+          - id: "FR-7.3"
+            result: "pass"
+            detail: "Output Schema includes commands_executed[] audit trail field"
+          - id: "AC-22"
+            result: "pass"
+            detail: "Output Schema includes completion contract: status, summary, output_paths"
+        structural_checks:
+          sqlite_refs: 0
+          section_cross_refs: 0
+
+      - task_id: "task-08"
+        file: "v2/.github/agents/tester.agent.md"
+        line_count: 128
+        line_limit: 150
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-2"
+            result: "pass"
+            detail: "128 lines ≤ 150 (budget 140)"
+          - id: "AC-5"
+            result: "pass"
+            detail: "Frontmatter has name: tester, description, tools (9 tools listed)"
+          - id: "AC-7"
+            result: "pass"
+            detail: "agents: [] present in frontmatter"
+          - id: "AC-16"
+            result: "pass"
+            detail: "Tools list includes run_in_terminal"
+          - id: "FR-8.2"
+            result: "pass"
+            detail: "Static Evaluation Workflow step 2 verifies TDD compliance: tests exist, tests ran, tests pass"
+          - id: "FR-8.4"
+            result: "pass"
+            detail: "Constraints section states SINGLETON for dynamic mode"
+          - id: "FR-8.5"
+            result: "pass"
+            detail: "Output Schema defines test_report with test_categories (unit/integration/e2e), tdd_verification, verdict field"
+          - id: "AC-22"
+            result: "pass"
+            detail: "completion block with status, summary, output_paths"
+        structural_checks:
+          sqlite_refs: 0
+          section_cross_refs: 0
+
+      - task_id: "task-09"
+        file: "v2/.github/agents/knowledge.agent.md"
+        line_count: 106
+        line_limit: 150
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-2"
+            result: "pass"
+            detail: "106 lines ≤ 150 (budget 100, within hard limit)"
+          - id: "AC-5"
+            result: "pass"
+            detail: "Frontmatter has name: knowledge, description, tools (7 tools listed)"
+          - id: "AC-7"
+            result: "pass"
+            detail: "agents: [] present in frontmatter"
+          - id: "AC-17"
+            result: "pass"
+            detail: "Tools list does NOT include replace_string_in_file. Constraints explicitly prohibit .agent.md modification. Uses create_file only."
+          - id: "FR-10.1"
+            result: "pass"
+            detail: "Workflow steps 1-4: read pipeline log, read agent outputs, compute metrics (duration, dispatch count, pass/fail rates), analyze patterns (lessons learned)"
+          - id: "FR-10.2"
+            result: "pass"
+            detail: "Workflow step 7 produces instruction-recommendations.md (RECOMMENDATIONS only)"
+          - id: "SS-S-3"
+            result: "pass"
+            detail: "Constraints define output_path_allowlist: evidence-bundle.yaml, knowledge-output.yaml, instruction-recommendations.md in docs/feature/<slug>/"
+          - id: "AC-22"
+            result: "pass"
+            detail: "Output Schema includes completion contract: status, summary, output_paths"
+        structural_checks:
+          sqlite_refs: 0
+          section_cross_refs: 0
+
+      - task_id: "task-10"
+        file: "v2/.github/agents/orchestrator.agent.md"
+        line_count: 105
+        line_limit: 150
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-2"
+            result: "pass"
+            detail: "105 lines ≤ 150. No DAG extraction needed."
+          - id: "AC-5"
+            result: "pass"
+            detail: "Frontmatter has name: orchestrator, description, tools (9 tools listed)"
+          - id: "AC-6"
+            result: "pass"
+            detail: "agents field lists all 7: researcher, architect, planner, implementer, tester, reviewer, knowledge"
+          - id: "AC-8"
+            result: "pass"
+            detail: "grep confirms 0 occurrences of sqlite, sqlite3, verification-ledger, sql-templates"
+          - id: "AC-9"
+            result: "pass"
+            detail: "Constraints: 'completion contracts only — read completion.status from YAML'. No database queries."
+          - id: "AC-10"
+            result: "pass"
+            detail: "8 named steps: Setup, Research, Architecture, Planning, Implementation, Testing, Code Review, Completion"
+          - id: "AC-11"
+            result: "pass"
+            detail: "Step 7 header: 'MANDATORY, ALL RISK LEVELS'. Body: 'CANNOT BE SKIPPED — not for 🟢, not for quick-fix pipelines'"
+          - id: "AC-13"
+            result: "pass"
+            detail: "DAG Dispatch Algorithm: 'Find READY tasks: all depends_on satisfied' — dependency-driven, not fixed waves"
+          - id: "AC-14"
+            result: "pass"
+            detail: "DAG step 3: 'Check file overlap: no two READY tasks modify the same file'. Step 4: defer on overlap."
+          - id: "KI-1"
+            result: "pass"
+            detail: "Step 8: validates ONLY evidence-bundle.yaml, knowledge-output.yaml, instruction-recommendations.md in docs/feature/<slug>/. Rejects unexpected files."
+          - id: "D-15"
+            result: "pass"
+            detail: "Constraints: 'append to pipeline-log.yaml after EVERY dispatch: step, agent, started_at, completed_at, status, output_paths'"
+          - id: "FR-3.5"
+            result: "pass"
+            detail: "Step 1 includes 🟢/🟡/🔴 classification; Step 2 scales researcher count; Step 6 scales testing depth"
+          - id: "AC-22"
+            result: "pass"
+            detail: "Constraints: 'completion contracts only — read completion.status from YAML'"
+        structural_checks:
+          sqlite_refs: 0
+          section_cross_refs: 0
+
+    evidence_gate:
+      total_checks: 4
+      passed: 4
+      failed: 0
+      gate_status: "passed"
+
+    sql_evidence:
+      - task_id: "task-07"
+        check_name: "verification-static"
+        passed: 1
+      - task_id: "task-08"
+        check_name: "verification-static"
+        passed: 1
+      - task_id: "task-09"
+        check_name: "verification-static"
+        passed: 1
+      - task_id: "task-10"
+        check_name: "verification-static"
+        passed: 1
+
+completion:
+  status: "DONE"
+  summary: "Verified tasks 07-10 (Wave 3-4): 4/4 pass, 38 ACs checked, 0 failures, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/verification-reports/tasks-07-10.yaml"

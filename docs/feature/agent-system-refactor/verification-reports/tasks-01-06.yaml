@@ -1,0 +1,207 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-tasks-01-06"
+  step: "step-6"
+  started_at: "2026-03-08T22:00:00Z"
+  completed_at: "2026-03-08T22:30:00Z"
+  schema_version: "1.0"
+  payload:
+    run_id: "2026-03-08T12:00:00Z"
+    tasks_verified:
+      - task_id: "task-01"
+        file: "v2/.github/agents/global-rules.md"
+        line_count: 45
+        line_budget: 100
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-4"
+            result: "pass"
+            detail: "Sole shared reference document in v2/.github/agents/ — no other shared docs"
+          - id: "AC-8"
+            result: "pass"
+            detail: "grep_search across v2/.github/**: 0 matches for sqlite|sqlite3|verification-ledger|sql-templates"
+          - id: "AC-18"
+            result: "pass"
+            detail: "grep_search across v2/.github/**: 0 matches for §"
+          - id: "AC-22a"
+            result: "pass"
+            detail: "Completion contract defines status, summary, output_paths as required fields"
+          - id: "AC-22b"
+            result: "pass"
+            detail: "Validation rule states: any status other than DONE/NEEDS_REVISION/ERROR treated as ERROR"
+          - id: "AC-1a"
+            result: "pass"
+            detail: "45 lines ≤ 100 limit"
+
+      - task_id: "task-02"
+        files:
+          - "v2/.github/prompts/feature-workflow.prompt.md"
+          - "v2/.github/prompts/quick-fix.prompt.md"
+        line_counts:
+          feature-workflow: 28
+          quick-fix: 26
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-20a"
+            result: "pass"
+            detail: "Both files created in v2/.github/prompts/"
+          - id: "D-13a"
+            result: "pass"
+            detail: "quick-fix.prompt.md lists steps {1,5,6,7,8} — Setup, Implementation, Testing, Code Review, Completion"
+          - id: "D-13b"
+            result: "pass"
+            detail: "Code Review (Step 7) explicitly marked MANDATORY, NOT SKIPPABLE in both step list and execution rules"
+          - id: "AC-18"
+            result: "pass"
+            detail: "0 § cross-references in either file"
+          - id: "AC-8"
+            result: "pass"
+            detail: "0 forbidden term matches in either file"
+
+      - task_id: "task-03"
+        file: "v2/.github/agents/researcher.agent.md"
+        line_count: 69
+        line_budget: 150
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-2"
+            result: "pass"
+            detail: "69 lines ≤ 150 limit (budget 100)"
+          - id: "AC-5"
+            result: "pass"
+            detail: "YAML frontmatter: name=researcher, description present, tools=[7 tools]"
+          - id: "AC-7"
+            result: "pass"
+            detail: "agents: [] present in frontmatter"
+          - id: "AC-19"
+            result: "pass"
+            detail: "fetch_webpage listed in tools array"
+          - id: "AC-22"
+            result: "pass"
+            detail: "Output Schema includes completion block with status/summary/output_paths"
+          - id: "AC-18"
+            result: "pass"
+            detail: "0 § cross-references"
+          - id: "AC-8"
+            result: "pass"
+            detail: "0 forbidden term matches"
+        notes: "fetch_webpage gated by web_research_enabled parameter in Workflow Step 4 and Constraints section"
+
+      - task_id: "task-04"
+        file: "v2/.github/agents/architect.agent.md"
+        line_count: 98
+        line_budget: 150
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-2"
+            result: "pass"
+            detail: "98 lines ≤ 150 limit (budget 140)"
+          - id: "AC-5"
+            result: "pass"
+            detail: "YAML frontmatter: name=architect, description present, tools=[7 tools]"
+          - id: "AC-7"
+            result: "pass"
+            detail: "agents: [] present in frontmatter"
+          - id: "AC-22"
+            result: "pass"
+            detail: "Output Schema includes completion block with status/summary/output_paths"
+          - id: "FR-5.1"
+            result: "pass"
+            detail: "Workflow steps 3-7 produce: requirements (FR-IDs), acceptance criteria (AC-IDs), directions A/B/C, selected direction, technical decisions (D-IDs)"
+          - id: "FR-5.2a"
+            result: "pass"
+            detail: "Inputs table lists research outputs and initial-request.md"
+          - id: "PV-C-1"
+            result: "pass"
+            detail: "Missing research section: 'When research files are absent (Step 2 was skipped), use initial-request.md combined with codebase analysis as sole inputs'"
+          - id: "AG-C-1"
+            result: "pass"
+            detail: "Output file named architecture-output.yaml — enforced in Workflow Step 8, Output Schema, and Constraints"
+        notes: "7 Unknown tool IDE warnings are VS Code artifacts for .agent.md tool declarations — tools resolve at runtime"
+
+      - task_id: "task-05"
+        file: "v2/.github/agents/planner.agent.md"
+        line_count: 79
+        line_budget: 150
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-2"
+            result: "pass"
+            detail: "79 lines ≤ 150 limit (budget 130)"
+          - id: "AC-5"
+            result: "pass"
+            detail: "YAML frontmatter: name=planner, description present, tools=[6 tools]"
+          - id: "AC-7"
+            result: "pass"
+            detail: "agents: [] present in frontmatter"
+          - id: "AC-12"
+            result: "pass"
+            detail: "Required task fields table defines: id, description, depends_on, files (ownership), risk_level"
+          - id: "AC-22"
+            result: "pass"
+            detail: "Completion contract section with status/summary/output_paths"
+          - id: "FR-6.2"
+            result: "pass"
+            detail: "Constraints: 'No two tasks that can run in parallel may declare the same file' + Workflow Step 5 collision detection"
+        notes: "6 Unknown tool IDE warnings — VS Code artifact"
+
+      - task_id: "task-06"
+        file: "v2/.github/agents/reviewer.agent.md"
+        line_count: 75
+        line_budget: 150
+        verdict: "pass"
+        acceptance_criteria:
+          - id: "AC-2"
+            result: "pass"
+            detail: "75 lines ≤ 150 limit (budget 110)"
+          - id: "AC-5"
+            result: "pass"
+            detail: "YAML frontmatter: name=reviewer, description present, tools=[8 tools]"
+          - id: "AC-7"
+            result: "pass"
+            detail: "agents: [] present in frontmatter"
+          - id: "FR-9.1"
+            result: "pass"
+            detail: "Role section: 'orchestrator dispatches 2-3 Reviewer instances in parallel, each assigned a distinct review_perspective' — security, architecture, correctness"
+          - id: "FR-9.2"
+            result: "pass"
+            detail: "Output Schema: severity (blocker/critical/major/minor) and verdict (approve/request-changes)"
+          - id: "AC-22"
+            result: "pass"
+            detail: "Completion contract with status/summary/output_paths in Output Schema"
+          - id: "R2-audit"
+            result: "pass"
+            detail: "Workflow steps 3-4: command allowlist audit + URL trail audit. Constraints section reinforces both."
+        notes: "8 Unknown tool IDE warnings — VS Code artifact"
+
+    cross_cutting_checks:
+      forbidden_terms:
+        method: "grep_search across v2/.github/** for sqlite|sqlite3|verification-ledger|sql-templates"
+        matches: 0
+        result: "pass"
+      section_references:
+        method: "grep_search across v2/.github/** for §"
+        matches: 0
+        result: "pass"
+
+    evidence_gate:
+      total_checks: 18
+      passed: 18
+      failed: 0
+      gate_status: "passed"
+
+    regressions: []
+
+completion:
+  status: "DONE"
+  summary: "Verified tasks 01-06: 18 checks passed, 0 failed, 0 regressions. All acceptance criteria met."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/verification-reports/tasks-01-06.yaml"
+  evidence_summary:
+    total_checks: 18
+    passed: 18
+    failed: 0
+    security_blockers: 0

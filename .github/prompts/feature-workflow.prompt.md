@@ -9,6 +9,8 @@ agent: orchestrator
 
 {{USER_FEATURE}}
 
+YOU MUST START AT STEP 0. Do not do your own research or make assumptions about the feature. Follow the steps in order. If you need more information, use subagents for research and ask the user for clarification using the ask tool with multiple choice questions.
+
 ## Pipeline Execution Rules
 
 1. Execute the pipeline defined in `orchestrator.agent.md` All steps.

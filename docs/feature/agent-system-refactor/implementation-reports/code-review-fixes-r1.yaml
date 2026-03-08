@@ -1,0 +1,77 @@
+task_id: "code-review-fixes-r1"
+files_modified:
+  - "v2/.github/agents/implementer.agent.md"
+  - "v2/.github/agents/tester.agent.md"
+  - "v2/.github/agents/architect.agent.md"
+  - "v2/.github/agents/orchestrator.agent.md"
+  - "v2/.github/agents/researcher.agent.md"
+  - "v2/.github/agents/reviewer.agent.md"
+  - "v2/.github/agents/knowledge.agent.md"
+files_requested: []
+tests_written: []
+test_results: null
+tdd_compliance: false
+tdd_fallback_reason: "Agent instruction files (.agent.md) are configuration, not production source code. No test framework applies."
+commands_executed:
+  - "Get-Content ... | Measure-Object -Line (7 files — line count verification)"
+  - "git add -A"
+fixes_applied:
+  - id: "S-1"
+    severity: "major"
+    file: "v2/.github/agents/implementer.agent.md"
+    description: "Removed fetch_webpage from YAML frontmatter tools list. Implementer is Tier 2 and should not have exfiltration-capable tools."
+  - id: "S-2"
+    severity: "major"
+    file: "v2/.github/agents/tester.agent.md"
+    description: "Added command allowlist constraint with specific allowed patterns (dotnet run/test, npm start/test/dev, cargo run/test, go test/run, pytest, git diff/status, shutdown commands). All commands must be logged."
+  - id: "S-3"
+    severity: "major"
+    file: "v2/.github/agents/architect.agent.md"
+    description: "Added web_research_enabled parameter to Inputs table and replaced vague fetch_webpage constraint with explicit gate: only use when web_research_enabled is explicitly true."
+  - id: "A-2"
+    severity: "major"
+    file: "v2/.github/agents/orchestrator.agent.md"
+    description: "Added quick-fix mode clause to Step 1: for green-risk single fixes, orchestrator generates minimal plan-output.yaml and tasks/task-01.yaml inline, replacing Planner output."
+  - id: "A-1"
+    severity: "major"
+    file: "v2/.github/agents/orchestrator.agent.md"
+    description: "Updated routing constraint to allow reading verdict field from Reviewer and Tester outputs for gate evaluation (Steps 6-7), not just completion.status."
+  - id: "C-1"
+    severity: "major"
+    file: "v2/.github/agents/tester.agent.md"
+    description: "Fixed static evaluation workflow to use Implementer's actual schema fields: tdd_compliance (not tdd_red_green.tests_written_first), test_results (not self_check.test_summary), files_modified (not changes[].path). Removed task_type:code filter."
+  - id: "C-2"
+    severity: "major"
+    file: "v2/.github/agents/orchestrator.agent.md"
+    description: "Added interactive approval gate after Step 2 Research: present research summary to user via vscode_askQuestions before proceeding to Step 3."
+  - id: "A-3"
+    severity: "major"
+    files:
+      - "v2/.github/agents/researcher.agent.md"
+      - "v2/.github/agents/reviewer.agent.md"
+      - "v2/.github/agents/knowledge.agent.md"
+    description: "Added global-rules.md reference to Constraints section of all 3 agents per D-12."
+line_counts_post_fix:
+  implementer: 74
+  tester: 99
+  architect: 99
+  orchestrator: 89
+  researcher: 70
+  reviewer: 76
+  knowledge: 91
+  max_allowed: 150
+baseline:
+  ide_diagnostics: { errors: 62, warnings: 0 }
+  build_exit_code: null
+  test_summary: null
+self_check:
+  ide_diagnostics: { errors: 61, warnings: 0 }
+  build_exit_code: null
+  test_summary: null
+  self_fix_attempts: 0
+  git_staged: true
+completion:
+  status: "DONE"
+  summary: "Applied 8 Major code review fixes across 7 agent files. All under 150-line limit. No new errors."
+  output_paths:
+    - "docs/feature/agent-system-refactor/implementation-reports/code-review-fixes-r1.yaml"

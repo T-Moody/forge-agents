@@ -1,0 +1,87 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-01"
+  step: "step-5"
+  started_at: "2026-03-08T12:00:00Z"
+  completed_at: "2026-03-08T12:15:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-01"
+    task_type: "documentation"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "v2/.github/agents/global-rules.md"
+        action: "created"
+        description: "Created global-rules.md (~69 lines) — sole shared reference document for the 8-agent system. Contains completion contract schema, validation rule, retry policy, anti-hallucination rule, feedback loop limits, output path convention, and risk classification definitions."
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 0
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "ac-1a-line-count"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+        detail: "69 lines ≤ 100"
+      - check_name: "ac-8-forbidden-terms"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+        detail: "0 occurrences of sqlite, sqlite3, verification-ledger, sql-templates"
+      - check_name: "ac-18-section-refs"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+        detail: "0 § cross-references"
+    behavioral_coverage:
+      - ac_id: "AC-4"
+        status: "not_applicable"
+        justification: "test_method='inspection' — single shared doc verified by file count"
+      - ac_id: "AC-8"
+        test_file: null
+        test_name: "ac-8-forbidden-terms"
+        status: "covered"
+        justification: "Verified via grep: 0 matches for all 4 forbidden terms"
+      - ac_id: "AC-18"
+        test_file: null
+        test_name: "ac-18-section-refs"
+        status: "covered"
+        justification: "Verified via grep: 0 § characters in file"
+      - ac_id: "AC-22a"
+        status: "not_applicable"
+        justification: "test_method='inspection' — completion contract defines status, summary, output_paths as required fields"
+      - ac_id: "AC-22b"
+        status: "not_applicable"
+        justification: "test_method='inspection' — validation rule explicitly states non-DONE/NEEDS_REVISION/ERROR treated as ERROR"
+      - ac_id: "AC-1a"
+        test_file: null
+        test_name: "ac-1a-line-count"
+        status: "covered"
+        justification: "Verified via line count: 69 ≤ 100"
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+      verify_phase:
+        get_errors_clean: true
+        typecheck_clean: true
+        tests_passing: true
+      tdd_fallback_reason: "Documentation-only task creating a shared Markdown reference file; no production source code modified. All ACs verified via inspection and terminal grep/count checks."
+completion:
+  status: "DONE"
+  summary: "Created v2/.github/agents/global-rules.md (69 lines) — completion contract, retry policy, anti-hallucination, feedback loops, output paths, risk classification"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/implementation-reports/task-01.yaml"
+    - "v2/.github/agents/global-rules.md"

@@ -1,0 +1,89 @@
+# Decision Log — agent-system-refactor
+# Append-only. Do not modify or delete existing entries.
+# Run ID: 2026-03-08T12:00:00Z
+
+decisions:
+  - id: "DL-001"
+    title: "Direction C selected: Clean-Slate Rebuild"
+    date: "2026-03-08"
+    step: "step-2"
+    rationale: >
+      5 prior improvement runs all added complexity (6,416→6,416 lines, never decreasing).
+      Direction A (single agent) loses proven multi-perspective review. Direction B
+      (incremental) preserves structural assumptions that caused bloat. Direction C
+      (clean-slate with hard 1,500/150 line budgets) breaks the complexity spiral by
+      starting from constraints. Selected unanimously at spec stage.
+    confidence: "High"
+    outcome: "1,004 lines across 11 files — 84.4% reduction achieved."
+
+  - id: "DL-002"
+    title: "Merge Spec + Designer into single Architect agent"
+    date: "2026-03-08"
+    step: "step-3"
+    rationale: >
+      Spec and Designer had significant output overlap (requirements appeared in both).
+      A single Architect produces requirements, acceptance criteria, 3 directions, selected
+      direction, and technical decisions in one workflow. Eliminates spec-output.yaml→
+      design-output.yaml handoff and its duplication.
+    confidence: "High"
+    outcome: "architect.agent.md: 99 lines. Pipeline reduced from 10→8 steps."
+
+  - id: "DL-003"
+    title: "Zero SQLite — YAML-only evidence and state management"
+    date: "2026-03-08"
+    step: "step-3"
+    rationale: >
+      SQLite infrastructure (sql-templates.md, evidence gates, verification-ledger.db,
+      WAL mode, PRAGMA busy_timeout, anvil_checks, pipeline_telemetry) consumed ~3,000
+      lines and introduced SQLITE_BUSY race conditions. YAML completion contracts with
+      file-based state provide equivalent routing capability at zero infrastructure cost.
+    confidence: "High"
+    outcome: "Zero SQLite in v2/. Orchestrator routes on completion.status from YAML only."
+
+  - id: "DL-004"
+    title: "3-tier trust boundary model"
+    date: "2026-03-08"
+    step: "step-3 (R2)"
+    rationale: >
+      Security-sentinel R1 identified missing trust boundary analysis. Three tiers defined:
+      Tier 1 (high trust — orchestrator, reviewer, knowledge): broad file access, no terminal.
+      Tier 2 (medium — implementer, tester): terminal with command allowlist, file ownership.
+      Tier 3 (low — researcher, architect): read-only + fetch_webpage with logging.
+    confidence: "High"
+    outcome: "Trust violations caught in code review R1 (3 Major), all fixed in R2."
+
+  - id: "DL-005"
+    title: "pipeline-log.yaml for incremental audit trail"
+    date: "2026-03-08"
+    step: "step-3 (R2)"
+    rationale: >
+      Prior system lost audit trail on failed pipelines (evidence bundle was success-only).
+      Orchestrator appends dispatch entries to pipeline-log.yaml after every dispatch,
+      providing audit trail regardless of pipeline outcome. Replaces SQLite pipeline_telemetry.
+    confidence: "Medium"
+    outcome: "Specified in orchestrator. Schema definition deferred (KI-R1 advisory)."
+
+  - id: "DL-006"
+    title: "Design approved after 3 review rounds with 1 advisory residual"
+    date: "2026-03-08"
+    step: "step-3b"
+    rationale: >
+      R1: 13 Major findings, all resolved in R2. R2: 2/3 approve, 1 new Major (pre-commit
+      scope). R3: 2/3 approve, same residual. The residual is a wording contradiction between
+      design.md (entire-diff validation) and trust_boundary_model (Knowledge-only paths).
+      Trust model has correct intent. Captured as KI-1 for implementer.
+    confidence: "High"
+    outcome: "Implementation proceeded with trust_boundary_model as authoritative."
+
+  - id: "DL-007"
+    title: "Code review R1: 8 fixes applied, R2: 3/3 approve"
+    date: "2026-03-08"
+    step: "step-7"
+    rationale: >
+      R1 found 10 Major findings across 3 reviewers. 8 fixes applied: fetch_webpage removed
+      from implementer (S-1), command allowlist added to tester (S-2), web_research gate added
+      to architect (S-3), quick-fix inline plan added (A-2/C-1), verdict routing clarified (A-1),
+      tester static eval fixed (C-1→C-2), research approval gate added (C-2), global-rules
+      reference added to 3 agents (A-3). R2: 3/3 approve.
+    confidence: "High"
+    outcome: "Final system at 1,004 lines, all trust boundaries enforced."

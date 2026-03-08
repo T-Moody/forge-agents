@@ -1,0 +1,57 @@
+task:
+  id: "task-03"
+  title: "Create researcher.agent.md"
+  description: >
+    Create v2/.github/agents/researcher.agent.md (~100 lines). The Researcher is a
+    Tier 3 read-only agent that performs parallel codebase and web research. It is
+    dispatched 2-4 times in parallel by the orchestrator, each with a distinct focus area
+    (architecture, impact, dependencies, patterns). Uses the standard 6-section body
+    format (Role, Inputs, Workflow, Output Schema, Constraints, Anti-Drift Anchor).
+    YAML frontmatter must include: name, description, tools (read_file, list_dir,
+    grep_search, semantic_search, file_search, fetch_webpage, create_file), agents: [].
+    Output schema: structured YAML with findings list, each finding having id, title,
+    source, relevance, and detail. Completion contract inline.
+    fetch_webpage is included in tools list with instruction-level toggle: use only
+    when web_research_enabled=true (per D-10).
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟢"
+  depends_on: ["task-01"]
+  acceptance_criteria:
+    - id: "AC-2"
+      text: "File does not exceed 150 lines (budget: 100)"
+      test_method: "test"
+    - id: "AC-5"
+      text: "YAML frontmatter contains name, description, and tools fields"
+      test_method: "inspection"
+    - id: "AC-7"
+      text: "YAML frontmatter has agents: [] (no subagent access)"
+      test_method: "inspection"
+    - id: "AC-19"
+      text: "Tools list includes fetch_webpage"
+      test_method: "inspection"
+    - id: "AC-22"
+      text: "Output Schema section includes completion contract (status/summary/output_paths)"
+      test_method: "inspection"
+    - id: "AC-18"
+      text: "File contains zero § cross-references"
+      test_method: "test"
+    - id: "AC-8"
+      text: "File contains zero sqlite/sqlite3/verification-ledger/sql-templates references"
+      test_method: "test"
+  workflow_lane: "unit-only"
+  e2e_required: false
+  e2e_contract_path: null
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.component_design[agent='researcher']"
+      - "design-output.yaml#payload.decisions[id='D-3']"
+      - "design-output.yaml#payload.decisions[id='D-10']"
+      - "design-output.yaml#payload.trust_boundary_model.tier_3_read_only_create"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-13']"
+    files_to_modify:
+      - path: "v2/.github/agents/researcher.agent.md"
+        risk: "🟢"

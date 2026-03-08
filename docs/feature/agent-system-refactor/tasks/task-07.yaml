@@ -1,0 +1,66 @@
+task:
+  id: "task-07"
+  title: "Create implementer.agent.md"
+  description: >
+    Create v2/.github/agents/implementer.agent.md (~130 lines). The Implementer is a
+    Tier 2 Standard Trust agent that follows strict TDD (RED-GREEN cycle) and produces
+    only unit tests — no integration, E2E, app start, or curl/HTTP requests.
+    Uses 6-section body: Role, Inputs, Workflow (RED-GREEN-REPORT), Output Schema,
+    Constraints, Anti-Drift Anchor.
+    YAML frontmatter: name, description, tools (read_file, create_file,
+    replace_string_in_file, multi_replace_string_in_file, list_dir, grep_search,
+    semantic_search, file_search, run_in_terminal, get_terminal_output, get_errors,
+    fetch_webpage), agents: [].
+    CRITICAL: Constraints section must include:
+    (a) Command allowlist — terminal commands scoped to build+test patterns only:
+    dotnet build/test, npm run build/test, cargo build/test, go build/test, pytest,
+    git diff. All commands logged in implementation_report.commands_executed[].
+    (b) File ownership constraint — MUST NOT modify files not declared in task.files[].
+    If more files needed, return NEEDS_REVISION with files_requested[].
+    Output schema: implementation_report with files_modified, tests_written,
+    test_results, tdd_compliance, commands_executed[].
+  agent: "implementer"
+  size: "Standard"
+  risk: "🟡"
+  depends_on: ["task-01"]
+  acceptance_criteria:
+    - id: "AC-2"
+      text: "File does not exceed 150 lines (budget: 130)"
+      test_method: "test"
+    - id: "AC-5"
+      text: "YAML frontmatter contains name, description, and tools fields"
+      test_method: "inspection"
+    - id: "AC-7"
+      text: "YAML frontmatter has agents: [] (no subagent access)"
+      test_method: "inspection"
+    - id: "AC-15"
+      text: "Tools list does NOT include tools for starting applications, running E2E tests, or curl/HTTP. Only file editing, terminal (for unit tests), and code analysis."
+      test_method: "inspection"
+    - id: "D-14a"
+      text: "Constraints section defines command allowlist: dotnet build/test, npm run build/test, cargo build/test, go build/test, pytest, git diff"
+      test_method: "inspection"
+    - id: "AG-A-3"
+      text: "Constraints section defines file ownership rule: MUST NOT modify undeclared files. Returns NEEDS_REVISION with files_requested[] if more files needed."
+      test_method: "inspection"
+    - id: "FR-7.3"
+      text: "Output Schema includes implementation_report with commands_executed[] audit trail"
+      test_method: "inspection"
+    - id: "AC-22"
+      text: "Output Schema includes completion contract (status/summary/output_paths)"
+      test_method: "inspection"
+  workflow_lane: "unit-integration"
+  e2e_required: false
+  e2e_contract_path: null
+  relevant_context:
+    design_sections:
+      - "design-output.yaml#payload.component_design[agent='implementer']"
+      - "design-output.yaml#payload.decisions[id='D-14']"
+      - "design-output.yaml#payload.trust_boundary_model.tier_2_standard_trust"
+      - "design-output.yaml#payload.schemas.implementation_report"
+    spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-7']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-15']"
+    files_to_modify:
+      - path: "v2/.github/agents/implementer.agent.md"
+        risk: "🟡"

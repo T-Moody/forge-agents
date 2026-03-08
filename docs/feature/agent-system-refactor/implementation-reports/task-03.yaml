@@ -1,0 +1,100 @@
+agent_output:
+  agent: "implementer"
+  instance: "implementer-task-03"
+  step: "step-5"
+  started_at: "2026-03-08T19:30:00Z"
+  completed_at: "2026-03-08T19:45:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-03"
+    task_type: "code"
+    baseline:
+      ide_diagnostics: { errors: 0, warnings: 0 }
+      build_exit_code: null
+      test_summary: null
+    changes:
+      - path: "v2/.github/agents/researcher.agent.md"
+        action: "created"
+        description: "Created researcher agent file (82 lines) with YAML frontmatter, 6 standard sections, structured findings output schema, and completion contract."
+    self_check:
+      ide_diagnostics: { errors: 0, warnings: 7 }
+      build_exit_code: null
+      test_summary: null
+      self_fix_attempts: 1
+      git_staged: true
+    verification_entries:
+      - check_name: "baseline-ide-diagnostics"
+        phase: "baseline"
+        tool: "get_errors"
+        passed: true
+      - check_name: "line-count-check"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+        output_snippet: "82 lines (budget 100, hard limit 150)"
+      - check_name: "no-section-cross-refs"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+        output_snippet: "§ cross-references: 0"
+      - check_name: "no-sql-references"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+        output_snippet: "SQL/DB references: 0"
+    behavioral_coverage:
+      - ac_id: "AC-2"
+        test_file: null
+        test_name: null
+        status: "covered"
+        justification: "Verified via terminal: 82 lines ≤ 150"
+      - ac_id: "AC-5"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — frontmatter contains name, description, tools fields"
+      - ac_id: "AC-7"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — frontmatter has agents: []"
+      - ac_id: "AC-19"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — tools list includes fetch_webpage"
+      - ac_id: "AC-22"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — Output Schema section includes completion block with status/summary/output_paths"
+      - ac_id: "AC-18"
+        test_file: null
+        test_name: null
+        status: "covered"
+        justification: "Verified via terminal: 0 § cross-references found"
+      - ac_id: "AC-8"
+        test_file: null
+        test_name: null
+        status: "covered"
+        justification: "Verified via terminal: 0 sqlite/sql-templates/verification-ledger references found"
+    tdd_red_green:
+      tests_written_first: false
+      initial_run_failures: 0
+      initial_run_exit_code: 0
+      verify_phase:
+        get_errors_clean: true
+        typecheck_clean: true
+        tests_passing: true
+      tdd_fallback_reason: >
+        Task creates a Markdown agent definition file (.agent.md), not production
+        source code. No test framework applies to agent instruction files.
+        Acceptance criteria verified via terminal line-count and grep checks.
+completion:
+  status: "DONE"
+  summary: "Created researcher.agent.md (82 lines) with frontmatter, 6 sections, findings schema, completion contract"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/implementation-reports/task-03.yaml"

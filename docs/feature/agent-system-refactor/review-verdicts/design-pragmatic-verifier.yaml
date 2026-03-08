@@ -1,0 +1,89 @@
+reviewer_perspective: "pragmatic-verifier"
+scope: "design"
+run_id: "2026-03-08T12:00:00Z"
+round: 1
+risk_level: "🟡"
+
+verdicts:
+  security: "approve"
+  architecture: "approve"
+  correctness: "needs_revision"
+overall: "needs_revision"
+
+findings_count:
+  blocker: 0
+  critical: 0
+  major: 2
+  minor: 5
+
+findings:
+  - id: "S-1"
+    category: "security"
+    severity: "minor"
+    title: "Web research toggle is instruction-enforced, not platform-enforced"
+    description: "fetch_webpage in tools list regardless of web_research_enabled parameter; autonomous mode behavior unspecified"
+    affected_artifacts:
+      - "design-output.yaml D-10"
+      - "design.md Security Considerations"
+
+  - id: "A-1"
+    category: "architecture"
+    severity: "minor"
+    title: "Quick-fix prompt pipeline is listed but undefined"
+    description: "quick-fix.prompt.md in file inventory with no step sequence or behavior specification"
+    affected_artifacts:
+      - "design-output.yaml file_inventory"
+      - "design.md Implementation Checklist"
+
+  - id: "A-2"
+    category: "architecture"
+    severity: "minor"
+    title: "Tester mode parameter dispatch mechanism unspecified"
+    description: "D-7 says orchestrator passes mode parameter but dispatch format (structured vs natural language) undefined"
+    affected_artifacts:
+      - "design-output.yaml D-7"
+      - "design-output.yaml component_design tester"
+
+  - id: "C-1"
+    category: "correctness"
+    severity: "major"
+    title: "Architect has no conditional handling for missing research on green features"
+    description: "Green features skip Research but Architect component design consumes research outputs unconditionally. EC-8 says Architect works from initial-request only for green, but this is not reflected in Architect spec."
+    affected_artifacts:
+      - "design-output.yaml component_design architect"
+      - "spec-output.yaml EC-8"
+
+  - id: "C-2"
+    category: "correctness"
+    severity: "major"
+    title: "Evidence bundle produced only on success — failed pipelines lose audit trail"
+    description: "evidence-bundle.yaml is produced at Step 8 by Knowledge agent. Pipeline failures at Step 5/6/7 never reach Step 8. No incremental audit trail replaces the current SQLite telemetry."
+    affected_artifacts:
+      - "design-output.yaml pipeline_design Step 8"
+      - "design-output.yaml state_management audit_trail"
+      - "feature.md Risks table"
+
+  - id: "C-3"
+    category: "correctness"
+    severity: "minor"
+    title: "Naming convention break with existing feature directory patterns"
+    description: "architecture-output.yaml diverges from existing spec-output.yaml + design-output.yaml convention across docs/feature/"
+    affected_artifacts:
+      - "design-output.yaml pipeline_design Step 3 outputs"
+
+  - id: "C-4"
+    category: "correctness"
+    severity: "minor"
+    title: "Overlapping feedback loop iteration counters lack explicit relationship"
+    description: "Implementation-Testing (max 3) and Code Review Fix (max 2) loops overlap but counter reset behavior is unspecified"
+    affected_artifacts:
+      - "design-output.yaml pipeline_design feedback_loops"
+
+summary: "Design is well-structured with strong spec traceability and industry grounding. Two Major correctness gaps require attention: Architect conditional handling for green features skipping research, and evidence-bundle audit trail gap on failed pipelines. Both are addressable with small design additions. No security or architecture blockers."
+
+completion:
+  status: "DONE"
+  summary: "review-design-pragmatic-verifier — needs_revision: 0 blocker, 0 critical, 2 major, 5 minor"
+  output_paths:
+    - "docs/feature/agent-system-refactor/review-findings/design-pragmatic-verifier.md"
+    - "docs/feature/agent-system-refactor/review-verdicts/design-pragmatic-verifier.yaml"

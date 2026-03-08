@@ -1,0 +1,143 @@
+agent_output:
+  agent: "planner"
+  instance: "planner"
+  step: "step-4"
+  started_at: "2026-03-08T19:00:00Z"
+  completed_at: "2026-03-08T19:45:00Z"
+  schema_version: "1.0"
+  payload:
+    planning_mode: "initial"
+    overall_risk_summary: "🔴"
+    total_tasks: 10
+    waves:
+      - id: "wave-1"
+        tasks: ["task-01", "task-02"]
+        max_concurrent: 2
+      - id: "wave-2"
+        tasks: ["task-03", "task-04", "task-05", "task-06"]
+        max_concurrent: 4
+      - id: "wave-3"
+        tasks: ["task-07", "task-08", "task-09"]
+        max_concurrent: 3
+      - id: "wave-4"
+        tasks: ["task-10"]
+        max_concurrent: 1
+    tasks:
+      - id: "task-01"
+        title: "Create global-rules.md shared reference"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-02"
+        title: "Create pipeline prompt files"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: []
+        agent: "implementer"
+      - id: "task-03"
+        title: "Create researcher.agent.md"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: ["task-01"]
+        agent: "implementer"
+      - id: "task-04"
+        title: "Create architect.agent.md"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: ["task-01"]
+        agent: "implementer"
+      - id: "task-05"
+        title: "Create planner.agent.md"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: ["task-01"]
+        agent: "implementer"
+      - id: "task-06"
+        title: "Create reviewer.agent.md"
+        size: "Standard"
+        risk: "🟢"
+        depends_on: ["task-01"]
+        agent: "implementer"
+      - id: "task-07"
+        title: "Create implementer.agent.md"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-01"]
+        agent: "implementer"
+      - id: "task-08"
+        title: "Create tester.agent.md"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-01"]
+        agent: "implementer"
+      - id: "task-09"
+        title: "Create knowledge.agent.md"
+        size: "Standard"
+        risk: "🟡"
+        depends_on: ["task-01"]
+        agent: "implementer"
+      - id: "task-10"
+        title: "Create orchestrator.agent.md"
+        size: "Large"
+        risk: "🔴"
+        depends_on: ["task-01"]
+        agent: "implementer"
+    dependency_graph:
+      task-01: []
+      task-02: []
+      task-03: ["task-01"]
+      task-04: ["task-01"]
+      task-05: ["task-01"]
+      task-06: ["task-01"]
+      task-07: ["task-01"]
+      task-08: ["task-01"]
+      task-09: ["task-01"]
+      task-10: ["task-01"]
+
+    # Known issues from design review to capture in implementation
+    known_issues:
+      - id: "KI-1"
+        source: "AG-R2-C-1, AG-R3-C-1"
+        title: "Pre-commit validation scope"
+        instruction: >
+          design.md describes entire-git-diff validation. The CORRECT behavior is
+          per trust_boundary_model in design-output.yaml: validate only Knowledge
+          agent output paths (docs/feature/<slug>/evidence-bundle.yaml,
+          knowledge-output.yaml, instruction-recommendations.md). Implementer of
+          orchestrator task-10 MUST use trust_boundary_model as authoritative.
+      - id: "KI-2"
+        source: "PV-R3-minor"
+        title: "Pipeline-log.yaml append mechanism"
+        instruction: >
+          The orchestrator appends dispatch entries to pipeline-log.yaml after each
+          agent dispatch. Use replace_string_in_file or create_file for initial creation,
+          then append entries to the dispatches list. Implementer should specify the
+          append pattern in the orchestrator workflow.
+      - id: "KI-3"
+        source: "AG-R3-A-2"
+        title: "Orchestrator body sections may deviate from D-3 universal standard"
+        instruction: >
+          D-3 prescribes 6 standard sections. The orchestrator needs Pipeline Steps
+          and DAG Dispatch instead of Inputs/Workflow. This deviation is accepted —
+          the orchestrator's complexity justifies a non-standard section layout.
+
+completion:
+  status: "DONE"
+  summary: "10 tasks created, 4 waves, overall risk 🔴"
+  severity: null
+  findings_count: 0
+  risk_level: "🔴"
+  output_paths:
+    - "plan-output.yaml"
+    - "plan.md"
+    - "tasks/task-01.yaml"
+    - "tasks/task-02.yaml"
+    - "tasks/task-03.yaml"
+    - "tasks/task-04.yaml"
+    - "tasks/task-05.yaml"
+    - "tasks/task-06.yaml"
+    - "tasks/task-07.yaml"
+    - "tasks/task-08.yaml"
+    - "tasks/task-09.yaml"
+    - "tasks/task-10.yaml"

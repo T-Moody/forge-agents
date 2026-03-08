@@ -1,0 +1,840 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-dependencies"
+  step: "step-1"
+  started_at: "2026-03-08T12:05:00Z"
+  completed_at: "2026-03-08T14:30:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "dependencies"
+    findings:
+      - id: "F-1"
+        title: "Agent-to-reference-document dependency graph"
+        category: "dependency"
+        detail: |
+          The system has 9 agent definition files and 10 shared reference documents in NewAgents/.github/agents/.
+          Every agent depends on the following shared documents:
+
+          Core dependencies (referenced by ALL 9 agents):
+            - schemas.md — Schema definitions (14 schemas). Every agent references its output schema.
+            - global-operating-rules.md — Error handling (§1-§2), self-verification (§6), recovery (§7), safety constraints (§9), E2E safety (§10).
+            - tool-access-matrix.md — Per-agent tool access rules (§1 master matrix, §2-§10 per-agent scopes).
+
+          Per-agent reference dependencies:
+            - orchestrator.agent.md → sql-templates.md (§0, §1, §1.1, §3, §6), dispatch-patterns.md, e2e-integration.md (§1, §1.2, §6, §7), context7-integration.md
+            - researcher.agent.md → schemas.md (§2), e2e-integration.md (§2), context7-integration.md, global-operating-rules.md (§1, §6), tool-access-matrix.md (§3)
+            - spec.agent.md → schemas.md (§2, §3), global-operating-rules.md (§1-§2, §6), tool-access-matrix.md (§4)
+            - designer.agent.md → schemas.md (§4), global-operating-rules.md (§1-§3, §5, §6), tool-access-matrix.md (§5)
+            - planner.agent.md → schemas.md (§5, §6), dispatch-patterns.md, severity-taxonomy.md, global-operating-rules.md (§1-§2, §6), tool-access-matrix.md (§6)
+            - implementer.agent.md → schemas.md (§7), sql-templates.md (§0, §2, §4), evaluation-schema.md, severity-taxonomy.md, context7-integration.md, global-operating-rules.md (§1-§6), tool-access-matrix.md (§7)
+            - verifier.agent.md → schemas.md (§8), sql-templates.md (§0, §1, §2, §6), evaluation-schema.md, e2e-integration.md (§1-§6), global-operating-rules.md, tool-access-matrix.md (§8)
+            - adversarial-reviewer.agent.md → review-perspectives.md (§5-§6, §8), sql-templates.md (§2), severity-taxonomy.md, tool-access-matrix.md, evaluation-schema.md
+            - knowledge-agent.agent.md → schemas.md (§10), sql-templates.md (§0, §4, §5, §7), evaluation-schema.md, global-operating-rules.md (§3, §6, §9), tool-access-matrix.md (§10)
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 36-42 (tool access, sql-templates, dispatch-patterns references)"
+          - "NewAgents/.github/agents/implementer.agent.md line 21 (shared references line listing all 6 reference docs)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 107-110 (sql-templates §0, §1, §2, §6 references)"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md lines 19, 63, 185, 218, 223 (review-perspectives, sql-templates, severity-taxonomy, tool-access-matrix references)"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 166, 176, 201-202, 252-260 (sql-templates §5, §7 and tool-access-matrix §10)"
+        relevance: "Any refactor must preserve or replace these dependency links. Breaking a reference (e.g., wrong § number) is the #1 source of Critical review findings per repository memory."
+
+      - id: "F-2"
+        title: "SQLite is the central state management dependency"
+        category: "dependency"
+        detail: |
+          SQLite (via sqlite3 CLI) is the primary external tool dependency for pipeline state management.
+          It serves 4 distinct purposes through verification-ledger.db:
+
+          1. Evidence tracking (anvil_checks table) — Written by: Orchestrator, Implementer, Verifier, Adversarial Reviewer. 
+             Used for evidence gate queries (EG-1 through EG-10).
+          2. Pipeline telemetry (pipeline_telemetry table) — Written by: Orchestrator only (after each dispatch).
+             Used by Knowledge Agent for post-mortem analysis.
+          3. Artifact evaluations (artifact_evaluations table) — Written by: Implementer, Verifier, Adversarial Reviewer.
+             Used by Knowledge Agent for quality analysis.
+          4. Instruction updates (instruction_updates table) — Written by: Knowledge Agent only.
+             Used for governed instruction update audit trail.
+
+          SQL is always piped via stdin to avoid shell injection (sql-templates.md §0).
+          WAL mode + busy_timeout=5000 set at Step 0 (global-operating-rules.md §3).
+          SQLITE_BUSY retry: 3 attempts with exponential backoff (1s, 2s, 4s).
+
+          5 agents directly write to SQLite: Orchestrator, Implementer, Verifier, Adversarial Reviewer, Knowledge Agent.
+          The remaining 4 agents (Researcher, Spec, Designer, Planner) have NO SQLite dependency.
+
+          sql-templates.md is the longest reference doc (~1070 lines across §0-§9) with:
+            - §0: Sanitization requirements (sql_escape, stdin piping, quoting conventions)
+            - §1: DDL (4 tables, indexes, constraints)
+            - §1.1: Archive check query
+            - §2, §2a: INSERT templates (anvil_checks, TDD, E2E)
+            - §3: pipeline_telemetry INSERT
+            - §4: artifact_evaluations INSERT
+            - §5: instruction_updates INSERT
+            - §6: Evidence gate queries (EG-1 through EG-10 + composites)
+            - §7: Post-mortem analysis queries
+            - §8: Instruction update audit queries
+            - §9: Schema evolution strategy
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md lines 1-10 (header: consumers listed as Orchestrator, Implementer, Verifier, Adversarial Reviewer, Knowledge Agent)"
+          - "NewAgents/.github/agents/sql-templates.md lines 78-200 (§1 DDL: 4 tables with CHECK constraints and indexes)"
+          - "NewAgents/.github/agents/sql-templates.md lines 636-928 (§6 evidence gate queries EG-1 through EG-10)"
+          - "NewAgents/.github/agents/global-operating-rules.md lines 54-68 (§3 SQLITE_BUSY handling)"
+          - "NewAgents/.github/agents/tool-access-matrix.md line 14 (run_in_terminal column showing which agents get terminal access)"
+        relevance: "The initial request explicitly mentions considering removal of SQLite. This finding maps exactly which agents and which operations would need replacement. 5 of 9 agents write SQL. The 10 evidence gates (EG-1 through EG-10) are the pipeline's verification backbone."
+
+      - id: "F-3"
+        title: "Evidence gate dependency chain (EG-1 through EG-10)"
+        category: "dependency"
+        detail: |
+          Evidence gates are SQL queries that the orchestrator executes to make routing decisions.
+          They form a critical dependency chain: agents INSERT check records → orchestrator SELECTs to verify → routing continues or halts.
+
+          Evidence gate map (defined in sql-templates.md §6, consumed by orchestrator.agent.md):
+
+          Verification gates (Step 6):
+            - EG-1: Baseline exists — COUNT baseline records per task. Producer: Implementer/Verifier.
+            - EG-10(unit-only): ≥2 passed checks (baseline-captured, tdd-compliance). Producer: Verifier.
+            - EG-10(unit-integration): ≥3 passed checks (+behavioral-coverage). Producer: Verifier.
+            - EG-10(full-tdd-e2e): ≥3 passed non-E2E checks. Producer: Verifier.
+            - EG-10(e2e-additive): ≥1 e2e-test-execution passed. Producer: Verifier Tier 5. Gated on e2e_required=true.
+            - EG-7: behavioral-coverage passed=1. BLOCKING for code tasks. Producer: Verifier.
+            - EG-8: tdd-compliance passed=1. BLOCKING for code tasks. Producer: Verifier.
+            - EG-9: e2e-test-execution passed=1 + sub-phase cross-check. BLOCKING when e2e_required=true. Producer: Verifier Tier 5.
+
+          Review gates (Steps 3b, 7):
+            - EG-3: 3 distinct reviewer instances submitted. Producer: Adversarial Reviewer (3 instances × 3 INSERTs each = 9 records).
+            - EG-4: Zero blocker verdicts. Producer: Adversarial Reviewer.
+            - EG-5: Each instance has 3 category records (security, architecture, correctness). Producer: Adversarial Reviewer.
+            - EG-6: ≥2 of 3 reviewers fully approve (all 3 verdicts = approve). Producer: Adversarial Reviewer. Uses scope-qualified check_names.
+
+          Gate evaluation order (Step 6): EG-1 → EG-10(lane) → EG-10(e2e-additive) → EG-7 → EG-8 → EG-9
+          Gate evaluation (Steps 3b, 7): EG-3 → EG-5 → EG-4 → EG-6
+
+          Check_name values that agents produce (critical for EG queries to work):
+            Verifier: baseline-captured, tdd-compliance, behavioral-coverage, e2e-test-execution, e2e-suite-execution, e2e-exploratory, e2e-adversarial-composite, e2e-adversarial
+            Adversarial Reviewer: review-{scope}-security, review-{scope}-architecture, review-{scope}-correctness (scope = design or code)
+            Implementer: baseline-ide-diagnostics, baseline-build (baseline-phase records)
+            Orchestrator: e2e-contract-found, e2e-contract-validation
+        evidence:
+          - "NewAgents/.github/agents/sql-templates.md lines 636-928 (§6 all EG queries with check_name values)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 207-211 (Step 3b review gates), 296-300 (Step 6 verification gates), 340-344 (Step 7 code review gates)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 424-444 (Evidence Gate Logic section with CORR-1, CORR-2)"
+          - "Repository memory: evidence gates fact (EG queries must reference check_names actually produced by agents)"
+        relevance: "If SQLite is removed, all 10 evidence gates need equivalent replacement. The check_name producer/consumer chain is fragile — repository memory confirms this was the single Critical finding in a prior pipeline run."
+
+      - id: "F-4"
+        title: "External tool dependencies (git, sqlite3, Node.js/playwright-cli)"
+        category: "dependency"
+        detail: |
+          Three external CLI tools are required by the current system:
+
+          1. git — Used by Orchestrator (Step 0: status/branch check, Step 9: add/commit) and Adversarial Reviewer (git diff --staged for code review). Referenced in orchestrator.agent.md Steps 0 and 9, adversarial-reviewer.agent.md line 157.
+
+          2. sqlite3 — Used by 5 agents via run_in_terminal stdin piping. Required for verification-ledger.db operations. Referenced in sql-templates.md §0 (security patterns), orchestrator.agent.md (DDL, telemetry, evidence gates), and all SQL-writing agents.
+
+          3. playwright-cli (@playwright/cli) — Used for E2E testing only (verifier Tier 5). Referenced in e2e-integration.md §3 (Playwright CLI Protocol), tool-access-matrix.md §8.2 (tier5_command_allowlist pattern 2). Installed globally via npm. Conditional dependency — only needed when e2e_required=true.
+
+          Additional conditional tool dependencies from tier5_command_allowlist (tool-access-matrix.md §8.2):
+            - npx playwright test (pattern 1) — E2E test script execution
+            - npm run/start/test (pattern 3) — App lifecycle
+            - node (pattern 4) — Local script execution (file path only)
+            - dotnet run/test (pattern 5) — .NET app lifecycle
+            - python -m pytest/uvicorn/flask (pattern 6) — Python app lifecycle
+            - curl (pattern 7) — Health check HTTP requests (localhost only)
+            - kill/taskkill (pattern 8) — Process cleanup
+
+          These are project-specific — only relevant when the target project uses those technologies.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 97-101 (Step 0 git hygiene)"
+          - "NewAgents/.github/agents/adversarial-reviewer.agent.md line 157 (git diff --staged)"
+          - "NewAgents/.github/agents/sql-templates.md lines 43-50 (PowerShell echo pipe pattern for sqlite3)"
+          - "NewAgents/.github/agents/tool-access-matrix.md §8.2 (tier5_command_allowlist: 8 regex patterns)"
+          - "NewAgents/.github/agents/e2e-integration.md lines 104, 364 (npm install -g @playwright/cli@latest)"
+        relevance: "git is non-optional (version control is fundamental). sqlite3 is the removal candidate per the initial request. playwright-cli and other tools are conditional/project-specific — the refactor should preserve their opt-in nature."
+
+      - id: "F-5"
+        title: "Prompt-to-agent dependency chain"
+        category: "dependency"
+        detail: |
+          Three prompt files in NewAgents/.github/prompts/ invoke the orchestrator:
+
+          1. feature-workflow.prompt.md — Full pipeline. Sets agent: orchestrator. References orchestrator.agent.md and schemas.md. All 10 steps.
+          2. plan-and-implement.prompt.md — Fast-track pipeline. Sets agent: orchestrator, pipeline_mode: fast-track. Skips Steps 1-3b. Minimum steps: {0, 7, 9}.
+          3. orchestrator-agent.prompt.md — Alternative prompt. Sets agent: orchestrator-agent (different agent name). Rules for autonomous dispatching.
+
+          Additionally, 9 other prompt files exist (complete-workflow.md, create-component.md, document-feature.md, implement-handler.md, multi-agent-workflow.md, plan-feature.md, productionize-page.md, review-code.md, write-tests.md) that reference different legacy agent names (planner.md, developer.md, tester.md, reviewer.md, docs.md, ui-specialist.md) not present in the current agent set.
+
+          The dependency chain is: User → Prompt file → Orchestrator agent → subagent dispatches → Reference documents → External tools.
+
+          GitHub Copilot custom instructions hierarchy (from web research):
+            - .github/copilot-instructions.md — repository-wide (loaded globally)
+            - .github/instructions/*.instructions.md — path-specific (loaded per file context)
+            - AGENTS.md — agent instructions (nearest in directory tree)
+            - .github/agents/*.agent.md — agent definitions (VS Code Copilot agents)
+        evidence:
+          - "NewAgents/.github/prompts/feature-workflow.prompt.md lines 1-17 (agent: orchestrator, pipeline rules)"
+          - "NewAgents/.github/prompts/plan-and-implement.prompt.md lines 1-44 (agent: orchestrator, fast-track)"
+          - "NewAgents/.github/prompts/orchestrator-agent.prompt.md lines 1-22 (agent: orchestrator-agent)"
+          - "NewAgents/.github/prompts/complete-workflow.md lines 54-60 (references planner.md, developer.md, etc. — legacy names)"
+          - "https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot (GitHub Copilot instruction hierarchy)"
+        relevance: "Legacy prompt files reference agent names that don't match the current agent set. The refactor should either update or remove these inconsistent prompts. The instruction hierarchy matters for understanding how .github/copilot-instructions.md interacts with agent definitions."
+
+      - id: "F-6"
+        title: "Schema dependency map (schemas.md as single source of truth)"
+        category: "dependency"
+        detail: |
+          schemas.md defines 14 schemas with a producer/consumer dependency table.
+          Every agent's output must conform to its designated schema. The orchestrator reads ONLY the typed YAML completion contracts for routing.
+
+          Schema → Producer → Consumer chain:
+            Schema 1 (completion-contract): All agents → Orchestrator
+            Schema 2 (research-output): Researcher → Spec, Designer
+            Schema 3 (spec-output): Spec → Designer, Planner, Implementer, Verifier
+            Schema 4 (design-output): Designer → Planner, Implementer, Adversarial Reviewer
+            Schema 5 (plan-output): Planner → Orchestrator (risk), Implementer, Verifier
+            Schema 6 (task-schema): Planner → Implementer, Verifier
+            Schema 7 (implementation-report): Implementer → Verifier
+            Schema 8 (verification-report): Verifier → Orchestrator, Adversarial Reviewer
+            Schema 9 (review-findings): Adversarial Reviewer → Orchestrator, Knowledge Agent
+            Schema 10 (knowledge-output): Knowledge Agent → (terminal)
+            Schema 11 (artifact_evaluations): SQL table — Impl/Verif/AdvRev → Knowledge Agent
+            Schema 12 (instruction_updates): SQL table — Knowledge Agent → Orchestrator
+            Schema 13 (e2e-contract): Project author/Researcher → Orchestrator, Planner, Verifier
+            Schema 14 (e2e-skill): Project author/Researcher → Verifier
+
+          Schemas 11-12 are SQLite tables (in verification-ledger.db), not YAML files.
+          Schemas 13-14 are project-level YAML files, not pipeline outputs.
+
+          This creates a forward-flowing DAG: Research → Spec → Design → Plan → Implement → Verify → Review → Knowledge.
+        evidence:
+          - "NewAgents/.github/agents/schemas.md lines 36-73 (Producer/Consumer Dependency Table — all 14 schemas)"
+          - "NewAgents/.github/agents/schemas.md lines 1-35 (common header, schema_version requirement)"
+        relevance: "The schema DAG defines the pipeline's data flow. Any refactor that changes the pipeline steps must update this table. Schemas 11-12 (SQLite tables) are coupled to the SQLite dependency — removing SQLite requires migrating their function."
+
+      - id: "F-7"
+        title: "Dispatch patterns and concurrency dependencies"
+        category: "dependency"
+        detail: |
+          dispatch-patterns.md defines the concurrency model used by the orchestrator.
+
+          Pattern A (Fully Parallel): Used at Steps 1, 3b, 5, 6, 7.
+            - Concurrency cap: 4 agents per wave
+            - Gate conditions vary: Research ≥2/4, Review ≥2/3 approve + 0 blockers, Impl/Verif all DONE
+            - Retry: 1 per failed agent
+
+          Pattern B (Iterative Loop): Used at Steps 5-6 (implementation-verification loop).
+            - Max 3 iterations
+            - Contains Pattern A sub-waves within each iteration
+
+          E2E concurrency (D-17): Max 1 E2E-enabled task at a time (sequential queuing).
+            - max_concurrent_instances field controls browser contexts per verifier, not cross-task concurrency
+            - Defined in dispatch-patterns.md §E2E Concurrency, e2e-integration.md §8
+
+          The orchestrator uses VS Code Copilot's runSubagent tool for dispatch. Multiple runSubagent calls in the same reasoning step execute in parallel (native Copilot runtime behavior). Sequential calls execute sequentially.
+
+          This creates an implicit dependency on the Copilot runtime's parallel dispatch semantics.
+        evidence:
+          - "NewAgents/.github/agents/dispatch-patterns.md lines 1-80 (Pattern A definition, gate conditions, retry policy)"
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 490-495 (concurrency rules, E2E D-17)"
+          - "NewAgents/.github/agents/orchestrator.agent.md anti-drift anchor (parallel dispatch CRITICAL note)"
+        relevance: "The dispatch model is tightly coupled to VS Code Copilot's runSubagent behavior. Any refactor targeting a different orchestration runtime must account for this implicit parallelism semantic."
+
+      - id: "F-8"
+        title: "Cross-file section reference fragility"
+        category: "risk"
+        detail: |
+          The system relies heavily on cross-file section references using § notation.
+          These are the most common source of Critical review findings per repository memory.
+
+          High-fragility references (frequently cited across multiple agents):
+            - sql-templates.md §0 — Referenced by 5 agents (all SQL writers)
+            - sql-templates.md §6 — Referenced by orchestrator for EG queries
+            - global-operating-rules.md §1-§2 — Referenced by all 9 agents
+            - global-operating-rules.md §6 — Referenced by all 9 agents for self-verification
+            - global-operating-rules.md §9 — Referenced by knowledge agent for safety constraints
+            - tool-access-matrix.md §1-§10 — Each agent references its own section
+            - schemas.md §Schema 1-14 — Each agent references its output schema
+            - review-perspectives.md §5-§6, §8 — Referenced by adversarial reviewer
+            - e2e-integration.md §1-§6 — Referenced by orchestrator, verifier, planner, adversarial reviewer
+
+          Section renumbering in any reference document can silently break agent behavior.
+          Repository memory records two Critical findings from prior pipeline runs caused by broken cross-references:
+            1. orchestrator §11→§1.1 reference mismatch
+            2. EG-10 threshold ≥4→≥3 mismatch
+        evidence:
+          - "Repository memory: cross-file reference validation fact (Critical findings C-1 from prior pipelines)"
+          - "Repository memory: evidence gates fact (phantom check_names in EG queries)"
+          - "All agent files contain multiple [document.md](document.md) §N references"
+        relevance: "The refactor should consider reducing cross-file reference density. Possible approaches: inline critical rules, use named anchors instead of § numbers, or reduce the number of reference documents."
+
+      - id: "F-9"
+        title: "Copilot-instructions.md as immutable global dependency"
+        category: "dependency"
+        detail: |
+          .github/copilot-instructions.md is loaded automatically by VS Code Copilot for ALL agents.
+          It contains 7 immutable rules that override all agent-specific instructions:
+            1. Terminal-only testing (run_in_terminal with CLI commands)
+            2. No file-redirect (never use >, >>, | tee)
+            3. Retry policy (2 internal retries, never retry deterministic)
+            4. Schema version (schema_version: "1.0" required)
+            5. Anti-hallucination (INSERT before reporting)
+            6. No runtime agent modification
+            7. Bounded feedback loops (hard iteration limits)
+            8. Output paths (within docs/feature/ or agent output dirs)
+            9. SQL safety (stdin piping for SQL)
+
+          Additionally, .github/instructions/pipeline-conventions.md provides path-specific instructions for the pipeline (feature directory structure, file naming patterns, risk classification, pipeline steps).
+
+          These are immutable at runtime per global-operating-rules.md §9 — only modifiable via feature implementation PRs.
+        evidence:
+          - ".github/copilot-instructions.md lines 1-50 (all 9 rules)"
+          - ".github/instructions/pipeline-conventions.md lines 1-50 (directory structure, naming, risk classification)"
+          - "NewAgents/.github/agents/global-operating-rules.md §9 (Safety Constraint Filter — copilot-instructions.md is immutable at runtime)"
+        relevance: "Any refactored system must preserve these global rules. The copilot-instructions.md cannot be changed by agents at runtime (SEC-5). The refactor must avoid breaking this safety invariant."
+
+      - id: "F-10"
+        title: "Alternatives to SQLite for pipeline state management (web research)"
+        category: "dependency"
+        detail: |
+          Web research findings on how modern multi-agent frameworks handle state management:
+
+          1. CrewAI (v0.100+): Uses unified Memory class backed by LanceDB (vector DB) stored under .crewai/memory/.
+             - Hierarchical scopes for agent-level isolation
+             - Composite scoring (semantic + recency + importance)
+             - LLM-driven analysis for scope inference
+             - No SQLite — evidence is ephemeral in-process state
+             - Memory consolidation (dedup) handled automatically
+             Tradeoff: Requires LLM calls for analysis; heavier than raw SQL.
+
+          2. AutoGen (Microsoft, v0.7): Uses event-driven in-memory runtime (SingleThreadedAgentRuntime).
+             - Message-based communication between agents
+             - No persistent state by default — state lives in agent runtime
+             - Supports distributed agents via GrpcWorkerAgentRuntime
+             - No built-in evidence tracking or verification ledger concept
+             Tradeoff: Designed for conversational agents, not deterministic pipelines.
+
+          3. LangGraph: Graph-based state management with checkpointing.
+             - State is a typed dict passed through graph nodes
+             - Built-in persistence via checkpointers (PostgreSQL, SQLite, or in-memory)
+             - Supports branching, conditional edges, and subgraphs
+             - Closest to this system's DAG-based pipeline model
+             Tradeoff: LangGraph still uses SQLite/PostgreSQL for persistence — not SQL-free.
+
+          4. GitHub Copilot agents (native): Uses file-based state.
+             - Agent definitions in .github/agents/*.agent.md
+             - Custom instructions in .github/copilot-instructions.md
+             - Path-specific instructions in .github/instructions/
+             - No built-in state management — relies on file outputs and context window
+             - runSubagent for dispatch; completion is implicit via conversation turn
+             Tradeoff: Simplest model but no verification/evidence gate equivalent.
+
+          Lightweight alternatives to SQLite for evidence tracking:
+            a. YAML file-based ledger: Each evidence record as a YAML entry in a flat file. Query via grep/read_file instead of SQL.
+               Pro: No external dependency. Con: No query capability, no indexes, concurrent write issues.
+            b. JSON Lines (.jsonl) file: Append-only log of evidence records. Parse with jq or Python.
+               Pro: Simple append model. Con: No transactional guarantees, no ad-hoc queries.
+            c. In-context state only: Evidence gates checked by reading agent output YAML files directly.
+               Pro: Zero infrastructure. Con: No cross-run persistence, no audit trail.
+            d. Structured YAML files per step: One YAML file per gate result in the feature directory.
+               Pro: Git-trackable, human-readable. Con: No aggregate queries across runs.
+        evidence:
+          - "https://docs.crewai.com/concepts/crews (CrewAI: sequential/hierarchical process, memory system, YAML config for agents)"
+          - "https://docs.crewai.com/concepts/memory (CrewAI Memory: LanceDB backend, hierarchical scopes, composite scoring)"
+          - "https://microsoft.github.io/autogen/stable/ (AutoGen: event-driven runtime, message-based communication, no built-in persistence)"
+          - "https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/quickstart.html (AutoGen Core: SingleThreadedAgentRuntime, RoutedAgent, message_handler)"
+          - "https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot (GitHub Copilot: copilot-instructions.md, instructions/, agents/, AGENTS.md)"
+        relevance: "If SQLite is removed, the most viable replacement for this system is structured YAML files per step (option d) combined with in-context gate checking. This preserves human-readability and git-trackability while eliminating the sqlite3 CLI dependency. However, the aggregate query capability (e.g., Knowledge Agent post-mortem analysis spanning all tables) would need redesign."
+
+      - id: "F-11"
+        title: "Dependencies for proposed new agents (Test Runner, Instruction Optimizer)"
+        category: "dependency"
+        detail: |
+          The initial request proposes two new agents. Their dependency requirements:
+
+          Test Runner Agent:
+            - Depends on: run_in_terminal (must start/stop applications, run test suites)
+            - Depends on: playwright-cli or npx playwright test (E2E/browser testing)
+            - Depends on: project-specific build/run commands (npm, dotnet, python, etc.)
+            - Depends on: health check capability (curl/HTTP probes)
+            - Depends on: process management (kill/taskkill for cleanup)
+            - Would consume: implementation reports, e2e-contract.yaml, skill files
+            - Would produce: test execution results, evidence records
+            - Overlaps with: Current Verifier agent Tier 5 (E2E phases 1-5)
+            - Key difference from Verifier: Verifier does static analysis + evidence gates; Test Runner would do dynamic execution only
+            - New dependency: Application lifecycle management (start/stop/health check)
+
+          Instruction Optimization Agent:
+            - Depends on: read_file, replace_string_in_file (must read and modify instruction files)
+            - Depends on: artifact_evaluations data (quality scores from pipeline runs)
+            - Depends on: pipeline_telemetry data (performance metrics)
+            - Depends on: instruction_updates table (audit trail)
+            - Would consume: Knowledge Agent outputs, pipeline metrics, evaluation data
+            - Would produce: Updated instruction files, change proposals
+            - Overlaps with: Current Knowledge Agent responsibility 9 (governed instruction updates)
+            - New dependency: Safety Constraint Filter (global-operating-rules.md §9) — the agent MUST be subject to the same immutable rules and protected phrase patterns
+            - Security concern: This agent would need file write access to .github/instructions/ — currently restricted to Knowledge Agent only
+        evidence:
+          - "docs/feature/agent-system-refactor/initial-request.md (Test Runner and Instruction Optimization agent descriptions)"
+          - "NewAgents/.github/agents/verifier.agent.md lines 274-283 (current Tier 5 E2E phases that overlap with proposed Test Runner)"
+          - "NewAgents/.github/agents/knowledge-agent.agent.md lines 196-212 (governed instruction updates — overlap with proposed Instruction Optimizer)"
+          - "NewAgents/.github/agents/global-operating-rules.md §9 (Safety Constraint Filter for instruction updates)"
+        relevance: "The Test Runner agent separates concerns currently bundled in the Verifier (static analysis vs. dynamic execution). The Instruction Optimizer would extract a responsibility currently in the Knowledge Agent. Both additions require careful dependency wiring to avoid circular dependencies or privilege escalation."
+
+      - id: "F-12"
+        title: "Orchestrator line budget constraint"
+        category: "risk"
+        detail: |
+          The orchestrator has a 550-line budget (NFR-1) and is currently at ~539 lines.
+          It has the most dependencies of any agent: references sql-templates.md, dispatch-patterns.md, e2e-integration.md, context7-integration.md, global-operating-rules.md, schemas.md, tool-access-matrix.md, and review-perspectives.md (via dispatch parameters).
+
+          Adding new steps (Test Runner at Step 7, Instruction Optimization at Step 10) would require additional orchestrator logic for:
+            - Test Runner dispatch and result handling
+            - Instruction Optimizer dispatch and safety gate
+            - New evidence gates for test results
+            - New approval gates
+
+          This would exceed the 550-line budget unless the extraction-to-reference-doc strategy is used (per repository memory: Direction C hybrid approach).
+
+          Repository memory confirms that the agent-pipeline-improvements feature kept the orchestrator at 539/550 by extracting complex additions to reference documents.
+        evidence:
+          - "NewAgents/.github/agents/orchestrator.agent.md lines 38-39 (NFR-1: ≤550 lines)"
+          - "Repository memory: orchestrator line budget management fact (539/550 with Direction C hybrid)"
+          - "Repository memory: agent line budget management fact (extraction to reference docs)"
+        relevance: "The refactor will need to either increase the line budget, extract more logic to reference docs, or fundamentally restructure how the orchestrator references pipeline steps."
+
+      - id: "F-13"
+        title: "Anvil agent as independent single-agent alternative"
+        category: "dependency"
+        detail: |
+          The Anvil/ directory contains anvil.agent.md — a standalone single-agent coding system separate from the multi-agent pipeline.
+
+          Anvil is self-contained with its own:
+            - Task sizing (Small/Medium/Large)
+            - Risk classification (🟢/🟡/🔴)
+            - Pushback system
+            - Adversarial review (1 or 3 reviewers based on task size)
+            - Evidence tracking via SQLite (verification-ledger.db)
+
+          Anvil has NO dependency on the pipeline agents or reference documents. It is a completely independent alternative workflow.
+
+          The Forge/ directory contains .github/ with agents/ and prompts/ subdirectories but was not examined in detail (appears to be another alternative system or historical predecessor).
+        evidence:
+          - "Anvil/anvil.agent.md lines 1-50 (standalone agent with own task sizing, pushback, review system)"
+          - "Forge/.github/ directory exists with agents/ and prompts/ subdirectories"
+        relevance: "The refactor should clarify the relationship between the pipeline system (NewAgents/), Anvil, and Forge. If the refactor creates a new system, it should decide whether Anvil is preserved as an alternative or merged."
+
+      # ===== ROUND 2 FINDINGS — DAG/WORKFLOW ORCHESTRATION DEEP RESEARCH =====
+
+      - id: "F-14"
+        title: "Apache Airflow — DAG orchestration patterns applicable to agent pipelines"
+        category: "pattern"
+        detail: |
+          Apache Airflow (v3.1.7) is the most mature open-source DAG orchestration system.
+          Key patterns extracted from documentation research:
+
+          TASK/NODE DEFINITION:
+            - Tasks defined as Python functions decorated with @task, or as Operator instances (BashOperator, PythonOperator, etc.)
+            - Three task types: Operators (predefined templates), Sensors (wait for external events), TaskFlow (@task decorated functions)
+            - Tasks have rich lifecycle states: none → scheduled → queued → running → success/failed/skipped/upstream_failed/up_for_retry
+
+          DEPENDENCY DECLARATION:
+            - Bitshift operators: first_task >> second_task >> [third_task, fourth_task]
+            - Explicit methods: task.set_upstream() / task.set_downstream()
+            - cross_downstream([op1, op2], [op3, op4]) for cross-product dependencies
+            - chain(op1, op2, op3, op4) for linear chains, including pairwise list chains
+            - Dependencies are declarative — the DAG engine resolves execution order
+
+          PARALLEL EXECUTION:
+            - Executor abstraction determines parallelism: LocalExecutor (in-process), CeleryExecutor (queued workers), KubernetesExecutor (containerized)
+            - Multiple executors can run concurrently (since v2.10)
+            - Tasks without direct dependencies run in parallel automatically
+            - TaskGroups organize parallel tasks hierarchically
+            - Per-task executor selection: @task(executor="LocalExecutor")
+
+          STATE TRACKING:
+            - PostgreSQL or MySQL metadata database (NOT SQLite in production) stores all DAG run, task instance, and event state
+            - Each DAG Run has: data_interval, logical_date, start_date, end_date
+            - Task Instances track: state, attempt count, execution dates, XCom results
+            - XComs (cross-communications) pass data between tasks
+
+          CONTROL FLOW:
+            - Branching: @task.branch returns task_id to follow, others skip
+            - Trigger Rules: all_success (default), all_failed, all_done, one_success, one_failed, none_failed, always — 12 total options
+            - Depends On Past: task runs only if previous DAG run's same task succeeded
+            - Setup/Teardown: create resource → use → destroy pattern
+
+          APPLICABILITY TO AGENT SYSTEM:
+            - The >> dependency operator pattern maps directly to our pipeline step ordering
+            - Trigger Rules (especially all_done, none_failed) could replace evidence gates for simpler gate conditions
+            - cross_downstream and chain patterns could express our wave-based parallelism
+            - The Executor abstraction (local vs. remote) mirrors our runSubagent dispatch
+            - Airflow's metadata DB dependency is analogous to our SQLite dependency — neither is removable in a full-featured system
+        evidence:
+          - "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html (DAG definition, task dependencies, >> operators, branching, trigger rules)"
+          - "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html (task states, relationships, timeouts, xcom)"
+          - "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/executor/index.html (executor types: Local, Celery, Kubernetes, multiple concurrent)"
+        relevance: "Airflow's declarative dependency model (>>) and trigger rules could inspire a simpler gate mechanism than SQL queries. However, Airflow itself requires a persistent database — confirming that DAG orchestration systems generally need persistent state storage."
+
+      - id: "F-15"
+        title: "Prefect — modern workflow orchestration with implicit dependencies and state hooks"
+        category: "pattern"
+        detail: |
+          Prefect (v3) reimagines workflow orchestration with a code-first, Pythonic approach.
+          Key patterns extracted from documentation research:
+
+          TASK/NODE DEFINITION:
+            - @flow decorator on entry-point function; @task decorator on steps
+            - Tasks are just Python functions — any function can become a task
+            - Flows can contain child flows (subflows), creating hierarchical execution
+            - task.map(iterable) for fan-out parallel execution across items
+
+          DEPENDENCY DECLARATION:
+            - IMPLICIT: Dependencies inferred from Python function call graph — no explicit >> needed
+            - If task B calls task A's return value, B depends on A automatically
+            - No separate DAG definition file — the code IS the DAG
+            - Fundamentally different from Airflow's explicit dependency declaration
+
+          STATE MANAGEMENT:
+            - Rich state machine: Scheduled, Late, AwaitingRetry, AwaitingConcurrencySlot, Pending, Running, Retrying, Paused, Suspended, Cancelling, Cancelled, Completed, Cached, RolledBack, Failed, TimedOut, Crashed (17 states)
+            - States have both a name (visual) and type (orchestration logic)
+            - State change hooks: callbacks on state transitions for custom logic
+            - Return value determines final state: return Failed() explicitly marks failure
+            - return_state=True allows conditional flow based on task terminal state
+
+          PARALLEL EXECUTION:
+            - task.submit() dispatches to a TaskRunner (ThreadPoolTaskRunner default, ProcessPoolTaskRunner for isolation)
+            - task.map(items) fans out across items in parallel
+            - Concurrency managed via work pools and concurrency slots
+
+          ERROR HANDLING:
+            - @flow(retries=3, retry_delay_seconds=10) and @task(retries=3, retry_delay_seconds=10)
+            - timeout_seconds on both flows and tasks
+            - Cache policies: INPUTS, TASK_SOURCE, RUN_ID — skip re-execution on cache hit
+
+          APPLICABILITY TO AGENT SYSTEM:
+            - Implicit dependency from call graph is relevant — our pipeline already has implicit linear step order
+            - The rich state model (17 states) far exceeds our simple DONE/ERROR/NEEDS_REVISION
+            - task.map() fan-out maps to our parallel researcher/reviewer dispatch
+            - State change hooks could replace evidence gate pattern: register callbacks on agent completion instead of SQL polling
+            - Cache policies could prevent re-running already-complete pipeline steps on retry
+        evidence:
+          - "https://docs.prefect.io/v3/get-started/quickstart (Prefect quickstart: @flow/@task decorators, dynamic DAG from code)"
+          - "https://docs.prefect.io/v3/develop/write-flows (flow/task definition, child flows, submit, map, timeout, task_runner)"
+          - "https://docs.prefect.io/v3/develop/write-tasks (task configuration: retries, cache, timeout, tags)"
+          - "https://docs.prefect.io/v3/concepts/states (17 states, state types vs names, state transitions, return_state, hooks)"
+        relevance: "Prefect's state change hooks are the most directly applicable pattern. Hooks (on_completion, on_failure callbacks) could entirely replace SQL evidence gates — the orchestrator would register hooks instead of polling SQLite."
+
+      - id: "F-16"
+        title: "Dagster — asset-centric orchestration with deterministic execution"
+        category: "pattern"
+        detail: |
+          Dagster uses an asset-centric paradigm where pipelines produce named data assets.
+          Key patterns extracted from documentation research:
+
+          TASK/NODE DEFINITION:
+            - @dg.asset decorator defines a single data asset (the output, not the operation)
+            - @dg.multi_asset produces multiple named assets from one function
+            - @dg.graph_asset composes multiple @dg.op operations into a single asset
+            - Assets have: AssetKey, upstream dependencies, code_version, owners, metadata
+
+          DEPENDENCY DECLARATION:
+            - deps=[upstream_asset] in the @asset decorator for explicit dependency
+            - Function parameter names match upstream asset names for implicit wiring
+            - AssetIn(key_prefix=["prefix"]) for cross-location asset dependencies
+            - Dependencies are between assets (data), not between operations (code)
+            - This is an "asset graph" not a "task graph" — fundamentally different mental model
+
+          DETERMINISTIC EXECUTION:
+            - code_version tracks whether asset code changed since last materialization
+            - Dagster only re-materializes assets whose code_version differs
+            - Graph assets encapsulate multi-step operations as single deterministic unit
+
+          RETRY/ERROR HANDLING:
+            - RetryPolicy on @dg.op: max_retries, delay, backoff (EXPONENTIAL), jitter (PLUS_MINUS)
+            - Retry is at the op level (inside an asset), not at the asset level
+
+          CONCURRENCY MANAGEMENT:
+            - Run queue limits: max_concurrent_runs at deployment level
+            - Concurrency pools: cross-run limits on shared resources
+            - Run executor limits: parallelism within a single run
+            - Run tag limits: category-based throttling within a run
+            - Can combine: pools + executor limits + run queue for layered control
+
+          APPLICABILITY TO AGENT SYSTEM:
+            - Thinking of pipeline outputs as ASSETS (research-output, spec-output, design-output) rather than task results simplifies the schema dependency model
+            - Code versioning: track agent instruction versions to know when re-runs are needed
+            - Concurrency pools map to our D-17 E2E concurrency limit
+            - The asset graph approach could eliminate evidence gates — assets either exist (materialized) or don't
+            - RetryPolicy with exponential backoff and jitter mirrors our SQLITE_BUSY retry pattern
+        evidence:
+          - "https://docs.dagster.io/guides/build/assets/defining-assets (asset decorators, code_version, AssetExecutionContext)"
+          - "https://docs.dagster.io/guides/build/assets/defining-assets-with-asset-dependencies (deps=[...], function parameter wiring, cross-location assets)"
+          - "https://docs.dagster.io/guides/operate/managing-concurrency (run queue limits, concurrency pools, run executor limits, tag limits)"
+        relevance: "Dagster's asset-centric model is the most paradigm-shifting pattern. Instead of evidence gates querying whether agents completed, the orchestrator could check whether output assets (YAML files) exist and are valid. This could eliminate SQLite for evidence tracking while being more intuitive."
+
+      - id: "F-17"
+        title: "Temporal — durable execution engine with failure survival patterns"
+        category: "pattern"
+        detail: |
+          Temporal provides durable, reliable workflow execution that survives infrastructure failures.
+          Key patterns extracted from documentation research:
+
+          WORKFLOW vs ACTIVITY SEPARATION:
+            - Workflow: deterministic orchestration logic. MUST be deterministic (same inputs → same command sequence).
+            - Activity: non-deterministic work units (API calls, file I/O, LLM calls). Can fail and retry.
+            - Workflows orchestrate Activities — they never do I/O themselves.
+            - This separation is the core architectural principle.
+
+          DURABILITY MODEL:
+            - Event History: every Command and Event is recorded persistently
+            - Replay: on failure/restart, Workflow re-executes from scratch but Commands matched against existing Event History
+            - If a Command was already executed (matching Event exists), result returned from history instead of re-executing
+            - State Transitions are the unit of progress, each recorded in persistence store
+
+          DETERMINISTIC CONSTRAINTS:
+            - Workflow code must not use: local time, random numbers, mutable globals, non-deterministic I/O
+            - Code changes that reorder Commands cause non-determinism errors on replay
+            - Versioning (Patching API) allows safe evolution of running workflow definitions
+            - Worker Versioning ties workers to specific code revisions
+
+          RETRY AND TIMEOUT PATTERNS:
+            - Activity Retry Policy (default): Initial Interval=1s, Backoff Coefficient=2.0, Max Interval=100×Initial, Max Attempts=∞, Non-Retryable Errors=[]
+            - Workflows do NOT retry by default (retrying entire deterministic workflow is wasteful)
+            - Three timeout types: Schedule-To-Start (queuing), Start-To-Close (execution), Schedule-To-Close (overall)
+            - Heartbeat: long-running Activities ping the service to prove liveness
+            - Non-retryable errors: explicitly marked errors that bypass retry policy (e.g., invalid input)
+
+          APPLICABILITY TO AGENT SYSTEM:
+            - The Workflow/Activity separation maps perfectly to our Orchestrator (workflow) / Agents (activities) split
+            - Temporal's philosophy: orchestrator must be deterministic, workers can be non-deterministic — this is exactly our model
+            - Replay from Event History is analogous to our pipeline restart capability (Step 0 archives + re-runs)
+            - Non-retryable error concept maps to our error categorization (deterministic vs transient)
+            - Heartbeat pattern: agents could heartbeat to indicate progress during long operations
+            - KEY INSIGHT: Temporal proves persistent event log (Event History) is essential for durable execution — SQLite serves this purpose
+        evidence:
+          - "https://docs.temporal.io/workflows (Workflow overview: determinism requirement, Commands, Events)"
+          - "https://docs.temporal.io/workflow-definition (deterministic constraints, versioning, patching)"
+          - "https://docs.temporal.io/workflow-execution (Replay, Commands/Awaitables, status lifecycle, State Transitions)"
+          - "https://docs.temporal.io/activities (Activity definition, idempotency, heartbeats)"
+          - "https://docs.temporal.io/retry-policies (default retry: 1s initial, 2.0 backoff, non-retryable errors)"
+          - "https://docs.temporal.io/encyclopedia/detecting-activity-failures (3 timeout types, heartbeat mechanism)"
+        relevance: "Temporal validates our Orchestrator/Agent architecture. The Workflow=Orchestrator, Activity=Agent mapping is exact. Temporal also proves persistent state (Event History) is essential — but it does not have to be SQLite. A structured event log (YAML or JSONL) could serve the same purpose."
+
+      - id: "F-18"
+        title: "Netflix Conductor (Orkes) — JSON-defined workflow orchestration"
+        category: "pattern"
+        detail: |
+          Netflix Conductor (now Orkes Conductor) is a workflow orchestration engine using JSON workflow definitions.
+          Key patterns extracted from documentation research:
+
+          TASK/NODE DEFINITION:
+            - Three task types: System tasks (built-in HTTP, AI model calls), Operators (control flow: loops, switch, fork/join), Worker tasks (custom code)
+            - Task definitions specify: input/output schemas, timeouts, retries — reusable across workflows
+            - Workers are stateless, idempotent, and do not implement failure-handling logic (server handles retries)
+
+          WORKFLOW DEFINITION:
+            - JSON-based workflow definitions (not code — configuration-driven)
+            - Schema: name, version, tasks[], inputParameters[], outputParameters{}, timeoutSeconds, timeoutPolicy, failureWorkflow
+            - failureWorkflow: compensation workflow triggered on failure (saga pattern)
+            - enforceSchema: validates input/output against defined schemas
+            - rateLimitConfig: concurrency limits per rate limit key
+
+          DEPENDENCY DECLARATION:
+            - Tasks ordered sequentially in tasks[] array
+            - Operators provide control flow: FORK/JOIN for parallelism, SWITCH for branching, DO_WHILE for loops
+            - Task inputs reference outputs of previous tasks via JSONPath: ${taskName.output.field}
+            - Data flow is explicit through input/output wiring, not implicit from code
+
+          STATE MANAGEMENT:
+            - Conductor server maintains execution state (RUNNING, COMPLETED, FAILED, TIMED_OUT, TERMINATED, PAUSED)
+            - Each workflow execution tracked with unique ID and all task execution states
+            - Status changes can trigger callbacks via workflowStatusListenerEnabled/Sink
+            - maskedFields: fields to mask in execution data (security feature)
+
+          APPLICABILITY TO AGENT SYSTEM:
+            - JSON/YAML workflow definitions align with our .agent.md instruction model — both are configuration-driven
+            - The failureWorkflow concept could replace manual error recovery: define a compensation workflow per failure mode
+            - Schema enforcement (enforceSchema) mirrors our schemas.md producer/consumer validation
+            - rateLimitConfig maps directly to our E2E concurrency D-17 limit
+            - maskedFields is a security pattern we could adopt for sanitizing sensitive data in pipeline outputs
+            - Worker statelessness matches our agent model — agents don't retain state between dispatches
+        evidence:
+          - "https://orkes.io/content/core-concepts (Conductor: workflows, tasks types, workers, execution model)"
+          - "https://orkes.io/content/reference-docs/api/metadata/creating-workflow-definition (workflow JSON schema: tasks[], failureWorkflow, rateLimitConfig, enforceSchema)"
+        relevance: "Conductor's configuration-driven workflow definition is closest to our current .agent.md approach. The failureWorkflow (compensation) pattern and rateLimitConfig are directly adoptable."
+
+      - id: "F-19"
+        title: "Cross-system comparison — patterns applicable to local agent orchestration"
+        category: "pattern"
+        detail: |
+          Comparative analysis of all 5 systems against our agent orchestration requirements:
+
+          DEPENDENCY DECLARATION APPROACHES:
+            1. Explicit operators: Airflow (>>), code-level. Clear but verbose.
+            2. Implicit from code: Prefect (function call graph). Most Pythonic, least boilerplate.
+            3. Asset-based: Dagster (deps=[...]). Data-centric rather than task-centric.
+            4. JSON array ordering: Conductor (tasks[]). Configuration-driven, language-agnostic.
+            5. Deterministic replay: Temporal (Command sequence). Event-sourced, infrastructure-grade.
+            Our system uses: Step numbers (0-9) + explicit dispatch patterns. Closest to Conductor's approach.
+
+          PARALLEL EXECUTION MODELS:
+            1. Airflow: Executor abstraction (Local/Celery/Kubernetes). Infrastructure-level.
+            2. Prefect: task.submit()/task.map(). Code-level, automatic.
+            3. Dagster: Concurrency pools + run executor limits. Multi-level.
+            4. Conductor: FORK/JOIN operators. Explicit in workflow definition.
+            5. Temporal: Child workflows + concurrent activity scheduling. Code-level.
+            Our system uses: Pattern A (parallel dispatch) + Pattern B (iterative loop) + runSubagent parallelism. Closest to Conductor FORK/JOIN.
+
+          STATE PERSISTENCE:
+            1. Airflow: PostgreSQL/MySQL required.
+            2. Prefect: Prefect Cloud or local SQLite/PostgreSQL.
+            3. Dagster: PostgreSQL or SQLite for asset materialization.
+            4. Conductor: Server-managed DB (Dynamo, PostgreSQL, etc.).
+            5. Temporal: Custom persistence (Cassandra, MySQL, PostgreSQL).
+            ALL 5 systems require persistent state storage. None operates purely on files.
+            Our SQLite is the simplest option. Removing it entirely would be going against industry consensus.
+
+          RETRY/ERROR HANDLING COMPARISON:
+            1. Airflow: retries + trigger rules (12 options). Most flexible branching on failure.
+            2. Prefect: retries + retry_delay_seconds + state hooks. Most Pythonic.
+            3. Dagster: RetryPolicy (max_retries, delay, backoff, jitter) on ops. Most granular.
+            4. Conductor: Server-managed retries on tasks. Least code.
+            5. Temporal: Retry Policy (initial interval, backoff coefficient, max interval, max attempts, non-retryable errors). Most principled.
+            Our system: 2 retry limit (global-operating-rules.md), 1 retry per agent (dispatch-patterns.md), SQLITE_BUSY 3-retry with exponential backoff.
+
+          KEY PATTERNS TO ADOPT:
+            1. Asset-based evidence (Dagster): Check if output YAML files exist instead of SQL queries
+            2. State change hooks (Prefect): Register callbacks on agent completion instead of polling
+            3. Compensation workflows (Conductor): Define automatic recovery flows for failure modes
+            4. Workflow/Activity separation (Temporal): Formalize orchestrator-determinism constraint
+            5. Trigger rules (Airflow): Replace complex EG queries with declarative success/failure rules
+            6. Non-retryable errors (Temporal): Explicit classification of permanent vs transient failures
+
+          WHAT SHOULD NOT BE ADOPTED:
+            1. Heavy infrastructure (Airflow/Temporal servers, Conductor server) — our system runs locally
+            2. Database-backed persistence (all 5 systems) — if removing SQLite, use YAML files not another DB
+            3. Task queues/workers (all 5) — our agents are dispatched by runSubagent, not polling
+        evidence:
+          - "All URLs from F-14 through F-18 (cross-referenced comparative analysis)"
+          - "NewAgents/.github/agents/dispatch-patterns.md (current Pattern A/B definitions)"
+          - "NewAgents/.github/agents/global-operating-rules.md §1-§2 (current retry policy)"
+        relevance: "All 5 mature workflow systems require persistent state. Most impactful adoptable patterns: (1) asset-based evidence gates (Dagster), (2) state hooks (Prefect), (3) Workflow/Activity separation (Temporal). These three could simplify the pipeline without requiring SQLite removal."
+
+    summary: |
+      Round 1 mapped the full dependency graph: 9 agents, 10 reference docs, 10 evidence gates (EG-1 through EG-10), 3 external tools (git, sqlite3, playwright-cli), and 5 alternative frameworks (CrewAI, AutoGen, LangGraph, GitHub Copilot, lightweight alternatives). Round 2 adds 6 findings (F-14 through F-19) from deep web research on 5 industry DAG/workflow orchestration systems.
+
+      KEY ROUND 2 INSIGHT: All 5 mature orchestration systems (Airflow, Prefect, Dagster, Temporal, Conductor) require persistent state storage. None operates purely on files. This validates SQLite as architecturally sound — the question is not WHETHER to have persistent state but HOW to implement it.
+
+      MOST APPLICABLE PATTERNS FROM ROUND 2:
+      1. Dagster asset-centric model: Replace SQL evidence gates with file-existence checks on output YAML artifacts. Research/spec/design/implementation outputs already ARE assets.
+      2. Prefect state change hooks: Replace polling-based evidence gates with event-driven completion callbacks.
+      3. Temporal Workflow/Activity separation: Our Orchestrator=Workflow, Agents=Activities mapping is independently validated. Orchestrator-determinism is essential.
+      4. Conductor failureWorkflow: Automatic compensation flows on pipeline failure.
+      5. Airflow trigger rules: Declarative success/failure conditions instead of SQL aggregate queries.
+      6. Temporal non-retryable errors: Formalize permanent vs transient failure distinction.
+
+      RECOMMENDED DIRECTION: Keep lightweight state persistence (SQLite or structured YAML files), adopt asset-based evidence checking (Dagster pattern) to simplify the 10 evidence gates, add state hooks (Prefect pattern) for event-driven orchestration. Do NOT adopt heavy infrastructure from Airflow/Temporal/Conductor servers — our system runs locally in VS Code.
+
+    web_research:
+      - url: "https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot"
+        topic: "GitHub Copilot custom instructions file format and hierarchy"
+        key_findings: "Three types: copilot-instructions.md (global), NAME.instructions.md (path-specific with applyTo), AGENTS.md (agent instructions). Also supports CLAUDE.md and GEMINI.md."
+      - url: "https://docs.crewai.com/concepts/crews"
+        topic: "CrewAI multi-agent orchestration and state management"
+        key_findings: "Sequential/hierarchical process flow. Memory system with LanceDB backend. YAML config for agents and tasks. No SQLite dependency."
+      - url: "https://docs.crewai.com/concepts/memory"
+        topic: "CrewAI Memory system as SQLite alternative"
+        key_findings: "Unified Memory class with hierarchical scopes, composite scoring (semantic+recency+importance), LLM-driven analysis. Storage backend is LanceDB by default. Supports private memories and scope-based isolation."
+      - url: "https://microsoft.github.io/autogen/stable/"
+        topic: "AutoGen multi-agent framework architecture"
+        key_findings: "Event-driven programming framework. Core uses message-based agent runtime. Supports distributed agents. No built-in pipeline state persistence."
+      - url: "https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/quickstart.html"
+        topic: "AutoGen Core runtime and agent communication"
+        key_findings: "SingleThreadedAgentRuntime for local agents. RoutedAgent with message_handler decorators. Communication decoupled from agent logic. Topic-based pub/sub messaging."
+      - url: "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html"
+        topic: "Apache Airflow DAG definition model and task dependencies"
+        key_findings: "DAGs defined in Python with @dag decorator. Dependencies via >> operator, cross_downstream(), chain(). Trigger rules (12 types) control execution conditions. TaskGroups for hierarchical organization."
+      - url: "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html"
+        topic: "Airflow task lifecycle, states, and relationships"
+        key_findings: "Three task types: Operators, Sensors, TaskFlow. 12 task instance states. XComs for inter-task data passing. execution_timeout and retries per task."
+      - url: "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/executor/index.html"
+        topic: "Airflow executor types and parallel execution"
+        key_findings: "Local, Queued/Batch (CeleryExecutor), and Containerized (KubernetesExecutor) executors. Multiple concurrent executors since v2.10. Per-task executor selection."
+      - url: "https://docs.prefect.io/v3/get-started/quickstart"
+        topic: "Prefect quickstart and core workflow model"
+        key_findings: "@flow/@task decorators. Dynamic DAG creation from Python code. task.map() for fan-out. Automatic dependency inference from function call graph."
+      - url: "https://docs.prefect.io/v3/develop/write-flows"
+        topic: "Prefect flow and task definition patterns"
+        key_findings: "Flows from functions, class methods, generators. Child flows (subflows). TaskRunner abstraction (ThreadPool, ProcessPool). timeout_seconds, retries, cache policies."
+      - url: "https://docs.prefect.io/v3/concepts/states"
+        topic: "Prefect state management model"
+        key_findings: "17 distinct states across 8 types. State change hooks for callbacks. return_state=True for conditional flow. Failed/Completed can be returned explicitly."
+      - url: "https://docs.dagster.io/guides/build/assets/defining-assets"
+        topic: "Dagster asset definition and dependency model"
+        key_findings: "4 asset decorators (@asset, @multi_asset, @graph_asset, @graph_multi_asset). deps=[...] for dependency. code_version for change tracking. MaterializeResult for per-asset metadata."
+      - url: "https://docs.dagster.io/guides/build/assets/defining-assets-with-asset-dependencies"
+        topic: "Dagster asset dependency patterns"
+        key_findings: "deps=[upstream_asset] for dependency. Cross-code-location dependencies via asset key strings. Function parameter matching for implicit wiring."
+      - url: "https://docs.dagster.io/guides/operate/managing-concurrency"
+        topic: "Dagster concurrency management"
+        key_findings: "4 concurrency mechanisms: run queue limits, concurrency pools (cross-run), run executor limits (single-run), run tag limits. Can combine for layered control."
+      - url: "https://docs.temporal.io/workflows"
+        topic: "Temporal workflow overview — determinism and durability"
+        key_findings: "Workflow = deterministic code defining step sequence. Resilient — survives infrastructure failures. Commands + Events recorded in Event History. Must follow deterministic constraints."
+      - url: "https://docs.temporal.io/workflow-definition"
+        topic: "Temporal workflow deterministic constraints and versioning"
+        key_findings: "Workflow code must be deterministic. Cannot use local time, random numbers, mutable globals. Versioning via Patching API or Worker Versioning."
+      - url: "https://docs.temporal.io/workflow-execution"
+        topic: "Temporal workflow execution and replay mechanism"
+        key_findings: "Replay: re-executes code matching Commands against Event History. Durable (no time limit), reliable (recoverable), scalable (Continue-As-New). State Transitions as unit of progress."
+      - url: "https://docs.temporal.io/activities"
+        topic: "Temporal activity definition and execution"
+        key_findings: "Activities are non-deterministic work units (I/O, API calls). Must be idempotent. Workers execute activities. Heartbeat for long-running activities."
+      - url: "https://docs.temporal.io/retry-policies"
+        topic: "Temporal retry policy configuration"
+        key_findings: "Default: 1s initial, 2.0 backoff, 100s max interval, unlimited attempts. Activities retry by default; Workflows do NOT. Non-retryable errors via ApplicationFailure."
+      - url: "https://docs.temporal.io/encyclopedia/detecting-activity-failures"
+        topic: "Temporal activity failure detection — timeouts and heartbeats"
+        key_findings: "3 timeout types: Schedule-To-Start, Start-To-Close, Schedule-To-Close. Heartbeat for liveness. Heartbeat throttling. Cancellation delivered via heartbeat."
+      - url: "https://orkes.io/content/core-concepts"
+        topic: "Netflix Conductor (Orkes) core concepts"
+        key_findings: "3 task types: System tasks (built-in), Operators (control flow), Worker tasks (custom). Workers are stateless and idempotent. JSON workflow definitions."
+      - url: "https://orkes.io/content/reference-docs/api/metadata/creating-workflow-definition"
+        topic: "Conductor workflow definition JSON schema"
+        key_findings: "JSON schema with tasks[], timeoutPolicy (TIME_OUT_WF or ALERT_ONLY), failureWorkflow (compensation), rateLimitConfig, enforceSchema, maskedFields, versioning."
+
+    source_files_examined:
+      - "NewAgents/.github/agents/orchestrator.agent.md"
+      - "NewAgents/.github/agents/researcher.agent.md"
+      - "NewAgents/.github/agents/spec.agent.md"
+      - "NewAgents/.github/agents/designer.agent.md"
+      - "NewAgents/.github/agents/planner.agent.md"
+      - "NewAgents/.github/agents/implementer.agent.md"
+      - "NewAgents/.github/agents/verifier.agent.md"
+      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
+      - "NewAgents/.github/agents/knowledge-agent.agent.md"
+      - "NewAgents/.github/agents/schemas.md"
+      - "NewAgents/.github/agents/sql-templates.md"
+      - "NewAgents/.github/agents/global-operating-rules.md"
+      - "NewAgents/.github/agents/tool-access-matrix.md"
+      - "NewAgents/.github/agents/dispatch-patterns.md"
+      - "NewAgents/.github/agents/e2e-integration.md"
+      - "NewAgents/.github/agents/context7-integration.md"
+      - "NewAgents/.github/agents/evaluation-schema.md"
+      - "NewAgents/.github/agents/review-perspectives.md"
+      - "NewAgents/.github/agents/severity-taxonomy.md"
+      - "NewAgents/.github/prompts/feature-workflow.prompt.md"
+      - "NewAgents/.github/prompts/plan-and-implement.prompt.md"
+      - "NewAgents/.github/prompts/orchestrator-agent.prompt.md"
+      - ".github/copilot-instructions.md"
+      - ".github/instructions/pipeline-conventions.md"
+      - "Anvil/anvil.agent.md"
+      - "docs/feature/agent-system-refactor/initial-request.md"
+
+completion:
+  status: "DONE"
+  summary: "Dependencies research round 2 complete — added 6 findings from deep web research on Airflow, Prefect, Dagster, Temporal, and Conductor. 19 total findings. All 5 systems require persistent state. Key adoptable patterns: asset-based evidence (Dagster), state hooks (Prefect), Workflow/Activity separation (Temporal)."
+  severity: null
+  findings_count: 19
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/research/dependencies.yaml"
