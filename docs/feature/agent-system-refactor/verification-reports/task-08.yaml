@@ -1,0 +1,86 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-08"
+  step: "step-6"
+  started_at: "2026-03-09T19:00:00Z"
+  completed_at: "2026-03-09T19:10:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-08"
+    run_id: "2026-03-09T18:00:00Z"
+    evidence_gate:
+      total_checks: 5
+      passed: 5
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-09T18-00-00Z:v2/.github/agents/knowledge.agent.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline has 7 namespace/tool format tools + vscode/memory. Current has 6 flat camelCase tools, vscode/memory removed. Changes match implementation report. No discrepancies."
+
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "get_errors on knowledge.agent.md: No errors found. Baseline 0 errors. No new errors introduced."
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file with YAML frontmatter. Frontmatter delimiters correct. YAML keys valid. Markdown headings/tables structurally sound."
+
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          All 5 ACs use test_method=inspection. Verified via source inspection:
+          AC-4-know: 6 flat camelCase tools (readFile, listDirectory, textSearch, codebase, fileSearch, createFile), zero namespace/tool, vscode/memory removed.
+          AC-7-know: user-invocable: false on L4.
+          AC-18: MUST NOT modify .agent.md on L109 in Doc-Update Mode section.
+          AC-D7-memory: zero vscode/memory refs in body, step 8 uses runtime-provided memory mechanism.
+          AC-line-know: 117 lines < 150 limit.
+
+      - check_name: "tdd-compliance"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "task_type=configuration (agent definition file only). No production source files modified. TDD not applicable per EC-2 fallback. All ACs are test_method=inspection."
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-09T18-00-00Z:v2/.github/agents/knowledge.agent.md"
+      discrepancies_found: false
+
+completion:
+  status: "DONE"
+  summary: "Verified task-08: 5 checks passed, 0 failed, 0 regressions. All ACs confirmed by inspection."
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/verification-reports/task-08.yaml"
+  evidence_summary:
+    total_checks: 5
+    passed: 5
+    failed: 0
+    security_blockers: 0

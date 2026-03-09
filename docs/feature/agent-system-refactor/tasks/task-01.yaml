@@ -1,54 +1,39 @@
 task:
   id: "task-01"
-  title: "Create global-rules.md shared reference"
+  title: "Update global-rules.md — Git Safety Rule + Plan Refinement Limit"
   description: >
-    Create v2/.github/agents/global-rules.md (~100 lines) containing the cross-cutting
-    rules that ALL 8 agents must follow. This is the sole shared reference document in
-    the new system. Contents: (1) completion contract schema (status/summary/output_paths),
-    (2) retry policy (transient errors 1 retry, deterministic errors fail immediately),
-    (3) anti-hallucination rule (never claim verification without evidence),
-    (4) feedback loop limits (implementation-testing: 3, code-review-fix: 2, design-review: 1),
-    (5) output path convention (docs/feature/<slug>/ for all agent outputs),
-    (6) risk classification definitions (🟢/🟡/🔴 with scaling table).
-    This file must NOT contain § section references, SQL, or references to sqlite.
-    The completion contract validation rule must specify: any status other than
-    DONE/NEEDS_REVISION/ERROR is treated as ERROR (per D-4 EC-6 resolution).
+    Modify v2/.github/agents/global-rules.md (currently 70 lines → estimated 80 lines).
+    Two additions: (1) FR-5.3: Add a 'Git Operations' rule stating only the orchestrator
+    may run git staging (add) and commit commands. All other agents MUST NOT run git add,
+    git commit, git push, git reset, or any write-mode git operations. Permitted for
+    non-orchestrator agents: git diff, git status (read-only).
+    (2) PV C-3: Add a 'Plan Refinement' row to the Feedback Loop Limits table with
+    max 1 iteration. Both additions are appended to existing sections — no structural
+    changes to the document.
   agent: "implementer"
   size: "Standard"
   risk: "🟢"
   depends_on: []
   acceptance_criteria:
-    - id: "AC-4"
-      text: "File is the only shared reference document (≤1 shared doc, excluding prompts)"
+    - id: "AC-13"
+      text: "global-rules.md contains a rule stating only the orchestrator may run git staging and commit commands. Prohibited commands listed: git add, git commit, git push, git reset. Permitted for others: git diff, git status."
       test_method: "inspection"
-    - id: "AC-8"
-      text: "File contains zero occurrences of 'sqlite', 'sqlite3', 'verification-ledger', or 'sql-templates'"
-      test_method: "test"
-    - id: "AC-18"
-      text: "File contains zero § cross-references to other files"
-      test_method: "test"
-    - id: "AC-22a"
-      text: "Completion contract schema is defined with exactly 3 required fields: status, summary, output_paths"
+    - id: "AC-27-partial"
+      text: "global-rules.md remains under 150 lines after changes (shared doc, but budget tracked)"
       test_method: "inspection"
-    - id: "AC-22b"
-      text: "Completion contract validation rule states: any status other than DONE/NEEDS_REVISION/ERROR is treated as ERROR"
+    - id: "PV-C-3"
+      text: "Feedback Loop Limits table includes Plan Refinement row with max 1 iteration"
       test_method: "inspection"
-    - id: "AC-1a"
-      text: "File does not exceed 100 lines"
-      test_method: "test"
   workflow_lane: "unit-only"
   e2e_required: false
   e2e_contract_path: null
   relevant_context:
     design_sections:
-      - "design-output.yaml#payload.decisions[id='D-9']"
-      - "design-output.yaml#payload.decisions[id='D-12']"
-      - "design-output.yaml#payload.schemas.completion_contract"
-      - "design-output.yaml#payload.pipeline_design.feedback_loops"
+      - "design-output.yaml#payload.decisions[id='D-1']"
+      - "design-output.yaml#payload.file_inventory[path='v2/.github/agents/global-rules.md']"
     spec_requirements:
-      - "spec-output.yaml#payload.common_requirements[id='CR-1']"
-      - "spec-output.yaml#payload.common_requirements[id='CR-10']"
-      - "spec-output.yaml#payload.functional_requirements[id='FR-15']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']"
+      - "spec-output.yaml#payload.acceptance_criteria[id='AC-13']"
     files_to_modify:
       - path: "v2/.github/agents/global-rules.md"
         risk: "🟢"

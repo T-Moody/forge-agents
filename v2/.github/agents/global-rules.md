@@ -36,6 +36,7 @@ All feedback loops have hard iteration caps to prevent infinite cycling:
 | Implementation-Testing | Implementer → Tester → Implementer         | 3              |
 | Code Review Fix        | Reviewer → Implementer → Tester → Reviewer | 2              |
 | Design Review          | Reviewer → Architect → Reviewer            | 1              |
+| Plan Refinement        | Planner → Reviewer → Planner               | 1              |
 
 After the limit is reached, the orchestrator escalates (ERROR status) rather than retrying.
 
@@ -51,6 +52,12 @@ docs/feature/<feature-slug>/
 
 Subdirectories follow the agent's role (e.g., `implementation-reports/`, `research/`, `review-findings/`). Agents MUST NOT write files outside this directory tree.
 
+## Git Safety
+
+Only the orchestrator may run git staging (add) and commit commands. All other agents MUST NOT run `git add`, `git commit`, `git push`, `git reset`, or any write-mode git operations.
+
+Permitted for non-orchestrator agents (read-only): `git diff`, `git status`.
+
 ## Risk Classification
 
 Risk level determines pipeline scaling — more risk means more scrutiny:
@@ -64,7 +71,7 @@ Risk level determines pipeline scaling — more risk means more scrutiny:
 **Scaling behavior:**
 
 - **🟢 Green:** Low-risk changes (docs, config, small features). Minimal research, no design review.
-- **🟡 Yellow:** Moderate-risk changes (new features, refactors). Additional research depth.
+- **🟡 Yellow:** Moderate-risk changes (new features, refactors). Additional research depth. E2E testing when skills/contract present.
 - **🔴 Red:** High-risk changes (architecture, security, breaking changes). Full research, embedded design review with 1 revision round, 3 independent reviewers.
 
 Risk level is assigned by the orchestrator at Setup (Step 1) based on the feature request scope and impact.

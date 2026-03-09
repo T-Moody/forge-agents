@@ -1,59 +1,63 @@
-# Agent System Refactor — Implementation Plan
+# Agent System Refactor (Run 3) — Implementation Plan
 
 ## Feature Overview
 
-**Feature:** Clean-Slate Multi-Agent Pipeline Rebuild  
+**Feature:** v2 Targeted Improvements — 10 Improvements to Existing Agent System  
 **Planning Mode:** Initial  
-**Run ID:** 2026-03-08T12:00:00Z  
-**Overall Risk:** 🔴
+**Run ID:** 2026-03-09T18:00:00Z  
+**Overall Risk:** 🟡
 
-A full clean-slate rebuild of the agent system: 8 agents + 1 shared reference + 2 prompt files in `v2/.github/`. Zero SQLite, YAML file-based evidence, VS Code native tool restrictions via YAML frontmatter, DAG-based task execution, completion-contract-only routing, ≤1,500 total lines.
+Targeted modifications to the existing 9 v2 agent files (8 agents + global-rules.md) implementing 10 improvements: correct tool names (D-1/D-2), orchestrator-mediated interactive questioning (D-3), git safety extraction (D-4), two-source selective staging (D-5), exploratory QA (D-6), doc-update optional step (D-7), architect web research guidance (D-8), implementer TDD best practices (D-9), Step 8 decomposition into 8a-8e (D-10). All agents must remain under 150-line budgets. No new agent files created. Prompts unchanged.
 
 ---
 
 ## Success Criteria (from spec-output.yaml)
 
-| AC    | Criterion                                                       | Mapped To                 |
-| ----- | --------------------------------------------------------------- | ------------------------- |
-| AC-1  | Total system ≤1,500 lines                                       | Cross-cutting (all tasks) |
-| AC-2  | No agent file >150 lines                                        | Each agent task           |
-| AC-3  | Exactly 8 .agent.md files                                       | Cross-cutting             |
-| AC-4  | ≤2 shared reference docs                                        | task-01                   |
-| AC-5  | YAML frontmatter: name, description, tools                      | Each agent task           |
-| AC-6  | Orchestrator agents field lists all 7                           | task-10                   |
-| AC-7  | Non-orchestrator agents: []                                     | tasks 03-09               |
-| AC-8  | No sqlite/sqlite3/verification-ledger references                | All tasks                 |
-| AC-9  | YAML-only routing in orchestrator                               | task-10                   |
-| AC-10 | 8 named steps in orchestrator                                   | task-10                   |
-| AC-11 | Code Review (Step 7) non-skippable                              | task-10                   |
-| AC-12 | Planner output schema: id, description, depends_on, files, risk | task-05                   |
-| AC-13 | DAG-based dispatch (not wave-based)                             | task-10                   |
-| AC-14 | No file overlap in parallel dispatches                          | task-10                   |
-| AC-15 | Implementer tools exclude app start/E2E/curl                    | task-07                   |
-| AC-16 | Tester has run_in_terminal                                      | task-08                   |
-| AC-17 | Knowledge cannot write .agent.md files                          | task-09                   |
-| AC-18 | No § cross-references                                           | All tasks                 |
-| AC-19 | Researcher has fetch_webpage                                    | task-03                   |
-| AC-20 | New directory (not modifying existing)                          | All tasks                 |
-| AC-21 | Industry traceability                                           | All tasks                 |
-| AC-22 | Completion contract in every output schema                      | All agent tasks           |
+| AC    | Criterion                                                              | Mapped To           |
+| ----- | ---------------------------------------------------------------------- | ------------------- |
+| AC-1  | Orchestrator Step 1 E2E skill scan                                     | task-02             |
+| AC-2  | Interactive E2E prompt with 3+ options                                 | task-02             |
+| AC-3  | Autonomous mode E2E warning (no prompt)                                | task-02             |
+| AC-4  | All tool names flat camelCase across all 8 agents                      | tasks 02-09         |
+| AC-5  | Orchestrator tools: 'agent' + agents: 7 workers                        | task-02             |
+| AC-6  | Orchestrator body: runSubagent dispatch instruction                    | task-02             |
+| AC-7  | All 7 workers: user-invocable: false                                   | tasks 03-09         |
+| AC-8  | Architect: clarification step gated by interactive mode                | task-04             |
+| AC-9  | DR-1: No structured question tool exists; orchestrator mediates        | task-02 (mediation) |
+| AC-10 | Planner: plan_summary output for orchestrator                          | task-05             |
+| AC-11 | DR-2: No structured question tool; orchestrator mediates plan approval | task-02 (mediation) |
+| AC-12 | Implementer: no git add/commit; allowlist = git diff, git status       | task-03             |
+| AC-13 | global-rules.md: git safety rule (orchestrator-only staging)           | task-01             |
+| AC-14 | Orchestrator Step 8d: selective pathspecs (not git add -A)             | task-02             |
+| AC-15 | Orchestrator Step 8e: interactive Commit/Review/Unstage                | task-02             |
+| AC-16 | Autonomous: stage only, no commit                                      | task-02             |
+| AC-17 | Orchestrator: doc update Apply/Review/Skip choice                      | task-02             |
+| AC-18 | Knowledge: MUST NOT modify .agent.md in doc-update mode                | task-08             |
+| AC-19 | Architect: Web Research step gated by web_research_enabled             | task-04             |
+| AC-20 | Architect: fetch tool name is 'fetch'                                  | task-04             |
+| AC-21 | Tester: Exploratory QA with 4 categories                               | task-06             |
+| AC-22 | Tester: exploratory findings with category + severity                  | task-06             |
+| AC-23 | Tester: ≤150 lines after changes                                       | task-06             |
+| AC-24 | Implementer: REFACTOR step (RED-GREEN-REFACTOR-REPORT)                 | task-03             |
+| AC-25 | Implementer: YAGNI, KISS, DRY, functional, minimal code                | task-03             |
+| AC-26 | REFACTOR: re-run tests + revert on failure                             | task-03             |
+| AC-27 | All 8 agents ≤150 lines each                                           | Cross-cutting (all) |
 
 ---
 
 ## Ordered Task Index
 
-| #   | Task                                    | Risk | Size     | Files | Wave |
-| --- | --------------------------------------- | ---- | -------- | ----- | ---- |
-| 1   | Create global-rules.md shared reference | 🟢   | Standard | 1     | 1    |
-| 2   | Create pipeline prompt files            | 🟢   | Standard | 2     | 1    |
-| 3   | Create researcher.agent.md              | 🟢   | Standard | 1     | 2    |
-| 4   | Create architect.agent.md               | 🟢   | Standard | 1     | 2    |
-| 5   | Create planner.agent.md                 | 🟢   | Standard | 1     | 2    |
-| 6   | Create reviewer.agent.md                | 🟢   | Standard | 1     | 2    |
-| 7   | Create implementer.agent.md             | 🟡   | Standard | 1     | 3    |
-| 8   | Create tester.agent.md                  | 🟡   | Standard | 1     | 3    |
-| 9   | Create knowledge.agent.md               | 🟡   | Standard | 1     | 3    |
-| 10  | Create orchestrator.agent.md            | 🔴   | Large    | 1     | 4    |
+| #   | Task                                                     | Risk | Size     | Files | Wave |
+| --- | -------------------------------------------------------- | ---- | -------- | ----- | ---- |
+| 1   | Update global-rules.md — Git Safety + Plan Refinement    | 🟢   | Standard | 1     | 1    |
+| 2   | Update orchestrator.agent.md — Full Overhaul             | 🟡   | Standard | 1     | 2    |
+| 3   | Update implementer.agent.md — Git Safety + TDD Refactor  | 🟡   | Standard | 1     | 2    |
+| 4   | Update architect.agent.md — Clarification + Web Research | 🟡   | Standard | 1     | 2    |
+| 5   | Update planner.agent.md — Plan Summary + Approval        | 🟢   | Standard | 1     | 2    |
+| 6   | Update tester.agent.md — Exploratory QA + Audit          | 🟡   | Standard | 1     | 3    |
+| 7   | Update reviewer.agent.md — Audit Pattern Update          | 🟢   | Standard | 1     | 3    |
+| 8   | Update knowledge.agent.md — Doc-Update Mode + Memory     | 🟡   | Standard | 1     | 3    |
+| 9   | Update researcher.agent.md — Tool Name Fix               | 🟢   | Standard | 1     | 3    |
 
 ---
 
@@ -61,60 +65,59 @@ A full clean-slate rebuild of the agent system: 8 agents + 1 shared reference + 
 
 ### Wave 1 — Foundation (no dependencies)
 
-| Task    | File(s) Created                                                                       | Est. Lines |
-| ------- | ------------------------------------------------------------------------------------- | ---------- |
-| task-01 | v2/.github/agents/global-rules.md                                                     | ~100       |
-| task-02 | v2/.github/prompts/feature-workflow.prompt.md, v2/.github/prompts/quick-fix.prompt.md | ~55        |
+| Task    | File Modified                     | Changes                                   | Est. Lines |
+| ------- | --------------------------------- | ----------------------------------------- | ---------- |
+| task-01 | v2/.github/agents/global-rules.md | Git safety rule (FR-5.3), plan refinement | 70→80      |
 
-**Parallelism:** 2 tasks, max_concurrent: 2. No file overlap.
+**Parallelism:** 1 task. Foundation for all subsequent tasks.
 
-### Wave 2 — Tier 3 Read-Only Agents (depend on task-01)
+### Wave 2 — Core Agent Modifications (depend on task-01)
 
-| Task    | File Created                          | Est. Lines |
-| ------- | ------------------------------------- | ---------- |
-| task-03 | v2/.github/agents/researcher.agent.md | ~100       |
-| task-04 | v2/.github/agents/architect.agent.md  | ~140       |
-| task-05 | v2/.github/agents/planner.agent.md    | ~130       |
-| task-06 | v2/.github/agents/reviewer.agent.md   | ~110       |
+| Task    | File Modified                           | Key Changes                                           | Est. Lines |
+| ------- | --------------------------------------- | ----------------------------------------------------- | ---------- |
+| task-02 | v2/.github/agents/orchestrator.agent.md | Tool names, E2E scan, mediation, Step 8 decomposition | 117→142    |
+| task-03 | v2/.github/agents/implementer.agent.md  | Tool names, git safety, TDD REFACTOR, quality         | 99→115     |
+| task-04 | v2/.github/agents/architect.agent.md    | Tool names, clarification step, web research          | 130→145    |
+| task-05 | v2/.github/agents/planner.agent.md      | Tool names, plan_summary output                       | 105→116    |
 
-**Parallelism:** 4 tasks, max_concurrent: 4. No file overlap. All Tier 3 (read-only + create) agents.
+**Parallelism:** 4 tasks, max_concurrent: 4. No file overlap. Architect is tightest (5-line headroom).
 
-### Wave 3 — Tier 2 Standard Trust Agents + Knowledge (depend on task-01)
+### Wave 3 — Extended Agent Modifications (depend on wave 2 tasks)
 
-| Task    | File Created                           | Est. Lines |
-| ------- | -------------------------------------- | ---------- |
-| task-07 | v2/.github/agents/implementer.agent.md | ~130       |
-| task-08 | v2/.github/agents/tester.agent.md      | ~140       |
-| task-09 | v2/.github/agents/knowledge.agent.md   | ~100       |
+| Task    | File Modified                         | Key Changes                              | Est. Lines |
+| ------- | ------------------------------------- | ---------------------------------------- | ---------- |
+| task-06 | v2/.github/agents/tester.agent.md     | Exploratory QA, audit update, tool names | 129→143    |
+| task-07 | v2/.github/agents/reviewer.agent.md   | Audit pattern update, tool names         | 96→99      |
+| task-08 | v2/.github/agents/knowledge.agent.md  | Doc-update mode, memory fix, tool names  | 107→118    |
+| task-09 | v2/.github/agents/researcher.agent.md | Tool name fix, user-invocable            | 83→84      |
 
-**Parallelism:** 3 tasks, max_concurrent: 3. No file overlap. Agents with security-scoped constraints (command allowlist, singleton mode, output path allowlist).
-
-### Wave 4 — Orchestrator (depend on task-01)
-
-| Task    | File Created                            | Est. Lines |
-| ------- | --------------------------------------- | ---------- |
-| task-10 | v2/.github/agents/orchestrator.agent.md | ~150       |
-
-**Parallelism:** 1 task. The orchestrator is the most complex agent (DAG dispatch, routing, pre-commit validation, trust boundary enforcement). Written last for maximum design context.
+**Parallelism:** 4 tasks, max_concurrent: 4. No file overlap.
 
 ---
 
 ## Dependency Graph
 
 ```
-task-01 ──┬──> task-03
-          ├──> task-04
-          ├──> task-05
-          ├──> task-06
-          ├──> task-07
-          ├──> task-08
-          ├──> task-09
-          └──> task-10
-
-task-02 (independent)
+task-01 ──┬──> task-02 ──> task-08
+          │
+          ├──> task-03 ──┬──> task-06
+          │              └──> task-07
+          │
+          ├──> task-04 ──> task-09
+          │
+          └──> task-05
 ```
 
-All agent tasks (03-10) depend on task-01 (global-rules.md) because every agent references the completion contract schema and cross-cutting rules defined there. Task-02 (prompt files) is fully independent.
+**Dependency justifications:**
+
+- **task-02 → task-01:** Orchestrator references global-rules git safety rule for Step 8 staging.
+- **task-03 → task-01:** Implementer follows global-rules git safety constraints (removes git add).
+- **task-04 → task-01:** Architect reads global-rules (incl. plan refinement limit affecting output handling).
+- **task-05 → task-01:** Planner reads global-rules (plan refinement limit directly affects workflow).
+- **task-06 → task-03:** Tester static audit must match implementer's updated git patterns.
+- **task-07 → task-03:** Reviewer command audit must match implementer's updated allowlist.
+- **task-08 → task-02:** Knowledge doc-update mode aligns with orchestrator Step 8b mediation.
+- **task-09 → task-04:** Both T3 agents share fetch gating pattern; researcher aligns with architect's corrected tool names.
 
 ---
 
@@ -122,59 +125,49 @@ All agent tasks (03-10) depend on task-01 (global-rules.md) because every agent 
 
 ### Per-Task Breakdown
 
-| Task    | Risk | Rationale                                                                                                     |
-| ------- | ---- | ------------------------------------------------------------------------------------------------------------- |
-| task-01 | 🟢   | New shared reference doc — additive, no security logic                                                        |
-| task-02 | 🟢   | New prompt files — short entry points, no complex logic                                                       |
-| task-03 | 🟢   | New agent file — read-only Tier 3, simple workflow                                                            |
-| task-04 | 🟢   | New agent file — read-only Tier 3, structured output                                                          |
-| task-05 | 🟢   | New agent file — read-only Tier 3, DAG task schema                                                            |
-| task-06 | 🟢   | New agent file — read-only Tier 3, findings + verdict                                                         |
-| task-07 | 🟡   | Command allowlist (security enforcement), file ownership constraint                                           |
-| task-08 | 🟡   | Dual-mode execution, singleton constraint (concurrency), test lifecycle                                       |
-| task-09 | 🟡   | Output path allowlist (security gate), post-review write capability                                           |
-| task-10 | 🔴   | Pre-commit validation, trust boundary enforcement, git operations, all routing, DAG dispatch with concurrency |
+| Task    | Risk | Rationale                                                                        |
+| ------- | ---- | -------------------------------------------------------------------------------- |
+| task-01 | 🟢   | Additive: 2 small additions to shared config (~10 lines)                         |
+| task-02 | 🟡   | Business logic: orchestrator coordination overhaul (11 change items, 25 net)     |
+| task-03 | 🟡   | Business logic: implementer workflow restructure (git removal + TDD refactor)    |
+| task-04 | 🟡   | Business logic: architect workflow additions (5-line headroom — tightest agent)  |
+| task-05 | 🟢   | Additive: planner gains plan_summary output step (~11 net lines)                 |
+| task-06 | 🟡   | Business logic: tester gains exploratory QA phase + audit pattern update         |
+| task-07 | 🟢   | Simple: reviewer audit pattern change (git diff\|add\|status → git diff\|status) |
+| task-08 | 🟡   | Business logic: knowledge gains doc-update mode + memory tool reword             |
+| task-09 | 🟢   | Simple: tool name corrections + user-invocable: false (~1 net line)              |
 
-### Overall: 🔴
+### Overall: 🟡
 
-The orchestrator (task-10) contains the security-critical pre-commit validation gate, trust boundary enforcement, and all pipeline routing decisions. This escalates the feature-level risk to 🔴.
+Highest task risk is 🟡 (business logic modifications). No auth/crypto/payments/migrations affected. The architect's 5-line headroom (130→145) is the primary implementation risk, noted in pre-mortem.
 
 ---
 
-## Known Issues from Design Review
+## Design Review Carry-Over
 
-These issues were identified in R2/R3 design review and must be addressed during implementation:
+All 3 adversarial reviewers approved in R2:
 
-1. **KI-1: Pre-commit validation scope** (AG-R2-C-1, AG-R3-C-1 Major)  
-   design.md describes entire-git-diff validation. The **correct** behavior is per `trust_boundary_model` in design-output.yaml: validate only Knowledge agent output paths. Orchestrator task (task-10) must use trust_boundary_model as authoritative.
-
-2. **KI-2: Pipeline-log.yaml append mechanism** (PV-R3 Minor)  
-   The orchestrator appends dispatch entries incrementally. The implementer should specify the append pattern (create_file for initial, replace_string_in_file for appends to dispatches list).
-
-3. **KI-3: Orchestrator body sections** (AG-R3-A-2 Minor)  
-   Orchestrator uses Pipeline Steps + DAG Dispatch instead of the standard D-3 6-section layout. This deviation is accepted due to complexity.
+- **Security Sentinel:** 0 findings. D-11 rejection of disable-model-invocation validated.
+- **Architecture Guardian:** 1 Minor carry-over (git safety is advisory, not deterministic enforcement). Accepted as known limitation — defense-in-depth via three-layer trust model.
+- **Pragmatic Verifier:** 0 findings. All 6 R1 findings resolved.
 
 ---
 
 ## Pre-Mortem Analysis
 
-| Task    | Failure Scenario                                                                                    | Likelihood | Impact | Mitigation                                                   |
-| ------- | --------------------------------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------ |
-| task-01 | Completion contract schema too verbose, eating into 100-line budget                                 | L          | M      | Keep to 3 fields (status, summary, output_paths) per D-4     |
-| task-02 | Quick-fix step set inconsistent with immutable minimum set                                          | L          | H      | Explicitly enumerate steps {1,5,6,7,8} per D-13              |
-| task-04 | Architect agent exceeds 140-line budget with spec+design dual responsibility                        | M          | M      | Separate requirements from design in workflow; tight prose   |
-| task-05 | Planner output schema missing DAG fields (depends_on, files)                                        | L          | H      | Reference D-6 task_schema definition directly                |
-| task-07 | Command allowlist too restrictive or too permissive                                                 | M          | H      | Match exact patterns from trust_boundary_model               |
-| task-08 | Dual-mode tester exceeds 140 lines; triggers D-7 split                                              | M          | M      | If >140 lines, extract to 2 agents per D-7 split_trigger     |
-| task-09 | Knowledge output_path_allowlist paths inconsistent with orchestrator pre-commit                     | M          | H      | Both tasks reference same design-output.yaml section         |
-| task-10 | Orchestrator exceeds 150-line budget with DAG + routing + pre-commit                                | H          | H      | Extract DAG to dag-dispatch.md per D-8 orchestrator_fallback |
-| task-10 | Pre-commit scope implements entire-diff (design.md wording) instead of Knowledge-only (trust model) | M          | H      | KI-1: trust_boundary_model is authoritative                  |
-| task-10 | DAG dispatch algorithm unclear, causing ambiguous parallel resolution                               | M          | M      | Follow D-6 alt-1: topological sort + file ownership check    |
+| Task    | Failure Scenario                                             | Likelihood | Impact | Mitigation                                                 |
+| ------- | ------------------------------------------------------------ | ---------- | ------ | ---------------------------------------------------------- |
+| task-02 | Orchestrator exceeds 150 lines (11 changes, 117→142 est.)    | M          | H      | Concise prose; extract Step 8 detail if budget tight       |
+| task-03 | git add removal breaks implementer workflow reference        | L          | M      | Verify all workflow steps renumbered after step 6 removal  |
+| task-04 | Architect exceeds 150 lines (5-line headroom at 130→145)     | H          | H      | Extract FR-8 web research to reference doc if budget tight |
+| task-05 | plan_summary field missing from planner output schema        | L          | M      | Follow design D-3 assumptions-first pattern exactly        |
+| task-06 | Tester exploratory QA too verbose (129→143, 7-line headroom) | M          | M      | 4-category compact checklist; detailed procedures to SKILL |
+| task-08 | Knowledge doc-update mode references non-existent files      | L          | L      | Guard: return DONE if instruction-recommendations.md empty |
 
-**Overall Risk Level:** High — The orchestrator (task-10) has the highest probability of budget overrun and the pre-commit scope issue requires careful attention to use the trust_boundary_model (not design.md) as authoritative.
+**Overall Risk Level:** Medium — The architect (task-04) has the highest probability of budget overrun at 5-line headroom. Extraction fallback documented in design D-6.
 
 **Key Assumptions:**
 
-1. VS Code .agent.md YAML frontmatter `tools` field enforces tool restrictions at platform level. If not, the trust boundary model loses its primary enforcement mechanism. (Affects: all tasks)
-2. A single tester.agent.md can fit both static and dynamic workflows within 140 lines. If not, D-7 split_trigger activates and agent count becomes 9. (Affects: task-08, task-10)
-3. The orchestrator DAG dispatch algorithm fits within ~20 lines of the 150-line budget. If not, D-8 fallback creates dag-dispatch.md. (Affects: task-10, task-01)
+1. **Tool name enforcement works:** VS Code YAML frontmatter `tools:` array with flat camelCase names actually restricts agent tool access at platform level. If not enforced, all tool-restriction changes are advisory only. (Affects: all tasks)
+2. **Line count estimates are accurate:** Design-verified line counts (PowerShell `(Get-Content).Count`, 2026-03-09) are still current. If files were modified since measurement, headroom calculations may be wrong. (Affects: task-04 architect most critically)
+3. **user-invocable: false hides agents:** This frontmatter property prevents workers from appearing in VS Code dropdown. If not respected, workers could be invoked directly. (Affects: tasks 03-09)

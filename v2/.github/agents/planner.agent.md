@@ -1,13 +1,14 @@
 ---
 name: planner
 description: "DAG task decomposition and wave planning agent"
+user-invocable: false
 tools:
-  - read/readFile
-  - search/listDirectory
-  - search/textSearch
-  - search/codebase
-  - search/fileSearch
-  - edit/createFile
+  - readFile
+  - listDirectory
+  - textSearch
+  - codebase
+  - fileSearch
+  - createFile
 agents: []
 ---
 
@@ -86,10 +87,16 @@ Write each task as `docs/feature/<slug>/tasks/task-XX.yaml` containing the task 
 completion:
   status: "DONE"
   summary: "Decomposed feature into <N> tasks across DAG"
+  plan_summary:
+    total_tasks: <N>
+    waves: <W>
+    key_dependencies: ["<brief dep descriptions>"]
   output_paths:
     - "docs/feature/<slug>/plan-output.yaml"
     - "docs/feature/<slug>/tasks/task-01.yaml"
 ```
+
+The orchestrator reads `plan_summary` and, in interactive mode, presents Accept/Refine/Reject to the user. If the user selects "Refine," the orchestrator re-dispatches planner with feedback (max 1 plan refinement iteration per global-rules.md). In autonomous mode, planner returns DONE immediately — no approval gate.
 
 ## Constraints
 

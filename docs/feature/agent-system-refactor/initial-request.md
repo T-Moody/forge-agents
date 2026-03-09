@@ -1,8 +1,9 @@
-# Initial Request: Agent System Refactor
+# Initial Request: Agent System Refactor (Run 3)
 
 **Feature Slug:** agent-system-refactor
-**Run ID:** 2026-03-08T12:00:00Z
-**APPROVAL_MODE:** (pending user selection)
+**Run ID:** 2026-03-09T18:00:00Z
+**APPROVAL_MODE:** interactive
+**Design Web Research:** enabled
 
 ---
 
@@ -252,6 +253,24 @@ The agent should follow best practices for AI instruction design:
 - concise rules
 - minimal duplication
 - clear scope
+
+---
+
+## Run 2 Requirements (2026-03-09 — Verbatim User Input)
+
+We are missing some things that I think we should take a look at:
+
+1. An e2e contract or guidance to help dev set up e2e skill so it can be used by the agents. A lot of developers using these agents don't use e2e testing so the hope was for the agents to autodetect skills if already setup or if not we had various defaults to help them set up. For example an app with UI would default to the playwright cli skill, and apis would use client secret, client id, tenant id and so on to get token since a lot of apps use azure so we could get the secrets from key vault if auth is needed. Also we presented multiple choice to ask the user if they wanted to set this up instead of silently failing
+2. You need to use the subagent tool correctly in agents. You must look it up in vs code docs. You have to say use subagent tool and call agents by their exact names
+3. I don't see any pushbacks or clarifying questions. We used to allow spec to ask clarifying questions in interactive. Our architect should do this now
+4. Our planner should ask multiple choice question to accept or refine the plan in interactive
+5. Subagents should not be doing git commands that can conflict with other subagents. For example git add . would add all files even if other agents don't want that
+6. I don't think we should autocommit code at the end. Devs might want to look at the changed code first
+7. I think it would be valuable to have an optional step that updates documentation. Maybe a multiple choice at the end to use findings from the knowledge agent to update documentation. For example look at all copilot instructions files and make sure they aren't redundant, out of date or getting too large. They should be targeted to exactly where needed
+8. Should design do web research?
+
+Additional context: Do not assume you know anything and assume subagents knowledge is outdated. Require all subagents to do research in this run. Do web research on skills, e2e practices for agents, github copilot and claude skills, copilot instructions, agent formatting, multi-agent systems, github copilot in vs code tools, vscode experimental features. Review NewAgents and V2. Look at existing research in docs/feature/agent-system-refactor and dig deeper.
+
 - high signal-to-noise ratio
 
 Instruction updates should include:
@@ -349,6 +368,47 @@ Before creating or modifying agents, confirm:
 - required fields
 - correct YAML format
 - how prompts are referenced
+
+---
+
+## Run 3 Requirements (2026-03-09T18:00:00Z — Verbatim User Input)
+
+Let's continue work on docs/feature/agent-system-refactor where we took NewAgents and applied best practices from the web to make a new agent pack v2.
+
+We are missing some things that I think we should take a look at:
+
+1. An e2e contract or guidance to help dev set up e2e skill so it can be used by the agents. A lot of developers using these agents don't use e2e testing so the hope was for the agents to autodetect skills if already setup or if not we had various defaults to help them set up. For example an app with UI would default to the playwright cli skill, and apis would use client secret, client id, tenant id and so on to get token since a lot of apps use azure so we could get the secrets from key vault if auth is needed. Also we presented multiple choice to ask the user if they wanted to set this up instead of silently failing
+2. You need to use the subagent tool correctly in agents. You must look it up in vs code docs. You have to say use subagent tool and call agents by their exact names
+3. I don't see any pushbacks or clarifying questions. We used to allow spec to ask clarifying questions in interactive. Our architect should do this now
+4. Our planner should ask multiple choice question to accept or refine the plan in interactive
+5. Subagents should not be doing git commands that can conflict with other subagents. For example git add . would add all files even if other agents don't want that
+6. I don't think we should autocommit code at the end. Devs might want to look at the changed code first
+7. I think it would be valuable to have an optional step that updates documentation. Maybe a multiple choice at the end to use findings from the knowledge agent to update documentation. For example look at all copilot instructions files and make sure they aren't redundant, out of date or getting too large. They should be targeted to exactly where needed
+8. Should design do web research?
+9. The e2e tester should not just run the e2e test suite. It should also manually test the app. For example I want it to test things as if it were a real dev trying to ensure the feature/bug is fixed and also trying to break it. Here is an example of a qa agent that I have in another app. I don't want everything from it as this agent has a lot, but you can see how it's more like a real dev and not just running existing tests: X:\programProjects\TourneyPal\.github\agents\tourneypal-qa.agent.md
+10. The implementer agent should also follow tdd code best practices. My old implementer had these best practices:
+    - YAGNI (You Aren't Gonna Need It)
+    - KISS (Keep It Simple)
+    - DRY (Don't Repeat Yourself)
+    - Prefer Functional Programming patterns
+    - Avoid over-engineering
+    - Maintain lint compatibility
+    - Write the MINIMAL amount of code required to pass the tests
+    - Avoid over-engineering
+
+I don't want to accidentally over complicate these agents, but I want them to be powerful. Review NewAgents and V2. Also do web research on skills, e2e practices for agents, github copilot and claude skills, copilot instructions, agent formatting, multi-agent systems, github copilot in vs code tools, vscode experimental features, look at our existing research that we did in docs/feature/agent-system-refactor to see what things we researched and maybe dig deeper into that web research. I am trying to use established standards and best practices to build the most complete, powerful, deterministic multiagent system.
+
+Do not assume you know anything and assume subagents knowledge is outdated. Require all subagents to do research in this run.
+
+### Reference Material
+
+QA Agent Example: X:\programProjects\TourneyPal\.github\agents\tourneypal-qa.agent.md
+
+- 4 parallel subagent model for QA exploration
+- 7 testing phases: Happy Path, State Mutation, Edge Cases, Navigation Chaos, Mobile/Tablet, UI Validation, State Replay
+- Playwright CLI skill integration
+- Autonomous bug discovery with backlog generation
+- Context rotation for long-running sessions
 - how instructions are referenced
 
 All agent definitions must follow **the official GitHub Copilot agent format used in Visual Studio Code**.

@@ -2,82 +2,73 @@ agent_output:
   agent: "implementer"
   instance: "implementer-task-03"
   step: "step-5"
-  started_at: "2026-03-08T19:30:00Z"
-  completed_at: "2026-03-08T19:45:00Z"
+  started_at: "2026-03-09T18:10:00Z"
+  completed_at: "2026-03-09T18:15:00Z"
   schema_version: "1.0"
   payload:
     task_id: "task-03"
-    task_type: "code"
+    task_type: "configuration"
     baseline:
       ide_diagnostics: { errors: 0, warnings: 0 }
       build_exit_code: null
       test_summary: null
     changes:
-      - path: "v2/.github/agents/researcher.agent.md"
-        action: "created"
-        description: "Created researcher agent file (82 lines) with YAML frontmatter, 6 standard sections, structured findings output schema, and completion contract."
+      - path: "v2/.github/agents/implementer.agent.md"
+        action: "modified"
+        description: >
+          Five changes: (1) Fixed 10 tool names to flat camelCase (D-1/AC-4),
+          (2) Added user-invocable: false (D-2/AC-7),
+          (3) Removed git add -A from workflow + allowlist, added git safety reference (D-4/AC-12),
+          (4) Added REFACTOR step between GREEN and REPORT with revert-on-failure (D-9/AC-24/AC-26),
+          (5) Added code quality principles as Constraint 2 (D-9/AC-25).
+          File: 99 → 104 lines (budget: 150).
     self_check:
-      ide_diagnostics: { errors: 0, warnings: 7 }
+      ide_diagnostics: { errors: 0, warnings: 0 }
       build_exit_code: null
       test_summary: null
-      self_fix_attempts: 1
+      self_fix_attempts: 0
       git_staged: true
     verification_entries:
       - check_name: "baseline-ide-diagnostics"
         phase: "baseline"
         tool: "get_errors"
         passed: true
-      - check_name: "line-count-check"
-        phase: "after"
-        tool: "run_in_terminal"
-        passed: true
-        output_snippet: "82 lines (budget 100, hard limit 150)"
-      - check_name: "no-section-cross-refs"
-        phase: "after"
-        tool: "run_in_terminal"
-        passed: true
-        output_snippet: "§ cross-references: 0"
-      - check_name: "no-sql-references"
-        phase: "after"
-        tool: "run_in_terminal"
-        passed: true
-        output_snippet: "SQL/DB references: 0"
     behavioral_coverage:
-      - ac_id: "AC-2"
-        test_file: null
-        test_name: null
-        status: "covered"
-        justification: "Verified via terminal: 82 lines ≤ 150"
-      - ac_id: "AC-5"
+      - ac_id: "AC-4-impl"
         test_file: null
         test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — frontmatter contains name, description, tools fields"
-      - ac_id: "AC-7"
+        justification: "test_method='inspection' — verified via grep: zero namespace/tool format instances remain"
+      - ac_id: "AC-7-impl"
         test_file: null
         test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — frontmatter has agents: []"
-      - ac_id: "AC-19"
+        justification: "test_method='inspection' — user-invocable: false present on line 4"
+      - ac_id: "AC-12"
         test_file: null
         test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — tools list includes fetch_webpage"
-      - ac_id: "AC-22"
+        justification: "test_method='inspection' — git add/commit only in prohibition text, not workflow commands"
+      - ac_id: "AC-24"
         test_file: null
         test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — Output Schema section includes completion block with status/summary/output_paths"
-      - ac_id: "AC-18"
+        justification: "test_method='inspection' — REFACTOR step 5 present between GREEN (4) and REPORT (7)"
+      - ac_id: "AC-25"
         test_file: null
         test_name: null
-        status: "covered"
-        justification: "Verified via terminal: 0 § cross-references found"
-      - ac_id: "AC-8"
+        status: "not_applicable"
+        justification: "test_method='inspection' — Constraint 2 lists all 7 required quality principles"
+      - ac_id: "AC-26"
         test_file: null
         test_name: null
-        status: "covered"
-        justification: "Verified via terminal: 0 sqlite/sql-templates/verification-ledger references found"
+        status: "not_applicable"
+        justification: "test_method='inspection' — REFACTOR step says re-run tests and revert on failure"
+      - ac_id: "AC-27-impl"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — 104 lines < 150 budget"
     tdd_red_green:
       tests_written_first: false
       initial_run_failures: 0
@@ -86,13 +77,10 @@ agent_output:
         get_errors_clean: true
         typecheck_clean: true
         tests_passing: true
-      tdd_fallback_reason: >
-        Task creates a Markdown agent definition file (.agent.md), not production
-        source code. No test framework applies to agent instruction files.
-        Acceptance criteria verified via terminal line-count and grep checks.
+      tdd_fallback_reason: "task_type=configuration, all ACs use test_method=inspection, only agent instruction markdown modified — no production source files"
 completion:
   status: "DONE"
-  summary: "Created researcher.agent.md (82 lines) with frontmatter, 6 sections, findings schema, completion contract"
+  summary: "implementer.agent.md updated: flat camelCase tools, user-invocable:false, git safety, TDD REFACTOR step, code quality. 99→104 lines."
   severity: null
   findings_count: 0
   risk_level: null

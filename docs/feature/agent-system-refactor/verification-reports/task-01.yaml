@@ -1,0 +1,90 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-01"
+  step: "step-6"
+  started_at: "2026-03-09T15:35:00Z"
+  completed_at: "2026-03-09T15:40:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-01"
+    run_id: "2026-03-09T18:00:00Z"
+    evidence_gate:
+      total_checks: 7
+      passed: 7
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-09T18-00-00Z:v2/.github/agents/global-rules.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline 70 lines, current 77. Diff: +1 Plan Refinement row, +6 Git Safety lines. Matches report 70->77."
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "No errors found in global-rules.md"
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Valid markdown: proper headings, table formatting, code blocks"
+      - check_name: "ac-13-git-safety"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Git Safety section present. Orchestrator-only rule. Prohibited: git add, git commit, git push, git reset. Permitted: git diff, git status."
+      - check_name: "plan-refinement-cap"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Plan Refinement row in Feedback Loop Limits table: Planner -> Reviewer -> Planner, Max 1 iteration"
+      - check_name: "line-budget"
+        tier: 2
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "(Get-Content file).Count"
+        exit_code: 0
+        passed: true
+        output_snippet: "77 lines, within 150 line budget (grew from 70 baseline)"
+      - check_name: "tier3-infeasible"
+        tier: 3
+        phase: "after"
+        tool: null
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown instruction file: no executable code, no importable modules, no runtime to smoke test"
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-09T18-00-00Z:v2/.github/agents/global-rules.md"
+      discrepancies_found: false
+      detail: "Baseline was 70 lines with no Git Safety section and 3-row Feedback Loop Limits table. Current is 77 lines with Git Safety section added and Plan Refinement row appended. All pre-existing content unchanged."
+completion:
+  status: "DONE"
+  summary: "Verified task-01: 7 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/verification-reports/task-01.yaml"
+  evidence_summary:
+    total_checks: 7
+    passed: 7
+    failed: 0
+    security_blockers: 0

@@ -1,1920 +1,956 @@
 agent_output:
   agent: "designer"
-  instance: "designer"
-  step: "step-3"
-  started_at: "2026-03-08T17:30:00Z"
-  completed_at: "2026-03-08T22:00:00Z"
+  instance: "designer-r2"
+  step: "step-3-r2"
+  started_at: "2026-03-09T21:05:00Z"
+  completed_at: "2026-03-09T23:50:00Z"
   schema_version: "1.0"
+  run_id: "2026-03-09T18:00:00Z"
   revision_round: 2
+
   payload:
     architecture: >
-      Clean-slate 8-agent pipeline with hub-and-spoke orchestration, YAML file-based
-      state management, VS Code native tool restrictions, DAG-based implementation
-      dispatch, and completion-contract-only routing. Reduces system from 6,416 lines
-      / 19 files / 10+ steps to ~1,200 lines / 10 files / 8 steps. Zero SQLite.
-      Zero cross-file section references. All schemas co-located in producing agents.
-      R2: Trust boundary model, implementer command allowlist, incremental pipeline
-      logging, pre-commit output validation, and quick-fix step set specification added.
+      Hybrid targeted modifications (Direction C) across 9 v2 files implementing
+      10 improvements. Critical fixes (tool names, git safety, TDD, exploratory QA)
+      applied inline per agent; shared git safety rule extracted to global-rules.md.
+      No new agent files created. All agents remain under 150-line budgets (architect
+      is tightest at ~145/150 with 5-line headroom — verified line counts). Interactive
+      questioning uses orchestrator-mediated assumptions-first pattern since VS Code
+      subagents cannot directly prompt users. Step 8 decomposed into 5 explicit
+      sub-steps (8a-8e). Git staging uses two-source strategy: implementation files
+      from reports + pipeline artifacts from docs/feature/<slug>/.
 
-    # ==================================================================
-    # REVISION LOG (Round 2)
-    # ==================================================================
-    revision_log:
-      round: 2
-      findings_addressed: 13
-      findings_total: "13 major + 11 minor from 3 reviewers"
-      major_resolutions:
-        - finding_id: "SS-S-1"
-          source: "security-sentinel"
-          title: "Implementer run_in_terminal scope is instruction-only"
-          resolution: "Added command allowlist pattern to Implementer constraints. Implementer logs all terminal commands. Tester/Reviewer audit against allowlist."
-          design_changes:
-            [
-              "component_design.implementer: command_allowlist",
-              "D-14 trust model: Tier 2",
-            ]
-        - finding_id: "SS-S-2"
-          source: "security-sentinel"
-          title: "fetch_webpage toggle instruction-only in autonomous mode"
-          resolution: "Documented as accepted Low residual risk in D-10. Agents MUST log fetch_webpage URLs. Reviewer audits URL trail."
-          design_changes:
-            ["D-10: autonomous_mode_residual_risk", "D-14 trust model"]
-        - finding_id: "SS-S-3"
-          source: "security-sentinel"
-          title: "Knowledge agent post-review write capabilities"
-          resolution: "Added pre-commit validation to Step 8. Orchestrator validates git diff against Knowledge output allowlist before committing."
-          design_changes:
-            [
-              "pipeline_design Step 8: pre_commit_validation",
-              "component_design.knowledge: output_path_allowlist",
-            ]
-        - finding_id: "SS-A-1"
-          source: "security-sentinel"
-          title: "No explicit trust boundary analysis"
-          resolution: "Added D-14 Trust Boundary Model with 3 trust tiers, data flow transitions, and accepted residual risks."
-          design_changes: ["New decision D-14", "trust_boundary_model section"]
-        - finding_id: "SS-C-1"
-          source: "security-sentinel"
-          title: "Undefined behavior on malformed YAML status values"
-          resolution: "Any status other than DONE/NEEDS_REVISION/ERROR treated as ERROR. Added to schemas, EC-6."
-          design_changes:
-            ["schemas.completion_contract: validation_rule", "edge_cases EC-6"]
-        - finding_id: "SS-C-2"
-          source: "security-sentinel"
-          title: "Quick-fix prompt step set undefined"
-          resolution: "Added D-13: quick-fix steps {1,5,6,7,8}. Code Review mandatory per immutable minimum step set."
-          design_changes: ["New decision D-13", "prompt_design section"]
-        - finding_id: "AG-A-1"
-          source: "architecture-guardian"
-          title: "Orchestrator 150-line budget lacks fallback plan"
-          resolution: "D-8 amended: extract DAG to dag-dispatch.md (~50 lines, 2nd shared doc) if orchestrator exceeds 150 lines."
-          design_changes: ["D-8: orchestrator_fallback"]
-        - finding_id: "AG-A-2"
-          source: "architecture-guardian"
-          title: "Tester dual-mode needs crisp fallback trigger"
-          resolution: "D-7 amended: split if >140 lines OR >20 lines duplicated across workflows."
-          design_changes: ["D-7: split_trigger"]
-        - finding_id: "AG-A-3"
-          source: "architecture-guardian"
-          title: "Planner→Implementer file-ownership preventive enforcement"
-          resolution: "Implementer MUST NOT modify undeclared files. Returns NEEDS_REVISION with files_requested if more files needed."
-          design_changes:
-            ["component_design.implementer: file_ownership_constraint"]
-        - finding_id: "AG-C-1"
-          source: "architecture-guardian"
-          title: "architecture-output.yaml vs design-output.yaml naming"
-          resolution: "Standardized on architecture-output.yaml for new system. Naming change documented in state_management."
-          design_changes:
-            [
-              "state_management: naming_convention",
-              "pipeline Step 3: naming_convention",
-            ]
-        - finding_id: "AG-C-2"
-          source: "architecture-guardian"
-          title: "Embedded design review failure routing unspecified"
-          resolution: "Added routing: Architect revision max 1 round for 🔴. Failure → ERROR. Added feedback_loop entry."
-          design_changes:
-            [
-              "pipeline Step 3: failure_routing",
-              "feedback_loops: Design Review",
-            ]
-        - finding_id: "PV-C-1"
-          source: "pragmatic-verifier"
-          title: "Architect has no conditional for 🟢 missing research"
-          resolution: "Architect component_design updated: research inputs optional for 🟢. Workflow conditionally handles missing research."
-          design_changes: ["component_design.architect: conditional_inputs"]
-        - finding_id: "PV-C-2"
-          source: "pragmatic-verifier"
-          title: "Evidence bundle only on success — failed pipelines lose audit trail"
-          resolution: "Added D-15: orchestrator maintains pipeline-log.yaml incrementally. Provides audit trail for all pipelines."
-          design_changes:
-            ["New decision D-15", "state_management: audit_trail updated"]
-      minor_resolutions:
-        - finding_id: "SS-S-4"
-          resolution: "Orchestrator replace_string_in_file justified: copilot-instructions.md updates and pipeline-log.yaml appends."
-        - finding_id: "SS-A-2"
-          resolution: "YAML parse validation added for critical gates (Research, Code Review) in D-11."
-        - finding_id: "SS-C-3"
-          resolution: "Parallel DAG failure: completed tasks preserved, only failed task re-dispatched. Clarified in D-6."
-        - finding_id: "AG-A-4"
-          resolution: "Schema evolution tradeoff acknowledged in D-9: minimal contract (3 fields), 0 changes in 5 runs, 9-file update acceptable."
-        - finding_id: "AG-A-5"
-          resolution: "Prompt files specified via D-13 and prompt_design in component_design."
-        - finding_id: "AG-C-3"
-          resolution: "Research gate documented as intentional ≥2 absolute policy."
-        - finding_id: "PV-S-1"
-          resolution: "Addressed via SS-S-2 (autonomous mode residual risk)."
-        - finding_id: "PV-A-2"
-          resolution: "Tester dispatch format: natural language with 'Mode: static/dynamic' as first line."
-        - finding_id: "PV-C-3"
-          resolution: "Addressed via AG-C-1 (architecture-output.yaml standardization)."
-        - finding_id: "PV-C-4"
-          resolution: "Cycle counter resets to 0 at start of each Code Review round."
-
-    # ==================================================================
-    # ARCHITECTURE DECISIONS (D-1 through D-12 preserved, D-13–D-15 added in R2)
-    # ==================================================================
     decisions:
-      # ------------------------------------------------------------------
       - id: "D-1"
-        title: "System Directory Structure — staging directory with promotion"
+        title: "Direction C — Hybrid inline + shared extraction"
         context: >
-          CR-7 requires a fresh directory (not modifying existing NewAgents/, .github/, or Forge/).
-          VS Code discovers agents in .github/agents/ at workspace root. The new system must
-          eventually be at .github/agents/ but cannot be built there incrementally alongside
-          the existing system.
+          Three directions evaluated for implementing 10 improvements to v2. Spec
+          recommended Direction A (Targeted). User dispatch recommended Direction C
+          (Hybrid). Need approach that stays within 150-line budgets.
         alternatives:
-          - id: "alt-1"
-            label: "Staging directory v2/ with promotion"
-            description: >
-              Create new files in v2/.github/agents/ during implementation. After verification,
-              archive old .github/agents/ and copy v2/.github/agents/ to .github/agents/.
+          - id: "alt-A"
+            label: "Direction A — Targeted In-Place Edits"
+            description: "Modify each agent file individually. No extraction."
             pros:
-              - "Satisfies CR-7 (fresh directory)"
-              - "Side-by-side comparison possible during review"
-              - "No disruption to existing system until validated"
-              - "Clean git history — old system archived, new system appears"
+              - "Minimal cross-file coupling"
+              - "Each file self-contained"
+              - "Lowest coordination risk"
             cons:
-              - "Extra promotion step at end"
-              - "VS Code can't discover agents in v2/ during development"
-          - id: "alt-2"
-            label: "Direct replacement in .github/agents/"
-            description: >
-              Archive existing .github/agents/ to .github/agents-archive/, write new files
-              directly to .github/agents/.
+              - "Git safety rule duplicated across implementer + orchestrator + global-rules"
+              - "No shared pattern for interactive questioning"
+          - id: "alt-B"
+            label: "Direction B — Targeted + Hooks Enforcement"
+            description: "Same as A plus .github/hooks/ with PreToolUse hooks for deterministic enforcement."
             pros:
-              - "VS Code discovers agents immediately"
-              - "No promotion step needed"
+              - "Deterministic security enforcement"
+              - "PreToolUse hook can block git commands from subagents"
             cons:
-              - "Violates CR-7 (modifies existing .github/ directory)"
-              - "Archive breaks git history on those files"
-              - "Risk of partial state during implementation"
-          - id: "alt-3"
-            label: "New top-level directory as permanent home"
-            description: >
-              Create in Pipeline/.github/agents/ and configure VS Code to look there.
+              - "Hooks are Preview feature — behavior may change"
+              - "Windows hook script portability concerns"
+              - "Exceeds spec scope (no new infrastructure files)"
+          - id: "alt-C"
+            label: "Direction C — Hybrid inline + shared extraction"
+            description: "Critical fixes inline per agent. Git safety rule extracted to global-rules.md."
             pros:
-              - "Completely separate from existing system"
+              - "Single source of truth for git safety"
+              - "Agents stay lean — shared concerns centralized"
+              - "Minimal diff over Direction A (only 1 rule moves)"
             cons:
-              - "VS Code doesn't support custom agent directory paths"
-              - "Would never be discovered by VS Code natively"
-        selected: "alt-1"
+              - "global-rules.md grows slightly (~8 lines)"
+        selected: "alt-C"
         rationale: >
-          Staging in v2/ satisfies CR-7 (fresh directory) while maintaining a clean path to
-          promotion at .github/agents/ where VS Code discovers agents. Side-by-side comparison
-          enables thorough review before the switch. The promotion step is trivial (copy + archive).
+          Direction C places the git safety rule in global-rules.md (single source of
+          truth) while keeping all other changes inline. Practical difference from A is
+          minimal. Direction B adds Preview-feature infrastructure that exceeds scope.
         confidence: "High"
-        confidence_definition: >
-          VS Code agent discovery path is documented. The staging+promotion pattern is standard
-          software release practice. Low reversal cost — just don't promote.
+        confidence_definition: "All alternatives evaluated with clear tradeoffs. Low reversal cost — C differs from A by only ~8 lines in global-rules.md."
         risk_classification: "🟢"
-        date: "2026-03-08"
+        date: "2026-03-09"
         decided_by: "designer"
 
-      # ------------------------------------------------------------------
       - id: "D-2"
-        title: "Agent Inventory — 8 agents via strategic merges"
+        title: "Individual flat camelCase tool names (not tool sets)"
         context: >
-          The initial request proposed 11 agents (9 current + Test Runner + Instruction Optimizer).
-          Spec pushback identified this as contradicting the simplification goal. Research shows
-          MetaGPT uses ~4 roles, CrewAI uses 3-5 agents, AutoGen groups are typically 2-4 agents.
-          The question is which merges maximize simplification without losing proven capabilities.
+          All v2 tool names use invalid namespace/tool format which VS Code silently
+          ignores. VS Code supports individual names (readFile) and tool sets (edit,
+          search). Need to choose approach for corrected frontmatter.
         alternatives:
-          - id: "alt-1"
-            label: "8 agents with 3 strategic merges"
-            description: >
-              Merge Spec+Designer→Architect, Verifier+TestRunner→Tester,
-              Knowledge+InstructionOptimizer→Knowledge. Keep all other roles.
+          - id: "alt-individual"
+            label: "Individual tool names"
+            description: "List each tool by exact camelCase name."
             pros:
-              - "Reduces 11→8 agents (27% reduction)"
-              - "Eliminates 2 pipeline handoffs (Spec→Designer, Verifier→TestRunner)"
-              - "Each merge combines tightly coupled responsibilities"
-              - "MetaGPT precedent: single Architect role handles both spec and design"
-              - "All proven patterns preserved (adversarial review, parallel research, TDD)"
+              - "Fine-grained access control per agent"
+              - "Trust model enforced at individual tool level"
+              - "Matches spec FR-2.1 individual mappings"
+              - "Easier to audit"
             cons:
-              - "Architect agent has dual responsibility (requirements + design)"
-              - "Tester agent has dual mode (dynamic execution + static evaluation)"
-          - id: "alt-2"
-            label: "5 agents (aggressive merges)"
-            description: >
-              Merge further: Researcher+Architect→Analyst, Planner+Implementer→Builder,
-              Tester+Reviewer→Evaluator. Only Orchestrator, Analyst, Builder, Evaluator, Knowledge.
+              - "Slightly more verbose frontmatter"
+          - id: "alt-sets"
+            label: "Tool sets"
+            description: "Use tool set names: edit, search, runCommands."
             pros:
-              - "Maximum simplification (5 agents)"
-              - "Closer to MetaGPT's 4-role model"
+              - "More concise"
+              - "Matches some VS Code examples"
             cons:
-              - "Builder agent has conflicting responsibilities (planning vs coding)"
-              - "Evaluator agent would test AND review — conflicting modes"
-              - "Loses parallel researcher dispatch capability"
-              - "Forces more complex individual agent instructions"
-          - id: "alt-3"
-            label: "Keep 9 current agents, add 2 new"
-            description: >
-              Keep existing 9 agents, add Test Runner and Instruction Optimizer separately.
-            pros:
-              - "No merge risk"
-              - "Each agent has single clear responsibility"
-            cons:
-              - "11 agents contradicts simplification goal"
-              - "More pipeline steps needed"
-              - "More dispatches, higher token cost"
-              - "Spec pushback identified this as contradictory"
-        selected: "alt-1"
+              - "Coarser control — 'edit' grants createFile AND editFiles AND createDirectory"
+              - "Trust tier boundaries blurred"
+              - "Cannot restrict researcher to read-only-plus-createFile"
+        selected: "alt-individual"
         rationale: >
-          8 agents with 3 strategic merges is the sweet spot: reduces agent count by 27%,
-          eliminates 2 pipeline handoffs, and each merge pairs tightly coupled responsibilities
-          (spec needs design context, testing needs execution access, knowledge needs optimization
-          data). The 5-agent model (alt-2) over-merges and creates agents with conflicting duties.
-          The 11-agent model (alt-3) was explicitly rejected in spec pushback as contradicting
-          the simplification goal.
+          The v2 trust model (T1/T2/T3) requires fine-grained restrictions. Tool sets
+          are too coarse. Individual names preserve security intent while using correct
+          VS Code identifiers.
         confidence: "High"
-        confidence_definition: >
-          MetaGPT validates the Architect merge (single role for spec+design). The Tester merge
-          follows the natural split between who writes code and who validates it. All
-          merges were accepted by the user in spec pushback.
-        risk_classification: "🟡"
-        date: "2026-03-08"
+        confidence_definition: "Tool names verified against official VS Code cheat sheet (fetched 2026-03-09). Zero ambiguity."
+        risk_classification: "🟢"
+        date: "2026-03-09"
         decided_by: "designer"
 
-      # ------------------------------------------------------------------
       - id: "D-3"
-        title: "Agent File Format — YAML frontmatter with concise markdown body"
+        title: "Orchestrator-mediated interactive questioning"
         context: >
-          CR-6 requires GitHub Copilot .agent.md format. CR-4 requires native tools field.
-          CR-3 requires ≤150 lines per agent. Research shows CrewAI agents are 5-8 lines,
-          AutoGen agents are ~10 lines. The body structure must be consistent, concise, and
-          self-contained (no external schema references).
+          FR-3/FR-4 require architect and planner to ask users clarifying questions.
+          VS Code subagents run in isolated context and cannot directly prompt users.
         alternatives:
-          - id: "alt-1"
-            label: "Structured 6-section body: Role, Inputs, Workflow, Output, Constraints, Anti-drift"
-            description: >
-              Each agent body has exactly 6 sections. Role (1 paragraph), Inputs (bullet list),
-              Workflow (5-10 numbered steps), Output Schema (inline YAML example),
-              Constraints (bullet list), Anti-drift anchor (1 paragraph).
+          - id: "alt-embedded"
+            label: "Embed questioning in subagent"
+            description: "Architect/planner directly prompt the user."
             pros:
-              - "Consistent structure across all agents"
-              - "Self-contained — output schema co-located (eliminates schemas.md)"
-              - "Compact but complete"
-              - "Anti-drift preserved from proven pattern"
+              - "Matches spec literally (FR-3.1, FR-4.1)"
             cons:
-              - "6 sections may be tight for Orchestrator's routing logic"
-          - id: "alt-2"
-            label: "Minimal 3-section body: Role, Steps, Output"
-            description: >
-              Bare minimum agent definition. Role description, numbered workflow steps,
-              and output format.
+              - "VS Code subagents cannot prompt users"
+              - "No built-in structured question tool exists"
+          - id: "alt-orchestrator-mediated"
+            label: "Orchestrator mediates all user interaction"
+            description: "Architect outputs clarifications_needed in YAML; orchestrator reads and presents to user."
             pros:
-              - "Maximum brevity (closer to CrewAI's 5-line agents)"
-              - "Less instruction dilution risk"
+              - "Aligns with VS Code platform model"
+              - "Subagents remain purely functional"
+              - "Pattern validated by VS Code coordinator-worker docs"
             cons:
-              - "No explicit constraints section"
-              - "No anti-drift (risky for longer conversations)"
-              - "Missing input specification"
-          - id: "alt-3"
-            label: "Freeform body with no structure"
-            description: >
-              Let each agent define its body however makes sense.
+              - "Adds ~8 lines to orchestrator"
+              - "Differs from spec literal wording"
+          - id: "alt-needs-revision"
+            label: "NEEDS_REVISION loop"
+            description: "Architect returns NEEDS_REVISION with questions. Orchestrator re-dispatches."
             pros:
-              - "Maximum flexibility"
+              - "Uses existing completion contract"
             cons:
-              - "Inconsistency across agents"
-              - "Harder to verify completeness"
-              - "No standard place for output schema"
-        selected: "alt-1"
+              - "Full re-dispatch wastes tokens"
+              - "Re-dispatch resets context window"
+        selected: "alt-orchestrator-mediated"
         rationale: >
-          The 6-section structure provides consistency and completeness while staying within
-          150 lines. Co-locating the output schema eliminates the need for schemas.md
-          (1,422 lines removed). The anti-drift anchor is retained because research shows
-          it prevents behavioral drift in instruction-based agents — this is more important
-          when agents have shorter instructions (less context reinforcement).
+          VS Code subagents cannot prompt users directly. Orchestrator-mediated pattern
+          is the only approach that works within the platform. Uses assumptions-first
+          flow (Option B, per PV C-1): (1) Orchestrator dispatches architect with all
+          inputs. (2) Architect completes FULLY, documenting assumptions in
+          assumptions_made[] output field. (3) Architect includes clarifications_needed[]
+          for remaining ambiguities. (4) Orchestrator reads output; if interactive mode
+          AND clarifications_needed present, presents questions to user via ask_questions.
+          (5) If user answers contradict assumptions, orchestrator re-dispatches architect
+          with original inputs + clarification_responses parameter; architect resumes at
+          Step 2 with clarifications resolved. (6) If answers are compatible, proceed
+          with existing architecture. Same pattern for planner: planner outputs
+          plan_summary + clarifications_needed; orchestrator mediates approval gate.
+          Re-dispatch only when answers invalidate assumptions (low probability,
+          acceptable token cost). Satisfies INTENT of FR-3/FR-4.
         confidence: "High"
-        confidence_definition: >
-          The body structure is based on the VS Code custom agent documentation format.
-          Co-located schemas follow the spec requirement FR-15.2. The anti-drift pattern
-          is proven across 5 pipeline runs.
-        risk_classification: "🟢"
-        date: "2026-03-08"
+        confidence_definition: "VS Code subagent model verified via official docs (fetched 2026-03-09). Assumptions-first flow is strictly more efficient than two-phase dispatch — avoids wasted first dispatch. Re-dispatch only on contradiction."
+        risk_classification: "🟡"
+        date: "2026-03-09"
         decided_by: "designer"
 
-      # ------------------------------------------------------------------
       - id: "D-4"
-        title: "State Management — YAML file-based evidence, zero SQLite"
+        title: "Keep 'agent' tool set in orchestrator frontmatter"
         context: >
-          CR-5 prohibits SQLite. Research shows evidence gates (EG-1 through EG-10) have never
-          blocked a pipeline across 5 runs. No other agent framework uses SQLite for evidence
-          tracking. The completion contract pattern already provides routing signals. The question
-          is how to replace the evidence and audit trail functions of SQLite.
+          Orchestrator needs to dispatch subagents. VS Code has both 'agent' (tool set)
+          and 'runSubagent' (individual tool).
         alternatives:
-          - id: "alt-1"
-            label: "Completion-contract routing + file-existence evidence + incremental logging"
-            description: >
-              Orchestrator routes by reading completion blocks from YAML output files.
-              Evidence = file existence in feature directory. R2: Orchestrator maintains
-              pipeline-log.yaml incrementally after each dispatch. Knowledge agent produces
-              enriched evidence-bundle.yaml at successful completion.
+          - id: "alt-agent-set"
+            label: "Keep 'agent' tool set"
+            description: "Use 'agent' in tools: array."
             pros:
-              - "Zero external dependencies"
-              - "Git-trackable (all evidence in version control)"
-              - "Human-readable (YAML files, not SQL queries)"
-              - "Industry-aligned (MetaGPT, SWE-Agent, OpenHands all use file artifacts)"
-              - "Eliminates ~1,100 lines (sql-templates.md + evaluation-schema.md + SQLITE_BUSY)"
-              - "Completion contracts are already proven across 5 runs"
+              - "Already used correctly in v2"
+              - "Matches VS Code official examples"
             cons:
-              - "No aggregate queries across runs"
-              - "No transactional guarantees on concurrent writes (mitigated: file ownership prevents conflicts)"
-          - id: "alt-2"
-            label: "JSONL append-only log"
-            description: >
-              Single .jsonl file per feature with append-only evidence records.
+              - "Less explicit than runSubagent"
+          - id: "alt-runSubagent"
+            label: "Use 'runSubagent' individual tool"
+            description: "Replace 'agent' with 'runSubagent'."
             pros:
-              - "Single file to read for full audit trail"
-              - "Simple append model"
+              - "Explicit naming"
             cons:
-              - "Concurrent append conflicts possible"
-              - "No structured querying"
-              - "Not human-readable without tooling"
-          - id: "alt-3"
-            label: "Lightweight SQLite with reduced surface"
-            description: >
-              Keep SQLite but reduce to 1 table and 2-3 evidence gates only.
-            pros:
-              - "Preserves queryability"
-              - "Reduced complexity vs current 936 lines"
-            cons:
-              - "Violates CR-5 (no SQLite)"
-              - "Still requires SQLITE_BUSY handling"
-              - "Still requires sql_escape() sanitization"
-              - "Still unique among agent frameworks"
-        selected: "alt-1"
+              - "Official examples use 'agent', not 'runSubagent'"
+        selected: "alt-agent-set"
         rationale: >
-          Completion-contract routing is already the primary routing mechanism — making it the
-          sole mechanism eliminates the redundant SQL evidence layer. File existence as evidence
-          is the pattern used by MetaGPT, SWE-Agent, and the GitHub Copilot agent ecosystem.
-          Evidence gates have never caught an issue in 5 runs (impact research F-14),
-          confirming the SQL layer adds complexity without demonstrated value. R2: The
-          orchestrator maintains pipeline-log.yaml incrementally after each dispatch (D-15),
-          providing an audit trail even for failed pipelines. The Knowledge agent's
-          evidence-bundle.yaml enriches the pipeline log at successful completion.
+          VS Code docs state 'ensure the runSubagent or agent tool is included' and
+          official examples use 'agent'. Already correct in v2. Body text will instruct
+          runSubagent usage per FR-2.3.
         confidence: "High"
-        confidence_definition: >
-          5 pipeline runs with zero evidence gate blocks prove routing reliability without SQL.
-          Every industry framework uses file/message-based state, not SQL. The completion
-          contract pattern is already proven in this system.
-        risk_classification: "🟡"
-        date: "2026-03-08"
+        confidence_definition: "Both confirmed valid by docs. Official examples consistently use 'agent'. Zero risk."
+        risk_classification: "🟢"
+        date: "2026-03-09"
         decided_by: "designer"
 
-      # ------------------------------------------------------------------
       - id: "D-5"
-        title: "Pipeline Structure — 8 steps with risk-based scaling"
+        title: "Git staging consolidated to orchestrator with selective pathspecs"
         context: >
-          The current system has 10+ steps. The initial request proposed 12 steps. Spec pushback
-          consolidated to 8. Research shows MetaGPT uses ~5, SWE-Agent uses 1. The question is
-          whether 8 steps is the right balance between quality assurance and simplicity.
+          FR-5 removes git add from implementer. FR-6 removes autocommit. Need
+          replacement git workflow for orchestrator Step 8.
         alternatives:
-          - id: "alt-1"
-            label: "8 steps: Setup, Research, Architecture, Planning, Implementation, Testing, Code Review, Completion"
-            description: >
-              Consolidates current 10+ into 8 by merging Spec+Design→Architecture,
-              Verification into Testing, Knowledge+Optimization+Commit into Completion.
-              Risk-based scaling: 🟢 skips Research, 🔴 adds embedded design review.
+          - id: "alt-selective"
+            label: "Selective pathspec staging from implementation reports"
+            description: "Orchestrator reads files_modified from reports, constructs git add with explicit paths."
             pros:
-              - "20% fewer steps than current system"
-              - "Every step has clear deliverables"
-              - "Risk-based scaling reduces overhead for simple features"
-              - "Code Review remains mandatory (proven value: 6+ Critical catches)"
+              - "Only modified files staged"
+              - "Audit trail matches file ownership"
+              - "No race conditions"
             cons:
-              - "Still 3-4x more steps than SWE-Agent or OpenHands"
-          - id: "alt-2"
-            label: "5 steps: Setup, Plan, Build, Review, Ship"
-            description: >
-              More aggressive merge. Plan combines research+architecture+planning.
-              Build combines implementation+testing. Review does code review.
-              Ship does knowledge+commit.
+              - "Requires parsing implementation reports"
+          - id: "alt-git-add-all"
+            label: "Keep git add -A but only in orchestrator"
+            description: "Move git add -A to orchestrator Step 8."
             pros:
-              - "Closer to MetaGPT's step count"
-              - "Fewer handoffs"
+              - "Simple"
             cons:
-              - "Plan agent has 3 distinct responsibilities (research, design, plan)"
-              - "Build agent has 2 conflicting modes (implement vs test)"
-              - "Loses parallel research capability"
-              - "Loses separation of implementation and testing (spec FR-7, FR-8)"
-          - id: "alt-3"
-            label: "Single-agent loop (SWE-Agent model)"
-            description: >
-              One agent with tool access handles everything in an iterative loop.
-            pros:
-              - "Maximum simplicity"
-              - "SWE-Agent SOTA on SWE-bench with this approach"
-            cons:
-              - "Loses multi-perspective review (proven value)"
-              - "Loses parallel research (proven value)"
-              - "No separation of concerns"
-              - "Doesn't match user's explicit multi-agent request"
-        selected: "alt-1"
+              - "Stages untracked files not related to feature"
+              - "User concern about staging unintended files"
+        selected: "alt-selective"
         rationale: >
-          8 steps preserves all proven high-value patterns (parallel research, adversarial review,
-          TDD implementation, separate testing) while consolidating 10+ steps by merging
-          tightly coupled phases. Alt-2 over-merges and creates agents with conflicting
-          responsibilities. Alt-3 is inappropriate for the user's explicit multi-agent
-          architecture request. Risk-based scaling (🟢 skips Research, 🔴 adds design review)
-          ensures simple features aren't burdened by full pipeline overhead.
+          Two-source selective staging (revised per AG C-2): Source 1 — implementation
+          code from reports' files_modified lists via explicit git add pathspecs. Source
+          2 — pipeline artifacts via git add docs/feature/<slug>/ (covers knowledge,
+          tester, reviewer, planner, researcher outputs that are NOT in implementation
+          reports). This ensures all pipeline artifacts are staged without git add -A.
+          Pre-stage knowledge validation (renamed from 'pre-commit' per AG C-2
+          terminology fix) checks knowledge output_paths BEFORE staging in sub-step 8c,
+          not before commit. Tester file ownership audit provides safety net for
+          implementation files.
         confidence: "High"
-        confidence_definition: >
-          The 8-step structure maps 1:1 to the spec's FR-1.1. All merges pair tightly coupled
-          responsibilities. The risk-based scaling model is proven across prior pipeline runs.
-        risk_classification: "🟢"
-        date: "2026-03-08"
+        confidence_definition: "Implementation reports contain files_modified. Pipeline artifacts all live under docs/feature/<slug>/. Two-source strategy covers both without git add -A. Pre-stage validation correctly scoped."
+        risk_classification: "🟡"
+        date: "2026-03-09"
         decided_by: "designer"
 
-      # ------------------------------------------------------------------
       - id: "D-6"
-        title: "DAG Task Execution — dependency-driven dispatch with file ownership validation"
+        title: "Exploratory QA inline with optional SKILL.md extension"
         context: >
-          CR-5 requires DAG-based task execution. The current system uses planner-assigned waves.
-          Research shows DAG scheduling is standard in CI/CD (GitHub Actions, Airflow, Dagster).
-          The question is how the orchestrator resolves parallel groups from the planner's DAG.
+          FR-9 adds exploratory QA to tester dynamic mode. TourneyPal QA agent is ~500
+          lines. Tester has 150-line budget at 129 lines (verified). Note: architect
+          (130 lines verified) is the actual tightest agent post-changes (~145, 5
+          headroom per AG A-2) — see Failure & Recovery for extraction fallback.
         alternatives:
-          - id: "alt-1"
-            label: "Orchestrator computes topological levels with file ownership check"
-            description: >
-              Planner declares per-task dependencies (depends_on) and file ownership (files).
-              Orchestrator at dispatch time: (1) finds tasks with all dependencies satisfied,
-              (2) groups them by checking file overlap, (3) defers overlapping tasks to next
-              round, (4) dispatches up to 4 non-overlapping ready tasks in parallel.
+          - id: "alt-inline"
+            label: "Inline 4-category checklist"
+            description: "Add compact exploratory QA covering happy path, edge cases, error handling, state mutation."
             pros:
-              - "Maximum parallelism computed dynamically"
-              - "File ownership validated at dispatch time (runtime safety)"
-              - "Standard topological-sort approach (GitHub Actions needs:)"
-              - "Planner focuses on dependencies, orchestrator handles scheduling"
+              - "Self-contained"
+              - "Tester stays at ~143 lines"
             cons:
-              - "Orchestrator must implement DAG resolution logic (~20 lines of reasoning)"
-          - id: "alt-2"
-            label: "Planner pre-computes waves (current approach)"
-            description: >
-              Planner assigns tasks to waves at plan time, orchestrator dispatches waves sequentially.
+              - "Less detailed than full QA model"
+          - id: "alt-skill"
+            label: "Extract to .github/skills/exploratory-qa/SKILL.md"
+            description: "Separate skill file with detailed procedures."
             pros:
-              - "Simpler orchestrator (just dispatch wave N)"
-              - "Proven pattern across 5 pipeline runs"
+              - "Rich procedures without budget impact"
+              - "Progressive loading"
             cons:
-              - "Less flexible — wave assignment is static"
-              - "Planner must manually check file overlap"
-              - "No dynamic re-scheduling on partial completion"
-              - "Doesn't satisfy CR-5 (DAG-based, not wave-based)"
-          - id: "alt-3"
-            label: "Fully dynamic LLM-based scheduling"
-            description: >
-              Orchestrator uses LLM reasoning to determine execution order dynamically.
+              - "Creates a new file"
+              - "Dependency on skill existence"
+          - id: "alt-hybrid"
+            label: "Inline minimum + optional SKILL.md for detailed procedures"
+            description: "Tester has inline checklist. Detailed procedures can use discovered skills."
             pros:
-              - "Maximum flexibility"
+              - "Works with or without skill files"
+              - "Inline always available as fallback"
             cons:
-              - "Non-deterministic scheduling"
-              - "Higher token cost per decision"
-              - "Harder to debug execution order issues"
-        selected: "alt-1"
+              - "Slightly more complex"
+        selected: "alt-hybrid"
         rationale: >
-          Dynamic topological-level dispatch is the standard DAG execution pattern used by GitHub
-          Actions, Airflow, and AutoGen GraphFlow. It provides maximum parallelism while ensuring
-          correctness through file ownership validation. The planner declares WHAT (dependencies
-          and files), the orchestrator handles WHEN (scheduling). This separation of concerns is
-          cleaner than the current planner-wave model and satisfies CR-5.
-        confidence: "High"
-        confidence_definition: >
-          DAG topological-sort scheduling is algorithmically proven and used by every major
-          CI/CD system. The file ownership check adds ~5 lines of orchestrator reasoning.
-          Low reversal cost — fallback to wave model requires only orchestrator change.
-        parallel_failure_semantics: >
-          When one task in a parallel group fails (NEEDS_REVISION/ERROR), completed tasks
-          in the same group are preserved. Only the failed task is re-dispatched (up to
-          max_cycles). The orchestrator does NOT roll back successful parallel peers.
+          Hybrid keeps tester functional without skills (4-category inline checklist)
+          while allowing richer QA when skills exist. Tester reaches ~143 lines (8
+          headroom — comfortable). Architect at ~145 (5 headroom) is the true budget
+          bottleneck (AG A-2) — its web research step (FR-8) or clarification step (FR-3)
+          should be extracted to a reference doc if budget becomes tight during
+          implementation. Detailed procedures can be a SKILL.md later without tester modification.
+        confidence: "Medium"
+        confidence_definition: "Inline approach proven. Skill integration relies on VS Code progressive loading (documented but untested in this system). Medium reversal cost."
         risk_classification: "🟡"
-        date: "2026-03-08"
+        date: "2026-03-09"
         decided_by: "designer"
 
-      # ------------------------------------------------------------------
       - id: "D-7"
-        title: "Tester Agent — dual-mode design with singleton constraint"
+        title: "Remove vscode/memory — memory is a VS Code setting, not a tool"
         context: >
-          The spec merges Verifier + Test Runner into Tester (FR-2.3). The Tester must handle
-          BOTH dynamic test execution (starting apps, running E2E tests) and static evidence
-          evaluation (reading implementation reports, verifying TDD compliance). These modes
-          have different concurrency requirements: dynamic execution is singleton (one app
-          instance at a time), static evaluation can parallelize.
+          Knowledge agent lists vscode/memory in tools. Research confirms no built-in
+          'memory' tool exists. Memory controlled by github.copilot.chat.tools.memory.enabled.
         alternatives:
-          - id: "alt-1"
-            label: "Single Tester agent with mode parameter"
-            description: >
-              One tester.agent.md file. Orchestrator passes mode (dynamic/static) as dispatch
-              parameter. Dynamic mode: starts app, runs tests, stops app. Static mode: reads
-              reports, verifies compliance. Singleton constraint applies to dynamic mode only.
+          - id: "alt-remove"
+            label: "Remove from tools, keep usage in body text"
+            description: "Remove from frontmatter. Reword workflow step to reference memory as VS Code feature."
             pros:
-              - "Single agent file (≤150 lines)"
-              - "Orchestrator controls execution mode"
-              - "Clean separation via dispatch parameter, not separate agent files"
+              - "Correct tool list"
+              - "Body text still guides agent to persist learnings"
             cons:
-              - "Agent must handle two distinct workflows in one file"
-          - id: "alt-2"
-            label: "Two separate agents: TestRunner + Verifier"
-            description: >
-              Keep them separate. TestRunner handles dynamic execution, Verifier handles
-              static evaluation.
+              - "Minor wording change"
+          - id: "alt-remove-entirely"
+            label: "Remove from tools and body text"
+            description: "Eliminate all memory references."
             pros:
-              - "Single responsibility per agent"
-              - "Cleaner code"
+              - "Simplest change"
             cons:
-              - "9 agents instead of 8 (contradicts spec direction)"
-              - "Extra pipeline handoff"
-              - "Spec explicitly chose to merge these (FR-2.3)"
-          - id: "alt-3"
-            label: "Single Tester, always sequential"
-            description: >
-              Tester does static evaluation first, then dynamic testing, always in one dispatch.
-            pros:
-              - "Simplest orchestrator logic"
-            cons:
-              - "Forces sequential execution even when parallel would be safe"
-              - "Single dispatch may be long-running"
-        selected: "alt-1"
+              - "Knowledge agent loses memory guidance"
+        selected: "alt-remove"
         rationale: >
-          A single Tester agent with mode parameter satisfies the spec merge requirement
-          (FR-2.3) while preserving the distinct execution models. The orchestrator dispatches
-          the Tester in two phases: first static evaluation (can check TDD compliance quickly),
-          then dynamic execution (start app, run tests). This matches the natural workflow —
-          verify the basics before spinning up the full application.
-        confidence: "Medium"
-        confidence_definition: >
-          The dual-mode pattern is common (CrewAI tasks have different expected_output types).
-          The mode parameter approach is standard. However, fitting both workflows into ≤150
-          lines is untested — if it doesn't fit, splitting into two agents (alt-2) is the
-          fallback. This would increase the agent count to 9.
-        split_trigger: >
-          Split Tester into two agents if: (a) tester.agent.md exceeds 140 lines, OR
-          (b) >20 lines are duplicated across static and dynamic workflow sections.
-          This is a concrete, measurable trigger — not a subjective judgment call.
-        risk_classification: "🟡"
-        date: "2026-03-08"
+          Memory works when enabled regardless of tools list. Keeping workflow step
+          (reworded) ensures knowledge agent still persists learnings. Removes invalid
+          tool name from frontmatter.
+        confidence: "High"
+        confidence_definition: "VS Code cheat sheet confirmed: memory is a setting, not a tool. No ambiguity."
+        risk_classification: "🟢"
+        date: "2026-03-09"
         decided_by: "designer"
 
-      # ------------------------------------------------------------------
       - id: "D-8"
-        title: "Line Budget Strategy — hard caps with strict budgets"
+        title: "E2E skill discovery — user-driven with skill scan context"
         context: >
-          CR-2 requires ≤1,500 total lines. CR-3 requires ≤150 per agent. NFR-3 requires ≤150
-          per shared reference doc. Current system is 6,416 lines (4.3x over target). Industry
-          comparison: CrewAI 5-8 lines/agent, AutoGen ~10 lines/agent (research patterns F-17, F-18).
+          FR-1 requires E2E skill setup guidance. Spec pushback noted autodetecting
+          project type is error-prone.
         alternatives:
-          - id: "alt-1"
-            label: "Hard 150-line cap per agent, 100-line global-rules, ~1,200-line target"
-            description: >
-              Set per-agent hard cap at 150 lines (matching CR-3). Allocate specific budgets:
-              Orchestrator: 150, Architect: 140, Tester: 140, Planner: 130, Implementer: 130,
-              Researcher: 100, Reviewer: 110, Knowledge: 100. global-rules.md: 100.
-              Total target: ~1,200 lines with ~300 line margin.
+          - id: "alt-user-driven"
+            label: "User-driven with skill scan context"
+            description: "Orchestrator scans skill dirs, presents findings, asks user to choose."
             pros:
-              - "Well within 1,500 ceiling (80% utilization)"
-              - "Margin absorbs implementation variance"
-              - "Hard cap prevents any agent from bloating"
-              - "Orchestrator gets full 150 (most complex agent)"
+              - "User controls setup"
+              - "Scan provides helpful context"
+              - "Handles empty skills gracefully"
             cons:
-              - "Orchestrator at 150 lines for full DAG+routing logic is tight"
-          - id: "alt-2"
-            label: "No per-agent budget, only total cap"
-            description: >
-              Allow agents to be any size as long as total stays under 1,500.
+              - "Requires user input in interactive mode"
+          - id: "alt-autodetect"
+            label: "Autodetection with user confirmation"
+            description: "Scan project files to guess type, suggest setup."
             pros:
-              - "Flexibility for complex agents (orchestrator could be 300+)"
+              - "Less manual effort"
             cons:
-              - "Violates CR-3 (≤150 per agent)"
-              - "Risk of complexity creep in individual agents"
-          - id: "alt-3"
-            label: "Aggressive 80-line cap per agent"
-            description: >
-              Target 80 lines per agent. Total ~750 lines.
-            pros:
-              - "Closer to industry norms"
-              - "Forces extreme conciseness"
-            cons:
-              - "May be too tight for Orchestrator routing logic"
-              - "Output schemas may not fit inline"
-              - "Constraint adds implementation risk"
-        selected: "alt-1"
+              - "Error-prone (spec pushback concern)"
+              - "Complex heuristics add line budget pressure"
+        selected: "alt-user-driven"
         rationale: >
-          The 150-line hard cap per agent satisfies CR-3 while being achievable. The
-          per-agent allocations reflect complexity: Orchestrator, Architect, and Tester have
-          the most responsibilities (150/140/140) while simpler agents get less (100 lines).
-          The ~1,200 target provides 300-line margin below the 1,500 ceiling, absorbing
-          implementation variance without risking the hard cap.
+          Spec pushback recommended user-driven. Orchestrator scans directories for
+          context then lets user decide. In autonomous mode, found skills are used;
+          if none found, warning logged per FR-1.3.
         confidence: "High"
-        confidence_definition: >
-          The 150-line cap is directly from the spec. Budget allocations are based on counting
-          the sections each agent needs (Role ~5, Inputs ~10, Workflow ~50-70, Output ~20,
-          Constraints ~15, YAML frontmatter ~15 = ~115-135 lines). Margin confirmed by math.
-        orchestrator_fallback: >
-          If orchestrator.agent.md exceeds 150 lines during implementation, extract DAG
-          dispatch algorithm to dag-dispatch.md (~50 lines) as 2nd shared reference doc
-          (within NFR-3's ≤2 shared doc allowance). Referenced by filename only (no §).
+        confidence_definition: "Spec pushback recommended this. User accepted. Skill paths verified against VS Code docs."
         risk_classification: "🟢"
-        date: "2026-03-08"
+        date: "2026-03-09"
         decided_by: "designer"
 
-      # ------------------------------------------------------------------
       - id: "D-9"
-        title: "Shared Reference Documents — single global-rules.md, everything else inlined"
+        title: "Pre-commit validation scoped to knowledge output paths only"
         context: >
-          The current system has 10 reference documents totaling 3,882 lines. FR-15 requires
-          at most 2 shared docs at ≤150 lines each. FR-15.2 requires schemas co-located in
-          agents. The question is what goes in the shared doc vs what's inlined.
+          Prior design review (R2/R3) identified Major finding: orchestrator Step 8
+          pre-commit validation scope was inconsistent. This design redesigns Step 8.
         alternatives:
-          - id: "alt-1"
-            label: "One shared doc: global-rules.md (~100 lines)"
-            description: >
-              global-rules.md contains ONLY cross-cutting concerns that ALL agents must follow:
-              (1) completion contract schema, (2) retry policy, (3) anti-hallucination rule,
-              (4) feedback loop limits, (5) output path convention, (6) risk classification
-              definitions. Everything else (schemas, tool access, dispatch patterns) is inlined
-              in the relevant agent or enforced by YAML frontmatter.
+          - id: "alt-knowledge-only"
+            label: "Validate knowledge output paths only"
+            description: "Pre-commit checks knowledge agent output paths. Implementation files not subject to path validation."
             pros:
-              - "Eliminates 9 of 10 reference documents (~3,782 lines removed)"
-              - "Cross-cutting concerns centralized (DRY for 8 agents)"
-              - "~100 lines is well within the 150-line NFR-3 cap"
-              - "No section references needed — document is small enough to read fully"
+              - "Correct scoping — implementation files owned by implementers"
+              - "Resolves prior Major finding"
+              - "Consistent with trust model"
             cons:
-              - "Completion contract schema is duplicated in each agent's output section"
-          - id: "alt-2"
-            label: "Two shared docs: global-rules.md + conventions.md"
-            description: >
-              global-rules.md for pipeline rules, conventions.md for project-specific
-              coding standards.
+              - "Less protective against knowledge agent errors"
+          - id: "alt-full-diff"
+            label: "Validate entire diff against file inventory"
+            description: "Check all staged files against plan-output.yaml file inventory."
             pros:
-              - "Separates pipeline rules from coding conventions"
-              - "conventions.md available for users to customize per project"
+              - "Catches unexpected modifications"
             cons:
-              - "Two docs adds maintenance surface"
-              - "Project conventions could go in copilot-instructions.md instead"
-          - id: "alt-3"
-            label: "Zero shared docs — everything inlined"
-            description: >
-              Inline all rules into each agent. No shared reference documents.
-            pros:
-              - "Zero cross-file dependencies"
-              - "Each agent is fully self-contained"
-            cons:
-              - "Completion contract schema repeated 8 times"
-              - "Retry policy repeated 8 times"
-              - "Line budget consumed by duplicated content"
-              - "Changes require updating all 8 files"
-        selected: "alt-1"
+              - "Prior review found this rejects legitimate implementation files"
+              - "Over-broad validation causes false positives"
+        selected: "alt-knowledge-only"
         rationale: >
-          One global-rules.md containing only universal cross-cutting concerns provides the right
-          balance: DRY for the 6-8 rules all agents must follow, while eliminating 9 reference
-          documents (3,782 lines). No section references are needed because the document is
-          short enough (~100 lines) to be read in full — eliminating the cross-file reference
-          fragility that was the #1 critical finding source. Project-specific conventions
-          remain in copilot-instructions.md where GitHub intended them.
+          Resolves Major finding from R2/R3 reviews. Implementation files validated by
+          tester file ownership audit (Step 5-6). Orchestrator Step 8 validation applies
+          only to knowledge output paths: evidence-bundle.yaml, knowledge-output.yaml,
+          instruction-recommendations.md. Consistent with trust model.
         confidence: "High"
-        confidence_definition: >
-          The 6 items identified for global-rules.md are genuinely cross-cutting (all agents
-          need them). Everything else (schemas, tool access, dispatch patterns) is either
-          co-located in agents or enforced by YAML frontmatter. This pattern eliminates
-          the architecture's structural weakness (cross-file §references).
-          R2 acknowledgment: The completion contract (3 fields: status, summary, output_paths)
-          is intentionally minimal — 0 schema changes over 5 runs validates stability. If a
-          schema change is needed, updating 9 files (~5 min each) is acceptable given the
-          elimination of cross-file §reference fragility.
-        risk_classification: "🟢"
-        date: "2026-03-08"
-        decided_by: "designer"
-
-      # ------------------------------------------------------------------
-      - id: "D-10"
-        title: "Web Research Integration — parameter-based toggle with per-agent tool inclusion"
-        context: >
-          FR-13 requires web research as a permanent capability for development runs. The
-          orchestrator asks about web research at Setup. The question is how agents know
-          whether web research is enabled and how to control it.
-        alternatives:
-          - id: "alt-1"
-            label: "fetch_webpage in tools list + instruction-level toggle"
-            description: >
-              Include fetch_webpage in the tools list of Researcher, Architect, and Implementer
-              agents. The orchestrator passes web_research_enabled parameter when dispatching.
-              Agent instructions say: 'Use fetch_webpage when web_research is enabled and you
-              need current information about the tech stack.'
-            pros:
-              - "Platform-level tool availability (fetch_webpage is always reachable)"
-              - "Instruction-level control on when to use it"
-              - "Simple implementation — no conditional tool loading"
-            cons:
-              - "Agents could use fetch_webpage even when disabled (instruction-enforced only)"
-          - id: "alt-2"
-            label: "Separate agent variants with/without fetch_webpage"
-            description: >
-              Create researcher.agent.md and researcher-offline.agent.md. Orchestrator
-              dispatches the appropriate variant.
-            pros:
-              - "Tool restriction is platform-enforced"
-            cons:
-              - "Doubles the number of agent files for affected agents"
-              - "16 agent files instead of 8"
-              - "Violates AC-3 (exactly 8 .agent.md files)"
-          - id: "alt-3"
-            label: "MCP server for web research with dynamic enable/disable"
-            description: >
-              Run fetch_webpage through an MCP server that can be toggled.
-            pros:
-              - "True runtime toggle"
-            cons:
-              - "Adds MCP server dependency"
-              - "Over-engineering for a simple toggle"
-              - "MCP configuration complexity"
-        selected: "alt-1"
-        rationale: >
-          Including fetch_webpage in tools lists with instruction-level toggle is the simplest
-          approach that satisfies all requirements. The web_research_enabled parameter propagated
-          from orchestrator gives agents explicit context. While the toggle is instruction-enforced
-          (not platform-enforced), this is acceptable: fetch_webpage in VS Code requires user
-          approval per invocation in interactive mode, providing a secondary control layer.
-        confidence: "Medium"
-        confidence_definition: >
-          The instruction-level toggle is proven in the current system (fetch_webpage is
-          gated by approval_mode). The risk is that agents use fetch_webpage when disabled —
-          mitigated by VS Code's per-invocation approval prompt and the instruction being
-          clear. If needed, alt-2 provides a platform-enforced fallback.
-        autonomous_mode_residual_risk: >
-          In autonomous mode, VS Code does NOT prompt for fetch_webpage approval — the
-          instruction-level toggle is the sole guard. Accepted residual risk: agent may
-          fetch despite disabled flag. Mitigations: (1) agents MUST log all fetch_webpage
-          URLs in their output, (2) Reviewer audits URL trail, (3) Knowledge agent flags
-          unexpected fetches in evidence bundle.
-        risk_classification: "🟢"
-        date: "2026-03-08"
-        decided_by: "designer"
-
-      # ------------------------------------------------------------------
-      - id: "D-11"
-        title: "Orchestrator Routing — completion-contract-only with file-existence gates"
-        context: >
-          The current orchestrator routes via completion contracts (primary) AND SQL evidence
-          gates (secondary). D-4 removes SQL. The question is how to verify step completion
-          beyond just reading the completion contract.
-        alternatives:
-          - id: "alt-1"
-            label: "Completion contract + file existence check"
-            description: >
-              Orchestrator reads agent output YAML, checks completion.status, AND verifies
-              expected output files exist (list_dir on feature directory). Example: after
-              Research step, verify research/*.yaml files exist. After Implementation,
-              verify implementation-reports/task-{id}.yaml exists for each task.
-              R2: For critical gates (Research ≥2 gate, Code Review ≥2 gate), orchestrator
-              also validates YAML is parseable (read_file + check for completion: block)
-              before trusting the status value.
-            pros:
-              - "Dual verification: contract claims + tangible evidence"
-              - "File existence is the industry-standard evidence model"
-              - "No SQL, no external tools needed"
-              - "Human-verifiable (look at the directory)"
-            cons:
-              - "Can't verify file content quality without reading them"
-          - id: "alt-2"
-            label: "Completion contract only (trust agent output)"
-            description: >
-              Orchestrator reads completion.status and routes immediately. No secondary checks.
-            pros:
-              - "Simplest possible routing"
-              - "Fastest execution"
-            cons:
-              - "No evidence verification — trusts agent claims"
-              - "Loses anti-hallucination guarantee"
-          - id: "alt-3"
-            label: "Completion contract + YAML content validation"
-            description: >
-              Orchestrator reads output YAML, validates required fields exist, checks for
-              structural completeness.
-            pros:
-              - "Deeper validation than file existence"
-            cons:
-              - "Orchestrator becomes a validator (scope creep)"
-              - "Increases orchestrator complexity significantly"
-              - "Overlaps with Tester/Reviewer responsibilities"
-        selected: "alt-1"
-        rationale: >
-          Completion contract + file existence check provides a lightweight anti-hallucination
-          mechanism without the complexity of SQL evidence gates. This preserves the spirit
-          of the current system's evidence-first principle (evidence exists before claims)
-          while using the simplest possible verification: does the file exist? This is how
-          MetaGPT, Dagster (asset existence), and GitHub Actions (artifact existence) all
-          handle completion verification.
-        confidence: "High"
-        confidence_definition: >
-          File existence checking is trivial to implement (list_dir) and impossible for an
-          agent to fake (VS Code file system is ground truth). The dual check (contract +
-          file) provides the same anti-hallucination guarantee as the current SQL approach
-          with zero infrastructure.
-        risk_classification: "🟢"
-        date: "2026-03-08"
-        decided_by: "designer"
-
-      # ------------------------------------------------------------------
-      - id: "D-12"
-        title: "Cross-File Reference Elimination — co-location and inlining"
-        context: >
-          Cross-file section references (§N notation) are the #1 source of Critical review
-          findings (research architecture F-15, patterns F-12). The current system has dozens
-          of §references across 19 files. AC-18 requires zero §references in the new system.
-        alternatives:
-          - id: "alt-1"
-            label: "Co-locate schemas + inline rules, link global-rules.md by filename only"
-            description: >
-              Each agent defines its own output schema inline (in Output Schema section).
-              Tool access enforced by YAML frontmatter tools field (no external matrix).
-              The only cross-file reference is a link to global-rules.md (e.g.,
-              'See global-rules.md for completion contract format and retry policy') — never
-              by section number, only by document name.
-            pros:
-              - "Zero § references (satisfies AC-18)"
-              - "No section renumbering risk"
-              - "Each agent is nearly self-contained"
-              - "One cross-file reference (filename only, not §section)"
-            cons:
-              - "Output schema structure duplicated across agents (mitigated: each agent's schema is different anyway)"
-              - "Completion contract repeated in each agent's output section"
-          - id: "alt-2"
-            label: "Zero cross-file references (everything inlined)"
-            description: >
-              Eliminate even the reference to global-rules.md. Inline completion contract
-              format and retry policy in each agent.
-            pros:
-              - "Truly zero cross-file dependencies"
-            cons:
-              - "~20 lines of universal rules repeated 8 times = 160 extra lines"
-              - "Changes require updating 8 files simultaneously"
-              - "Eats into the 1,500-line budget"
-          - id: "alt-3"
-            label: "Named anchors instead of §numbers"
-            description: >
-              Keep cross-file references but use named anchors instead of §numbers.
-            pros:
-              - "More stable than §numbers"
-            cons:
-              - "Markdown named anchors don't survive formatting changes"
-              - "Still a cross-file dependency"
-              - "Adds complexity without eliminating the root problem"
-        selected: "alt-1"
-        rationale: >
-          Co-locating schemas in agents and using YAML frontmatter for tools eliminates ALL
-          the high-fragility cross-references (schemas.md, tool-access-matrix.md, sql-templates.md).
-          The only remaining cross-file reference is to global-rules.md by filename (not section),
-          which is stable because the document is short enough to never need §numbering.
-          This directly addresses the system's #1 structural weakness.
-        confidence: "High"
-        confidence_definition: >
-          The fragile § references are documented as the top Critical finding source across
-          multiple pipeline runs. Eliminating them removes a proven failure mode. The current
-          system already uses completion contracts — co-locating the schema is a formatting
-          change, not a behavioral change.
-        risk_classification: "🟢"
-        date: "2026-03-08"
-        decided_by: "designer"
-
-      # ------------------------------------------------------------------
-      # R2 NEW DECISIONS (D-13 through D-15)
-      # ------------------------------------------------------------------
-      - id: "D-13"
-        title: "Quick-Fix Step Set — {Setup, Implementation, Testing, Code Review, Completion}"
-        context: >
-          SS-C-2 flagged that the quick-fix prompt file (quick-fix.prompt.md) lacked a defined
-          step set. Without explicit steps, the quick-fix path could bypass mandatory Code
-          Review (Step 7), violating the immutable minimum step set.
-        alternatives:
-          - id: "alt-1"
-            label: "Steps {1, 5, 6, 7, 8} — skip Research and Architecture"
-            description: >
-              Quick-fix uses the full pipeline minus Research (Step 2) and Architecture
-              (Step 3). Code Review (Step 7) remains mandatory.
-            pros:
-              - "Preserves Code Review (proven value: 6+ Critical catches)"
-              - "Still runs Testing (Step 6) for dynamic validation"
-              - "Immutable minimum step set {1, 7, 8} included"
-              - "Clear, enumerable step set"
-            cons:
-              - "Still 5 steps for a 'quick' fix"
-          - id: "alt-2"
-            label: "Steps {1, 5, 8} — minimal path"
-            description: >
-              Only Setup, Implementation, and Completion. No testing, no review.
-            pros:
-              - "Fastest possible path (3 steps)"
-            cons:
-              - "Bypasses Code Review — violates immutable minimum step set"
-              - "No testing — regressions undetected"
-              - "Security risk: unreviewed code committed"
-        selected: "alt-1"
-        rationale: >
-          The quick-fix step set {1, 5, 6, 7, 8} preserves all quality gates while skipping
-          Research and Architecture (unnecessary for trivial fixes). Code Review (Step 7) is
-          mandatory per the immutable minimum step set principle. The prompt file MUST declare
-          these steps explicitly so the orchestrator enforces them.
-        confidence: "High"
-        confidence_definition: >
-          The immutable minimum step set is an established security principle. Skipping
-          Research+Architecture for trivial fixes is a proven pattern (current 🟢 scaling).
-        risk_classification: "🟢"
-        date: "2026-03-08"
-        decided_by: "designer"
-
-      # ------------------------------------------------------------------
-      - id: "D-14"
-        title: "Trust Boundary Model — 3-tier trust with data flow transitions"
-        context: >
-          SS-A-1 flagged the absence of an explicit trust boundary analysis. The 8-agent
-          system has agents with different privilege levels (orchestrator has run_in_terminal,
-          researcher has fetch_webpage, knowledge writes post-review). Trust boundaries
-          must be explicit to reason about security properties.
-        alternatives:
-          - id: "alt-1"
-            label: "3-tier trust model: Full, Standard, Read-Only"
-            description: >
-              Tier 1 (Full Trust): Orchestrator — run_in_terminal, git, agent dispatch.
-              Tier 2 (Standard Trust): Implementer, Tester — run_in_terminal + file write,
-              but scoped to declared files (implementer) or test execution (tester).
-              Tier 3 (Read-Only + Create): Researcher, Architect, Planner, Reviewer,
-              Knowledge — read_file, create_file only. No terminal, no edits to existing.
-            pros:
-              - "Clear privilege escalation boundaries"
-              - "Tier 3 agents cannot modify existing code"
-              - "Principle of least privilege"
-            cons:
-              - "Enforced by instruction, not platform"
-          - id: "alt-2"
-            label: "No explicit tiers — trust all agents equally"
-            description: >
-              All agents have the same trust level; rely on YAML frontmatter tools list only.
-            pros:
-              - "Simple mental model"
-            cons:
-              - "Cannot reason about privilege escalation"
-              - "No defense-in-depth"
-              - "Loses security analysis capability"
-        selected: "alt-1"
-        rationale: >
-          Explicit trust tiers enable security reasoning about the pipeline. Tier 1 (orchestrator)
-          is the only agent that can dispatch others and run git commands. Tier 2 agents can
-          execute code but are scoped. Tier 3 agents are read-only + create, making them safe
-          for parallel dispatch. While enforcement is instruction-level + YAML frontmatter
-          (not sandboxed), the trust model documents expected behavior and enables reviewers
-          to flag violations.
-        confidence: "Medium"
-        confidence_definition: >
-          Trust tiers are instruction-enforced, not platform-sandboxed. A misbehaving agent
-          could ignore its tier. Mitigated by: (1) YAML frontmatter tool restrictions,
-          (2) Code Review auditing tool usage, (3) pre-commit validation for Knowledge.
+        confidence_definition: "Directly resolves documented Major finding. Scope matches trust model. Clear precedent."
         risk_classification: "🟡"
-        date: "2026-03-08"
+        date: "2026-03-09"
         decided_by: "designer"
 
-      # ------------------------------------------------------------------
-      - id: "D-15"
-        title: "Incremental Pipeline Logging — orchestrator-maintained pipeline-log.yaml"
+      - id: "D-10"
+        title: "Step 8 decomposed into 5 explicit sub-steps (8a-8e)"
         context: >
-          PV-C-2 flagged that the evidence bundle is only produced on success (Step 8),
-          meaning failed pipelines lose their audit trail. The orchestrator needs to log
-          incrementally so that even crashed/failed pipelines have a record.
+          AG A-1 identified that Step 8 expands to 6+ branching sub-workflows with
+          risk of implementer misordering (e.g., staging before validation, committing
+          before doc-update completes). Current Step 8 is ~8 lines; new Step 8 will
+          be ~20+ lines with multiple conditional branches.
         alternatives:
-          - id: "alt-1"
-            label: "Orchestrator appends to pipeline-log.yaml after each dispatch"
-            description: >
-              After every agent dispatch completes (DONE, NEEDS_REVISION, or ERROR), the
-              orchestrator appends an entry to docs/feature/<slug>/pipeline-log.yaml with:
-              step, agent, started_at, completed_at, status, output_paths. Knowledge agent
-              reads this log at Step 8 to produce the enriched evidence-bundle.yaml.
+          - id: "alt-monolithic"
+            label: "Keep Step 8 as single step with inline branching"
+            description: "All actions in one numbered step with conditional branches."
             pros:
-              - "Audit trail available even if pipeline crashes mid-run"
-              - "Knowledge agent has structured input instead of scanning directories"
-              - "Incremental — no data loss on failure"
-              - "Human-readable YAML format"
+              - "Fewer pipeline steps"
             cons:
-              - "Orchestrator has one more file write per dispatch (~5 lines of reasoning)"
-          - id: "alt-2"
-            label: "Each agent appends to a shared log"
+              - "Cognitive density makes misordering likely"
+              - "No clear sequence for implementer to follow"
+              - "AG A-1 Major finding explicitly requests decomposition"
+          - id: "alt-decomposed"
+            label: "Decompose into 5 explicit sub-steps 8a-8e"
             description: >
-              Agents themselves append to the pipeline log.
+              8a: Knowledge Extraction — dispatch knowledge agent (non-blocking on error).
+              8b: Doc Updates — interactive only: present Apply/Review/Skip choice; if Apply,
+              re-dispatch knowledge in doc-update mode.
+              8c: Knowledge Output Validation — validate knowledge output_paths against
+              allowlist (evidence-bundle.yaml, knowledge-output.yaml, instruction-recommendations.md).
+              Reject unexpected files.
+              8d: Selective Staging — two-source: (1) git add <paths from implementation reports
+              files_modified>, (2) git add docs/feature/<slug>/ for pipeline artifacts.
+              8e: Commit/Review Choice — interactive: present Commit/Review/Unstage 3-way;
+              autonomous: stage only, no commit.
             pros:
-              - "Distributed responsibility"
+              - "Clear sequence prevents misordering"
+              - "Each sub-step has single responsibility"
+              - "Conditional branches isolated to their sub-step (8b, 8e)"
+              - "Implementer can verify each sub-step independently"
             cons:
-              - "Concurrent write conflicts"
-              - "Agents would need write access to shared file"
-              - "Orchestrator already knows timing — agents don't"
-        selected: "alt-1"
+              - "More detailed orchestrator instructions (~3 additional lines)"
+        selected: "alt-decomposed"
         rationale: >
-          The orchestrator is the natural owner of dispatch metadata (timing, status, routing
-          decisions). Appending to pipeline-log.yaml after each dispatch is trivial (~5 lines
-          of append) and provides crash-resilient audit. Knowledge agent then reads this log
-          at Step 8 to produce the enriched evidence-bundle.yaml with additional analysis
-          (lessons learned, recommendations). This separates raw logging (orchestrator) from
-          analysis (Knowledge).
+          Explicit sub-steps prevent implementer misordering errors. Each sub-step
+          has single responsibility and clear sequencing: knowledge → doc-updates →
+          validation → staging → commit choice. Conditional branches (interactive vs
+          autonomous) are isolated to sub-steps 8b and 8e. Addresses AG A-1 Major.
         confidence: "High"
-        confidence_definition: >
-          Append-only logging is a standard pattern. The orchestrator already tracks this
-          information for routing — writing it to a file is trivial. Low reversal cost.
+        confidence_definition: "Direct decomposition of existing actions into clear sequence. No new functionality added. Zero reversal cost — sub-steps can be re-merged trivially."
         risk_classification: "🟢"
-        date: "2026-03-08"
+        date: "2026-03-09"
         decided_by: "designer"
 
-    # ==================================================================
-    # DEVIATION RECORDS
-    # ==================================================================
-    deviation_records: []
-    # No deviations from spec. The design faithfully implements Direction C as specified.
+      - id: "D-11"
+        title: "Reject disable-model-invocation for worker agents — would break pipeline"
+        context: >
+          SS S-1 suggested adding disable-model-invocation: true to all worker agents
+          to prevent bypassing orchestrator trust model. Web research on VS Code custom
+          agents documentation (fetched 2026-03-09) reveals this property has a different
+          effect than intended.
+        alternatives:
+          - id: "alt-add-disable"
+            label: "Add disable-model-invocation: true to all workers"
+            description: "Set the property on all 7 non-orchestrator agents."
+            pros:
+              - "Maximum lockdown against autonomous model invocations"
+            cons:
+              - "BREAKS PIPELINE: VS Code docs define this as 'prevents the agent from being invoked as a subagent by other agents'"
+              - "Orchestrator would be unable to dispatch workers via runSubagent"
+              - "The deprecated 'infer' property docs confirm: 'disable-model-invocation: true to prevent subagent invocation while keeping it in the picker'"
+              - "Would require fundamentally different dispatch model"
+          - id: "alt-user-invocable-only"
+            label: "Rely on user-invocable: false (already in FR-2.4)"
+            description: "Workers hidden from dropdown but remain dispatchable as subagents."
+            pros:
+              - "Pipeline works — orchestrator dispatches workers via runSubagent"
+              - "Workers hidden from user dropdown — no direct user invocation"
+              - "Trust model enforced three ways: user-invocable:false, agents:[], tools: arrays"
+            cons:
+              - "AI model could theoretically try autonomous invocation (mitigated by agents:[] on workers)"
+        selected: "alt-user-invocable-only"
+        rationale: >
+          VS Code custom agents docs (fetched 2026-03-09) explicitly define
+          disable-model-invocation as: 'Optional boolean flag to prevent the agent from
+          being invoked as a subagent by other agents (default is false).' The deprecated
+          infer property docs confirm: 'disable-model-invocation: true to prevent subagent
+          invocation while keeping it in the picker.' Adding this to worker agents would
+          PREVENT the orchestrator from dispatching them as subagents — breaking the
+          entire pipeline. The trust model is already enforced: (1) user-invocable: false
+          hides workers from dropdown, (2) workers have agents: [] preventing them from
+          dispatching other agents, (3) tools: arrays restrict capabilities per trust tier.
+        confidence: "High"
+        confidence_definition: "VS Code docs verified 2026-03-09. Property definition unambiguous. Adding it would break orchestrator dispatch — zero uncertainty."
+        risk_classification: "🟢"
+        date: "2026-03-09"
+        decided_by: "designer"
 
-    # ==================================================================
-    # TRUST BOUNDARY MODEL (R2 — addresses SS-A-1)
-    # ==================================================================
-    trust_boundary_model:
-      tier_1_full_trust:
-        agents: ["orchestrator"]
-        capabilities:
-          - "run_in_terminal (git commands, baseline tags)"
-          - "Agent dispatch (agents: field in frontmatter)"
-          - "File creation and editing (create_file, replace_string_in_file)"
-          - "User interaction (vscode_askQuestions)"
-          - "Pipeline-log.yaml incremental writes"
-        boundary_notes: >
-          Orchestrator is the sole agent with dispatch and git capabilities. All
-          routing decisions flow through orchestrator. Pre-commit: orchestrator
-          validates git diff against Knowledge output allowlist before committing.
-      tier_2_standard_trust:
-        agents: ["implementer", "tester"]
-        capabilities:
-          - "run_in_terminal (scoped: implementer=build+test, tester=test execution)"
-          - "File creation and editing (scoped to declared file ownership)"
-          - "get_errors for compile-time diagnostics"
-        boundary_notes: >
-          Implementer: MUST only modify files declared in task.files[]. Logs all
-          terminal commands in implementation_report.commands_executed[]. Tester:
-          singleton for dynamic mode. Terminal usage limited to test execution commands.
-        implementer_command_allowlist: >
-          Implementer terminal commands are instruction-scoped. Expected patterns:
-          dotnet build, dotnet test, npm run build, npm test, cargo build, cargo test,
-          go build, go test, pytest, git diff. Reviewer audits implementation_report
-          .commands_executed[] against this allowlist. Unexpected commands = Major finding.
-      tier_3_read_only_create:
-        agents: ["researcher", "architect", "planner", "reviewer", "knowledge"]
-        capabilities:
-          - "read_file, list_dir, grep_search, semantic_search, file_search"
-          - "create_file (new files only — cannot edit existing files)"
-          - "fetch_webpage (Researcher, Architect only, when enabled)"
-          - "memory tool (Knowledge only)"
-          - "get_errors, get_changed_files (Reviewer only)"
-        boundary_notes: >
-          Tier 3 agents cannot modify existing code. They create new output files only.
-          Knowledge agent writes to docs/feature/<slug>/ only — pre-commit validation
-          by orchestrator enforces this. Reviewer has get_changed_files for diff analysis.
-      data_flow_transitions:
-        - from: "Tier 1 (Orchestrator)"
-          to: "Tier 3 (Researcher)"
-          data: "feature slug, web_research_enabled flag, focus area"
-          trust_boundary: "Orchestrator→Agent dispatch parameter. No untrusted data."
-        - from: "Tier 3 (Researcher)"
-          to: "Tier 3 (Architect)"
-          data: "research/*.yaml output files"
-          trust_boundary: "File-based handoff. Architect reads research YAML created by Researcher."
-        - from: "Tier 3 (Architect)"
-          to: "Tier 3 (Planner)"
-          data: "architecture-output.yaml"
-          trust_boundary: "File-based handoff. Single file, structured YAML."
-        - from: "Tier 3 (Planner)"
-          to: "Tier 2 (Implementer)"
-          data: "plan-output.yaml task definitions with file ownership"
-          trust_boundary: "Tier escalation (3→2). Implementer gains terminal access but is scoped to declared files."
-        - from: "Tier 2 (Implementer)"
-          to: "Tier 2 (Tester)"
-          data: "implementation-reports/task-*.yaml, modified source files"
-          trust_boundary: "Same tier. Tester executes tests on implementer's output."
-        - from: "Tier 2 (Tester)"
-          to: "Tier 3 (Reviewer)"
-          data: "test-report.yaml, git diff"
-          trust_boundary: "Tier de-escalation (2→3). Reviewer is read-only."
-        - from: "Tier 3 (Knowledge)"
-          to: "Tier 1 (Orchestrator)"
-          data: "evidence-bundle.yaml, knowledge-output.yaml"
-          trust_boundary: "Pre-commit gate: orchestrator validates Knowledge output paths against allowlist before git commit."
-      accepted_residual_risks:
-        - risk: "Instruction-level enforcement"
-          description: "Trust tiers are enforced by agent instructions and YAML frontmatter, not sandboxed."
-          mitigation: "YAML frontmatter tools field is platform-enforced. Instructions are the secondary layer."
-        - risk: "fetch_webpage in autonomous mode"
-          description: "No VS Code approval prompt in autonomous mode. Instruction-level toggle is sole guard."
-          mitigation: "Agents log URLs. Reviewer audits. Knowledge flags unexpected fetches."
-        - risk: "Knowledge post-review writes"
-          description: "Knowledge agent writes files after Code Review (Step 7), bypassing review for its own output."
-          mitigation: "Pre-commit: orchestrator validates git diff matches Knowledge output_path_allowlist."
+    deviation_records:
+      - id: "DR-1"
+        spec_requirement: "FR-3.3, AC-9"
+        deviation: >
+          Spec requires 'structured question tool in tools: frontmatter.' No such tool
+          exists in VS Code. Design uses orchestrator-mediated interaction instead.
+        rationale: >
+          VS Code subagents run in isolated contexts and cannot prompt users. No built-in
+          structured question tool in VS Code tool catalog (verified via official cheat
+          sheet). Orchestrator-mediated pattern satisfies INTENT of FR-3.
 
-    # ==================================================================
-    # FILE INVENTORY
-    # ==================================================================
+      - id: "DR-2"
+        spec_requirement: "FR-4.4, AC-11"
+        deviation: >
+          Same as DR-1 — spec requires structured question tool for planner. No such
+          tool exists. Design uses orchestrator-mediated plan approval instead.
+        rationale: >
+          Same platform constraint as DR-1. Planner outputs plan_summary, orchestrator
+          handles interactive approval gate. Intent fully preserved.
+
     file_inventory:
-      target_directory: "v2/.github/agents/"
-      promotion_target: ".github/agents/"
+      - path: "v2/.github/agents/orchestrator.agent.md"
+        action: "modify"
+        risk: "🟡"
+        current_lines: 117
+        estimated_post_lines: 142
+        changes:
+          - "FR-2: Fix all 10 frontmatter tool names to flat camelCase"
+          - "FR-2.3: Add runSubagent dispatch instruction in body"
+          - "FR-1: Step 1 — E2E skill directory scan + interactive setup"
+          - "FR-3: Step 3 — architect clarification mediation (assumptions-first flow)"
+          - "FR-4: Step 4 — planner approval mediation"
+          - "FR-5/D-5: Step 8d — two-source selective staging (implementation files + pipeline artifacts)"
+          - "FR-6: Step 8e — interactive Commit/Review/Unstage choice"
+          - "FR-6: Step 8e autonomous — stage only, no commit"
+          - "FR-7: Step 8b — doc update choice after knowledge agent"
+          - "D-9: Step 8c — pre-stage knowledge output validation"
+          - "D-10: Decompose Step 8 into sub-steps 8a-8e"
 
-      new_files:
-        - path: "v2/.github/agents/orchestrator.agent.md"
-          action: "CREATE"
-          line_estimate: 150
-          description: "Pipeline coordinator — DAG dispatch, routing, approval gates"
+      - path: "v2/.github/agents/researcher.agent.md"
+        action: "modify"
+        risk: "🟢"
+        current_lines: 83
+        estimated_post_lines: 84
+        changes:
+          - "FR-2: Fix all tool names (readFile, listDirectory, textSearch, codebase, fileSearch, fetch, createFile)"
+          - "FR-2.4: Add user-invocable: false"
 
-        - path: "v2/.github/agents/researcher.agent.md"
-          action: "CREATE"
-          line_estimate: 100
-          description: "Parallel web + codebase research with configurable fetch_webpage"
+      - path: "v2/.github/agents/architect.agent.md"
+        action: "modify"
+        risk: "�"
+        current_lines: 130
+        estimated_post_lines: 145
+        changes:
+          - "FR-2: Fix all tool names"
+          - "FR-2.4: Add user-invocable: false"
+          - "FR-3: Add Step 1.5 Clarification (assumptions-first: complete fully, output assumptions_made[] + clarifications_needed[])"
+          - "FR-3: Autonomous mode documents assumptions instead"
+          - "FR-8: Add Step 2.5 Web Research (gated by web_research_enabled, 3-5 lookups)"
+        note: "🔴 TIGHTEST AGENT — 5-line headroom. If budget tight during implementation, extract FR-8 web research guidance to reference doc."
 
-        - path: "v2/.github/agents/architect.agent.md"
-          action: "CREATE"
-          line_estimate: 140
-          description: "Combined spec + design — requirements, architecture, decisions"
+      - path: "v2/.github/agents/planner.agent.md"
+        action: "modify"
+        risk: "🟢"
+        current_lines: 105
+        estimated_post_lines: 116
+        changes:
+          - "FR-2: Fix all tool names"
+          - "FR-2.4: Add user-invocable: false"
+          - "FR-4: Add final step outputting plan_summary (task count, waves, key deps)"
+          - "FR-4: plan_summary included in plan-output.yaml for orchestrator"
 
-        - path: "v2/.github/agents/planner.agent.md"
-          action: "CREATE"
-          line_estimate: 130
-          description: "DAG task decomposition with file ownership declarations"
+      - path: "v2/.github/agents/implementer.agent.md"
+        action: "modify"
+        risk: "🟡"
+        current_lines: 99
+        estimated_post_lines: 115
+        changes:
+          - "FR-2: Fix all tool names"
+          - "FR-2.4: Add user-invocable: false"
+          - "FR-5: Remove step 6 (git add -A) from workflow"
+          - "FR-5: Remove git add from command allowlist; keep git diff, git status"
+          - "FR-10: Change cycle RED-GREEN-REPORT → RED-GREEN-REFACTOR-REPORT"
+          - "FR-10: Bounded REFACTOR (task files only, >=3 dups, clarity renames)"
+          - "FR-10: REFACTOR re-runs tests; revert on failure"
+          - "FR-10: Add quality principles: YAGNI, KISS, DRY, minimal code"
 
-        - path: "v2/.github/agents/implementer.agent.md"
-          action: "CREATE"
-          line_estimate: 130
-          description: "TDD implementation — RED-GREEN cycle, unit tests only"
+      - path: "v2/.github/agents/tester.agent.md"
+        action: "modify"
+        risk: "🟡"
+        current_lines: 129
+        estimated_post_lines: 143
+        changes:
+          - "FR-2: Fix all tool names"
+          - "FR-2.4: Add user-invocable: false"
+          - "FR-9: Add Exploratory QA phase to dynamic mode (replaces live-qa category — PV C-4)"
+          - "FR-9: 4 categories: happy path, edge cases, error handling, state mutation"
+          - "FR-9: Use available skills when present"
+          - "FR-9: Record findings with category exploratory"
+          - "FR-1.4: Reference discovered skills by path"
+          - "FR-5/PV C-2: Update static mode audit — remove git add from implementer-acceptable patterns; flag as Major"
 
-        - path: "v2/.github/agents/tester.agent.md"
-          action: "CREATE"
-          line_estimate: 140
-          description: "Dynamic test execution + static evidence evaluation"
+      - path: "v2/.github/agents/reviewer.agent.md"
+        action: "modify"
+        risk: "🟢"
+        current_lines: 96
+        estimated_post_lines: 99
+        changes:
+          - "FR-2: Fix all tool names"
+          - "FR-2.4: Add user-invocable: false"
+          - "FR-5/PV C-2: Update command audit expected patterns — remove git add from implementer-acceptable (git diff|add|status → git diff|status)"
+          - "FR-5/PV C-2: Flag any git add in implementer commands_executed[] as Major finding"
 
-        - path: "v2/.github/agents/reviewer.agent.md"
-          action: "CREATE"
-          line_estimate: 110
-          description: "Multi-perspective adversarial code review"
+      - path: "v2/.github/agents/knowledge.agent.md"
+        action: "modify"
+        risk: "🟡"
+        current_lines: 107
+        estimated_post_lines: 118
+        changes:
+          - "FR-2: Fix all tool names; remove vscode/memory"
+          - "FR-2.4: Add user-invocable: false"
+          - "D-7: Reword memory step — VS Code feature, not tool"
+          - "FR-7: Add doc-update mode"
+          - "FR-7: In doc-update mode: read recommendations, identify files, propose edits"
+          - "FR-7: MUST NOT modify .agent.md files"
+          - "FR-7: Scope: copilot-instructions.md, .instructions.md, AGENTS.md"
 
-        - path: "v2/.github/agents/knowledge.agent.md"
-          action: "CREATE"
-          line_estimate: 100
-          description: "Post-mortem analysis + evidence bundle + instruction optimization recommendations"
+      - path: "v2/.github/agents/global-rules.md"
+        action: "modify"
+        risk: "🟢"
+        current_lines: 70
+        estimated_post_lines: 80
+        changes:
+          - "FR-5.3: Add Git Operations rule — only orchestrator stages/commits"
+          - "FR-5.3: Permitted for others: git diff, git status (read-only)"
+          - "FR-5.3: Prohibited for others: git add, git commit, git push, git reset"
+          - "PV C-3: Add Plan Refinement row to Feedback Loop Limits table (max 1 iteration)"
 
-        - path: "v2/.github/agents/global-rules.md"
-          action: "CREATE"
-          line_estimate: 100
-          description: "Cross-cutting rules — completion contract, retry, anti-hallucination, loops"
+      - path: "v2/.github/prompts/feature-workflow.prompt.md"
+        action: "no change"
+        risk: "🟢"
+        current_lines: 28
+        estimated_post_lines: 28
+        changes: []
 
-        - path: "v2/.github/prompts/feature-workflow.prompt.md"
-          action: "CREATE"
-          line_estimate: 30
-          description: "Full pipeline entry point prompt"
+      - path: "v2/.github/prompts/quick-fix.prompt.md"
+        action: "no change"
+        risk: "🟢"
+        current_lines: 22
+        estimated_post_lines: 22
+        changes: []
 
-        - path: "v2/.github/prompts/quick-fix.prompt.md"
-          action: "CREATE"
-          line_estimate: 25
-          description: "Simplified pipeline for trivial fixes — steps {1,5,6,7,8}, skips Research+Architecture"
+    tool_name_corrections:
+      orchestrator:
+        before:
+          [
+            "read/readFile",
+            "edit/createFile",
+            "edit/editFiles",
+            "search/listDirectory",
+            "search/textSearch",
+            "search/fileSearch",
+            "execute/runInTerminal",
+            "execute/getTerminalOutput",
+            "agent",
+            "search/changes",
+            "todo",
+          ]
+        after:
+          [
+            "readFile",
+            "createFile",
+            "editFiles",
+            "listDirectory",
+            "textSearch",
+            "fileSearch",
+            "runInTerminal",
+            "getTerminalOutput",
+            "agent",
+            "changes",
+            "todos",
+          ]
+      researcher:
+        before:
+          [
+            "read/readFile",
+            "search/listDirectory",
+            "search/textSearch",
+            "search/codebase",
+            "search/fileSearch",
+            "web/fetch",
+            "edit/createFile",
+          ]
+        after:
+          [
+            "readFile",
+            "listDirectory",
+            "textSearch",
+            "codebase",
+            "fileSearch",
+            "fetch",
+            "createFile",
+          ]
+      architect:
+        before:
+          [
+            "read/readFile",
+            "search/listDirectory",
+            "search/textSearch",
+            "search/codebase",
+            "search/fileSearch",
+            "web/fetch",
+            "edit/createFile",
+          ]
+        after:
+          [
+            "readFile",
+            "listDirectory",
+            "textSearch",
+            "codebase",
+            "fileSearch",
+            "fetch",
+            "createFile",
+          ]
+      planner:
+        before:
+          [
+            "read/readFile",
+            "search/listDirectory",
+            "search/textSearch",
+            "search/codebase",
+            "search/fileSearch",
+            "edit/createFile",
+          ]
+        after:
+          [
+            "readFile",
+            "listDirectory",
+            "textSearch",
+            "codebase",
+            "fileSearch",
+            "createFile",
+          ]
+      implementer:
+        before:
+          [
+            "read/readFile",
+            "edit/createFile",
+            "edit/editFiles",
+            "search/listDirectory",
+            "search/textSearch",
+            "search/codebase",
+            "search/fileSearch",
+            "execute/runInTerminal",
+            "execute/getTerminalOutput",
+            "read/problems",
+          ]
+        after:
+          [
+            "readFile",
+            "createFile",
+            "editFiles",
+            "listDirectory",
+            "textSearch",
+            "codebase",
+            "fileSearch",
+            "runInTerminal",
+            "getTerminalOutput",
+            "problems",
+          ]
+      tester:
+        before:
+          [
+            "read/readFile",
+            "edit/createFile",
+            "search/listDirectory",
+            "search/textSearch",
+            "search/codebase",
+            "search/fileSearch",
+            "execute/runInTerminal",
+            "execute/getTerminalOutput",
+            "read/problems",
+          ]
+        after:
+          [
+            "readFile",
+            "createFile",
+            "listDirectory",
+            "textSearch",
+            "codebase",
+            "fileSearch",
+            "runInTerminal",
+            "getTerminalOutput",
+            "problems",
+          ]
+      reviewer:
+        before:
+          [
+            "read/readFile",
+            "search/listDirectory",
+            "search/textSearch",
+            "search/codebase",
+            "search/fileSearch",
+            "read/problems",
+            "search/changes",
+            "edit/createFile",
+          ]
+        after:
+          [
+            "readFile",
+            "listDirectory",
+            "textSearch",
+            "codebase",
+            "fileSearch",
+            "problems",
+            "changes",
+            "createFile",
+          ]
+      knowledge:
+        before:
+          [
+            "read/readFile",
+            "search/listDirectory",
+            "search/textSearch",
+            "search/codebase",
+            "search/fileSearch",
+            "edit/createFile",
+            "vscode/memory",
+          ]
+        after:
+          [
+            "readFile",
+            "listDirectory",
+            "textSearch",
+            "codebase",
+            "fileSearch",
+            "createFile",
+          ]
+        removed: ["vscode/memory"]
 
-      modified_files:
-        - path: ".github/copilot-instructions.md"
-          action: "MODIFY"
-          description: "Remove SQLite-related rules, add YAML routing reference"
+    line_budget:
+      limit_per_agent: 150
+      limit_total_system: 1500
+      current_total: 936
+      estimated_post_total: 1042
+      note: "Line counts verified via PowerShell (Get-Content).Count on 2026-03-09. Prior counts were stale."
+      agents:
+        - name: orchestrator
+          current: 117
+          estimated: 142
+          headroom: 8
+        - name: researcher
+          current: 83
+          estimated: 84
+          headroom: 66
+        - name: architect
+          current: 130
+          estimated: 145
+          headroom: 5
+          note: "🔴 TIGHTEST — extract FR-8 web research to reference doc if budget tight"
+        - name: planner
+          current: 105
+          estimated: 116
+          headroom: 34
+        - name: implementer
+          current: 99
+          estimated: 115
+          headroom: 35
+        - name: tester
+          current: 129
+          estimated: 143
+          headroom: 7
+        - name: reviewer
+          current: 96
+          estimated: 99
+          headroom: 51
+        - name: knowledge
+          current: 107
+          estimated: 118
+          headroom: 32
+        - name: global-rules
+          current: 70
+          estimated: 80
+          note: "Shared doc — not subject to 150-line agent limit"
 
-      archived_files:
-        - path: "NewAgents/.github/agents/"
-          action: "ARCHIVE"
-          description: "Entire current agent system (19 files, 6,416 lines)"
-        - path: "NewAgents/.github/prompts/"
-          action: "ARCHIVE"
-          description: "Current prompt files (12 files, ~1,041 lines)"
-
-      totals:
-        agent_files: 8
-        agent_lines: 1000
-        shared_reference_files: 1
-        shared_reference_lines: 100
-        total_system_lines: 1100
-        line_budget_remaining: 400
-        prompt_files: 2
-        prompt_lines: 55
-
-    # ==================================================================
-    # COMPONENT DESIGN (per agent)
-    # ==================================================================
-    component_design:
-      - agent: "orchestrator"
-        file: "orchestrator.agent.md"
-        line_budget: 150
-        responsibilities:
-          - "Pipeline coordination (8 steps)"
-          - "DAG-based implementation dispatch"
-          - "Completion contract routing (read YAML → determine next step)"
-          - "File ownership conflict detection"
-          - "Approval gates in interactive mode"
-          - "Risk classification (🟢/🟡/🔴)"
-          - "Git baseline tag + commit"
-          - "R2: Incremental pipeline-log.yaml append after each dispatch"
-          - "R2: Pre-commit validation (git diff vs Knowledge output allowlist)"
-        frontmatter:
-          name: "orchestrator"
-          description: "Multi-agent pipeline coordinator"
-          tools:
-            - "read_file"
-            - "create_file"
-            - "replace_string_in_file"
-            - "list_dir"
-            - "grep_search"
-            - "file_search"
-            - "run_in_terminal"
-            - "get_terminal_output"
-            - "vscode_askQuestions"
-          agents:
-            - "researcher"
-            - "architect"
-            - "planner"
-            - "implementer"
-            - "tester"
-            - "reviewer"
-            - "knowledge"
-        body_sections:
-          - "Role"
-          - "Pipeline Steps (8 steps with routing logic)"
-          - "DAG Dispatch Algorithm"
-          - "Constraints"
-          - "Anti-Drift Anchor"
-
-      - agent: "researcher"
-        file: "researcher.agent.md"
-        line_budget: 100
-        responsibilities:
-          - "Codebase analysis (grep, read, semantic search)"
-          - "Web research when enabled (fetch_webpage)"
-          - "Produce structured research findings"
-        frontmatter:
-          name: "researcher"
-          description: "Parallel codebase and web researcher"
-          tools:
-            - "read_file"
-            - "list_dir"
-            - "grep_search"
-            - "semantic_search"
-            - "file_search"
-            - "fetch_webpage"
-            - "create_file"
-          agents: []
-        body_sections:
-          - "Role"
-          - "Inputs"
-          - "Workflow (5 steps)"
-          - "Output Schema"
-          - "Constraints"
-          - "Anti-Drift Anchor"
-
-      - agent: "architect"
-        file: "architect.agent.md"
-        line_budget: 140
-        responsibilities:
-          - "Read research outputs and initial request"
-          - "Produce functional requirements with IDs"
-          - "Produce acceptance criteria per requirement"
-          - "Select architectural direction with justification"
-          - "Make key technical decisions"
-          - "Combined spec + design in one output"
-        conditional_inputs: >
-          Research files are optional for 🟢 features (Step 2 skipped). Architect must
-          handle missing research gracefully: use initial-request.md + codebase analysis
-          (grep_search, semantic_search) as sole inputs when research/*.yaml absent.
-        frontmatter:
-          name: "architect"
-          description: "Combined specification and technical design"
-          tools:
-            - "read_file"
-            - "list_dir"
-            - "grep_search"
-            - "semantic_search"
-            - "file_search"
-            - "fetch_webpage"
-            - "create_file"
-          agents: []
-        body_sections:
-          - "Role"
-          - "Inputs"
-          - "Workflow (8 steps)"
-          - "Output Schema"
-          - "Constraints"
-          - "Anti-Drift Anchor"
-
-      - agent: "planner"
-        file: "planner.agent.md"
-        line_budget: 130
-        responsibilities:
-          - "Decompose feature into tasks"
-          - "Declare per-task dependencies (depends_on)"
-          - "Declare per-task file ownership (files)"
-          - "Classify per-task risk level"
-          - "Output DAG-compatible task graph"
-        frontmatter:
-          name: "planner"
-          description: "DAG task decomposition with file ownership"
-          tools:
-            - "read_file"
-            - "list_dir"
-            - "grep_search"
-            - "semantic_search"
-            - "file_search"
-            - "create_file"
-          agents: []
-        body_sections:
-          - "Role"
-          - "Inputs"
-          - "Workflow (6 steps)"
-          - "Output Schema (task DAG)"
-          - "Constraints"
-          - "Anti-Drift Anchor"
-
-      - agent: "implementer"
-        file: "implementer.agent.md"
-        line_budget: 130
-        responsibilities:
-          - "TDD: write failing unit tests (RED)"
-          - "TDD: write minimal production code (GREEN)"
-          - "Run unit tests only (no integration, no E2E, no app start)"
-          - "Produce implementation report"
-        command_allowlist: >
-          Terminal commands instruction-scoped to build+test patterns:
-          dotnet build/test, npm run build/test, cargo build/test, go build/test,
-          pytest, git diff. All commands logged in implementation_report.commands_executed[].
-          Reviewer audits against this allowlist.
-        file_ownership_constraint: >
-          Implementer MUST NOT modify files not declared in task.files[]. If additional
-          files are needed, implementer returns NEEDS_REVISION with files_requested[] listing
-          the needed paths. Orchestrator/Planner reviews and re-dispatches with updated ownership.
-        frontmatter:
-          name: "implementer"
-          description: "TDD implementation with unit tests only"
-          tools:
-            - "read_file"
-            - "create_file"
-            - "replace_string_in_file"
-            - "multi_replace_string_in_file"
-            - "list_dir"
-            - "grep_search"
-            - "semantic_search"
-            - "file_search"
-            - "run_in_terminal"
-            - "get_terminal_output"
-            - "get_errors"
-            - "fetch_webpage"
-          agents: []
-        body_sections:
-          - "Role"
-          - "Inputs"
-          - "Workflow (RED-GREEN-REPORT)"
-          - "Output Schema"
-          - "Constraints (unit tests ONLY)"
-          - "Anti-Drift Anchor"
-
-      - agent: "tester"
-        file: "tester.agent.md"
-        line_budget: 140
-        responsibilities:
-          - "Dynamic mode: start app, run integration/E2E/API tests, stop app"
-          - "Static mode: read implementation reports, verify TDD compliance"
-          - "Skill-based test execution (playwright-ui, http-api, cli, etc.)"
-          - "Produce test report with pass/fail per category"
-          - "Overall verification verdict"
-          - "R2: Audit implementer commands_executed[] against command allowlist"
-        dispatch_format: >
-          Orchestrator dispatches tester with natural language. First line MUST be
-          'Mode: static' or 'Mode: dynamic'. Tester uses this to select workflow path.
-        frontmatter:
-          name: "tester"
-          description: "Dynamic test execution and evidence evaluation"
-          tools:
-            - "read_file"
-            - "create_file"
-            - "list_dir"
-            - "grep_search"
-            - "semantic_search"
-            - "file_search"
-            - "run_in_terminal"
-            - "get_terminal_output"
-            - "get_errors"
-          agents: []
-        body_sections:
-          - "Role"
-          - "Inputs"
-          - "Static Evaluation Workflow"
-          - "Dynamic Testing Workflow"
-          - "Output Schema"
-          - "Constraints (singleton for dynamic mode)"
-          - "Anti-Drift Anchor"
-
-      - agent: "reviewer"
-        file: "reviewer.agent.md"
-        line_budget: 110
-        responsibilities:
-          - "Multi-perspective code review (security, architecture, correctness)"
-          - "Perspective assigned by orchestrator at dispatch"
-          - "Produce findings with severity (blocker, critical, major, minor)"
-          - "Produce verdict (approve, request-changes)"
-          - "R2: Audit implementer commands_executed[] for unexpected terminal commands"
-          - "R2: Audit fetch_webpage URL trails for unexpected web requests"
-        frontmatter:
-          name: "reviewer"
-          description: "Adversarial multi-perspective code review"
-          tools:
-            - "read_file"
-            - "list_dir"
-            - "grep_search"
-            - "semantic_search"
-            - "file_search"
-            - "get_errors"
-            - "get_changed_files"
-            - "create_file"
-          agents: []
-        body_sections:
-          - "Role"
-          - "Inputs (perspective, scope)"
-          - "Workflow (6 steps)"
-          - "Output Schema"
-          - "Constraints"
-          - "Anti-Drift Anchor"
-
-      - agent: "knowledge"
-        file: "knowledge.agent.md"
-        line_budget: 100
-        responsibilities:
-          - "Post-mortem analysis (timing, dispatch count, findings)"
-          - "Evidence bundle production (reads pipeline-log.yaml)"
-          - "Instruction optimization recommendations (written to recommendation file)"
-          - "MUST NOT modify .agent.md files directly"
-        output_path_allowlist: >
-          Knowledge agent output is restricted to docs/feature/<slug>/ directory:
-          evidence-bundle.yaml, knowledge-output.yaml, instruction-recommendations.md.
-          Orchestrator validates git diff at pre-commit: any file outside this allowlist
-          triggers a commit rejection and ERROR status.
-        frontmatter:
-          name: "knowledge"
-          description: "Post-mortem analysis and instruction optimization"
-          tools:
-            - "read_file"
-            - "list_dir"
-            - "grep_search"
-            - "semantic_search"
-            - "file_search"
-            - "create_file"
-            - "memory"
-          agents: []
-        body_sections:
-          - "Role"
-          - "Inputs"
-          - "Workflow (5 steps)"
-          - "Output Schema"
-          - "Constraints"
-          - "Anti-Drift Anchor"
-
-    # ==================================================================
-    # PIPELINE DESIGN
-    # ==================================================================
-    pipeline_design:
-      total_steps: 8
-      steps:
-        - step: 1
-          name: "Setup"
-          agent: "orchestrator"
-          description: >
-            Orchestrator creates feature directory (docs/feature/<slug>/), creates git
-            baseline tag, asks approval_mode and web_research_enabled (interactive mode),
-            classifies feature risk (🟢/🟡/🔴). R2: Initializes pipeline-log.yaml with
-            run metadata (run_id, feature_slug, risk, approval_mode, started_at).
-          outputs:
-            - "docs/feature/<slug>/initial-request.md (if not existing)"
-            - "docs/feature/<slug>/pipeline-log.yaml (initialized)"
-          routing: "Always → Step 2 (or Step 3 if 🟢)"
-          dispatches: 0
-
-        - step: 2
-          name: "Research"
-          agent: "researcher (2-4 parallel instances)"
-          description: >
-            Orchestrator dispatches 2-4 Researcher instances, each assigned a focus area
-            (architecture, impact, dependencies, patterns). Gate: ≥2 complete with DONE.
-            Skipped for 🟢 simple features.
-          outputs:
-            - "docs/feature/<slug>/research/architecture.yaml"
-            - "docs/feature/<slug>/research/impact.yaml"
-            - "docs/feature/<slug>/research/dependencies.yaml"
-            - "docs/feature/<slug>/research/patterns.yaml"
-          routing: "Gate pass → Step 3 | 🟢 → skip to Step 3"
-          dispatches: "2-4"
-          gate: "≥2 of N researchers return status: DONE"
-          gate_policy: >
-            The ≥2 absolute gate is intentional, not parametric. It ensures minimum research
-            diversity regardless of N. The orchestrator validates YAML parseability before
-            counting a research output toward the gate.
-          risk_scaling:
-            green: "SKIP"
-            yellow: "2-3 researchers"
-            red: "4 researchers"
-          approval_gate: "Interactive: approval after research"
-
-        - step: 3
-          name: "Architecture"
-          agent: "architect (single instance)"
-          description: >
-            Architect reads research outputs + initial-request.md. Produces combined
-            architecture-output.yaml with requirements, acceptance criteria, architectural
-            decisions, and technical design. For 🔴 features, orchestrator dispatches
-            2-3 Reviewers for embedded design review before proceeding.
-          naming_convention: >
-            Output file is architecture-output.yaml (not design-output.yaml). This avoids
-            confusion with the pipeline's own design artifacts and reflects the merged
-            Spec+Designer → Architect agent identity.
-          outputs:
-            - "docs/feature/<slug>/architecture-output.yaml"
-            - "docs/feature/<slug>/architecture.md"
-          routing: "DONE → Step 4 | 🔴 → embedded review → Step 4"
-          failure_routing: >
-            If embedded design review (🔴 only) returns request-changes: Orchestrator
-            re-dispatches Architect with review findings. Max 1 revision round for
-            embedded design review. If 2nd round still fails → pipeline status ERROR
-            with summary 'Design review failed after 1 revision round'.
-          conditional_research: >
-            For 🟢 features (Step 2 skipped), Architect receives no research/*.yaml.
-            Architect gracefully handles missing research by using initial-request.md +
-            codebase analysis (grep_search, semantic_search) as sole inputs.
-          dispatches: "1 (+ 2-3 reviewers for 🔴)"
-          risk_scaling:
-            green: "architect only"
-            yellow: "architect only"
-            red: "architect + 2-3 reviewers"
-
-        - step: 4
-          name: "Planning"
-          agent: "planner (single instance)"
-          description: >
-            Planner reads architecture output. Produces plan-output.yaml with DAG task
-            graph including per-task id, description, depends_on, files, risk_level.
-            Interactive: approval gate after planning.
-          outputs:
-            - "docs/feature/<slug>/plan-output.yaml"
-          routing: "DONE → Step 5"
-          dispatches: 1
-          approval_gate: "Interactive: approval after planning"
-
-        - step: 5
-          name: "Implementation"
-          agent: "implementer (parallel, DAG-ordered)"
-          description: >
-            Orchestrator reads plan DAG, computes ready tasks (all deps satisfied, no
-            file overlap with concurrent tasks), dispatches ≤4 in parallel. Each implementer
-            follows RED-GREEN TDD. Repeats until all tasks complete. Max 3 fix cycles per
-            task on NEEDS_REVISION.
-          outputs:
-            - "docs/feature/<slug>/implementation-reports/task-<id>.yaml (per task)"
-          routing: "All tasks DONE → Step 6 | NEEDS_REVISION → re-dispatch task"
-          dispatches: "Variable (depends on task count, max 4 per group)"
-          max_cycles: 3
-
-        - step: 6
-          name: "Testing"
-          agent: "tester (singleton for dynamic, parallel for static)"
-          description: >
-            Phase 1 (static): Tester reads implementation reports, verifies TDD compliance,
-            checks test pass counts. R2: Audits implementer commands_executed[] against
-            command allowlist. Phase 2 (dynamic, if needed): Tester starts app, runs
-            integration/E2E/API tests, stops app. Failure routes back to Step 5.
-          outputs:
-            - "docs/feature/<slug>/test-report.yaml"
-          routing: "DONE → Step 7 | NEEDS_REVISION → Step 5 (max 3 total cycles)"
-          dispatches: "1-2 (static + dynamic)"
-          risk_scaling:
-            green: "Static only (unit test verification)"
-            yellow: "Static + integration tests"
-            red: "Static + full dynamic (integration, E2E, API, live)"
-
-        - step: 7
-          name: "Code Review"
-          agent: "reviewer (2-3 parallel instances)"
-          description: >
-            MANDATORY for all risk levels. Orchestrator dispatches 2-3 Reviewers, each
-            assigned a perspective (security, architecture, correctness). Gate: ≥2 approve
-            + 0 blockers. Failure routes back to Step 5 with findings. Max 2 review rounds.
-            R2: Reviewers audit implementer commands_executed[] and fetch_webpage URL trails.
-            Orchestrator validates review verdict YAML is parseable before counting toward gate.
-          outputs:
-            - "docs/feature/<slug>/review-verdicts/<perspective>.yaml (per reviewer)"
-            - "docs/feature/<slug>/review-findings/<perspective>.md (per reviewer)"
-          routing: "Gate pass → Step 8 | Gate fail → Step 5 (max 2 rounds)"
-          dispatches: "2-3"
-          gate: "≥2 of N approve AND 0 blocker findings"
-          mandatory: true
-          max_rounds: 2
-
-        - step: 8
-          name: "Completion"
-          agent: "knowledge (single instance) + orchestrator"
-          description: >
-            Knowledge agent: reads pipeline-log.yaml, produces evidence-bundle.yaml
-            (dispatch log, timing, findings), knowledge-output.yaml (lessons learned),
-            instruction-recommendations.md (proposed improvements for human review).
-            R2: Orchestrator pre-commit validation: validates git diff only contains
-            files in Knowledge output_path_allowlist + feature directory. Then git add + commit.
-          outputs:
-            - "docs/feature/<slug>/evidence-bundle.yaml"
-            - "docs/feature/<slug>/knowledge-output.yaml"
-            - "docs/feature/<slug>/instruction-recommendations.md"
-          routing: "Terminal step"
-          dispatches: 1
-
-      dispatch_estimates:
-        green: "~6-8 dispatches"
-        yellow: "~12-15 dispatches"
-        red: "~20-25 dispatches"
-
-      feedback_loops:
-        - name: "Implementation-Testing"
-          path: "Step 5 → Step 6 → Step 5"
-          max_iterations: 3
-          trigger: "Tester returns NEEDS_REVISION"
-          counter_reset: "Cycle counter resets to 0 at start of each Code Review round"
-
-        - name: "Code Review Fix"
-          path: "Step 7 → Step 5 → Step 6 → Step 7"
-          max_iterations: 2
-          trigger: "Code Review gate fails (blockers present or <2 approvals)"
-          counter_reset: "Implementation-Testing counter resets to 0 at start of each Code Review round"
-
-        - name: "Design Review (🔴 only)"
-          path: "Step 3 → Reviewers → Step 3"
-          max_iterations: 1
-          trigger: "Embedded design review returns request-changes (🔴 features only)"
-          failure_action: "Pipeline status ERROR after 1 revision round"
-
-    # ==================================================================
-    # STATE MANAGEMENT
-    # ==================================================================
-    state_management:
-      approach: "YAML file-based evidence with completion-contract routing"
-      database: "none"
-      external_dependencies: "git only (project-specific tools as needed)"
-
-      naming_convention: >
-        Output files use agent-name-output.yaml pattern: architecture-output.yaml (not
-        design-output.yaml), plan-output.yaml, test-report.yaml. This avoids confusion
-        with the pipeline's own design/spec artifacts from the development process.
-
-      routing_mechanism:
-        description: >
-          Orchestrator reads the completion block from agent output YAML files. The
-          status field (DONE/NEEDS_REVISION/ERROR) is the sole routing signal. File
-          existence in the feature directory serves as secondary evidence.
-        example: |
-          # Orchestrator reads test-report.yaml:
-          completion:
-            status: "DONE"          # → proceed to Step 7
-            summary: "All tests pass: 12 unit, 3 integration, 1 E2E"
-            output_paths: ["test-report.yaml"]
-
-      evidence_model:
-        description: >
-          Evidence = file existence in docs/feature/<slug>/. The orchestrator verifies
-          step completion by checking that expected output files exist using list_dir.
-        evidence_checks:
-          - step: "Research"
-            check: "research/*.yaml files exist (≥2)"
-          - step: "Architecture"
-            check: "architecture-output.yaml exists"
-          - step: "Planning"
-            check: "plan-output.yaml exists"
-          - step: "Implementation"
-            check: "implementation-reports/task-{id}.yaml exists for each task"
-          - step: "Testing"
-            check: "test-report.yaml exists"
-          - step: "Code Review"
-            check: "review-verdicts/*.yaml files exist (≥2)"
-
-      audit_trail:
-        description: >
-          R2: Two-layer audit trail. Layer 1 (incremental): Orchestrator appends to
-          pipeline-log.yaml after each dispatch — survives pipeline crashes. Layer 2
-          (enriched): Knowledge agent produces evidence-bundle.yaml at completion,
-          reading pipeline-log.yaml and adding analysis (lessons, recommendations).
-        pipeline_log_schema: |
-          # pipeline-log.yaml — appended by orchestrator after each dispatch
-          run_id: "<ISO8601>"
-          feature_slug: "<slug>"
-          risk: "🟢" | "🟡" | "🔴"
-          approval_mode: "interactive" | "autonomous"
-          started_at: "<ISO8601>"
-          dispatches:
-            - step: <N>
-              agent: "<agent-name>"
-              instance: "<instance-id>"
-              started_at: "<ISO8601>"
-              completed_at: "<ISO8601>"
-              status: "DONE" | "NEEDS_REVISION" | "ERROR"
-              output_paths: ["..."]
-
-      what_this_eliminates:
-        - "sql-templates.md (936 lines) — entirely eliminated"
-        - "evaluation-schema.md (84 lines) — subsumed into Tester"
-        - "SQLITE_BUSY handling in global rules — eliminated"
-        - "Evidence gate queries (EG-1 through EG-10) — replaced by file existence"
-        - "sql_escape() sanitization rules — eliminated"
-        - "run_in_terminal for sqlite3 piping — eliminated"
-        - "verification-ledger.db — eliminated"
-
-    # ==================================================================
-    # SCHEMAS
-    # ==================================================================
-    schemas:
-      approach: >
-        Each agent defines its own output schema inline in its .agent.md file
-        (Output Schema section). The completion contract is defined once in
-        global-rules.md and referenced by all agents.
-
-      completion_contract:
-        description: "Universal completion block appended to every agent output"
-        schema: |
-          completion:
-            status: "DONE" | "NEEDS_REVISION" | "ERROR"
-            summary: "≤200 characters describing the outcome"
-            output_paths:
-              - "relative/path/to/output.yaml"
-        validation_rule: >
-          Any status value other than DONE, NEEDS_REVISION, or ERROR is treated as ERROR
-          by the orchestrator. This prevents undefined behavior from malformed YAML values.
-
-      agent_output_wrapper:
-        description: "Common wrapper for all agent outputs"
-        schema: |
-          agent_output:
-            agent: "<agent-name>"
-            started_at: "<ISO8601>"
-            completed_at: "<ISO8601>"
-            payload:
-              # Agent-specific content
-          completion:
-            status: "DONE"
-            summary: "..."
-            output_paths: [...]
-
-      task_schema:
-        description: "Planner task definition with DAG dependencies"
-        schema: |
-          tasks:
-            - id: "<task-id>"
-              description: "<what to implement>"
-              depends_on: []                    # list of task IDs
-              files:                            # file ownership declaration
-                - "path/to/file.ext"
-              risk: "🟢" | "🟡" | "🔴"
-
-      implementation_report:
-        description: "Per-task report from implementer"
-        schema: |
-          task_id: "<task-id>"
-          files_modified: ["path/file.ext"]
-          files_requested: []              # R2: if NEEDS_REVISION for more files
-          tests_written: ["path/test.ext"]
-          test_results:
-            passed: <N>
-            failed: <N>
-          tdd_compliance: true | false
-          commands_executed:               # R2: terminal command audit trail
-            - "dotnet test ..."
-            - "dotnet build ..."
-
-      test_report:
-        description: "Tester output with per-category results"
-        schema: |
-          test_categories:
-            unit_tests: { passed: N, failed: N }
-            integration_tests: { passed: N, failed: N, skipped: N }
-            e2e_tests: { passed: N, failed: N, skipped: N }
-          tdd_verification:
-            compliant_tasks: N
-            non_compliant_tasks: N
-          command_allowlist_audit:          # R2: audit implementer commands
-            violations: []
-            clean: true | false
-          verdict: "pass" | "fail"
-
-      review_verdict:
-        description: "Per-reviewer output with findings and verdict"
-        schema: |
-          perspective: "security" | "architecture" | "correctness"
-          findings:
-            - severity: "blocker" | "critical" | "major" | "minor"
-              description: "<finding description>"
-              file: "<affected file>"
-              recommendation: "<fix suggestion>"
-          verdict: "approve" | "request-changes"
-
-    # ==================================================================
-    # INDUSTRY TRACEABILITY
-    # ==================================================================
-    industry_traceability:
-      - decision: "D-2 (8 agents)"
-        source: "MetaGPT — 4 role model (Product Manager, Architect, Project Manager, Engineer)"
-        citation: "architecture.yaml F-7"
-      - decision: "D-4 (YAML state, no SQLite)"
-        source: "SWE-Agent (JSON trajectories), MetaGPT (file artifacts), AutoGen (messages)"
-        citation: "architecture.yaml F-16, patterns.yaml F-6"
-      - decision: "D-5 (8-step pipeline)"
-        source: "MetaGPT ~5 steps, Anthropic 'simplest solution possible'"
-        citation: "architecture.yaml F-7, F-13"
-      - decision: "D-6 (DAG execution)"
-        source: "GitHub Actions needs:, Airflow DAG, AutoGen GraphFlow, AgentForge"
-        citation: "architecture.yaml F-10, F-8, dependencies.yaml F-14, patterns.yaml F-19"
-      - decision: "D-8 (line budget)"
-        source: "GitHub '2 pages', CrewAI 5-8 lines/agent, AutoGen ~10 lines/agent"
-        citation: "architecture.yaml F-12, impact.yaml F-17, F-18"
-      - decision: "D-9 (minimal shared docs)"
-        source: "Anthropic 'simple, composable patterns', GitHub 'Instructions ≤2 pages'"
-        citation: "architecture.yaml F-13, patterns.yaml F-16"
-      - decision: "D-11 (completion-contract routing)"
-        source: "AutoGen (structured messages), LangGraph (node returns), MetaGPT (returns)"
-        citation: "architecture.yaml F-18, patterns.yaml F-2"
-      - decision: "D-12 (no cross-file §references)"
-        source: "Repository memory: '#1 Critical finding source across multiple pipeline runs'"
-        citation: "architecture.yaml F-15, dependencies.yaml F-8, impact.yaml F-11"
-      - decision: "D-13 (quick-fix step set)"
-        source: "Repository memory: 'Immutable minimum step set {0, 7, 9}'"
-        citation: "User memory: immutable minimum step set principle"
-      - decision: "D-14 (trust boundary model)"
-        source: "OWASP principle of least privilege, defense-in-depth"
-        citation: "SS-A-1 review finding"
-      - decision: "D-15 (incremental pipeline logging)"
-        source: "Append-only logging pattern, standard observability practice"
-        citation: "PV-C-2 review finding"
-
-    # ==================================================================
-    # EDGE CASES (R2 additions: EC-6, EC-7, EC-8)
-    # ==================================================================
-    edge_cases:
-      - id: "EC-1"
-        scenario: "All researchers fail"
-        handling: "If <2 researchers return DONE, orchestrator retries up to 2 times, then ERROR"
-      - id: "EC-2"
-        scenario: "Implementation task exceeds 3 fix cycles"
-        handling: "Orchestrator marks task as ERROR, pipeline fails"
-      - id: "EC-3"
-        scenario: "Code Review exceeds 2 rounds"
-        handling: "Orchestrator marks pipeline as ERROR with review summary"
-      - id: "EC-4"
-        scenario: "DAG has circular dependencies"
-        handling: "Planner self-validates DAG (required in planner workflow). Orchestrator detects no ready tasks → ERROR"
-      - id: "EC-5"
-        scenario: "File ownership conflict (parallel tasks declare same file)"
-        handling: "Orchestrator defers conflicting task to next dispatch group"
-      - id: "EC-6"
-        scenario: "Agent returns unknown/malformed status value"
-        handling: >
-          Orchestrator treats any status other than DONE, NEEDS_REVISION, or ERROR as
-          ERROR. Logged in pipeline-log.yaml with original malformed value for debugging.
-      - id: "EC-7"
-        scenario: "Embedded design review (🔴) fails after 1 revision round"
-        handling: >
-          Pipeline terminates with status ERROR. Summary: 'Design review failed after
-          1 revision round'. No escalation to Code Review — this is an architecture-level
-          failure caught early.
-      - id: "EC-8"
-        scenario: "Knowledge agent writes files outside allowlist"
-        handling: >
-          Orchestrator pre-commit validation detects unexpected files in git diff.
-          Commit rejected. Pipeline status ERROR with summary listing unexpected files.
+    ac_mapping:
+      AC-1: "orchestrator Step 1 skill scan"
+      AC-2: "orchestrator interactive E2E prompt"
+      AC-3: "orchestrator autonomous warning"
+      AC-4: "tool_name_corrections section"
+      AC-5: "orchestrator tools: agent + agents: 7 workers"
+      AC-6: "orchestrator body runSubagent instruction"
+      AC-7: "All workers user-invocable: false"
+      AC-8: "architect clarification step"
+      AC-9: "DR-1: No structured question tool exists; orchestrator mediates"
+      AC-10: "planner plan_summary output"
+      AC-11: "DR-2: No structured question tool exists; orchestrator mediates"
+      AC-12: "implementer git removal"
+      AC-13: "global-rules.md git rule"
+      AC-14: "orchestrator selective pathspecs (D-5)"
+      AC-15: "orchestrator interactive commit choice"
+      AC-16: "orchestrator autonomous stage-only"
+      AC-17: "orchestrator doc update choice"
+      AC-18: "knowledge doc-update constraints"
+      AC-19: "architect web research step"
+      AC-20: "architect fetch tool name"
+      AC-21: "tester exploratory QA phase"
+      AC-22: "tester exploratory findings format"
+      AC-23: "tester <=150 lines (estimated 143)"
+      AC-24: "implementer REFACTOR step"
+      AC-25: "implementer quality principles"
+      AC-26: "REFACTOR re-run + revert on failure"
+      AC-27: "All agents <=150 (see line_budget section)"
 
 completion:
   status: "DONE"
-  revision_round: 2
-  summary: >
-    Design R2 complete: 15 decisions (12 preserved + 3 new), 8 agents, 8 steps,
-    ~1,100 lines target, zero SQLite. R2 addresses all 13 Major findings: trust
-    boundary model, command allowlist, incremental logging, pre-commit validation,
-    quick-fix step set, failure routing, conditional inputs, YAML parse gates.
+  summary: "Design R2: addressed 1 Critical + 5 Major + 5 Minor from 3 reviewers. Line counts corrected, 11 decisions, 2 deviations."
   severity: null
   findings_count: 0
   risk_level: "🟡"
   output_paths:
     - "design-output.yaml"
     - "design.md"
+
+revision_history:
+  - round: 2
+    date: "2026-03-09"
+    reviewers_addressed:
+      - perspective: "architecture-guardian"
+        verdict: "needs_revision"
+        findings_addressed:
+          - id: "C-1"
+            severity: "Critical"
+            title: "Line counts materially wrong for 5/9 files"
+            resolution: "All line counts updated to PowerShell-verified actuals. Architect identified as tightest (130→145, 5 headroom). Risk reclassified to 🔴."
+          - id: "C-2"
+            severity: "Major"
+            title: "Selective staging excludes pipeline artifacts"
+            resolution: "D-5 updated to two-source staging: (1) implementation files from reports, (2) pipeline artifacts via git add docs/feature/<slug>/. Pre-commit renamed to pre-stage validation."
+          - id: "A-1"
+            severity: "Major"
+            title: "Step 8 cognitive density — 6+ branching sub-workflows"
+            resolution: "New D-10: Step 8 decomposed into sub-steps 8a-8e with clear sequencing and isolated conditional branches."
+          - id: "C-3"
+            severity: "Minor"
+            title: "Question-answer data flow unspecified"
+            resolution: "D-3 rationale updated with full assumptions-first flow including re-dispatch on contradiction path."
+          - id: "A-2"
+            severity: "Minor"
+            title: "Architect is true tightest agent"
+            resolution: "D-6 updated to note architect tightest at 5 headroom. Extraction fallback documented for architect, not tester."
+      - perspective: "pragmatic-verifier"
+        verdict: "needs_revision"
+        findings_addressed:
+          - id: "C-1"
+            severity: "Major"
+            title: "Architect clarification flow underspecified"
+            resolution: "D-3 updated with assumptions-first flow (Option B): architect completes fully with assumptions, re-dispatch only on contradiction."
+          - id: "C-2"
+            severity: "Major"
+            title: "Reviewer/tester audit patterns not updated for git add removal"
+            resolution: "Reviewer file_inventory updated: remove git add from audit patterns, flag as Major. Tester file_inventory updated: static audit removes git add from implementer-acceptable."
+          - id: "S-1"
+            severity: "Minor"
+            title: "Post-implementation tool name verification"
+            resolution: "Testing strategy updated: verify via VS Code Chat Customizations diagnostics (Configure Chat > Diagnostics)."
+          - id: "C-3"
+            severity: "Minor"
+            title: "Plan refinement iteration cap unspecified"
+            resolution: "Global-rules file_inventory updated: add Plan Refinement row to Feedback Loop Limits (max 1 iteration)."
+          - id: "C-4"
+            severity: "Minor"
+            title: "live-qa vs Exploratory QA relationship unclear"
+            resolution: "Tester file_inventory updated: live-qa category subsumed by new Exploratory QA phase. Step 3 live-qa removed."
+      - perspective: "security-sentinel"
+        verdict: "approve"
+        findings_addressed:
+          - id: "S-1"
+            severity: "Major"
+            title: "Worker agents missing disable-model-invocation"
+            resolution: "New D-11: REJECTED. Web research (VS Code docs, 2026-03-09) confirms disable-model-invocation:true prevents subagent invocation — would break orchestrator dispatch. Trust model enforced by user-invocable:false + agents:[] + tools: arrays."

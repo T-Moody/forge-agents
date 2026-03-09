@@ -1,63 +1,62 @@
 task:
   id: "task-04"
-  title: "Create architect.agent.md"
+  title: "Update architect.agent.md — Clarification + Web Research Steps"
   description: >
-    Create v2/.github/agents/architect.agent.md (~140 lines). The Architect merges
-    the current Spec and Designer agents into one (D-2). It produces combined
-    requirements + technical design in a single output (architecture-output.yaml,
-    NOT design-output.yaml per AG-C-1 naming convention).
-    Uses the standard 6-section body format. Workflow (~8 steps): read research
-    outputs + initial-request.md, identify requirements with IDs, define acceptance
-    criteria per requirement, evaluate architectural directions, select direction with
-    justification, make key technical decisions, produce architecture-output.yaml.
-    YAML frontmatter: name, description, tools (read_file, list_dir, grep_search,
-    semantic_search, file_search, fetch_webpage, create_file), agents: [].
-    Must handle missing research gracefully for 🟢 features (Step 2 skipped) —
-    use initial-request.md + codebase analysis as sole inputs (per PV-C-1 resolution).
-    Output includes functional requirements, acceptance criteria, architectural
-    decisions, and a completion contract.
+    Modify v2/.github/agents/architect.agent.md (currently 130 lines → estimated 145).
+    THIS IS THE TIGHTEST AGENT with only 5-line headroom (design D-6 note).
+    Four change areas:
+    (1) FR-2: Fix all 7 frontmatter tool names to flat camelCase.
+    (2) FR-2.4: Add user-invocable: false to YAML frontmatter.
+    (3) FR-3/D-3: Add a clarification step (Step 1.5) between 'Read Inputs' and
+    'Analyze Codebase'. Assumptions-first flow: architect completes fully, documenting
+    assumptions in assumptions_made[] output field. Includes clarifications_needed[]
+    for remaining ambiguities. In autonomous mode, skip and document assumptions only.
+    (4) FR-8: Add a 'Web Research' step (Step 2.5) between 'Analyze Codebase' and
+    'Identify Requirements', gated by web_research_enabled=true. Capped at 3-5
+    targeted lookups. Fetch tool name corrected from web/fetch to fetch.
+    CRITICAL: If combined changes exceed 150 lines during implementation, extract
+    FR-8 web research guidance to a reference document.
   agent: "implementer"
   size: "Standard"
-  risk: "🟢"
+  risk: "🟡"
   depends_on: ["task-01"]
   acceptance_criteria:
-    - id: "AC-2"
-      text: "File does not exceed 150 lines (budget: 140)"
-      test_method: "test"
-    - id: "AC-5"
-      text: "YAML frontmatter contains name, description, and tools fields"
+    - id: "AC-4-arch"
+      text: "All tool names in architect YAML frontmatter use flat camelCase. Zero namespace/tool format instances"
       test_method: "inspection"
-    - id: "AC-7"
-      text: "YAML frontmatter has agents: [] (no subagent access)"
+    - id: "AC-7-arch"
+      text: "Architect has user-invocable: false in YAML frontmatter"
       test_method: "inspection"
-    - id: "AC-22"
-      text: "Output Schema includes completion contract (status/summary/output_paths)"
+    - id: "AC-8"
+      text: "Architect workflow contains a clarification step between Read Inputs and Analyze Codebase gated by approval_mode=interactive"
       test_method: "inspection"
-    - id: "FR-5.1"
-      text: "Workflow produces: functional requirements with IDs, acceptance criteria, architectural direction, and key decisions"
+    - id: "AC-19"
+      text: "Architect workflow contains explicit Web Research step gated by web_research_enabled=true, positioned before Identify Requirements"
       test_method: "inspection"
-    - id: "FR-5.2a"
-      text: "Inputs section lists research outputs and initial-request.md as inputs"
+    - id: "AC-20"
+      text: "Architect fetch tool name is 'fetch' (not 'web/fetch') in YAML frontmatter"
       test_method: "inspection"
-    - id: "PV-C-1"
-      text: "Workflow handles missing research for 🟢 features (conditional input path)"
+    - id: "AC-27-arch"
+      text: "Architect agent file remains under 150 lines after all changes (estimated 145, 5-line headroom)"
       test_method: "inspection"
-    - id: "AG-C-1"
-      text: "Output file is named architecture-output.yaml (not design-output.yaml)"
-      test_method: "inspection"
-  workflow_lane: "unit-only"
+  workflow_lane: "unit-integration"
   e2e_required: false
   e2e_contract_path: null
   relevant_context:
     design_sections:
-      - "design-output.yaml#payload.component_design[agent='architect']"
       - "design-output.yaml#payload.decisions[id='D-2']"
       - "design-output.yaml#payload.decisions[id='D-3']"
-      - "design-output.yaml#payload.pipeline_design.steps[step=3]"
+      - "design-output.yaml#payload.decisions[id='D-6']"
+      - "design-output.yaml#payload.tool_name_corrections.architect"
+      - "design-output.yaml#payload.file_inventory[path='v2/.github/agents/architect.agent.md']"
+      - "design-output.yaml#payload.line_budget.agents[name='architect']"
     spec_requirements:
-      - "spec-output.yaml#payload.functional_requirements[id='FR-5']"
-      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
-      - "spec-output.yaml#payload.functional_requirements[id='FR-14']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-3']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-8']"
+    files_to_modify:
+      - path: "v2/.github/agents/architect.agent.md"
+        risk: "🟡"
     files_to_modify:
       - path: "v2/.github/agents/architect.agent.md"
         risk: "🟢"

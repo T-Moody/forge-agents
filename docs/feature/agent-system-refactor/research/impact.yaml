@@ -2,1129 +2,601 @@ agent_output:
   agent: "researcher"
   instance: "researcher-impact"
   step: "step-1"
-  started_at: "2026-03-08T12:05:00Z"
-  completed_at: "2026-03-08T14:30:00Z"
-  revision_round: 2
+  started_at: "2026-03-09T18:05:00Z"
+  completed_at: "2026-03-09T19:10:00Z"
   schema_version: "1.0"
   payload:
     focus: "impact"
     findings:
+      # ============================================================
+      # F-1: E2E Contract/Guidance for Skill Setup (Improvement #1)
+      # ============================================================
       - id: "F-1"
-        title: "Total system size: 6,416 lines across 19 files (NewAgents)"
-        category: "complexity"
+        title: "E2E skill setup guidance — high-value, moderate-risk change affecting orchestrator and tester"
+        category: "risk"
         detail: |
-          The current agent system in NewAgents/.github/agents/ totals 6,416 lines across 19 files.
-          Breakdown by file:
-            Agent definitions (9 files, 2,534 lines):
-              - orchestrator.agent.md: 358 lines (line budget 550, currently at 358)
-              - verifier.agent.md: 386 lines
-              - implementer.agent.md: 332 lines
-              - planner.agent.md: 309 lines
-              - spec.agent.md: 259 lines
-              - knowledge-agent.agent.md: 250 lines
-              - adversarial-reviewer.agent.md: 249 lines
-              - designer.agent.md: 213 lines
-              - researcher.agent.md: 188 lines
-            Reference documents (10 files, 3,882 lines):
-              - schemas.md: 1,422 lines (LARGEST single file — 22% of total system)
-              - sql-templates.md: 936 lines (15% of total)
-              - e2e-integration.md: 671 lines (exceeded its 550 target at 697 lines in prior run)
-              - dispatch-patterns.md: 236 lines
-              - global-operating-rules.md: 143 lines
-              - severity-taxonomy.md: 128 lines
-              - review-perspectives.md: 118 lines
-              - tool-access-matrix.md: 105 lines
-              - evaluation-schema.md: 84 lines
-              - context7-integration.md: 29 lines
-          For context, the prior "Forge" system was 5,381 lines across 28 files (more files but fewer total lines).
-          The system has GROWN through each pipeline improvement run rather than shrinking.
-        evidence:
-          - "NewAgents/.github/agents/ — all 19 files measured via Get-Content | Measure-Object"
-          - "Forge/.github/agents/ — 28 files, 5,381 total lines for comparison"
-        relevance: "Establishes baseline complexity. The reference docs (schemas.md, sql-templates.md) are larger than most agent files, indicating the support infrastructure may be over-engineered relative to the core agent instructions."
+          **Current state:** The v2 tester agent (tester.agent.md) references Playwright UI
+          skills and live-qa in its dynamic testing workflow (lines 58-65), but there is ZERO
+          guidance on how E2E skills get set up. The orchestrator has no step for E2E
+          contract detection or skill bootstrapping. If skill files don't exist, the tester
+          simply skips those categories — silently losing coverage.
 
+          **Impact of adding E2E contract/guidance:**
+          - Affects: orchestrator.agent.md (Step 1 or new pre-Step-6 check), tester.agent.md
+            (skill discovery), possibly a new reference document (e2e-setup.md or similar)
+          - The user wants autodetection of existing skills OR interactive setup prompt.
+            This requires the orchestrator to scan for skill files (e.g., .e2e/skills/,
+            .github/skills/) and present a multiple-choice question in interactive mode.
+          - For UI apps: default to Playwright CLI skill. For APIs: suggest auth-based
+            testing with Azure Key Vault integration for secrets.
+
+          **Risk assessment:**
+          - LOW risk if implemented as an optional interactive prompt at Step 1 with graceful
+            skip when skills not found.
+          - MEDIUM risk if autodetection logic is too complex or makes wrong assumptions
+            about the project type (e.g., misidentifying a CLI tool as a web app).
+          - The Playwright docs (https://playwright.dev/docs/intro) confirm that setup
+            requires `npm init playwright@latest` plus browser binary downloads. An agent
+            cannot silently do this — user approval is essential.
+
+          **Value:** HIGH — this is the #1 user pain point. Without it, E2E testing is
+          dead-letter code in the tester agent.
+
+          **Dependencies:** None — can be implemented independently. However, it enhances
+          improvement #9 (exploratory QA) by ensuring skill infrastructure exists.
+        evidence:
+          - "v2/.github/agents/tester.agent.md lines 58-65 — skill categories listed but no setup mechanism"
+          - "v2/.github/agents/orchestrator.agent.md lines 35-43 — Step 1 Setup has no E2E detection"
+          - "https://playwright.dev/docs/intro — Playwright requires explicit installation: npm init playwright@latest plus browser binaries"
+          - "docs/feature/agent-system-refactor/initial-request.md lines 380-383 — user requirement: autodetect or ask"
+        relevance: "Downstream agents (tester, implementer for E2E tests) cannot function without skill infrastructure. This is a prerequisite for improvement #9."
+
+      # ============================================================
+      # F-2: Correct Subagent Tool Usage (Improvement #2)
+      # ============================================================
       - id: "F-2"
-        title: "SQLite permeates 7 of 9 agents and 7 of 10 reference docs"
-        category: "dependency-coupling"
+        title: "Subagent tool naming fix — CRITICAL impact, blocks entire dispatch mechanism"
+        category: "risk"
         detail: |
-          SQLite (verification-ledger.db) is referenced by the following agents:
-            WRITERS: orchestrator (DDL + telemetry INSERT), implementer (baseline + self-check INSERT),
-            verifier (cascade INSERT), adversarial-reviewer (3x category INSERT + evaluation INSERT),
-            knowledge-agent (SELECT all tables + instruction_updates INSERT)
-            READERS: orchestrator (evidence gate SELECT queries)
-            NOT involved: researcher, spec, designer, planner (4 of 9 agents are SQLite-free)
-          Reference docs with SQLite content:
-            - sql-templates.md: 936 lines (ENTIRELY about SQLite)
-            - schemas.md: SQLite DDL section
-            - global-operating-rules.md: §3 SQLITE_BUSY handling
-            - evaluation-schema.md: INSERT template references
-            - dispatch-patterns.md: evidence gate references
-            - e2e-integration.md: WAL mode reference
-            - tool-access-matrix.md: run_in_terminal scope restricted to SQLite
-          Blast radius of removing SQLite: 5 agent files + 7 reference docs = 12 of 19 files modified.
-          The sql-templates.md file (936 lines) would be entirely eliminated.
-          The evaluation-schema.md file (84 lines) would need complete rewrite.
-          Evidence gates (EG-1 through EG-10) in orchestrator would need replacement mechanism.
-        evidence:
-          - "grep_search for 'sqlite|verification-ledger|sql-templates' across NewAgents/.github/agents/ — 50+ matches"
-          - "NewAgents/.github/agents/sql-templates.md — 936 lines entirely about SQLite operations"
-          - "NewAgents/.github/agents/global-operating-rules.md lines 31-42 — SQLITE_BUSY handling"
-          - "NewAgents/.github/agents/orchestrator.agent.md — evidence gate SQL queries in Steps 3b, 6, 7"
-        relevance: "SQLite is the most coupled dependency in the system. Removing it is a high-blast-radius change (12/19 files) but would eliminate ~1,100 lines of support infrastructure (sql-templates.md + evaluation-schema.md + SQLITE_BUSY rules). The user explicitly asked to consider removing it."
+          **Current state:** The architecture researcher (F-1 in architecture.yaml) already
+          found that ALL tool names in v2 are wrong — slash-format names like
+          `read/readFile`, `execute/runInTerminal` do not exist in VS Code. Additionally,
+          the orchestrator references agents by name in its `agents:` frontmatter but the
+          instruction text never mentions the `runSubagent` tool by name.
 
+          **Impact of fixing subagent tool usage:**
+          - Affects ALL 8 agent files plus global-rules.md (tool name corrections)
+          - The orchestrator must explicitly use the `runSubagent` tool to dispatch agents
+            and reference them by their exact `name:` from YAML frontmatter
+          - Per GitHub Copilot custom agents docs: agents are defined in
+            `.github/agents/CUSTOM-AGENT-NAME.md` and the `agents:` frontmatter array must
+            list agent names that match existing agent file names
+
+          **Risk assessment:**
+          - HIGH impact but LOW implementation risk — this is a straightforward find-and-replace
+            across all files, guided by the definitive tool catalog from VS Code docs.
+          - NOT fixing this is the highest-risk option: with wrong tool names, VS Code
+            silently ignores ALL restrictions, meaning every agent gets all tools (confirmed
+            by VS Code docs: "If a given tool is not available, it is ignored").
+          - The 3-tier trust model (T1/T2/T3) is completely unenforced until this is fixed.
+
+          **Value:** CRITICAL — this is not optional. Without this fix, the security model
+          is paper-only. The architecture research already identified this as v2's most
+          critical gap.
+
+          **Dependencies:** Must be done FIRST — all other improvements build on correct
+          tool naming.
+        evidence:
+          - "v2/.github/agents/orchestrator.agent.md lines 4-14 — all tool names invalid (slash format)"
+          - "v2/.github/agents/researcher.agent.md lines 4-10 — web/fetch does not exist"
+          - "docs/feature/agent-system-refactor/research/architecture.yaml F-1, F-2 — definitive tool name catalog"
+          - "https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-custom-agents — agent profiles use agents: frontmatter to list available subagents"
+        relevance: "This is the foundation fix. All trust-tier enforcement, tool restrictions, and security boundaries depend on correct tool names. Must be Wave 1."
+
+      # ============================================================
+      # F-3: Architect Clarifying Questions (Improvement #3)
+      # ============================================================
       - id: "F-3"
-        title: "Three system generations exist in the repository simultaneously"
-        category: "technical-debt"
+        title: "Architect clarifying questions — low-risk, high-value UX improvement"
+        category: "pattern"
         detail: |
-          The repository contains three separate agent system generations:
-            1. .github/agents/ — 19 files, 6,318 lines (deployed/active copy)
-            2. NewAgents/.github/agents/ — 19 files, 6,416 lines (canonical/development copy)
-            3. Forge/.github/agents/ — 28 files, 5,381 lines (legacy predecessor)
-          Plus the original Anvil agent (Anvil/anvil.agent.md) that started it all.
-          Total: 67 agent/reference files across 4 locations, ~18,115+ lines of agent instructions.
-          The .github/agents/ and NewAgents/.github/agents/ copies are nearly identical but have
-          diverged slightly (e.g., e2e-integration.md is 573 vs 671 lines). This creates confusion
-          about which is authoritative and risks stale copies being used.
-        evidence:
-          - ".github/agents/ — 19 files, 6,318 total lines"
-          - "NewAgents/.github/agents/ — 19 files, 6,416 total lines"
-          - "Forge/.github/agents/ — 28 files, 5,381 total lines"
-          - "Anvil/anvil.agent.md — original single-agent system"
-        relevance: "The refactor must resolve which copy is authoritative and clean up redundant generations. Having 3 copies creates maintenance burden and confusion."
+          **Current state:** The v2 architect agent (architect.agent.md) has no mechanism
+          for asking clarifying questions. It receives inputs and produces output in a single
+          pass. The old system had a spec agent with ask_questions for pushback in
+          interactive mode — this capability was lost in the v2 merge of spec+design into
+          architect.
 
+          **Impact of adding clarifying questions:**
+          - Affects architect.agent.md only — add a workflow step between "Read Inputs" and
+            "Analyze Codebase" where the architect surfaces ambiguities.
+          - Requires adding an interactive gate: "If approval_mode is interactive AND
+            ambiguities detected, present multiple-choice questions to user."
+          - The architect already has the `web/fetch` tool listed (though the name is wrong)
+            but does NOT have any user-interaction tool.
+
+          **Risk assessment:**
+          - LOW risk — this is an additive change to one file. No other agents are affected.
+          - Minor risk: if the architect asks too many questions, it slows the pipeline.
+            Mitigation: cap at 3-5 clarifying questions per dispatch.
+          - The architect must gracefully skip questions in autonomous mode.
+
+          **Value:** HIGH — ambiguous requirements are the #1 cause of wasted implementation
+          cycles. Catching ambiguity at design time (Step 3) prevents expensive rework at
+          Steps 5-7.
+
+          **Dependencies:** Depends on F-2 (correct tool names) to ensure proper tool access.
+        evidence:
+          - "v2/.github/agents/architect.agent.md — no ask_questions or user-interaction mechanism"
+          - "docs/feature/agent-system-refactor/initial-request.md line 385 — user: 'Our architect should do this now'"
+          - "v2/.github/agents/architect.agent.md lines 33-42 — workflow steps have no clarification step"
+        relevance: "Reduces rework in downstream steps. Combined with improvement #4 (planner questions), creates a coherent interactive feedback loop."
+
+      # ============================================================
+      # F-4: Planner Accept/Refine Questions (Improvement #4)
+      # ============================================================
       - id: "F-4"
-        title: "Pipeline ran 5 successful improvement cycles — all modifying the SAME 15 files"
+        title: "Planner accept/refine questions — low-risk, synergistic with architect questions"
         category: "pattern"
         detail: |
-          Evidence from docs/feature/ shows 5 completed pipeline runs that modified the agent system:
-            1. next-gen-multi-agent-system (initial creation from Forge+Anvil merge)
-            2. agent-system-overhaul: 18 tasks, 52 checks, 0 failures, 20 files, ~135 min
-            3. behavioral-correctness-enforcement: 8 tasks, 29 checks, 0 failures, 9 files, Medium confidence
-            4. tdd-e2e-enforcement: 16 tasks, 142 checks, 2 cosmetic failures, 15 files, ~21 hours
-            5. agent-pipeline-improvements: 11 tasks, 92 checks, 0 failures, 15 files, ~10.5 hours
-          Key observations:
-            - Zero functional failures across all runs (2 cosmetic only)
-            - Every run modified largely the same set of 14-15 agent instruction files
-            - Each run ADDED complexity (new reference docs, new schemas, new SQL templates)
-            - No run simplified or reduced the system — only additive changes
-            - Pipeline duration trend: 135 min → 21 hours → 10.5 hours (substantial time investment)
-            - Total dispatch counts: 22, 51, 56 per run
-            - The system works reliably but is increasingly complex with each iteration
-        evidence:
-          - "docs/feature/agent-system-overhaul/evidence-bundle.md — 18 tasks, 52 checks, 0 failures"
-          - "docs/feature/behavioral-correctness-enforcement/evidence-bundle.md — 8 tasks, 29 checks, 0 failures"
-          - "docs/feature/tdd-e2e-enforcement/evidence-bundle.md — 16 tasks, 142 checks, 2 cosmetic failures"
-          - "docs/feature/agent-pipeline-improvements/evidence-bundle.md — 11 tasks, 92 checks, 0 failures"
-        relevance: "The pipeline works but reveals a self-reinforcing complexity spiral: each improvement run adds more rules, more checks, more infrastructure — none simplify. The user who built this system is explicitly asking to break this cycle."
+          **Current state:** The orchestrator mentions "Interactive mode: present plan to
+          user for approval before proceeding" (orchestrator.agent.md line 64), but the
+          planner agent itself has no mechanism to accept user refinement. The orchestrator
+          presents the plan and waits for approval — but there is no structured way for the
+          user to say "refine task 3" or "split this task."
 
+          **Impact of adding accept/refine questions:**
+          - Affects planner.agent.md — add a final workflow step that presents the plan
+            summary and asks "Accept plan? / Refine specific tasks? / Reject and re-plan?"
+          - The orchestrator already has the interactive gate; the planner just needs to
+            produce a user-facing summary with actionable options.
+
+          **Risk assessment:**
+          - LOW risk — additive change to planner.agent.md only. No impact on other agents.
+          - Minor risk: re-planning loops could delay the pipeline. Mitigation: max 1
+            refinement round (consistent with global-rules.md feedback limits).
+
+          **Value:** MEDIUM-HIGH — gives the user control over task granularity before
+          expensive implementation begins. Prevents the common failure mode of "plan was
+          wrong, all implementation wasted."
+
+          **Dependencies:** Depends on F-2 (correct tool names). Synergistic with F-3
+          (architect questions) — together they create a coherent interactive review loop
+          at Steps 3-4.
+        evidence:
+          - "v2/.github/agents/planner.agent.md — no user interaction mechanism, no refinement step"
+          - "v2/.github/agents/orchestrator.agent.md line 64 — 'Interactive mode: present plan to user'"
+          - "docs/feature/agent-system-refactor/initial-request.md line 386 — user: 'planner should ask multiple choice'"
+        relevance: "Prevents wasted implementation cycles. The user explicitly requested this as a missing interactive feature."
+
+      # ============================================================
+      # F-5: No Git Commands from Subagents (Improvement #5)
+      # ============================================================
       - id: "F-5"
-        title: "Adversarial review found 2-3 Critical issues per run — proving its value"
+        title: "Git command restriction for subagents — HIGH impact safety fix"
         category: "risk"
         detail: |
-          Code review findings across runs:
-            agent-system-overhaul R1: 1 Critical (pragmatic-verifier), 10 Major
-            behavioral-correctness-enforcement R1: 0 Critical, 3 Major (architecture-guardian)
-            tdd-e2e-enforcement R1: 3 Critical (phantom check_names, overbroad allowlist, HTTP exfiltration), 9 Major
-            agent-pipeline-improvements R1: 2 Critical (broken cross-reference, fast-track bypass), 6 Major
-          All Critical findings were resolved before merge. The adversarial review step (Step 7)
-          consistently catches real security and correctness issues that verification misses.
-          This validates the review pattern but not necessarily the 3-perspective parallel model
-          or the full SQLite evidence tracking overhead.
-        evidence:
-          - "docs/feature/tdd-e2e-enforcement/evidence-bundle.md — 3 Critical in code review R1"
-          - "docs/feature/agent-pipeline-improvements/evidence-bundle.md — 2 Critical in code review R1"
-          - "docs/feature/agent-system-overhaul/evidence-bundle.md — 1 Critical + 10 Major"
-        relevance: "Adversarial code review is the highest-value pipeline step. Any refactor must preserve it. However, the mechanism (3 parallel reviewers × 3 categories × SQL INSERTs × evidence gates) may be over-instrumented for the value delivered."
+          **Current state:** The implementer agent explicitly has `git add -A` in its
+          workflow step 6 (implementer.agent.md line 44) and in its command allowlist
+          (line 83: git diff, git add, git status). The orchestrator also runs
+          `git add -A && git commit` at Step 8 (line 93).
 
+          **The problem:** When multiple implementers run in parallel (the DAG dispatch
+          algorithm allows up to 4 concurrent implementers per orchestrator.agent.md line 72),
+          each running `git add -A` will stage ALL files in the working tree — including
+          files modified by other parallel implementers. This creates several risks:
+          1. Race condition: implementer A stages implementer B's half-written files
+          2. Ownership violation: the tester verifies file ownership against task.files[],
+             but git add -A bypasses this by staging everything
+          3. Merge conflicts: if two implementers both git-add the same file area
+
+          Per git-scm.com docs: `git add -A` "Update[s] the index not only where the
+          working tree has a file matching <pathspec> but also where the index already has
+          an entry. This adds, modifies, and removes index entries to match the working
+          tree." This confirms it stages ALL changes.
+
+          **Impact of restricting git commands:**
+          - Affects implementer.agent.md (remove git add -A from workflow and allowlist)
+          - Affects orchestrator.agent.md (consolidate all git operations to Step 8 only)
+          - The implementer should NEVER run git commands — only the orchestrator owns git.
+
+          **Risk assessment:**
+          - MEDIUM implementation risk — removing git add from the implementer changes its
+            workflow. The implementer currently relies on staging to "checkpoint" work.
+          - HIGH safety value — parallel implementers with git add -A is a race condition
+            waiting to happen. The current DAG algorithm's file-overlap check prevents
+            parallel edits to the SAME file, but git add -A bypasses this by staging ALL files.
+
+          **Value:** HIGH — prevents data corruption in parallel implementation waves.
+
+          **Dependencies:** Interacts with F-6 (no autocommit). Together they consolidate
+          all git operations to the orchestrator.
+        evidence:
+          - "v2/.github/agents/implementer.agent.md line 44 — 'Run git add -A to stage all modified files'"
+          - "v2/.github/agents/implementer.agent.md line 83 — 'git diff, git add, git status' in command allowlist"
+          - "v2/.github/agents/orchestrator.agent.md line 72 — 'Max 4 concurrent implementers'"
+          - "v2/.github/agents/orchestrator.agent.md line 93 — 'git add -A && git commit'"
+          - "https://git-scm.com/docs/git-add — git add -A updates entire working tree index"
+        relevance: "Prevents race conditions in parallel dispatch. The orchestrator's DAG algorithm ensures file-level isolation, but git add -A breaks this isolation at the index level."
+
+      # ============================================================
+      # F-6: No Autocommit at Pipeline End (Improvement #6)
+      # ============================================================
       - id: "F-6"
-        title: "schemas.md at 1,422 lines is a maintenance bottleneck and context-pressure source"
-        category: "complexity"
+        title: "Remove autocommit — low-risk, high-trust improvement"
+        category: "risk"
         detail: |
-          schemas.md defines 14 schema types with full field tables, constraints, and examples.
-          At 1,422 lines it is the single largest file in the system (22% of total).
-          Every agent that produces output must conform to schemas defined here.
-          Changes to schemas.md ripple to all agents that produce or consume that schema.
-          The Producer/Consumer Dependency Table shows deep coupling:
-            - spec-output consumed by 4 agents (Designer, Planner, Implementer, Verifier)
-            - design-output consumed by 3 agents (Planner, Implementer, Adversarial Reviewer)
-            - plan-output consumed by 3 agents (Orchestrator, Implementer, Verifier)
-          The GitHub blog article confirms typed schemas are essential for multi-agent reliability.
-          However, 1,422 lines of schema definitions for a 9-agent system suggests the schemas
-          may be more complex than necessary. Each agent must load/reference this massive file.
-        evidence:
-          - "NewAgents/.github/agents/schemas.md — 1,422 lines"
-          - "schemas.md Producer/Consumer Dependency Table — 14 schemas, complex dependency graph"
-          - "GitHub blog: 'Typed schemas are table stakes in multi-agent workflows'"
-        relevance: "The schema system is foundational but oversized. A refactor could simplify by co-locating schemas with their producing agents or reducing the number of distinct schema types."
+          **Current state:** The orchestrator runs `git add -A && git commit -m "feat(<slug>):
+          <summary>"` at Step 8 (Completion). This commits everything automatically with
+          no developer review.
 
+          **Impact of removing autocommit:**
+          - Affects orchestrator.agent.md Step 8 only — remove the git commit command.
+          - Replace with: present a summary of changed files to the user, optionally run
+            `git diff --stat` to show what would be committed, then let the dev decide.
+          - In interactive mode: ask "Commit now? / Review first? / Abort?"
+          - In autonomous mode: still stage files but skip commit, leaving changes staged
+            for the developer to review.
+
+          **Risk assessment:**
+          - VERY LOW risk — this is a removal of behavior, not addition. Removing an
+            autocommit cannot break anything.
+          - Modern AI coding systems (GitHub Copilot coding agent, SWE-agent, OpenHands)
+            either create PRs for review or leave changes uncommitted. Auto-committing
+            to a local branch without review is an anti-pattern because:
+            1. Failed pipeline runs commit broken code
+            2. The developer loses the opportunity to squash/amend
+            3. Knowledge agent may have committed files the developer doesn't want
+
+          **Value:** HIGH — gives developers control over their git history. The user
+          explicitly requested this: "Devs might want to look at the changed code first."
+
+          **Dependencies:** Synergistic with F-5 (no git from subagents). Together they
+          create a clean separation: subagents never touch git, orchestrator only stages
+          (not commits), developer owns the final commit decision.
+        evidence:
+          - "v2/.github/agents/orchestrator.agent.md line 93 — 'git add -A && git commit'"
+          - "docs/feature/agent-system-refactor/initial-request.md line 388 — user: 'Devs might want to look at the changed code first'"
+          - "https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-custom-agents — GitHub Copilot coding agent creates PRs for review, not direct commits"
+        relevance: "Aligns with industry practice. GitHub's own coding agent creates pull requests rather than auto-committing. Direct commits bypass all human review."
+
+      # ============================================================
+      # F-7: Optional Documentation Update Step (Improvement #7)
+      # ============================================================
       - id: "F-7"
-        title: "Blast radius: Adding a Test Runner agent impacts 6+ files"
-        category: "blast-radius"
+        title: "Optional documentation update step — medium-value, needs careful scoping"
+        category: "structure"
         detail: |
-          The initial request proposes a Test Runner agent. Adding it would require:
-            1. NEW: test-runner.agent.md (new agent definition)
-            2. MODIFY: orchestrator.agent.md (new dispatch step, new evidence gate)
-            3. MODIFY: schemas.md (new test-runner-report schema)
-            4. MODIFY: sql-templates.md (new INSERT templates, new evidence gate queries)
-            5. MODIFY: tool-access-matrix.md (new row in master matrix)
-            6. MODIFY: dispatch-patterns.md (new dispatch pattern)
-            7. MODIFY: global-operating-rules.md (if new error handling needed)
-            8. MODIFY: verifier.agent.md (adjust to NOT run tests, only evaluate evidence)
-          Minimum 8 files changed to add ONE new agent — this is the cost of the current architecture.
-          The highly coupled reference document system means any agent addition has O(6+) file impact.
-        evidence:
-          - "NewAgents/.github/agents/tool-access-matrix.md — master matrix must include every agent"
-          - "NewAgents/.github/agents/schemas.md — every agent output needs a schema"
-          - "NewAgents/.github/agents/orchestrator.agent.md — dispatch logic for every step"
-        relevance: "Demonstrates the coupling cost. The initial request asks for 2 new agents (Test Runner + Instruction Optimizer), which would require ~12-16 file modifications just for infrastructure setup."
+          **Current state:** The knowledge agent (knowledge.agent.md) produces
+          `instruction-recommendations.md` with suggestions for improving agent instructions,
+          but these are never acted upon. The recommendations sit in the feature directory
+          and require manual human review.
 
+          **Impact of adding a documentation update step:**
+          - Affects orchestrator.agent.md — add optional Step 8b after knowledge agent
+            completes, gated by interactive prompt: "Apply documentation updates? (yes/no)"
+          - Would need a new agent capability or reuse of knowledge agent to:
+            1. Read copilot-instructions.md and .agent.md files
+            2. Compare against knowledge findings
+            3. Propose targeted updates (remove stale info, add new conventions)
+          - The GitHub Copilot custom instructions system
+            (`.github/copilot-instructions.md`) is the primary target for updates.
+
+          **Risk assessment:**
+          - MEDIUM risk — modifying instruction files is inherently dangerous:
+            1. Bloat: agents could add too much, making instructions exceed useful size
+            2. Staleness: automated additions may become incorrect over time
+            3. Conflicting instructions: new additions may contradict existing ones
+            4. Scope creep: the documentation agent might modify .agent.md files (which
+               global-rules.md explicitly forbids for the knowledge agent)
+          - Mitigation: make this STRICTLY optional, interactive-mode only, with user
+            approval of each proposed change. Use diff-preview before applying.
+
+          **Value:** MEDIUM — useful for long-running projects where instructions accumulate
+          cruft. Less valuable for one-off features.
+
+          **Dependencies:** Depends on knowledge agent completing first (already the case
+          in current pipeline flow). Independent of other improvements.
+        evidence:
+          - "v2/.github/agents/knowledge.agent.md lines 37-40 — produces instruction-recommendations.md but it is never acted upon"
+          - "v2/.github/agents/knowledge.agent.md line 98 — 'MUST NOT modify agent definition files'"
+          - "docs/feature/agent-system-refactor/initial-request.md line 389 — user: 'optional step that updates documentation'"
+          - "https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-custom-agents — custom agents need clear, focused instructions; bloated instructions reduce quality"
+        relevance: "Addresses instruction drift over time. Must be carefully scoped to prevent the documentation updater from becoming a source of instruction corruption."
+
+      # ============================================================
+      # F-8: Design Agent Web Research (Improvement #8)
+      # ============================================================
       - id: "F-8"
-        title: "Blast radius: DAG-based execution replaces wave model across 5 files"
-        category: "blast-radius"
+        title: "Architect web research enablement — low-risk, already partially wired"
+        category: "structure"
         detail: |
-          Replacing the wave-based execution model with DAG-based execution would impact:
-            1. MAJOR REWRITE: orchestrator.agent.md — Steps 5-6 loop logic, wave dispatch, all Pattern B
-            2. MAJOR REWRITE: planner.agent.md — wave assignment algorithm, dependency declarations
-            3. MODIFY: dispatch-patterns.md — Pattern A/B definitions replaced with DAG patterns
-            4. MODIFY: schemas.md — plan-output and task-schema would need dependency graph fields
-            5. MODIFY: global-operating-rules.md — feedback loop limits may change
-          The planner currently assigns tasks to waves (wave_1, wave_2, etc.) based on manual 
-          dependency analysis. A DAG model would require tasks to declare explicit dependencies
-          and the orchestrator to compute safe parallel execution sets dynamically.
-          This is a structural change to the core execution model, not just a config change.
-        evidence:
-          - "NewAgents/.github/agents/planner.agent.md — wave assignment logic"
-          - "NewAgents/.github/agents/orchestrator.agent.md — Steps 5-6 wave dispatch"
-          - "NewAgents/.github/agents/dispatch-patterns.md — Pattern A (parallel) + Pattern B (iterative)"
-        relevance: "DAG execution was explicitly requested in the initial request. The blast radius is moderate (5 files) but the changes are deep rewrites of core orchestration logic, not simple edits."
+          **Current state:** The architect agent already has `web/fetch` in its tools list
+          (architect.agent.md line 10) and a `web_research_enabled` input parameter
+          (line 24). It also has the constraint: "Only use fetch when web_research_enabled
+          is explicitly true" (line 123). So the MECHANISM exists but:
+          1. The tool name is wrong (web/fetch should be fetch)
+          2. There is no workflow step that explicitly says "do web research"
+          3. The architect's 8-step workflow has no research phase
 
+          **Impact of enabling architect web research:**
+          - Affects architect.agent.md — add a workflow step (e.g., Step 2.5 between
+            "Analyze Codebase" and "Identify Requirements") for web research on the tech
+            stack when web_research_enabled is true.
+          - The architect should research: framework versions, library best practices,
+            architectural patterns relevant to the design decisions.
+
+          **Risk assessment:**
+          - LOW risk — the wiring already exists. Just need to:
+            1. Fix the tool name (part of F-2)
+            2. Add an explicit research step to the workflow
+          - Minor risk: architect spending too much time on web research instead of
+            producing output. Mitigation: cap research at 2-3 targeted lookups.
+
+          **Value:** MEDIUM-HIGH — ensures design decisions are based on current framework
+          capabilities, not outdated internal knowledge. Especially valuable for projects
+          using rapidly evolving frameworks (React, .NET, etc.).
+
+          **Dependencies:** Depends on F-2 (correct tool names) to actually make fetch work.
+        evidence:
+          - "v2/.github/agents/architect.agent.md line 10 — web/fetch already listed (but wrong name)"
+          - "v2/.github/agents/architect.agent.md line 24 — web_research_enabled parameter already exists"
+          - "v2/.github/agents/architect.agent.md line 123 — fetch gate constraint already exists"
+          - "v2/.github/agents/architect.agent.md lines 33-42 — 8-step workflow has no explicit research step"
+          - "https://martinfowler.com/bliki/TestDrivenDevelopment.html — Fowler emphasizes understanding interface before implementation; web research supports this for modern frameworks"
+        relevance: "Low effort change with high knowledge-quality payoff. The architect is the decision bottleneck — better-informed decisions reduce downstream rework."
+
+      # ============================================================
+      # F-9: Tester Exploratory QA (Improvement #9)
+      # ============================================================
       - id: "F-9"
-        title: "Blast radius: Simplifying agent file structure impacts 19/19 files"
-        category: "blast-radius"
+        title: "Exploratory QA for tester — HIGH-value but HIGHEST-risk change"
+        category: "risk"
         detail: |
-          The initial request calls for simplified, consistent agent structure. Current agents lack
-          consistency in their internal organization:
-            - Some have Responsibility Inventories (knowledge-agent), others don't
-            - Self-verification checklists vary in length (4-15 items)
-            - Tool access is in separate file (tool-access-matrix.md) requiring cross-reference
-            - Schema definitions are in separate file (schemas.md) requiring cross-reference
-            - SQL templates are in separate file requiring cross-reference
-          Simplifying would likely mean:
-            a) Inlining tool access into each agent (eliminates tool-access-matrix.md)
-            b) Co-locating output schemas with producing agents (shrinks schemas.md)
-            c) Standardizing internal structure (role, inputs, outputs, workflow, rules)
-            d) Reducing cross-reference chains (agent → sql-templates → schemas → evaluation-schema)
-          This touches every single file in the system — it is effectively a full rewrite.
-        evidence:
-          - "NewAgents/.github/agents/knowledge-agent.agent.md — has Responsibility Inventory table"
-          - "NewAgents/.github/agents/researcher.agent.md — no Responsibility Inventory"
-          - "NewAgents/.github/agents/tool-access-matrix.md — centralized tool access for all 9 agents"
-        relevance: "Agent file simplification is universally disruptive but has the highest simplification payoff. The initial request explicitly grants authority for full rewrite."
+          **Current state:** The tester's dynamic mode (tester.agent.md lines 50-70) has
+          5 test categories including live-qa, described as "Exploratory checks: verify
+          endpoints respond, simulate user interactions, validate UI flows." However, this
+          is ONE line of description — far from the sophisticated exploratory QA the user
+          envisions.
 
+          The user references a TourneyPal QA agent that has:
+          - 4 parallel subagent model for QA exploration
+          - 7 testing phases (Happy Path, State Mutation, Edge Cases, Navigation Chaos,
+            Mobile/Tablet, UI Validation, State Replay)
+          - Playwright CLI skill integration
+          - Autonomous bug discovery with backlog generation
+
+          **Impact of adding exploratory QA:**
+          - Affects tester.agent.md significantly — the dynamic mode workflow needs
+            expansion from 6 steps to potentially 10+ steps.
+          - May need: subagent access (currently agents: []), which would be a major
+            architectural change, OR the tester runs all QA phases sequentially.
+          - Needs a testing strategy beyond "run existing tests": the tester should act
+            like a real developer trying to break the feature.
+
+          **Risk assessment:**
+          - HIGH risk — this is the most complex single change:
+            1. Scope creep: exploratory QA can consume unlimited time/resources
+            2. Context window exhaustion: running 7 testing phases in one agent dispatch
+               will likely exceed context limits
+            3. Non-deterministic: exploratory testing by nature produces variable results,
+               which conflicts with the pipeline's deterministic goals
+            4. Singleton constraint: tester is already SINGLETON for dynamic mode (one at
+               a time). Adding 7 phases makes it a massive bottleneck.
+          - Mitigation: implement as optional exploratory mode (separate from dynamic),
+            time-boxed per phase, with structured output for each finding.
+          - The Playwright component testing docs show the framework supports not just
+            running test suites but also component-level interaction and assertion — this
+            could be leveraged for exploratory checks.
+
+          **Value:** HIGH — E2E test suites catch regression but miss novel bugs. Exploratory
+          QA mimics real developer behavior: "does the feature actually work the way I
+          expect?" This is the gap between automated tests and user acceptance.
+
+          **Dependencies:** Strong dependency on F-1 (E2E skill setup) — exploratory QA
+          needs an app running and browser tools configured. Also benefits from F-2 (correct
+          tool names) and F-8 (architect web research for understanding what to test).
+        evidence:
+          - "v2/.github/agents/tester.agent.md lines 58-65 — live-qa is a single line, not a full exploratory workflow"
+          - "v2/.github/agents/tester.agent.md line 14 — 'agents: []' — tester cannot dispatch subagents"
+          - "docs/feature/agent-system-refactor/initial-request.md lines 389-395 — user wants QA like TourneyPal QA agent"
+          - "https://playwright.dev/docs/test-components — Playwright supports component-level testing with mount/unmount, enabling exploratory interaction patterns"
+          - "https://docs.github.com/en/copilot — GitHub Copilot supports agent skills for specialized tasks"
+        relevance: "Addresses the fundamental gap between 'tests pass' and 'feature works.' The tester currently only validates existing tests — it cannot discover NEW bugs."
+
+      # ============================================================
+      # F-10: Implementer TDD Best Practices (Improvement #10)
+      # ============================================================
       - id: "F-10"
-        title: "GitHub Copilot .agent.md format is simpler than current system assumes"
-        category: "risk"
+        title: "Implementer TDD best practices — low-risk additive improvement"
+        category: "pattern"
         detail: |
-          Web research confirms the actual GitHub Copilot custom agent format:
-            - File: .agent.md in .github/agents/ directory
-            - YAML frontmatter: name, description, tools (list), agents (subagent list), model,
-              user-invocable, disable-model-invocation, handoffs (for workflow transitions)
-            - Body: Markdown instructions (freeform)
-            - Tools: reference VS Code tool names or MCP server tools
-            - Subagents: orchestration via 'agents' field + handoffs
-            - VS Code also supports .md files in .claude/agents/ folder for Claude format
-          The current system uses .agent.md files correctly but the body content is far more
-          complex than typical custom agents. Most examples show <100 lines of instructions.
-          The current system packs 188-386 lines of detailed workflow, schema references,
-          SQL template references, self-verification checklists, and anti-drift anchors into
-          each agent — far beyond the typical use case.
-          Key capability gap: VS Code custom agents support a 'tools' YAML field to restrict
-          available tools. The current system uses tool-access-matrix.md as a manual reference
-          instead of leveraging the native tools restriction. The 'handoffs' feature could
-          replace some orchestrator dispatch logic.
-        evidence:
-          - "https://code.visualstudio.com/docs/copilot/customization/custom-agents — official docs"
-          - "YAML frontmatter fields: name, description, tools, agents, model, handoffs"
-          - "NewAgents/.github/agents/*.agent.md — no 'tools' field in YAML frontmatter currently"
-        relevance: "The current system doesn't use native VS Code tool restrictions or handoff patterns. Leveraging these platform features could eliminate the manual tool-access-matrix.md and simplify orchestrator dispatch."
+          **Current state:** The implementer mentions YAGNI once (line 40: "Write the
+          minimum code to make tests pass (YAGNI)") and "minimal code" in the anti-drift
+          anchor (line 99). However, it does NOT mention: KISS, DRY, functional programming
+          preference, lint compatibility, or avoiding over-engineering.
 
+          Martin Fowler's TDD description emphasizes that the THIRD step (Refactor) is
+          "a key part of the process, otherwise we just end up with a messy aggregation of
+          code fragments." The v2 implementer has RED and GREEN but NO explicit refactor
+          step.
+
+          **Impact of adding TDD best practices:**
+          - Affects implementer.agent.md — add principles to constraints section and
+            (critically) add a REFACTOR step to the workflow between GREEN and "Fix if needed":
+            - Step 4.5: REFACTOR — Apply YAGNI, KISS, DRY. Remove duplication. Ensure
+              tests still pass after refactoring.
+          - The user's old implementer had these principles explicitly listed. They were
+            lost in the v2 rebuild.
+
+          **Risk assessment:**
+          - VERY LOW risk — this is additive text in one file. No structural changes.
+          - Minor risk: AI agents may over-interpret "DRY" and create premature abstractions
+            (helpers, utilities) that actually violate YAGNI. Mitigation: explicitly state
+            "DRY within the current task scope only — do not create abstractions for
+            hypothetical future reuse."
+          - The implementer's anti-drift anchor already says "minimal code" but lacks teeth —
+            AI models tend to over-generate code. Explicit principles provide stronger
+            guardrails.
+
+          **Value:** MEDIUM — aligns with established TDD practice (Fowler's Red-Green-
+          Refactor). The missing REFACTOR step is a real gap: without it, implementations
+          accumulate technical debt even when tests pass.
+
+          **Dependencies:** None — fully independent change.
+        evidence:
+          - "v2/.github/agents/implementer.agent.md line 40 — YAGNI mentioned once, no KISS/DRY/refactor"
+          - "v2/.github/agents/implementer.agent.md lines 36-46 — RED-GREEN workflow with NO refactor step"
+          - "https://martinfowler.com/bliki/TestDrivenDevelopment.html — 'The most common way to screw up TDD is neglecting the third step. Refactoring the code to keep it clean is a key part of the process.'"
+          - "docs/feature/agent-system-refactor/initial-request.md lines 395-403 — user's old implementer had YAGNI, KISS, DRY, minimal code"
+        relevance: "Addresses code quality gap in AI-generated code. AI models are known to over-generate; explicit principles counteract this tendency."
+
+      # ============================================================
+      # F-11: Cross-Improvement Dependency Analysis
+      # ============================================================
       - id: "F-11"
-        title: "Cross-reference fragility is the #1 source of Critical review findings"
-        category: "risk"
+        title: "Dependency graph and implementation ordering for all 10 improvements"
+        category: "dependency"
         detail: |
-          Repository memory confirms: Cross-file section references (§numbers, EG thresholds,
-          check_names) are the top source of Critical findings in code review.
-          Specific instances:
-            - agent-pipeline-improvements: Critical C-1 — orchestrator §11→§1.1 broken cross-reference
-            - agent-pipeline-improvements: Critical S-1 — fast-track 🔴 risk bypass
-            - tdd-e2e-enforcement: Critical — EG-10 phantom check_names never produced by any agent
-            - tdd-e2e-enforcement: Critical — overbroad allowlist patterns
-          The current architecture maximizes cross-references by design:
-            - 9 agent files reference sql-templates.md by section number
-            - 9 agent files reference schemas.md by schema number
-            - orchestrator references dispatch-patterns.md, e2e-integration.md
-            - Evidence gates (EG-1 to EG-10) cross-reference check_names produced by specific agents
-          Each cross-reference is a potential breakage point when any file is modified.
-        evidence:
-          - "Repository memory: 'Cross-file section refs are top Critical finding source'"
-          - "docs/feature/agent-pipeline-improvements/evidence-bundle.md — 2 Critical cross-ref issues"
-          - "docs/feature/tdd-e2e-enforcement/evidence-bundle.md — Critical phantom check_names"
-        relevance: "The cross-reference architecture is a structural weakness. Reducing cross-file references (by inlining or co-locating) would eliminate the most common class of Critical findings."
+          **Critical path analysis of all 10 improvements:**
 
+          **Wave 1 — Foundation (must be first):**
+          - F-2: Correct tool names — ALL other improvements depend on tools working
+          - F-5: Remove git from subagents — safety prerequisite for parallel dispatch
+
+          **Wave 2 — Core interactive features (independent of each other):**
+          - F-3: Architect clarifying questions
+          - F-4: Planner accept/refine questions
+          - F-6: Remove autocommit
+          - F-8: Architect web research (partially done, just needs workflow step)
+          - F-10: Implementer TDD best practices
+
+          **Wave 3 — Complex features (depend on Wave 1):**
+          - F-1: E2E skill setup guidance
+          - F-7: Optional documentation update step
+
+          **Wave 4 — Highest complexity (depends on Wave 1 + Wave 3):**
+          - F-9: Exploratory QA (depends on E2E skill setup from F-1)
+
+          **Risk/Value matrix:**
+          | Improvement | Risk    | Value    | Priority |
+          |-------------|---------|----------|----------|
+          | F-2 Tools   | LOW     | CRITICAL | P0       |
+          | F-5 Git     | MEDIUM  | HIGH     | P0       |
+          | F-6 Commit  | V.LOW   | HIGH     | P1       |
+          | F-3 Arch Q  | LOW     | HIGH     | P1       |
+          | F-10 TDD    | V.LOW   | MEDIUM   | P1       |
+          | F-8 Web Res | LOW     | MED-HIGH | P1       |
+          | F-4 Plan Q  | LOW     | MED-HIGH | P2       |
+          | F-1 E2E     | MEDIUM  | HIGH     | P2       |
+          | F-7 Docs    | MEDIUM  | MEDIUM   | P3       |
+          | F-9 Expl QA | HIGH    | HIGH     | P3       |
+
+          **File impact summary:**
+          - orchestrator.agent.md: affected by F-1, F-2, F-5, F-6, F-7 (5 improvements)
+          - implementer.agent.md: affected by F-2, F-5, F-10 (3 improvements)
+          - architect.agent.md: affected by F-2, F-3, F-8 (3 improvements)
+          - tester.agent.md: affected by F-1, F-2, F-9 (3 improvements)
+          - planner.agent.md: affected by F-2, F-4 (2 improvements)
+          - researcher.agent.md: affected by F-2 (1 improvement)
+          - reviewer.agent.md: affected by F-2 (1 improvement)
+          - knowledge.agent.md: affected by F-2, F-7 (2 improvements)
+          - global-rules.md: affected by F-5 (1 improvement)
+
+          **Highest-risk file:** orchestrator.agent.md (5 improvements touching it). Given
+          the 150-line per-agent limit from the v2 conventions, the orchestrator is already
+          dense. Adding E2E setup, documentation step, and removing autocommit may require
+          extracting content to a reference document.
+        evidence:
+          - "All v2 agent files — cross-referenced for which improvements affect which files"
+          - "v2/.github/agents/orchestrator.agent.md — currently the densest file, affected by 5 improvements"
+          - "docs/feature/agent-system-refactor/research/architecture.yaml — v2 conventions: 150-line per-agent hard limit"
+        relevance: "Guides the planner and architect in ordering implementation. Wave 1 must complete before any other work begins."
+
+      # ============================================================
+      # F-12: Line Budget Risk for Orchestrator
+      # ============================================================
       - id: "F-12"
-        title: "Known issues accumulate across runs without resolution"
-        category: "technical-debt"
-        detail: |
-          Each pipeline run produces Known Issues that are carried forward but never resolved:
-            behavioral-correctness-enforcement: 10 known issues (3 Major)
-              - EG-7 gap-detection query references non-existent column (Major)
-              - Unplanned orchestrator modification bypassed verification (Major)
-              - Schema version deviation from design (Major)
-            tdd-e2e-enforcement: 4 known issues (1 Major)
-              - PID orphan recovery not implemented (Major)
-              - e2e-integration.md exceeded line target (Minor)
-            agent-pipeline-improvements: 1 known issue (Minor)
-              - pushback_log schema not formally defined
-          Total: ~15 known issues accumulated, 4 Major outstanding.
-          The pipeline has no mechanism for addressing known issues from prior runs.
-          Each new run focuses on its own feature and carries forward unresolved debt.
-        evidence:
-          - "docs/feature/behavioral-correctness-enforcement/evidence-bundle.md — 10 Known Issues"
-          - "docs/feature/tdd-e2e-enforcement/evidence-bundle.md — 4 Known Issues"
-          - "docs/feature/agent-pipeline-improvements/evidence-bundle.md — 1 Known Issue"
-        relevance: "Technical debt from the agent system's own development. A refactor is an opportunity to reset — but also risks introducing new Known Issues."
-
-      - id: "F-13"
-        title: "What is working well and should be preserved"
-        category: "pattern"
-        detail: |
-          Despite complexity concerns, several patterns have proven their value:
-            1. TYPED YAML CONTRACTS: Zero routing failures across 5 pipeline runs. The completion
-               contract pattern (DONE/NEEDS_REVISION/ERROR) is reliable and clean.
-            2. ADVERSARIAL CODE REVIEW: Caught 6+ Critical issues across runs. 3-perspective model
-               is effective (security, architecture, correctness lenses).
-            3. PARALLEL RESEARCHER DISPATCH: 4x parallel research consistently produces comprehensive
-               coverage. All runs achieved ≥2/4 researcher completion (gate threshold).
-            4. TDD CYCLE: Implementer RED-GREEN-VERIFY is enforced and working.
-            5. APPROVAL MODE: Interactive vs autonomous mode with ask_questions provides user control.
-            6. RISK CLASSIFICATION: 🟢/🟡/🔴 risk levels enable proportionate verification.
-            7. GIT BASELINE TAGS: Enable clean rollback via pipeline-baseline-{run_id}.
-            8. EVIDENCE BUNDLES: Knowledge agent produces comprehensive pipeline summaries.
-        evidence:
-          - "5 pipeline runs with 0 functional failures"
-          - "6+ Critical issues caught by adversarial review across runs"
-          - "Zero routing failures across all completion contracts"
-        relevance: "These are the patterns to preserve or enhance in any refactor. The core workflow (research→spec→design→review→plan→implement→verify→review→knowledge) works. The overhead infrastructure around it is what needs simplification."
-
-      - id: "F-14"
-        title: "What appears over-engineered relative to value delivered"
+        title: "Orchestrator line budget at risk — 5 improvements may exceed 150-line limit"
         category: "risk"
         detail: |
-          Honest assessment of components whose complexity exceeds their demonstrated value:
-            1. SQLite EVIDENCE GATES (936-line sql-templates.md): The evidence gate queries (EG-1 to EG-10)
-               have never blocked a pipeline — all runs passed all gates. The gates exist as a safety
-               net that has never caught a real problem. The phantom check_name Critical finding shows
-               the gates themselves are error-prone. Cost: 936 lines of SQL templates + SQLITE_BUSY
-               handling + sanitization rules consumed by 5 agents.
-            2. ARTIFACT EVALUATIONS (evaluation-schema.md): Agents rate upstream artifacts (1-10 scores).
-               This data feeds the knowledge agent's analysis but there is no evidence it has driven
-               any improvement decision. Cost: 84 lines + SQL INSERT in every consuming agent.
-            3. 14 DISTINCT SCHEMA TYPES (1,422-line schemas.md): Many schemas share the common header.
-               The completion-contract is useful; the per-agent payload schemas add overhead without
-               clear routing value beyond what the completion contract provides.
-            4. INSTRUCTION UPDATES AUDIT TRAIL: The knowledge agent tracks changes to .github/instructions/
-               via SQL. This has never been used to block or audit an inappropriate change.
-            5. E2E INTEGRATION (671-line e2e-integration.md): Comprehensive E2E testing framework
-               that has not been exercised by any actual pipeline run on a real codebase.
-            6. CONTEXT7 INTEGRATION: 29-line reference doc for a library doc lookup tool. Could be
-               a one-line mention in relevant agents instead of a separate file.
+          **Current state:** The v2 system has a 150-line per-agent hard limit. The
+          orchestrator is already the most complex agent. Five of 10 improvements require
+          changes to the orchestrator:
+          1. E2E skill setup detection (F-1) — estimated +10-15 lines
+          2. Tool name fixes (F-2) — net zero (replacements)
+          3. Git command consolidation (F-5) — net -2 to +3 lines
+          4. Remove autocommit, add interactive prompt (F-6) — net +5-8 lines
+          5. Optional documentation step (F-7) — estimated +8-12 lines
+
+          **Total estimated impact:** +21-38 lines on an already-dense agent.
+
+          **Mitigation strategies (from repo memory):**
+          - Extract complex additions to reference documents (proven: orchestrator went
+            from 528 to 539 lines by extracting E2E rules to e2e-integration.md)
+          - The orchestrator can reference separate docs for E2E setup flow and
+            documentation update flow.
+
+          **Risk:** If the orchestrator exceeds 150 lines, users may hit context window
+          issues or the agent may not read its full instructions. This is a known constraint
+          from the v2 design rationale.
+
+          **Value of awareness:** This is a planning constraint, not an improvement. The
+          architect and planner must account for line budgets when designing the
+          implementation approach.
         evidence:
-          - "All evidence bundles show 0 evidence gate failures across 5 runs"
-          - "tdd-e2e-enforcement Critical — phantom check_names in gates shows gates are error-prone"
-          - "No evidence of artifact evaluations driving improvement decisions"
-          - "e2e-integration.md at 671 lines — no actual E2E run evidence in any pipeline"
-        relevance: "The user said 'Do not assume what I have currently is the best. AI tends to be too optimistic.' This finding directly addresses that instruction. The safety infrastructure (evidence gates, artifact evaluations, instruction audit) adds complexity without demonstrated failure-catching value."
-
-      - id: "F-15"
-        title: "VS Code handoffs and native tool restrictions are unused platform capabilities"
-        category: "opportunity"
-        detail: |
-          VS Code custom agents support these features that the current system does NOT use:
-            1. TOOLS YAML FIELD: Agents can declare allowed tools in YAML frontmatter. The current
-               system uses tool-access-matrix.md (105 lines) as a manual reference document that
-               agents are instructed to follow — but VS Code can enforce this natively.
-            2. HANDOFFS: Agents can define handoff buttons that transition to other agents with
-               pre-filled prompts. This could replace some orchestrator dispatch logic.
-            3. AGENT SKILLS: Reusable capability packages (open standard at agentskills.io) that
-               work across VS Code, GitHub Copilot CLI, and coding agent.
-            4. HOOKS: Lifecycle automation (e.g., run formatters after file edits, enforce policies
-               before command execution) that could replace some manual verification steps.
-            5. SUBAGENTS: `agents` field in frontmatter declares available subagents. Combined with
-               `user-invocable: false` and `disable-model-invocation: true`, this enables controlled
-               orchestration hierarchies.
-          The current system reinvents these capabilities in ~6,400 lines of manual instructions
-          rather than leveraging the VS Code platform.
-        evidence:
-          - "https://code.visualstudio.com/docs/copilot/customization/custom-agents — handoffs, tools"
-          - "https://code.visualstudio.com/docs/copilot/copilot-customization — hooks, skills, MCP"
-          - "NewAgents/.github/agents/*.agent.md — no 'tools' field in any YAML frontmatter"
-        relevance: "The biggest simplification opportunity. Using native VS Code features for tool restriction, workflow transitions, and lifecycle automation could reduce the instruction surface dramatically."
-
-      - id: "F-16"
-        title: "GitHub blog aligns with current principles but warns against overconstruction"
-        category: "pattern"
-        detail: |
-          The GitHub engineering blog article 'Multi-agent workflows often fail' (Feb 2026) provides
-          three core principles:
-            1. Typed schemas for inter-agent communication (CURRENT SYSTEM HAS THIS)
-            2. Action schemas defining explicit allowed actions (CURRENT SYSTEM HAS THIS)
-            3. MCP enforcement turning patterns into contracts (CURRENT SYSTEM PARTIALLY HAS THIS)
-          The article's key design principles:
-            - 'Design for failure first' — current system does this well
-            - 'Validate every agent boundary' — current system over-does this (14 schemas, 10 evidence gates)
-            - 'Constrain actions before adding more agents' — current system violates this (9 agents, growing)
-            - 'Log intermediate state' — current system does this via SQLite
-            - 'Treat agents like distributed systems, not chat flows' — current system follows this
-          The article notably emphasizes SIMPLICITY and CONSTRAINT. It does NOT advocate for
-          14 schema types, 936 lines of SQL templates, or 10 evidence gates. It advocates for
-          typed schemas, constrained actions, and enforcement — achievable with far less infrastructure.
-        evidence:
-          - "https://github.blog/engineering/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/"
-          - "Article quotes: 'treat schema violations like contract failures: retry, repair, or escalate'"
-          - "Article quotes: 'Constrain actions before adding more agents'"
-        relevance: "The article the original system was based on supports simplification. The current system took the principles to an extreme. The refactor should return to the article's spirit: minimal typed contracts and constrained actions."
-
-      # === ROUND 2: COMPARATIVE FRAMEWORK ANALYSIS (F-17 through F-29) ===
-
-      - id: "F-17"
-        title: "CrewAI agent definition: 3 required fields vs our 188-386 lines per agent"
-        category: "comparative"
-        detail: |
-          CrewAI defines agents with exactly 3 required fields: role, goal, backstory.
-          YAML configuration (recommended approach):
-            researcher:
-              role: "{topic} Senior Data Researcher"
-              goal: "Uncover cutting-edge developments in {topic}"
-              backstory: "You're a seasoned researcher..."
-          That is the ENTIRE agent definition — 5 lines of YAML.
-          Optional fields: llm, tools, max_iter, max_rpm, memory, allow_delegation,
-          respect_context_window, reasoning, max_reasoning_attempts, knowledge_sources.
-          Tasks are separate objects with description + expected_output + agent assignment.
-          Crews compose agents + tasks with a process type (sequential or hierarchical).
-          Flows provide orchestration via @start(), @listen(), @router() decorators with
-          typed Pydantic state management.
-
-          COMPARISON WITH OUR SYSTEM:
-            CrewAI researcher agent: ~5 lines YAML + ~3 lines task YAML = ~8 lines total
-            Our researcher agent: 188 lines (24x larger)
-            CrewAI full crew (3 agents + 3 tasks + flow): ~60-80 lines total
-            Our 9-agent system: 6,416 lines (80-107x larger)
-
-          Key differences:
-            - CrewAI separates WHAT (role/goal) from HOW (framework handles execution)
-            - Our system embeds the entire HOW in each agent's instructions
-            - CrewAI uses code (Python) for orchestration; we use natural language instructions
-            - CrewAI has built-in guardrails (function-based + LLM-based) as task attributes
-            - Our system uses 936-line sql-templates.md + evidence gates for verification
-        evidence:
-          - "https://docs.crewai.com/en/concepts/agents — Agent definition: role, goal, backstory (3 fields)"
-          - "https://docs.crewai.com/en/concepts/tasks — Tasks: description, expected_output, agent"
-          - "https://docs.crewai.com/en/concepts/flows — @start/@listen/@router decorators for orchestration"
-          - "NewAgents/.github/agents/researcher.agent.md — 188 lines for our comparable agent"
-        relevance: "Demonstrates a 24x-107x size differential between framework-native agent definitions and our natural-language instruction approach. The question is whether the extra 180 lines per agent produce proportionally better behavior."
-
-      - id: "F-18"
-        title: "AutoGen: 10-line agents with built-in team orchestration patterns"
-        category: "comparative"
-        detail: |
-          AutoGen (v0.7+) defines agents in ~10 lines of Python:
-            agent = AssistantAgent(
-                name="weather_agent",
-                model_client=model_client,
-                tools=[get_weather],
-                system_message="You are a helpful assistant.",
-                reflect_on_tool_use=True,
-            )
-          Teams provide pre-built orchestration patterns:
-            - RoundRobinGroupChat: agents take turns in order (our parallel dispatch)
-            - SelectorGroupChat: LLM selects next speaker dynamically
-            - MagenticOneGroupChat: generalist multi-agent system
-            - Swarm: HandoffMessage for agent transitions (similar to VS Code handoffs)
-          Teams handle: termination conditions, state management, message routing,
-          resuming, resetting — all built into the framework.
-
-          COMPARISON WITH OUR SYSTEM:
-            AutoGen primary+critic team: ~15 lines + termination condition
-            Our orchestrator+adversarial-reviewer: ~600+ lines combined
-            AutoGen termination: TextMentionTermination("APPROVE") — 1 line
-            Our completion contract: DONE/NEEDS_REVISION/ERROR across 14 schemas
-            AutoGen state: automatic message history, team.reset(), team.run_stream()
-            Our state: SQLite DDL + 936-line SQL templates + SQLITE_BUSY handling
-
-          Key insight: AutoGen's Swarm pattern uses HandoffMessage — almost exactly what
-          VS Code's 'handoffs' YAML field provides. Our orchestrator reinvents this in
-          ~358 lines of natural language dispatch instructions.
-        evidence:
-          - "https://microsoft.github.io/autogen/stable/ — AgentChat + Core architecture"
-          - "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html — RoundRobin, Swarm, Selector, MagenticOne"
-          - "AutoGen quickstart: AssistantAgent definition = 6 lines of code"
-          - "NewAgents/.github/agents/orchestrator.agent.md — 358 lines for our orchestrator"
-        relevance: "AutoGen's Swarm pattern is the closest analog to VS Code handoffs. If our system adopted VS Code native handoffs, it would replicate AutoGen's orchestration pattern without any Python SDK dependency."
-
-      - id: "F-19"
-        title: "LangGraph: explicit graph-based orchestration in ~20 lines"
-        category: "comparative"
-        detail: |
-          LangGraph defines workflows as explicit directed graphs with typed state:
-            class State(TypedDict):
-                text: str
-            graph = StateGraph(State)
-            graph.add_node("node_a", node_a)
-            graph.add_node("node_b", node_b)
-            graph.add_edge(START, "node_a")
-            graph.add_edge("node_a", "node_b")
-            compiled = graph.compile()
-            result = compiled.invoke({"text": ""})
-          That is a complete workflow — ~10 lines for the graph definition.
-
-          Core benefits (from LangGraph repo):
-            - Durable execution (persists through failures, resumes from checkpoints)
-            - Human-in-the-loop (inspect/modify state at any point)
-            - Comprehensive memory (short-term + long-term)
-            - State persistence via checkpointing
-          Inspired by Google's Pregel graph processing system.
-          25.9k GitHub stars, 36.5k dependents. Production-proven.
-
-          COMPARISON WITH OUR SYSTEM:
-            LangGraph workflow (9 nodes + edges): ~40 lines of graph definition
-            Our orchestrator Steps 0-9: ~358 lines of natural language instructions
-            LangGraph state: TypedDict with automatic checkpointing
-            Our state: SQLite DDL + INSERT/SELECT across 5 agents
-            LangGraph error handling: checkpoint-and-resume built into runtime
-            Our error handling: 143-line global-operating-rules.md + manual retry
-
-          LangGraph's explicit graph model directly maps to our pipeline:
-            START → research → spec → design → review → plan → implement → verify → review → knowledge → END
-          This is literally a directed graph — we express it in ~6,400 lines of prose.
-        evidence:
-          - "https://github.com/langchain-ai/langgraph — README, 25.9k stars"
-          - "LangGraph StateGraph API: add_node, add_edge, compile, invoke"
-          - "NewAgents/.github/agents/orchestrator.agent.md — Steps 0-9 = sequential graph"
-        relevance: "LangGraph proves that graph-based orchestration can be expressed in ~40 lines of code. Our equivalent takes 358 lines of natural language because we lack a graph runtime. The initial request proposed DAG-based execution — LangGraph is the reference implementation for that pattern."
-
-      - id: "F-20"
-        title: "State management: 936 lines of SQL vs alternatives requiring 0-10 lines"
-        category: "comparative"
-        detail: |
-          State management comparison across frameworks:
-
-          CREWAI:
-            - Unstructured: self.state['key'] = value (dict)
-            - Structured: Flow[ExampleState] with Pydantic BaseModel
-            - Persistence: @persist decorator → SQLiteFlowPersistence (optional, ~3 lines)
-            - Memory: self.remember(), self.recall() — built-in LanceDB backend
-            - Total setup: 0 lines (unstructured) to ~10 lines (structured + persistent)
-
-          AUTOGEN:
-            - Team-level: automatic shared message history
-            - Reset: team.reset() — one line
-            - Resume: team.run_stream() again — stateful by default
-            - Total setup: 0 lines (state is implicit in conversation)
-
-          LANGGRAPH:
-            - TypedDict state definition: ~5 lines
-            - Checkpointing: built into compile() via checkpointer parameter
-            - Durable execution: automatic resume from checkpoints
-            - Total setup: ~5 lines for typed state
-
-          OUR SYSTEM:
-            - sql-templates.md: 936 lines of INSERT/SELECT templates
-            - schemas.md DDL section: ~100 lines of CREATE TABLE statements
-            - global-operating-rules.md §3: SQLITE_BUSY handling, sanitization rules
-            - verification-ledger.db: 5+ tables, evidence gates EG-1 through EG-10
-            - 5 agents write SQL, orchestrator reads SQL
-            - Total setup: ~1,100+ lines of state management infrastructure
-
-          The ratio is staggering: our state management is 110-1100x more verbose
-          than comparable framework approaches. And our evidence gates have never
-          caught a real failure in 5 pipeline runs.
-        evidence:
-          - "https://docs.crewai.com/en/concepts/flows — State Management section"
-          - "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html — implicit state"
-          - "https://github.com/langchain-ai/langgraph — TypedDict state + checkpointing"
-          - "NewAgents/.github/agents/sql-templates.md — 936 lines"
-          - "All evidence bundles — 0 evidence gate failures across 5 runs"
-        relevance: "The state management overhead is the single largest complexity contributor in the system. Every framework achieves equivalent or better state management with orders of magnitude less code. This is the strongest argument for removing SQLite."
-
-      - id: "F-21"
-        title: "Verification/testing: guardrails vs our 2,400+ line verification infrastructure"
-        category: "comparative"
-        detail: |
-          How each framework handles quality assurance:
-
-          CREWAI:
-            - Task guardrails: function-based (validate_output → (bool, result))
-            - LLM-based guardrails: string description → LLM validates
-            - Multiple guardrails: sequential chain with max_retries
-            - Structured output: output_pydantic ensures schema compliance
-            - Total: 0 extra files. Guardrails are task attributes.
-
-          AUTOGEN:
-            - Termination conditions: TextMentionTermination, ExternalTermination
-            - Evaluator-optimizer: built-in reflection pattern (reflect_on_tool_use)
-            - Team-level: critic agent in RoundRobinGroupChat
-            - Total: 0 extra files. Review is a team configuration.
-
-          LANGGRAPH:
-            - Node-level assertions in state transitions
-            - Conditional edges for validation routing
-            - Checkpoint-based rollback on failures
-            - Total: part of graph definition, no extra files.
-
-          OUR SYSTEM:
-            - verifier.agent.md: 386 lines
-            - adversarial-reviewer.agent.md: 249 lines
-            - schemas.md: 1,422 lines (14 schema types)
-            - sql-templates.md: 936 lines (evidence gates)
-            - evaluation-schema.md: 84 lines
-            - review-perspectives.md: 118 lines
-            - severity-taxonomy.md: 128 lines
-            - Total: ~3,323 lines across 7 files dedicated to verification
-
-          That is 3,323 lines (52% of total system) for verification/review.
-          The adversarial review catches 2-3 Critical issues per run (proven value).
-          The evidence gates, artifact evaluations, and severity taxonomy have
-          not demonstrably caught any issues that simpler checks would miss.
-        evidence:
-          - "https://docs.crewai.com/en/concepts/tasks — Task Guardrails section"
-          - "AutoGen teams tutorial — TextMentionTermination, reflection pattern"
-          - "7 verification-related files in NewAgents/.github/agents/ totaling ~3,323 lines"
-        relevance: "Over half our system's complexity serves verification. Frameworks achieve comparable quality assurance with zero extra files by embedding validation into task/team definitions. The adversarial review step is uniquely valuable, but the surrounding infrastructure is disproportionate."
-
-      - id: "F-22"
-        title: "Anthropic's 'Building Effective Agents': simplicity is the explicit recommendation"
-        category: "comparative"
-        detail: |
-          Anthropic's engineering guide (Dec 2024) identifies 5 workflow patterns and 1 agent pattern:
-            1. Prompt chaining: sequential steps with gates
-            2. Routing: classify input → specialized handler
-            3. Parallelization: sectioning (parallel subtasks) + voting (multiple attempts)
-            4. Orchestrator-workers: central LLM breaks down tasks, delegates to workers
-            5. Evaluator-optimizer: generate + evaluate in loop
-            6. Agents: LLM with tools in autonomous loop
-
-          KEY QUOTES (direct from Anthropic):
-            - "The most successful implementations weren't using complex frameworks or
-              specialized libraries. Instead, they were building with simple, composable patterns."
-            - "We recommend finding the simplest solution possible, and only increasing
-              complexity when needed."
-            - "We suggest that developers start by using LLM APIs directly: many patterns
-              can be implemented in a few lines of code."
-            - "Maintain simplicity in your agent's design."
-            - "We actually spent more time optimizing our tools than the overall prompt."
-
-          Our pipeline maps to Anthropic's patterns:
-            - Steps 1-4 (research→design): Prompt chaining + Parallelization (sectioning)
-            - Step 5 (planning): Routing (risk classification → pipeline selection)
-            - Steps 5-6 (wave execution): Orchestrator-workers
-            - Step 7 (adversarial review): Evaluator-optimizer / Parallelization (voting)
-            - Overall: Deterministic workflow, NOT an autonomous agent
-
-          Anthropic's assessment of what we're doing: "Workflows offer predictability
-          and consistency for well-defined tasks." Our pipeline IS a workflow — but we've
-          built it with the complexity budget of an autonomous agent system.
-        evidence:
-          - "https://www.anthropic.com/engineering/building-effective-agents — full article"
-          - "Quote: 'simplest solution possible, only increasing complexity when needed'"
-          - "Quote: 'many patterns can be implemented in a few lines of code'"
-          - "5 workflow patterns + 1 agent pattern taxonomy"
-        relevance: "Anthropic — the company that built Claude, the LLM powering our agents — explicitly recommends simplicity. Our 6,400-line system for a deterministic workflow contradicts the recommendation from the model provider itself. This is the most authoritative external signal that simplification is warranted."
-
-      - id: "F-23"
-        title: "Instruction length research: 'Lost in the Middle' effect impacts agent quality"
-        category: "comparative"
-        detail: |
-          Academic research on LLM instruction/context length:
-
-          1. 'Lost in the Middle' (Liu et al., TACL 2023, arXiv:2307.03172):
-             - Performance degrades significantly when relevant information is in the
-               middle of long contexts, even for explicitly long-context models
-             - Performance is highest when relevant info is at beginning or end
-             - This is a U-shaped attention curve: start and end are privileged
-             - IMPLICATION: In a 386-line verifier.agent.md, instructions in the
-               middle ~150 lines are the least likely to be followed
-
-          2. 'Long-context LLMs Struggle with Long In-context Learning' (Li et al., 2024, arXiv:2404.02060):
-             - LLMs perform well on simpler tasks with shorter demonstrations
-             - Performance degrades with more complex tasks and longer input
-             - Bias toward labels/content presented later in sequence
-             - 'A gap in their ability to process long, context-rich sequences'
-             - IMPLICATION: Our 1,422-line schemas.md injected as context creates
-               a comprehension burden. Agents may not reliably follow schema 12
-               of 14 when all 14 are in one file.
-
-          3. 'Instruction-Following Evaluation' (Zhou et al., Google, 2023, arXiv:2311.07911):
-             - IFEval benchmark: verifiable instructions like 'write in >400 words'
-             - Models struggle with multiple simultaneous constraints
-             - IMPLICATION: Each agent in our system has 10-20 rules to follow
-               simultaneously. Instruction-following degrades with rule count.
-
-          PRACTICAL IMPLICATIONS FOR OUR SYSTEM:
-            - The 'Lost in the Middle' effect means our anti-drift anchors at the END
-              of agent files are well-placed (end position = high attention)
-            - But the bulk of workflow instructions in the middle are vulnerable
-            - Each cross-reference ('see schemas.md §5') requires the LLM to hold
-              two large documents in working memory simultaneously
-            - CrewAI's 5-line agent definitions avoid this entirely: less instruction
-              = more reliable instruction following
-
-          ESTIMATED DEGRADATION CURVE:
-            - <50 lines of instructions: ~95%+ instruction-following rate
-            - 50-150 lines: ~85-90% (standard agent definition range)
-            - 150-400 lines: ~70-85% (our agent files fall here)
-            - 400+ lines with cross-references: ~60-75% (our orchestrator + schemas)
-            These are estimates based on the research trends, not exact measurements.
-        evidence:
-          - "arXiv:2307.03172 — 'Lost in the Middle: How Language Models Use Long Contexts' (TACL 2023)"
-          - "arXiv:2404.02060 — 'Long-context LLMs Struggle with Long In-context Learning' (2024)"
-          - "arXiv:2311.07911 — 'Instruction-Following Evaluation for Large Language Models' (2023)"
-          - "NewAgents/.github/agents/ — agent files range 188-386 lines"
-        relevance: "This is the research basis for why shorter instructions may produce BETTER agent behavior. Our anti-drift anchors exist precisely because we've observed drift — the research explains why. Reducing agent files from 200-400 lines to 50-100 lines could improve instruction-following reliability by 10-25%."
-
-      - id: "F-24"
-        title: "Impact analysis: CrewAI role-based simplicity applied to our system"
-        category: "impact-projection"
-        detail: |
-          IF our system adopted CrewAI's approach (role + goal + backstory + task guardrails):
-
-          AGENT DEFINITIONS (currently 2,534 lines across 9 files):
-            Each agent becomes ~20-40 lines of .agent.md:
-              - YAML frontmatter: name, description, tools (native VS Code restriction)
-              - Body: role statement (2-3 sentences), goal, key rules (5-10 bullets max)
-              - Output format: completion contract (DONE/ERROR) + output file path
-            Estimated total: ~200-360 lines across 9 agents (92% reduction)
-
-          REFERENCE DOCUMENTS (currently 3,882 lines across 10 files):
-            Eliminated entirely by CrewAI approach:
-              - sql-templates.md (936 lines): removed (no SQLite)
-              - evaluation-schema.md (84 lines): removed (guardrails replace evaluations)
-              - severity-taxonomy.md (128 lines): removed (categories inline if needed)
-              - context7-integration.md (29 lines): removed (one-line mention if needed)
-              - review-perspectives.md (118 lines): removed (inline in reviewer agent)
-              - tool-access-matrix.md (105 lines): removed (use VS Code 'tools' field)
-            Simplified:
-              - schemas.md: from 1,422 to ~200 lines (keep completion contract + 3-4 key schemas)
-              - dispatch-patterns.md: from 236 to ~50 lines (simplified patterns)
-              - global-operating-rules.md: from 143 to ~40 lines (essential rules only)
-              - e2e-integration.md: from 671 to ~100 lines (simplified E2E contract)
-            Estimated total: ~390 lines across 4 files (90% reduction)
-
-          TOTAL PROJECTED SIZE:
-            Current: 6,416 lines across 19 files
-            CrewAI-inspired: ~600-750 lines across 13 files (9 agents + 4 reference docs)
-            Reduction: ~88-91%
-
-          WHAT WE LOSE:
-            - Detailed step-by-step workflow instructions per agent
-            - Self-verification checklists (agents must self-regulate)
-            - Anti-drift anchors (shorter instructions = less drift)
-            - SQLite evidence trail (replaced with file-based artifacts)
-            - 14 schema types (reduced to 4-5 essential ones)
-
-          WHAT WE GAIN:
-            - Dramatically better instruction-following (per F-23 research)
-            - Faster pipeline runs (less context to process per agent)
-            - Lower Cross-file reference fragility (per F-11)
-            - Easier agent addition (new agent = ~30 lines instead of 8+ files)
-            - Closer to VS Code platform patterns
-        evidence:
-          - "CrewAI agent YAML: ~5 lines. Our agents: 188-386 lines."
-          - "F-23 research on instruction length degradation"
-          - "F-11 cross-reference fragility as #1 Critical finding source"
-        relevance: "A CrewAI-inspired rewrite represents the maximum simplification direction. The ~90% reduction target is aggressive but achievable given that CrewAI's 5-line agents demonstrably work for complex tasks."
-
-      - id: "F-25"
-        title: "Impact analysis: LangGraph graph-based execution applied to our system"
-        category: "impact-projection"
-        detail: |
-          IF our system adopted LangGraph's graph-based orchestration:
-
-          ORCHESTRATOR REWRITE:
-            Current: 358-line orchestrator.agent.md with 10 numbered steps
-            Graph-inspired: Explicit node declarations + edge declarations
-              nodes: [init, research, spec, design, review, plan, implement, verify, code-review, knowledge]
-              edges: init→research, research→spec, spec→design, design→review, ...
-              conditional_edges: review→design (NEEDS_REVISION), review→plan (DONE)
-            This could be expressed in YAML frontmatter or a graph.yaml reference file
-            Estimated orchestrator: ~80-120 lines (66-78% reduction)
-
-          DAG-BASED EXECUTION:
-            Current wave model: planner assigns tasks to waves manually
-            Graph-inspired: tasks declare dependencies, orchestrator computes execution order
-              task_a: {depends_on: []}
-              task_b: {depends_on: [task_a]}
-              task_c: {depends_on: [task_a]}
-              # task_b and task_c run in parallel automatically
-            This directly implements the initial request's DAG proposal
-
-          STATE AS TYPED ARTIFACTS:
-            Replace SQLite with: typed YAML artifacts passed between nodes
-            Each node reads predecessor's output file, writes its own output file
-            Checkpointing: git tags (already exists — pipeline-baseline-{run_id})
-            Error recovery: resume from last successful node (git checkout)
-
-          TOTAL PROJECTED SIZE:
-            Current: 6,416 lines across 19 files
-            LangGraph-inspired: ~1,200-1,600 lines across 12-14 files
-            Reduction: ~75-81%
-
-          ADVANTAGE: Explicit graph makes the pipeline structure visible and debuggable.
-          RISK: Natural language agents can't execute code — the graph must be expressed
-          as instructions the LLM orchestrator interprets, not code it runs.
-        evidence:
-          - "LangGraph StateGraph: ~40 lines defines a complete workflow"
-          - "LangGraph durable execution + checkpointing"
-          - "Initial request: 'DAG-based agent scheduling' explicitly requested"
-        relevance: "LangGraph's graph model is the best conceptual fit for the DAG execution requested in the initial request. The challenge is expressing a graph in natural language instructions rather than code. A hybrid approach (YAML graph definition + natural language node instructions) could work."
-
-      - id: "F-26"
-        title: "Impact analysis: AutoGen conversation patterns applied to our system"
-        category: "impact-projection"
-        detail: |
-          IF our system adopted AutoGen's conversation/team patterns:
-
-          VS CODE HANDOFFS AS SWARM:
-            AutoGen's Swarm: agents send HandoffMessage to transfer control
-            VS Code's handoffs: agents declare handoff buttons with target agent + prompt
-            These are functionally equivalent. Our orchestrator dispatch could be replaced
-            by each agent declaring its next-step handoffs:
-              researcher → handoff to spec-agent
-              spec-agent → handoff to designer
-              designer → handoff to adversarial-reviewer OR planner
-            Eliminates need for centralized orchestrator dispatch table
-
-          TERMINATION AS COMPLETION CONTRACT:
-            AutoGen: TextMentionTermination("APPROVE") — 1 line
-            Our system: completion.status DONE/NEEDS_REVISION/ERROR + schema validation
-            These are analogous. We could simplify to a YAML status field.
-
-          SELECTOR FOR DYNAMIC ROUTING:
-            AutoGen's SelectorGroupChat: LLM picks next agent based on conversation
-            Could replace our risk classification routing with dynamic selection
-            For standard 🟢/🟡 tasks: let the orchestrator LLM decide next step
-            For 🔴 tasks: enforce fixed sequence (current behavior)
-
-          TOTAL PROJECTED SIZE:
-            Current: 6,416 lines across 19 files
-            AutoGen-inspired: ~1,000-1,400 lines across 10-12 files
-            Reduction: ~78-84%
-
-          KEY INSIGHT: AutoGen's philosophy is 'start with single agent, add team only
-          when needed.' Our system started with a full 9-agent pipeline. If we followed
-          AutoGen's advice, many 🟢 tasks could be handled by 3-4 agents instead of 9.
-        evidence:
-          - "AutoGen Swarm: HandoffMessage pattern"
-          - "VS Code handoffs YAML field in .agent.md"
-          - "AutoGen guidance: 'start with single agent...transition to multi-agent when inadequate'"
-        relevance: "AutoGen's progressive complexity matches the initial request's vision of proportionate response. Not every feature needs 9 agents. The system should scale agent involvement to task complexity."
-
-      - id: "F-27"
-        title: "Best fit for VS Code Copilot: hybrid approach with native platform features"
-        category: "impact-projection"
-        detail: |
-          CONSTRAINT ANALYSIS — our system runs in VS Code via .agent.md files:
-            - Cannot use Python SDKs (no CrewAI, AutoGen, or LangGraph runtime)
-            - Cannot use cloud infrastructure (everything is local)
-            - Instructions are natural language Markdown + YAML frontmatter
-            - Tools are VS Code tools (read_file, run_in_terminal, etc.) + MCP servers
-            - Orchestration must be expressed as LLM-interpretable instructions
-
-          WHAT TRANSLATES FROM EACH FRAMEWORK:
-
-          From CrewAI:
-            ✅ Role/goal/backstory as core agent identity (3-field simplicity)
-            ✅ Task guardrails as completion validation
-            ✅ Structured output via Pydantic models → typed YAML schemas
-            ✅ @start/@listen flow patterns → VS Code handoff declarations
-            ❌ Python decorators (no code execution)
-            ❌ Built-in memory/RAG (requires library)
-            ❌ Flow persistence (requires SQLite library)
-
-          From AutoGen:
-            ✅ Swarm handoff pattern → VS Code handoffs (near 1:1 mapping)
-            ✅ Termination conditions → completion contracts
-            ✅ Team presets → agent group configurations
-            ✅ Progressive complexity (single agent → team as needed)
-            ❌ Message routing runtime (requires Python)
-            ❌ Model client abstraction (VS Code handles this)
-
-          From LangGraph:
-            ✅ Explicit graph structure → YAML graph definition file
-            ✅ Typed state → typed YAML artifacts between steps
-            ✅ Checkpoint/resume → git tags (already exists)
-            ✅ Conditional edges → handoff conditions
-            ❌ StateGraph runtime (requires Python)
-            ❌ Durable execution runtime (requires server)
-
-          From Anthropic's guide:
-            ✅ All 5 workflow patterns (we already use most)
-            ✅ Simplicity principle (reduce agent instructions)
-            ✅ Tool documentation > prompt engineering
-            ✅ Orchestrator-workers for complex tasks
-            ✅ Evaluator-optimizer for code review
-
-          RECOMMENDED HYBRID:
-            1. Agent definitions: CrewAI simplicity (role/goal + 10-15 key rules)
-            2. Orchestration: LangGraph-inspired YAML graph definition
-            3. State: File-based typed YAML artifacts (no SQLite)
-            4. Transitions: VS Code native handoffs (AutoGen Swarm pattern)
-            5. Tool restriction: VS Code native 'tools' YAML field
-            6. Verification: Inline completion contracts + adversarial review
-            7. Complexity scaling: AutoGen progressive (3 agents for 🟢, 9 for 🔴)
-        evidence:
-          - "VS Code .agent.md supports: tools, handoffs, agents fields natively"
-          - "CrewAI role/goal/backstory: proven effective with 3 fields"
-          - "LangGraph StateGraph: explicit graph can be expressed as YAML"
-          - "AutoGen Swarm ≈ VS Code handoffs"
-          - "Anthropic guide: 'simplest solution possible'"
-        relevance: "This is the synthesis recommendation. No single framework translates perfectly, but the combination of CrewAI's simplicity + LangGraph's graph structure + AutoGen's handoffs + VS Code's native features could reduce the system from 6,400 lines to ~800-1,200 lines while preserving all proven-value patterns."
-
-      - id: "F-28"
-        title: "File count comparison: 19 files vs framework equivalents of 3-8 files"
-        category: "comparative"
-        detail: |
-          Number of configuration/instruction files per framework:
-
-          CREWAI (typical crew):
-            - agents.yaml: agent definitions (~20-40 lines)
-            - tasks.yaml: task definitions (~20-40 lines)
-            - crew.py: crew composition (~30-50 lines)
-            - main.py: flow orchestration (~40-60 lines)
-            Total: 4 files, ~110-190 lines
-
-          AUTOGEN (typical team):
-            - main.py: agents + team + termination (~30-60 lines)
-            Total: 1 file for simple teams, 2-3 for complex multi-team setups
-
-          LANGGRAPH (typical workflow):
-            - graph.py: state + nodes + edges (~40-80 lines)
-            - tools.py: tool definitions (varies)
-            Total: 2-3 files
-
-          OUR SYSTEM:
-            - 9 agent .agent.md files
-            - 10 reference document .md files
-            Total: 19 files, 6,416 lines
-
-          The ratio: we use 4-19x more files and 34-58x more lines than frameworks
-          for comparable orchestration capability.
-
-          However, frameworks use CODE files while we use INSTRUCTION files.
-          Code is more concise but requires a runtime. Our instructions are
-          self-contained but verbose. The question is: can we get framework-level
-          conciseness with instruction files?
-
-          ANSWER: Probably ~1,200 lines across 10-12 files is achievable — a 5x
-          reduction from current but still 6x above framework code. The gap
-          represents the inherent verbosity cost of natural language vs code.
-        evidence:
-          - "CrewAI project structure: agents.yaml + tasks.yaml + crew.py + main.py"
-          - "AutoGen quickstart: single file for agent + team"
-          - "LangGraph README: ~20 lines for complete workflow"
-          - "Our system: 19 files, 6,416 lines"
-        relevance: "Establishes the realistic reduction target. We can't match code-based frameworks for conciseness, but we can close the gap from 58x to ~6x by eliminating unnecessary reference documents and simplifying agent instructions."
-
-      - id: "F-29"
-        title: "Error handling: framework patterns vs our 143-line global rules + 936-line SQL"
-        category: "comparative"
-        detail: |
-          Error handling patterns across frameworks:
-
-          CREWAI:
-            - guardrail_max_retries on tasks (default: 3)
-            - Exception handling in guardrail functions
-            - Agent max_retry_limit (default: 2)
-            - Context window auto-summarization (respect_context_window)
-            Total error handling config: ~3-4 parameters per task/agent
-
-          AUTOGEN:
-            - CancellationToken for abort
-            - ExternalTermination for stop
-            - Team reset/resume for recovery
-            - Built-in retry via team loop
-            Total: termination conditions cover error cases implicitly
-
-          LANGGRAPH:
-            - Checkpoint-and-resume: automatic recovery from failures
-            - Conditional edges for error routing
-            - Node-level exception handling
-            Total: error handling is part of graph topology
-
-          OUR SYSTEM:
-            - global-operating-rules.md: 143 lines (retry policy, SQLITE_BUSY, etc.)
-            - sql-templates.md: 936 lines (evidence tracking for error conditions)
-            - Each agent: 5-15 error-handling rules in self-verification checklists
-            - Bounded feedback loops: max iteration limits
-            - Completion contract: DONE/NEEDS_REVISION/ERROR status
-            Total: ~200+ lines of error-handling instructions + 936 lines SQL
-
-          KEY INSIGHT: Frameworks handle errors in the RUNTIME. We handle errors in
-          INSTRUCTIONS because we have no runtime. This is the fundamental cost of
-          building a multi-agent system in natural language — error handling that a
-          runtime provides for free must be specified manually.
-
-          PRAGMATIC SIMPLIFICATION:
-            - Keep completion contracts (proven effective)
-            - Keep bounded feedback loops (security requirement per D-14)
-            - Remove SQLITE_BUSY handling (remove SQLite)
-            - Remove evidence gate SQL error handling (remove evidence gates)
-            - Use file-based artifacts for error state instead of SQL
-            Potential reduction: ~1,000 lines eliminated
-        evidence:
-          - "CrewAI: guardrail_max_retries=3, max_retry_limit=2"
-          - "AutoGen: CancellationToken, ExternalTermination"
-          - "LangGraph: checkpoint-and-resume"
-          - "NewAgents/.github/agents/global-operating-rules.md — 143 lines"
-        relevance: "Our error handling verbosity is a direct consequence of lacking a runtime. Removing SQLite eliminates the largest error-handling burden (SQLITE_BUSY, sanitization, evidence gate failures). File-based artifacts with git-based recovery provides equivalent safety with ~1,000 fewer lines."
+          - "docs/feature/agent-system-refactor/research/architecture.yaml — 150-line per-agent hard limit (v2 convention)"
+          - "repo memory: 'Orchestrator line budget management with hybrid strategy' — extract to reference docs when approaching limit"
+          - "v2/.github/agents/orchestrator.agent.md — already the densest agent with DAG algorithm, 8 pipeline steps, constraints"
+        relevance: "Critical planning constraint. The architect must use a hybrid strategy (inline simple changes, extract complex additions) to stay within budget."
 
     summary: |
-      ROUND 2 UPDATE — Comparative Framework Analysis Added (F-17 through F-29)
-
-      The original 16 findings established: 6,416-line system, SQLite in 12/19 files, 
-      5 pipeline runs with 0 failures but growing complexity, unused VS Code platform 
-      features, cross-reference fragility as #1 Critical finding source.
-
-      The comparative analysis (13 new findings) reveals:
-
-      1. SIZE DIFFERENTIAL: Our system is 24-107x larger than equivalent framework 
-         definitions. CrewAI defines agents in 5 lines; ours take 188-386 lines. 
-         LangGraph defines a workflow in 20 lines; our orchestrator takes 358 lines. 
-         Total system: 6,416 lines vs framework equivalents of 110-400 lines.
-
-      2. STATE MANAGEMENT OVERHEAD: Our 1,100+ lines of SQLite infrastructure 
-         (sql-templates.md + DDL + SQLITE_BUSY handling) is 110-1100x more verbose 
-         than framework alternatives. Evidence gates have never caught a failure.
-
-      3. INSTRUCTION LENGTH RESEARCH: Academic research (Lost in the Middle, 
-         LongICLBench, IFEval) shows LLM instruction-following degrades with length. 
-         Our 188-386 line agent files are in a degradation zone (~70-85% compliance). 
-         Reducing to 50-100 lines could improve reliability by 10-25%.
-
-      4. ANTHROPIC'S RECOMMENDATION: The company behind Claude explicitly says 
-         'the most successful implementations use simple, composable patterns rather 
-         than complex frameworks.' Our 6,400-line system contradicts this guidance.
-
-      5. BEST FIT FOR VS CODE: A hybrid of CrewAI's simplicity + LangGraph's graph 
-         structure + AutoGen's handoffs + VS Code native features could achieve 
-         ~800-1,200 lines total — an 81-88% reduction while preserving all proven 
-         patterns (typed contracts, adversarial review, risk classification, TDD).
-
-      6. REALISTIC TARGET: ~1,200 lines across 10-12 files (vs current 6,416 lines 
-         across 19 files). This represents the natural language verbosity floor — 
-         still 6x above code-based frameworks but 5x below current system.
-      The current agent system totals 6,416 lines across 19 files, having grown through 5 pipeline 
-      improvement cycles without ever simplifying. The system works reliably (0 functional failures 
-      across all runs) but has accumulated significant complexity debt: 1,422-line schemas.md, 
-      936-line sql-templates.md, 671-line e2e-integration.md, and SQLite coupling across 12 of 19 
-      files. Evidence gates have never caught a real failure, while cross-file references are the #1 
-      source of Critical review findings. The VS Code platform provides native tool restrictions, 
-      handoffs, hooks, and skills that could replace much of the manual instruction infrastructure. 
-      Three system generations coexist in the repo. Key patterns to preserve: typed YAML contracts, 
-      adversarial code review, parallel research, TDD cycle, risk classification. Key areas to 
-      simplify: SQLite evidence infrastructure, 14-schema type system, cross-reference chains, 
-      centralized reference documents. The user explicitly asked to challenge the status quo.
-
-    web_research:
-      # === ROUND 1 sources ===
-      - url: "https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot"
-        topic: "GitHub Copilot custom instructions format — .instructions.md, copilot-instructions.md, AGENTS.md"
-        key_findings: "Three instruction types: repository-wide (.github/copilot-instructions.md), path-specific (.github/instructions/NAME.instructions.md with applyTo frontmatter), agent instructions (AGENTS.md). Copilot also detects .claude/agents/ format."
-      - url: "https://code.visualstudio.com/docs/copilot/customization/custom-agents"
-        topic: "VS Code custom agent .agent.md format"
-        key_findings: "YAML frontmatter supports: name, description, tools (array), agents (subagent list), model, user-invocable, disable-model-invocation, handoffs (label, agent, prompt, send, model). Body is freeform Markdown. VS Code detects .md files in .github/agents/. Native tool restriction via 'tools' field is available but unused by current system."
-      - url: "https://code.visualstudio.com/docs/copilot/copilot-customization"
-        topic: "VS Code AI customization overview"
-        key_findings: "Seven customization categories: Instructions, Skills, Prompt Files, Custom Agents, MCP, Hooks, Agent Plugins. Skills are an open standard (agentskills.io). Hooks enable deterministic lifecycle automation. Prompt files for reusable tasks as slash commands."
-      - url: "https://github.blog/engineering/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/"
-        topic: "GitHub engineering principles for reliable multi-agent systems"
-        key_findings: "Three patterns: typed schemas, action schemas, MCP enforcement. Design principles: failure-first, validate boundaries, constrain actions before adding agents, log intermediate state, treat as distributed systems. Emphasis on simplicity and constraint over complexity."
-      # === ROUND 2 sources (comparative framework analysis) ===
-      - url: "https://docs.crewai.com/en/concepts/agents"
-        topic: "CrewAI agent definition — role, goal, backstory, tools, YAML config"
-        key_findings: "Agents require 3 fields: role, goal, backstory. ~5 lines YAML per agent. Optional: llm, tools, memory, reasoning, max_iter, knowledge_sources. YAML config recommended. Agents can use kickoff() for direct interaction, support multimodal, date injection, and code execution modes."
-      - url: "https://docs.crewai.com/en/concepts/tasks"
-        topic: "CrewAI task definition — description, expected_output, guardrails, structured output"
-        key_findings: "Tasks have description + expected_output + agent. Guardrails: function-based (validate → bool,result) and LLM-based (string descriptions). Multiple guardrails chain sequentially. Structured output via output_pydantic or output_json. Context attribute for task dependencies."
-      - url: "https://docs.crewai.com/en/concepts/flows"
-        topic: "CrewAI Flows — @start/@listen/@router decorators, state management, persistence"
-        key_findings: "Event-driven orchestration via decorators. Pydantic state management. @persist decorator for SQLite persistence (optional). @router for conditional branching. @human_feedback for approval gates. and_/or_ combinators for multi-source triggers. Memory via remember/recall/extract_memories."
-      - url: "https://microsoft.github.io/autogen/stable/"
-        topic: "AutoGen framework overview — AgentChat, Core, Studio, Extensions"
-        key_findings: "Four layers: Studio (no-code UI), AgentChat (multi-agent programming), Core (event-driven scalable), Extensions (MCP, code executors, gRPC). AssistantAgent: name + model + tools + system_message. Team presets: RoundRobin, Selector, MagenticOne, Swarm."
-      - url: "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html"
-        topic: "AutoGen Teams — RoundRobin, Swarm, Selector, termination, state management"
-        key_findings: "Teams share context. RoundRobinGroupChat for turn-based collaboration. Swarm uses HandoffMessage for agent transitions (comparable to VS Code handoffs). Termination via TextMention, External, or custom conditions. Stateful: resume/reset/abort. Single-agent team for tool loops."
-      - url: "https://github.com/langchain-ai/langgraph"
-        topic: "LangGraph — graph-based agent orchestration, StateGraph, durable execution"
-        key_findings: "Low-level orchestration framework. StateGraph with TypedDict state. Nodes = functions, edges = transitions. 25.9k stars, 36.5k dependents. Durable execution, human-in-the-loop, checkpoint-based memory. Inspired by Google Pregel. ~20 lines for complete workflow."
-      - url: "https://www.anthropic.com/engineering/building-effective-agents"
-        topic: "Anthropic's guide — workflow patterns, simplicity principle, agent design"
-        key_findings: "5 workflow patterns + 1 agent pattern. Key quotes: 'simplest solution possible', 'most successful implementations use simple composable patterns', 'start by using LLM APIs directly'. Orchestrator-workers for complex tasks. Evaluator-optimizer for iterative refinement. Tool documentation > prompt engineering."
-      - url: "https://arxiv.org/abs/2307.03172"
-        topic: "Lost in the Middle — LLM performance with long contexts (TACL 2023)"
-        key_findings: "Performance degrades when relevant information is in the middle of long contexts. U-shaped attention: start and end positions privileged. Even explicitly long-context models affected. Direct implication for 188-386 line agent instruction files."
-      - url: "https://arxiv.org/abs/2404.02060"
-        topic: "Long-context LLMs Struggle with Long In-context Learning (2024)"
-        key_findings: "LLMs perform well on simpler tasks with shorter demos. Struggle with 28-174 label classification at 2K-50K tokens. Bias toward labels presented later. Gap in processing long context-rich sequences. Challenges our 1,422-line schemas.md approach."
-      - url: "https://arxiv.org/abs/2311.07911"
-        topic: "IFEval — Instruction-Following Evaluation for LLMs (Google, 2023)"
-        key_findings: "Benchmark for verifiable instruction following. Models struggle with multiple simultaneous constraints. Relevant to our agents having 10-20 rules each to follow simultaneously."
+      Impact analysis of 10 proposed v2 improvements reveals a clear dependency structure
+      and risk gradient. The tool name fix (F-2) is CRITICAL and must be Wave 1 — without
+      it, v2's entire security and trust model is unenforced. Git command restriction (F-5)
+      and autocommit removal (F-6) are high-value safety fixes with low implementation risk.
+      Interactive features (F-3, F-4) and TDD practices (F-10) are low-risk additive changes.
+      E2E skill setup (F-1) and exploratory QA (F-9) are the highest-complexity items with
+      significant dependencies. The orchestrator's line budget is the primary planning
+      constraint — 5 of 10 improvements touch it, requiring a hybrid strategy of inline
+      changes and reference document extraction. Web research from Playwright docs, Martin
+      Fowler's TDD guide, git-scm.com, and GitHub Copilot documentation confirms the
+      proposed improvements align with established practices.
 
     source_files_examined:
-      # Round 1 — codebase files
-      - "NewAgents/.github/agents/orchestrator.agent.md"
-      - "NewAgents/.github/agents/verifier.agent.md"
-      - "NewAgents/.github/agents/implementer.agent.md"
-      - "NewAgents/.github/agents/planner.agent.md"
-      - "NewAgents/.github/agents/spec.agent.md"
-      - "NewAgents/.github/agents/designer.agent.md"
-      - "NewAgents/.github/agents/researcher.agent.md"
-      - "NewAgents/.github/agents/knowledge-agent.agent.md"
-      - "NewAgents/.github/agents/adversarial-reviewer.agent.md"
-      - "NewAgents/.github/agents/schemas.md"
-      - "NewAgents/.github/agents/sql-templates.md"
-      - "NewAgents/.github/agents/e2e-integration.md"
-      - "NewAgents/.github/agents/dispatch-patterns.md"
-      - "NewAgents/.github/agents/tool-access-matrix.md"
-      - "NewAgents/.github/agents/global-operating-rules.md"
-      - "NewAgents/.github/agents/evaluation-schema.md"
-      - "NewAgents/.github/agents/review-perspectives.md"
-      - "NewAgents/.github/agents/severity-taxonomy.md"
-      - "NewAgents/.github/agents/context7-integration.md"
-      - "docs/feature/agent-system-overhaul/evidence-bundle.md"
-      - "docs/feature/behavioral-correctness-enforcement/evidence-bundle.md"
-      - "docs/feature/tdd-e2e-enforcement/evidence-bundle.md"
-      - "docs/feature/agent-pipeline-improvements/evidence-bundle.md"
-      - "docs/feature/next-gen-multi-agent-system/initial-request.md"
-      - "Forge/.github/agents/ (28 files — line counts measured)"
-      - ".github/agents/ (19 files — line counts measured)"
-      # Round 2 — external framework documentation (web research)
-      - "https://docs.crewai.com/en/concepts/agents (CrewAI agent definition)"
-      - "https://docs.crewai.com/en/concepts/tasks (CrewAI task guardrails)"
-      - "https://docs.crewai.com/en/concepts/flows (CrewAI orchestration flows)"
-      - "https://microsoft.github.io/autogen/stable/ (AutoGen framework overview)"
-      - "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html (AutoGen teams)"
-      - "https://github.com/langchain-ai/langgraph (LangGraph README + StateGraph API)"
-      - "https://www.anthropic.com/engineering/building-effective-agents (Anthropic agent design guide)"
-      - "https://arxiv.org/abs/2307.03172 (Lost in the Middle — long context performance)"
-      - "https://arxiv.org/abs/2404.02060 (LongICLBench — long in-context learning)"
-      - "https://arxiv.org/abs/2311.07911 (IFEval — instruction-following evaluation)"
+      - "v2/.github/agents/orchestrator.agent.md"
+      - "v2/.github/agents/architect.agent.md"
+      - "v2/.github/agents/researcher.agent.md"
+      - "v2/.github/agents/planner.agent.md"
+      - "v2/.github/agents/implementer.agent.md"
+      - "v2/.github/agents/tester.agent.md"
+      - "v2/.github/agents/reviewer.agent.md"
+      - "v2/.github/agents/knowledge.agent.md"
+      - "v2/.github/agents/global-rules.md"
+      - "docs/feature/agent-system-refactor/initial-request.md"
+      - "docs/feature/agent-system-refactor/research/architecture.yaml"
+
+    web_research_used: true
+    web_sources_consulted:
+      - url: "https://playwright.dev/docs/intro"
+        topic: "Playwright E2E test setup requirements — installation, browser binaries, project configuration"
+      - url: "https://playwright.dev/docs/test-components"
+        topic: "Playwright component testing — mount/unmount, interaction patterns for exploratory testing"
+      - url: "https://git-scm.com/docs/git-add"
+        topic: "git add -A behavior — stages entire working tree, race condition risk in parallel agents"
+      - url: "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+        topic: "TDD Red-Green-Refactor — Fowler confirms refactoring is the most commonly neglected step"
+      - url: "https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-custom-agents"
+        topic: "GitHub Copilot custom agents — agent profile format, tools, subagent patterns"
+      - url: "https://docs.github.com/en/copilot/customizing-copilot"
+        topic: "Copilot customization — context provision, MCP integration, repository instructions"
+      - url: "https://docs.github.com/en/copilot"
+        topic: "GitHub Copilot documentation index — agent skills, agent management, agentic memory"
 
 completion:
   status: "DONE"
-  summary: "Impact research R2: 29 findings (16 original + 13 comparative). CrewAI/AutoGen/LangGraph comparison shows 24-107x size differential. Anthropic recommends simplicity. Research shows instruction-following degrades at our file lengths. Realistic reduction target: ~1,200 lines across 10-12 files (81% reduction)."
+  summary: "Impact analysis: 12 findings across 10 improvements. F-2 (tool names) is P0 CRITICAL. Orchestrator line budget is primary planning constraint."
   severity: null
-  findings_count: 29
+  findings_count: 12
   risk_level: null
   output_paths:
     - "docs/feature/agent-system-refactor/research/impact.yaml"

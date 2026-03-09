@@ -1,0 +1,108 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-07"
+  step: "step-6"
+  started_at: "2026-03-09T19:00:00Z"
+  completed_at: "2026-03-09T19:10:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-07"
+    run_id: "2026-03-09T18:00:00Z"
+    evidence_gate:
+      total_checks: 5
+      passed: 5
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-09T18-00-00Z:v2/.github/agents/reviewer.agent.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline matches implementation report claims: 8 namespace/tool format tools, no user-invocable field, git diff|add|status in audit. No discrepancies found."
+
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "get_errors on v2/.github/agents/reviewer.agent.md: No errors found. Baseline had 0 errors. No new errors introduced."
+
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file with YAML frontmatter: structural validity confirmed. Frontmatter delimiters (---) present at lines 1 and 14. YAML block parses correctly (8 tools, 5 fields). Body content valid markdown."
+
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          All 3 ACs use test_method=inspection (EC-2 fallback accepted).
+          AC-4-rev: grep for / in frontmatter tools — zero namespace/tool instances, all 8 flat camelCase.
+          AC-7-rev: user-invocable: false confirmed at line 4.
+          FR-5-rev-audit: git diff|status at line 89 (git add removed), Major flagging for git add/commit present.
+
+      - check_name: "tdd-compliance"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "EC-2 TDD fallback: All 3 ACs use test_method=inspection. Modified file is reviewer.agent.md (markdown agent definition). No production source code, no test framework. tdd_fallback_reason accepted."
+
+    regressions: []
+
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-09T18-00-00Z:v2/.github/agents/reviewer.agent.md"
+      discrepancies_found: false
+
+    verification_details:
+      file_line_count: 97
+      line_budget: 150
+      line_budget_passed: true
+      ac_results:
+        - id: "AC-4-rev"
+          description: "All tool names in reviewer YAML frontmatter use flat camelCase"
+          passed: true
+          evidence: "8 tools listed: readFile, listDirectory, textSearch, codebase, fileSearch, problems, changes, createFile. Zero namespace/tool format (no / in frontmatter). Baseline had read/readFile, search/listDirectory, etc."
+
+        - id: "AC-7-rev"
+          description: "Reviewer has user-invocable: false in YAML frontmatter"
+          passed: true
+          evidence: "Line 4: user-invocable: false. Baseline did not have this field."
+
+        - id: "FR-5-rev-audit"
+          description: "Command audit updated: git diff|status only, git add flagged as Major"
+          passed: true
+          evidence: >
+            Line 89 command allowlist now reads: git diff|status (baseline had: git diff|add|status).
+            Explicit Major finding text present: 'If git add or git commit appears in implementer
+            commands_executed[], flag as a Major finding: Implementer executed git add — violates
+            selective staging rule (D-5). Only the orchestrator may stage/commit.'
+
+completion:
+  status: "DONE"
+  summary: "Verified task-07: 5 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/verification-reports/task-07.yaml"
+  evidence_summary:
+    total_checks: 5
+    passed: 5
+    failed: 0
+    security_blockers: 0

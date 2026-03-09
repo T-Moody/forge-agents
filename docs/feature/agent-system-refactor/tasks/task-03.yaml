@@ -1,57 +1,59 @@
 task:
   id: "task-03"
-  title: "Create researcher.agent.md"
+  title: "Update implementer.agent.md — Git Safety + TDD Refactor"
   description: >
-    Create v2/.github/agents/researcher.agent.md (~100 lines). The Researcher is a
-    Tier 3 read-only agent that performs parallel codebase and web research. It is
-    dispatched 2-4 times in parallel by the orchestrator, each with a distinct focus area
-    (architecture, impact, dependencies, patterns). Uses the standard 6-section body
-    format (Role, Inputs, Workflow, Output Schema, Constraints, Anti-Drift Anchor).
-    YAML frontmatter must include: name, description, tools (read_file, list_dir,
-    grep_search, semantic_search, file_search, fetch_webpage, create_file), agents: [].
-    Output schema: structured YAML with findings list, each finding having id, title,
-    source, relevance, and detail. Completion contract inline.
-    fetch_webpage is included in tools list with instruction-level toggle: use only
-    when web_research_enabled=true (per D-10).
+    Modify v2/.github/agents/implementer.agent.md (currently 99 lines → estimated 115).
+    Five change areas:
+    (1) FR-2: Fix all 10 frontmatter tool names to flat camelCase.
+    (2) FR-2.4: Add user-invocable: false to YAML frontmatter.
+    (3) FR-5: Remove step 6 (git add -A) from workflow entirely. Remove 'git add'
+    from command allowlist, keeping only 'git diff' and 'git status'.
+    (4) FR-10: Change TDD cycle from RED-GREEN-REPORT to RED-GREEN-REFACTOR-REPORT.
+    Add bounded REFACTOR step: only refactor files in task.files[], only extract
+    duplicates with >=3 occurrences, only rename for clarity. REFACTOR re-runs tests;
+    revert on failure.
+    (5) FR-10: Add code quality principles to constraints: YAGNI, KISS, DRY, prefer
+    functional patterns, avoid over-engineering, maintain lint compatibility, write
+    minimal code to pass tests.
   agent: "implementer"
   size: "Standard"
-  risk: "🟢"
+  risk: "🟡"
   depends_on: ["task-01"]
   acceptance_criteria:
-    - id: "AC-2"
-      text: "File does not exceed 150 lines (budget: 100)"
-      test_method: "test"
-    - id: "AC-5"
-      text: "YAML frontmatter contains name, description, and tools fields"
+    - id: "AC-4-impl"
+      text: "All tool names in implementer YAML frontmatter use flat camelCase. Zero namespace/tool format instances"
       test_method: "inspection"
-    - id: "AC-7"
-      text: "YAML frontmatter has agents: [] (no subagent access)"
+    - id: "AC-7-impl"
+      text: "Implementer has user-invocable: false in YAML frontmatter"
       test_method: "inspection"
-    - id: "AC-19"
-      text: "Tools list includes fetch_webpage"
+    - id: "AC-12"
+      text: "Implementer workflow does NOT contain 'git add -A', 'git add .', or 'git commit'. Command allowlist permits only git diff and git status"
       test_method: "inspection"
-    - id: "AC-22"
-      text: "Output Schema section includes completion contract (status/summary/output_paths)"
+    - id: "AC-24"
+      text: "Implementer workflow includes REFACTOR step between GREEN and REPORT, bounded to task files[] only"
       test_method: "inspection"
-    - id: "AC-18"
-      text: "File contains zero § cross-references"
-      test_method: "test"
-    - id: "AC-8"
-      text: "File contains zero sqlite/sqlite3/verification-ledger/sql-templates references"
-      test_method: "test"
-  workflow_lane: "unit-only"
+    - id: "AC-25"
+      text: "Implementer constraints lists: YAGNI, KISS, DRY, prefer functional patterns, avoid over-engineering, minimal code, lint compatibility"
+      test_method: "inspection"
+    - id: "AC-26"
+      text: "REFACTOR step requires re-running tests and reverting if tests fail after refactoring"
+      test_method: "inspection"
+    - id: "AC-27-impl"
+      text: "Implementer agent file remains under 150 lines after changes (estimated 115)"
+      test_method: "inspection"
+  workflow_lane: "unit-integration"
   e2e_required: false
   e2e_contract_path: null
   relevant_context:
     design_sections:
-      - "design-output.yaml#payload.component_design[agent='researcher']"
-      - "design-output.yaml#payload.decisions[id='D-3']"
-      - "design-output.yaml#payload.decisions[id='D-10']"
-      - "design-output.yaml#payload.trust_boundary_model.tier_3_read_only_create"
+      - "design-output.yaml#payload.decisions[id='D-1']"
+      - "design-output.yaml#payload.decisions[id='D-2']"
+      - "design-output.yaml#payload.tool_name_corrections.implementer"
+      - "design-output.yaml#payload.file_inventory[path='v2/.github/agents/implementer.agent.md']"
     spec_requirements:
-      - "spec-output.yaml#payload.functional_requirements[id='FR-4']"
-      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
-      - "spec-output.yaml#payload.functional_requirements[id='FR-13']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-10']"
     files_to_modify:
-      - path: "v2/.github/agents/researcher.agent.md"
-        risk: "🟢"
+      - path: "v2/.github/agents/implementer.agent.md"
+        risk: "🟡"

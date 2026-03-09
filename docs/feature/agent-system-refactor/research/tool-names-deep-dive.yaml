@@ -1,0 +1,408 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-tool-names-deep-dive"
+  step: "step-1"
+  started_at: "2026-03-09T19:00:00Z"
+  completed_at: "2026-03-09T19:30:00Z"
+  schema_version: "1.0"
+  payload:
+    focus: "tool-names-verification"
+    findings:
+      - id: "F-1"
+        title: "All v2 tool names use invalid namespace/tool format — silently ignored"
+        category: "critical-security"
+        detail: |
+          The v2 agent system uses a `namespace/toolName` format (e.g., `read/readFile`,
+          `edit/createFile`, `execute/runInTerminal`) that does NOT exist in VS Code's
+          tool system. Per official docs, built-in tools use flat camelCase names:
+          `readFile`, `createFile`, `runInTerminal`, `editFiles`, etc.
+
+          The VS Code docs explicitly state:
+          "If a given tool is not available when using the custom agent, it is ignored."
+
+          This means EVERY tool restriction in the v2 system is silently non-functional.
+          The agents appear to work because VS Code ignores the unrecognized tool names
+          and falls back to the default tool set (all tools available). The trust model
+          (Tier 1/2/3 tool restrictions) is completely unenforced.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/customization/custom-agents — 'If a given tool is not available when using the custom agent, it is ignored.'"
+          - "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features — Chat tools table lists all built-in tools with flat camelCase names"
+          - "v2/.github/agents/orchestrator.agent.md lines 5-14 — uses read/readFile, edit/createFile, execute/runInTerminal"
+        relevance: "CRITICAL. The entire v2 trust model relies on tool restrictions. With invalid names, all 8 agents have unrestricted tool access — no security boundary enforcement whatsoever."
+
+      - id: "F-2"
+        title: "Official VS Code built-in tool names are flat camelCase"
+        category: "reference"
+        detail: |
+          The complete list of VS Code built-in tools from the official cheat sheet
+          (https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features):
+
+          INDIVIDUAL TOOLS:
+          - changes, codebase, createAndRunTask, createDirectory, createFile,
+            editFiles, editNotebook, extensions, fetch, fileSearch,
+            getNotebookSummary, getProjectSetupInfo, getTaskOutput, getTerminalOutput,
+            githubRepo, installExtension, listDirectory, new, newJupyterNotebook,
+            newWorkspace, openSimpleBrowser, problems, readFile,
+            readNotebookCellOutput, runCell, runInTerminal, runSubagent, runTask,
+            runTests, runVscodeCommand, searchResults, selection, terminalLastCommand,
+            terminalSelection, testFailure, textSearch, todos, usages, VSCodeAPI
+
+          TOOL SETS (groups of related tools):
+          - edit — Enable modifications in the workspace
+          - search — Enable searching for files in the current workspace
+          - read — (implied from official examples, e.g., tools: ['agent', 'read', 'search', 'edit'])
+          - browser — Interact with integrated browser (experimental)
+          - runCommands — Enable running commands in terminal and reading output
+          - runNotebooks — Enable running notebook cells
+          - runTasks — Enable running tasks and reading output
+
+          SPECIAL:
+          - agent — Enables subagent dispatch (allows AI to use runSubagent)
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features — 'Chat tools' section with full table"
+          - "https://code.visualstudio.com/docs/copilot/agents/agent-tools — tool sets section with example: {tools: ['changes', 'codebase', 'problems', 'usages']}"
+        relevance: "This is the authoritative tool name reference. All v2 agents must use these exact names."
+
+      - id: "F-3"
+        title: "Tool sets are shorthand aliases for groups of tools"
+        category: "pattern"
+        detail: |
+          VS Code supports 'tool sets' — named groups of tools referenced as a single
+          entity. From the docs:
+          - `edit` is a tool set (marked as 'tool set' in the reference table)
+          - `search` is a tool set
+          - `read` is a tool set (used in official examples)
+          - `runCommands` is a tool set
+          - `runTasks` is a tool set
+          - `browser` is a tool set (experimental)
+          - `runNotebooks` is a tool set
+
+          Official examples from the subagents doc consistently use tool sets:
+            tools: ['agent', 'read', 'search', 'edit']
+            tools: ['agent', 'edit', 'search', 'read']
+            tools: ['read', 'search']
+
+          Tool sets can also be custom-defined in a .jsonc file. Example from docs:
+          {
+            "reader": {
+              "tools": ["changes", "codebase", "problems", "usages"],
+              "description": "Tools for reading and gathering context"
+            }
+          }
+
+          When a tool set is listed in an agent's tools array, ALL tools in that set
+          become available. This is important for fine-grained security — if you list
+          `edit` tool set, the agent gets editFiles AND createFile AND createDirectory.
+          For tighter restrictions, list individual tool names instead.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/agents/agent-tools — 'Group tools with tool sets' section"
+          - "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features — '#edit (tool set)', '#search (tool set)' in Chat tools table"
+          - "https://code.visualstudio.com/docs/copilot/agents/subagents — Coordinator pattern example: tools: ['agent', 'edit', 'search', 'read']"
+        relevance: "Tool sets simplify agent definitions but reduce granularity. The v2 trust model requires individual tool names for precise security boundaries."
+
+      - id: "F-4"
+        title: "The 'agent' tool enables subagent dispatch; 'runSubagent' is the actual tool"
+        category: "pattern"
+        detail: |
+          Two related but distinct tool names:
+          1. `agent` — listed in the tools: array to ENABLE the AI to dispatch subagents.
+             From subagents doc: "To allow the main agent to invoke subagents, make sure
+             the `runSubagent` tool is enabled."
+             But in all official examples, the tools array uses 'agent' not 'runSubagent':
+               tools: ['agent', 'read', 'search', 'edit']
+
+          2. `runSubagent` — the actual built-in tool name listed in the cheat sheet:
+             "#runSubagent — Run a task in an isolated subagent context."
+
+          The relationship: `agent` appears to be a tool set or alias that includes
+          `runSubagent`. Listing either in the tools: array should work.
+
+          The v2 orchestrator correctly uses `agent` (one of the few correct entries).
+          However, the `agents:` frontmatter property (which restricts WHICH agents can
+          be used as subagents) uses the correct format per the docs.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/agents/subagents — 'ensure that the runSubagent or agent tool is included in the tools frontmatter property'"
+          - "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features — '#runSubagent' in Chat tools table"
+          - "v2/.github/agents/orchestrator.agent.md line 14 — correctly uses 'agent'"
+        relevance: "The orchestrator's 'agent' entry is one of the very few correctly-named tools in the v2 system."
+
+      - id: "F-5"
+        title: "Complete mapping of v2 invalid names to correct names"
+        category: "remediation"
+        detail: |
+          Every invalid tool name used across ALL 8 v2 agents, mapped to the correct name:
+
+          INVALID NAME              → CORRECT NAME
+          ─────────────────────────────────────────
+          read/readFile             → readFile
+          edit/createFile           → createFile
+          edit/editFiles            → editFiles
+          search/listDirectory      → listDirectory
+          search/textSearch         → textSearch
+          search/fileSearch         → fileSearch
+          search/codebase           → codebase
+          execute/runInTerminal     → runInTerminal
+          execute/getTerminalOutput → getTerminalOutput
+          web/fetch                 → fetch
+          read/problems             → problems
+          search/changes            → changes
+          vscode/memory             → (no built-in 'memory' tool listed; may need setting enablement)
+          todo                      → todos (plural, per cheat sheet: '#todos')
+
+          CORRECTLY NAMED (no change needed):
+          agent                     → agent ✓
+
+          Total: 13 invalid tool names, 1 possibly invalid ('todo' vs 'todos'),
+          1 correct ('agent'). That's a ~93% error rate in tool restriction names.
+        evidence:
+          - "v2/.github/agents/orchestrator.agent.md lines 5-14"
+          - "v2/.github/agents/implementer.agent.md lines 4-14"
+          - "v2/.github/agents/researcher.agent.md lines 4-11"
+          - "v2/.github/agents/architect.agent.md lines 4-11"
+          - "v2/.github/agents/planner.agent.md lines 4-10"
+          - "v2/.github/agents/reviewer.agent.md lines 4-12"
+          - "v2/.github/agents/tester.agent.md lines 4-13"
+          - "v2/.github/agents/knowledge.agent.md lines 4-11"
+        relevance: "Direct remediation guide — every tool name that must change in every agent file."
+
+      - id: "F-6"
+        title: "Per-agent corrected tool lists"
+        category: "remediation"
+        detail: |
+          Corrected tools: arrays for each v2 agent:
+
+          orchestrator.agent.md:
+            tools: [readFile, createFile, editFiles, listDirectory, textSearch,
+                    fileSearch, runInTerminal, getTerminalOutput, changes, todos, agent]
+
+          implementer.agent.md:
+            tools: [readFile, createFile, editFiles, listDirectory, textSearch,
+                    codebase, fileSearch, runInTerminal, getTerminalOutput, problems]
+
+          researcher.agent.md:
+            tools: [readFile, listDirectory, textSearch, codebase, fileSearch,
+                    fetch, createFile]
+
+          architect.agent.md:
+            tools: [readFile, listDirectory, textSearch, codebase, fileSearch,
+                    fetch, createFile]
+
+          planner.agent.md:
+            tools: [readFile, listDirectory, textSearch, codebase, fileSearch,
+                    createFile]
+
+          reviewer.agent.md:
+            tools: [readFile, listDirectory, textSearch, codebase, fileSearch,
+                    problems, changes, createFile]
+
+          tester.agent.md:
+            tools: [readFile, createFile, listDirectory, textSearch, codebase,
+                    fileSearch, runInTerminal, getTerminalOutput, problems]
+
+          knowledge.agent.md:
+            tools: [readFile, listDirectory, textSearch, codebase, fileSearch,
+                    createFile]
+            Note: vscode/memory has no clear built-in equivalent. The memory feature
+            is controlled by github.copilot.chat.tools.memory.enabled setting, not a
+            tool restriction. May need investigation.
+
+          ALTERNATIVE (using tool sets for brevity):
+          orchestrator: tools: [read, search, edit, runCommands, changes, todos, agent]
+          implementer: tools: [read, search, edit, runCommands, problems]
+          researcher: tools: [read, search, fetch, createFile]
+          ...
+          Note: Tool sets are coarser-grained; individual names give tighter security.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features — complete built-in tools list"
+          - "All 8 v2/.github/agents/*.agent.md files (frontmatter sections)"
+        relevance: "Ready-to-apply corrected tool lists for the implementer to use when fixing the v2 agents."
+
+      - id: "F-7"
+        title: "Silent failure explains why v2 agents 'appear to work'"
+        category: "risk"
+        detail: |
+          The user observed that v2 agents "show as working in VS Code." This is
+          explained by the silent-ignore behavior documented in the official docs:
+
+          "If a given tool is not available when using the custom agent, it is ignored."
+          (Source: custom-agents doc, Header section note)
+
+          When ALL tool names in the tools: array are invalid, VS Code ignores ALL of
+          them. The resulting behavior is equivalent to having NO tools: restriction at
+          all — the agent gets the default tool set (all available tools).
+
+          This means:
+          1. The researcher can use editFiles (should be read-only)
+          2. The reviewer can use runInTerminal (should have no execute access)
+          3. The knowledge agent can use runInTerminal (should be analysis-only)
+          4. ALL agents can use fetch (exfiltration risk for Tier 2/3 agents)
+          5. The trust model (Tier 1 Full Trust, Tier 2 Standard, Tier 3 Read-Only)
+             is completely unenforced
+
+          The agents function correctly because the AI model still follows the
+          natural-language instructions in the agent body. But tool restrictions are
+          a defense-in-depth mechanism — relying solely on prompt instructions for
+          security is insufficient against prompt injection or instruction drift.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/customization/custom-agents — 'If a given tool is not available when using the custom agent, it is ignored.'"
+          - "v2/.github/agents/researcher.agent.md — lists web/fetch, read/readFile etc. (all invalid → all ignored → all tools available)"
+        relevance: "CRITICAL. This is the root cause of the false sense of security. The agents work, but the security boundaries are illusory."
+
+      - id: "F-8"
+        title: "The 'agents' frontmatter property restricts which subagents can be used"
+        category: "pattern"
+        detail: |
+          The subagents doc introduces the `agents:` frontmatter property (separate from
+          `tools:`):
+
+          agents: ['Red', 'Green', 'Refactor']  — only these agents can be subagents
+          agents: '*'                            — all agents allowed (default)
+          agents: []                             — no subagent use
+
+          The v2 orchestrator correctly uses this:
+            agents: [researcher, architect, planner, implementer, tester, reviewer, knowledge]
+
+          And worker agents correctly set:
+            agents: []
+
+          This part of the v2 system IS correctly implemented.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/agents/subagents — 'Restrict which subagents can be used (Experimental)'"
+          - "v2/.github/agents/orchestrator.agent.md lines 16-23 — agents list"
+          - "v2/.github/agents/implementer.agent.md line 15 — agents: []"
+        relevance: "The agents: property works correctly in v2. Only the tools: property has the naming issue."
+
+      - id: "F-9"
+        title: "No namespace/prefix format exists in VS Code tool system"
+        category: "reference"
+        detail: |
+          Exhaustive search of the official documentation confirms NO namespace/prefix
+          format (e.g., `read/readFile`, `edit/createFile`) exists in VS Code's tool
+          system. The only prefix-like format is for MCP servers:
+
+          "To include all tools of an MCP server, use the <server name>/* format."
+
+          This is for MCP server tools ONLY, not built-in tools. The format is
+          `serverName/*` (wildcard to include all tools from that server), not
+          `namespace/toolName`.
+
+          The v2 system's `read/readFile` format appears to be an invention — possibly
+          inspired by a categorization scheme someone created for documentation purposes,
+          but it is not recognized by VS Code as a valid tool identifier.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/customization/custom-agents — tools description: 'To include all tools of an MCP server, use the <server name>/* format'"
+          - "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features — NO tool uses slashes in its name"
+          - "https://code.visualstudio.com/docs/copilot/agents/agent-tools — tool set examples use flat names only"
+        relevance: "Definitively answers the question: namespace/tool format is NOT valid for built-in tools. Only MCP servers use a prefix/* format."
+
+      - id: "F-10"
+        title: "Skills (SKILL.md) are a separate system from tools — not referenced in tools: array"
+        category: "reference"
+        detail: |
+          Agent Skills (SKILL.md files) are a distinct mechanism from tools:
+          - Skills are stored in .github/skills/, .claude/skills/, .agents/skills/
+          - Skills are invoked via / slash commands or auto-loaded by relevance
+          - Skills are NOT listed in the tools: frontmatter property
+          - Skills have their own frontmatter: name, description, user-invocable,
+            disable-model-invocation
+
+          Skills and tools serve different purposes:
+          - Tools: specialized functions (read files, run commands, fetch web content)
+          - Skills: reusable instruction sets with scripts/examples/resources
+
+          The v2 system does not currently use skills, which is fine — they are optional
+          and serve a different purpose than tool restrictions.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/customization/agent-skills — full Agent Skills documentation"
+          - "Agent Skills vs custom instructions comparison table in the docs"
+        relevance: "Clarifies that skills cannot substitute for tool restrictions. The v2 tool naming issue must be fixed in the tools: arrays, not by adding skills."
+
+      - id: "F-11"
+        title: "Claude-format agent files use comma-separated tool strings"
+        category: "reference"
+        detail: |
+          VS Code also supports Claude-format agent files (.claude/agents/*.md) with
+          different tool naming:
+          - tools: "Read, Grep, Glob, Bash" (comma-separated string, not YAML array)
+          - disallowedTools: "..." (Claude-specific inverse restriction)
+          - VS Code maps Claude-specific tool names to VS Code tools automatically
+
+          The v2 system uses .github/agents/ with YAML array format, which is the
+          standard VS Code format. The Claude format is irrelevant here but noted for
+          completeness — VS Code handles both formats with automatic mapping.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/customization/custom-agents — 'Claude agent format' section"
+        relevance: "The v2 system uses the correct file format (.agent.md with YAML arrays). Only the tool name VALUES are wrong, not the structural format."
+
+      - id: "F-12"
+        title: "Handoff property available for workflow transitions between agents"
+        category: "pattern"
+        detail: |
+          The docs introduce a `handoffs:` frontmatter property for guided sequential
+          workflows between agents:
+
+          handoffs:
+            - label: Start Implementation
+              agent: implementation
+              prompt: Now implement the plan outlined above.
+              send: false
+              model: GPT-5.2 (copilot)
+
+          Handoff buttons appear after chat responses complete, enabling transitions.
+          This could be an alternative or supplement to the orchestrator's dispatch
+          mechanism. The v2 system does not currently use handoffs.
+        evidence:
+          - "https://code.visualstudio.com/docs/copilot/customization/custom-agents — 'Handoffs' section"
+        relevance: "Not directly related to the tool naming issue but relevant context for the v2 system's architecture. Handoffs provide UI-driven workflow transitions that could complement programmatic dispatch."
+
+    summary: |
+      CRITICAL FINDING: All 8 v2 agent files use an invalid namespace/toolName format
+      (e.g., read/readFile, edit/createFile, execute/runInTerminal) for tool restrictions.
+      VS Code's official documentation confirms tools use flat camelCase names only
+      (readFile, createFile, runInTerminal). The namespace/prefix format does not exist.
+
+      Because VS Code silently ignores unrecognized tool names ("If a given tool is not
+      available when using the custom agent, it is ignored"), ALL tool restrictions in the
+      v2 system are non-functional. Every agent has unrestricted access to all tools,
+      completely defeating the 3-tier trust model (Tier 1 Full Trust, Tier 2 Standard,
+      Tier 3 Read-Only).
+
+      The agents "appear to work" because: (1) invalid tool names are silently ignored,
+      giving all tools by default, and (2) the AI still follows natural-language
+      instructions in the agent body. But tool restrictions are a defense-in-depth security
+      mechanism — without them, the trust model exists only as prompt instructions, which
+      are vulnerable to prompt injection and instruction drift.
+
+      13 unique invalid tool names must be corrected across 8 agent files. The 'agent'
+      tool name and the 'agents:' frontmatter property are correctly implemented.
+
+    source_files_examined:
+      - "v2/.github/agents/orchestrator.agent.md"
+      - "v2/.github/agents/implementer.agent.md"
+      - "v2/.github/agents/researcher.agent.md"
+      - "v2/.github/agents/architect.agent.md"
+      - "v2/.github/agents/planner.agent.md"
+      - "v2/.github/agents/reviewer.agent.md"
+      - "v2/.github/agents/tester.agent.md"
+      - "v2/.github/agents/knowledge.agent.md"
+
+    web_sources_consulted:
+      - url: "https://code.visualstudio.com/docs/copilot/customization/custom-agents"
+        topic: "Custom agent file structure, tools field format, silent ignore behavior"
+      - url: "https://code.visualstudio.com/docs/copilot/agents/agent-tools"
+        topic: "Tool types, tool sets, tool set creation and usage"
+      - url: "https://code.visualstudio.com/docs/copilot/agents/subagents"
+        topic: "Subagent dispatch, agent tool, runSubagent, agents property, orchestration patterns"
+      - url: "https://code.visualstudio.com/docs/copilot/customization/agent-skills"
+        topic: "SKILL.md format, skill vs tool distinction, progressive disclosure"
+      - url: "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features"
+        topic: "Complete built-in tools reference table with official tool names"
+
+completion:
+  status: "DONE"
+  summary: "CRITICAL — All v2 tool restriction names use invalid namespace/tool format; 13 wrong names across 8 agents; trust model completely unenforced due to silent-ignore behavior"
+  severity: "critical"
+  findings_count: 12
+  risk_level: "critical"
+  output_paths:
+    - "docs/feature/agent-system-refactor/research/tool-names-deep-dive.yaml"

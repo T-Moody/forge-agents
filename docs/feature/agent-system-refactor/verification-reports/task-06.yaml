@@ -1,0 +1,100 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-06"
+  step: "step-6"
+  started_at: "2026-03-09T19:00:00Z"
+  completed_at: "2026-03-09T19:08:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-06"
+    run_id: "2026-03-09T18:00:00Z"
+    evidence_gate:
+      total_checks: 4
+      passed: 4
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "git"
+        command: "git show pipeline-baseline-2026-03-09T18-00-00Z:v2/.github/agents/tester.agent.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "No discrepancies: baseline had namespace/tool tools, no user-invocable, git diff|add|status audit, live-qa category. All confirmed via git show."
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "No errors found in v2/.github/agents/tester.agent.md. Baseline: 0 errors. After: 0 errors."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "YAML frontmatter valid (name, description, user-invocable, tools, agents). Markdown body structurally valid. 132 lines total."
+      - check_name: "behavioral-coverage"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: >
+          All 6 ACs use test_method=inspection. AC-4: 9 tools flat camelCase confirmed
+          (readFile, createFile, listDirectory, textSearch, codebase, fileSearch,
+          runInTerminal, getTerminalOutput, problems). AC-7: user-invocable: false on
+          line 4. AC-21: Exploratory QA step 4 with 4 categories (happy path, edge cases,
+          error handling, state mutation). AC-22: exploratory_findings in output schema
+          with category+severity+description; critical findings cause fail verdict.
+          AC-23: 132 lines <= 150 budget. FR-5-audit: git diff|status only (git add
+          removed); git add/commit flagged as Major finding.
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-09T18-00-00Z:<path>"
+      discrepancies_found: false
+      details: >
+        Verified baseline had: (1) 9 namespace/tool format tools (read/readFile, etc.),
+        (2) no user-invocable field, (3) git diff|add|status in audit step 3,
+        (4) live-qa as test category in dynamic workflow step 3,
+        (5) 6-step dynamic workflow (no separate exploratory QA step),
+        (6) no exploratory_findings in output schema.
+        All match implementer's claimed baseline. Current file shows all 5 change
+        areas applied correctly.
+    ac_verification:
+      - id: "AC-4-test"
+        result: "PASS"
+        evidence: "All 9 frontmatter tool names are flat camelCase. Zero namespace/tool instances."
+      - id: "AC-7-test"
+        result: "PASS"
+        evidence: "user-invocable: false present on line 4 of YAML frontmatter."
+      - id: "AC-21"
+        result: "PASS"
+        evidence: "Step 4 Exploratory QA covers: (a) happy path, (b) edge cases, (c) error handling, (d) state mutation."
+      - id: "AC-22"
+        result: "PASS"
+        evidence: "exploratory_findings in output schema has category, severity (critical|major|minor), description. Step 4 records with category: exploratory."
+      - id: "AC-23"
+        result: "PASS"
+        evidence: "132 lines (18 headroom under 150 budget). Verified via Get-Content line count."
+      - id: "FR-5-audit"
+        result: "PASS"
+        evidence: "Static audit step 3 pattern is git diff|status. git add removed. git add/commit by implementer flagged as Major finding."
+completion:
+  status: "DONE"
+  summary: "Verified task-06: 4 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/verification-reports/task-06.yaml"
+  evidence_summary:
+    total_checks: 4
+    passed: 4
+    failed: 0
+    security_blockers: 0

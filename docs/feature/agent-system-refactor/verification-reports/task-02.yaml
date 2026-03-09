@@ -1,0 +1,161 @@
+agent_output:
+  agent: "verifier"
+  instance: "verifier-task-02"
+  step: "step-6"
+  started_at: "2026-03-09T19:00:00Z"
+  completed_at: "2026-03-09T19:08:00Z"
+  schema_version: "1.0"
+  payload:
+    task_id: "task-02"
+    run_id: "2026-03-09T18:00:00Z"
+    evidence_gate:
+      total_checks: 16
+      passed: 16
+      failed: 0
+      gate_status: "passed"
+    findings:
+      - check_name: "baseline-captured"
+        tier: 0
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "git show pipeline-baseline-2026-03-09T18-00-00Z:v2/.github/agents/orchestrator.agent.md"
+        exit_code: 0
+        passed: true
+        output_snippet: "Baseline 91 lines. Namespace tools, no mediation, git add -A. Current 93 lines matches expected changes. No discrepancies."
+      - check_name: "ide-diagnostics"
+        tier: 1
+        phase: "after"
+        tool: "get_errors"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "4 errors (unknown agent names: architect, tester, reviewer, knowledge) — same as baseline. 0 new errors."
+      - check_name: "syntax-check"
+        tier: 1
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "Markdown file parses correctly. YAML frontmatter valid: name, description, tools (11), agents (7)."
+      - check_name: "ac-1-e2e-skill-scan"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L42: Scan .github/skills/ and .agents/skills/ for SKILL.md files"
+      - check_name: "ac-2-interactive-e2e-prompt"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L42: Playwright / HTTP API / Skip / Custom (4 options >= 3)"
+      - check_name: "ac-3-autonomous-e2e-warning"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L42: Autonomous + none found -> log warning in pipeline-log.yaml"
+      - check_name: "ac-4-flat-camelcase"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "All 11 tools flat camelCase. grep for namespace/ returned 0 matches."
+      - check_name: "ac-5-agent-tool-workers"
+        tier: 2
+        phase: "after"
+        tool: "read_file"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "tools: has agent. agents: lists 7 workers (researcher,architect,planner,implementer,tester,reviewer,knowledge)"
+      - check_name: "ac-6-runsubagent"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L30: Dispatch subagents using runSubagent tool, referencing by name: value"
+      - check_name: "ac-9-architect-mediation"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L57: clarifications_needed -> present to user -> contradict assumptions_made -> re-dispatch with clarification_responses"
+      - check_name: "ac-11-planner-mediation"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L66: plan_summary -> Accept / Refine / Reject. Refine -> re-dispatch max 1 round. Reject -> ERROR"
+      - check_name: "ac-14-selective-staging"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L94: git add <paths> from files_modified + git add docs/feature/<slug>/. Explicit Do NOT use git add -A."
+      - check_name: "ac-15-commit-review-unstage"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L95: Interactive present Commit / Review / Unstage choice. No unconditional git commit."
+      - check_name: "ac-16-autonomous-stage-only"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L95: Autonomous: stage only, no commit"
+      - check_name: "ac-17-doc-update-choice"
+        tier: 2
+        phase: "after"
+        tool: "grep_search"
+        command: null
+        exit_code: null
+        passed: true
+        output_snippet: "L92: 8b: Apply / Review / Skip choice. Apply -> re-dispatch knowledge in doc-update mode."
+      - check_name: "ac-27-line-count"
+        tier: 2
+        phase: "after"
+        tool: "run_in_terminal"
+        command: "Get-Content .Count"
+        exit_code: 0
+        passed: true
+        output_snippet: "119 lines <= 150 limit. Well within budget."
+    regressions: []
+    baseline_cross_check:
+      method: "git show pipeline-baseline-2026-03-09T18-00-00Z:v2/.github/agents/orchestrator.agent.md"
+      discrepancies_found: false
+completion:
+  status: "DONE"
+  summary: "Verified task-02: 16 checks passed, 0 failed, 0 regressions"
+  severity: null
+  findings_count: 0
+  risk_level: null
+  output_paths:
+    - "docs/feature/agent-system-refactor/verification-reports/task-02.yaml"
+  evidence_summary:
+    total_checks: 16
+    passed: 16
+    failed: 0
+    security_blockers: 0

@@ -87,3 +87,127 @@ decisions:
       reference added to 3 agents (A-3). R2: 3/3 approve.
     confidence: "High"
     outcome: "Final system at 1,004 lines, all trust boundaries enforced."
+
+  # ============================================================================
+  # Run 3 — 2026-03-09T18:00:00Z — v2 Targeted Improvements
+  # ============================================================================
+
+  - id: "DL-008"
+    title: "Direction C — Hybrid inline + shared extraction (D-1)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      Git safety rule extracted to global-rules.md (single source of truth). All other
+      10 improvements applied inline per agent. Direction B (hooks) rejected — Preview
+      feature with Windows portability concerns. Minimal diff over Direction A.
+    confidence: "High"
+    outcome: "9 files modified, 982 total lines. Global-rules grew by 7 lines only."
+
+  - id: "DL-009"
+    title: "Individual flat camelCase tool names (D-2)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      All v2 tool names were in invalid namespace/tool format (read/readFile) that VS Code
+      silently ignores — tools were NOT restricted. Corrected to flat camelCase (readFile).
+      Individual names preserve fine-grained trust model. Tool sets (edit, search) too coarse.
+    confidence: "High"
+    outcome: "All 47 tool references verified against VS Code cheat sheet. Zero invalid names."
+
+  - id: "DL-010"
+    title: "Orchestrator-mediated interactive questioning (D-3)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      VS Code subagents cannot directly prompt users. Assumptions-first flow: subagent
+      completes fully with assumptions_made[] + clarifications_needed[], orchestrator reads
+      output and mediates Q&A. Re-dispatch only if answers contradict assumptions.
+    confidence: "High"
+    outcome: "AC-9/AC-11 satisfied in intent. DR-1/DR-2 document spec deviation."
+
+  - id: "DL-011"
+    title: "Keep 'agent' tool set in orchestrator (D-4)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      VS Code official examples consistently use 'agent' (tool set) for subagent dispatch.
+      Already correct in v2. Body text instructs runSubagent usage per FR-2.3.
+    confidence: "High"
+    outcome: "Orchestrator retains 'agent' in tools. Body adds runSubagent dispatch instructions."
+
+  - id: "DL-012"
+    title: "Selective staging from implementation reports (D-5)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      Two-source strategy: (1) git add <paths from implementation reports files_modified>,
+      (2) git add docs/feature/<slug>/ for pipeline artifacts. Avoids git add -A while
+      ensuring all outputs are staged.
+    confidence: "High"
+    outcome: "Step 8d implements two-source staging. KI-2 notes bootstrap violation in Run 3."
+
+  - id: "DL-013"
+    title: "Exploratory QA inline with optional SKILL.md (D-6)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      Hybrid approach: 4-category inline checklist (happy path, edge cases, error handling,
+      state mutation) in tester body. Skills loaded when available. Tester at 132 lines
+      (18 headroom). Full QA procedures deferred to optional SKILL.md.
+    confidence: "Medium"
+    outcome: "Tester at 132/150 lines. Exploratory QA step verified in task-06."
+
+  - id: "DL-014"
+    title: "Remove vscode/memory from tool list (D-7)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      No built-in 'memory' tool exists in VS Code. Memory controlled by setting
+      github.copilot.chat.tools.memory.enabled. Removed from frontmatter, reworded
+      workflow step to reference memory as VS Code feature.
+    confidence: "High"
+    outcome: "Knowledge agent tools reduced from 7 to 6. Memory guidance preserved in body."
+
+  - id: "DL-015"
+    title: "E2E skill discovery — user-driven with scan context (D-8)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      Spec pushback recommended user-driven over autodetect (error-prone project type
+      detection). Orchestrator scans .github/skills/ and .agents/skills/ for E2E skills,
+      presents findings + 4 options to user in interactive mode.
+    confidence: "High"
+    outcome: "Orchestrator Step 1 implements E2E scan + 4-option choice (AC-1,2,3)."
+
+  - id: "DL-016"
+    title: "Pre-stage validation scoped to knowledge only (D-9)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      Implementation files validated by tester file ownership audit (Step 5-6). Orchestrator
+      Step 8c validates only knowledge output_paths. Resolves prior Major finding about
+      over-broad validation causing false positives.
+    confidence: "High"
+    outcome: "Step 8c checks knowledge paths only. Implementation validation in Step 6."
+
+  - id: "DL-017"
+    title: "Step 8 decomposed into 8a-8e (D-10)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      Prevents misordering in complex Step 8 workflow. Each sub-step has single responsibility.
+      8a: Knowledge, 8b: Doc Updates, 8c: Validation, 8d: Staging, 8e: Commit Choice.
+      Interactive/autonomous branching isolated to 8b and 8e.
+    confidence: "High"
+    outcome: "Orchestrator Step 8 decomposition verified in task-02 (AC-15,16,17)."
+
+  - id: "DL-018"
+    title: "Reject disable-model-invocation for workers (D-11)"
+    date: "2026-03-09"
+    step: "step-3"
+    rationale: >
+      VS Code docs define disable-model-invocation as 'prevents agent from being invoked
+      as a subagent by other agents.' Adding it would break orchestrator dispatch entirely.
+      Trust enforced via user-invocable:false + agents:[] + tools: arrays instead.
+    confidence: "High"
+    outcome: "No workers have disable-model-invocation. Pipeline dispatch works correctly."

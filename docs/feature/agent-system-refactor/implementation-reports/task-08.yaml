@@ -2,22 +2,34 @@ agent_output:
   agent: "implementer"
   instance: "implementer-task-08"
   step: "step-5"
-  started_at: "2026-03-08T20:00:00Z"
-  completed_at: "2026-03-08T20:20:00Z"
+  started_at: "2026-03-09T18:30:00Z"
+  completed_at: "2026-03-09T18:35:00Z"
   schema_version: "1.0"
   payload:
     task_id: "task-08"
-    task_type: "code"
+    task_type: "configuration"
     baseline:
-      ide_diagnostics: { errors: 28, warnings: 0 }
+      ide_diagnostics: { errors: 0, warnings: 0 }
       build_exit_code: null
       test_summary: null
     changes:
-      - path: "v2/.github/agents/tester.agent.md"
-        action: "created"
-        description: "Created dual-mode tester agent file (128 lines) with YAML frontmatter, 7 sections: Role, Inputs, Static Evaluation Workflow, Dynamic Testing Workflow, Output Schema, Constraints, Anti-Drift Anchor."
+      - path: "v2/.github/agents/knowledge.agent.md"
+        action: "modified"
+        description: >
+          (1) Fixed all 7 frontmatter tool names from namespace/tool to flat camelCase:
+          read/readFile→readFile, search/listDirectory→listDirectory,
+          search/textSearch→textSearch, search/codebase→codebase,
+          search/fileSearch→fileSearch, edit/createFile→createFile.
+          Removed vscode/memory entirely (D-7: memory is a VS Code setting, not a tool).
+          (2) Added user-invocable: false to YAML frontmatter (FR-2.4, AC-7).
+          (3) Reworded workflow step 8 to reference runtime-provided memory mechanism
+          instead of explicit memory tool invocation (D-7, AC-D7-memory).
+          (4) Added Doc-Update Mode section under Constraints with explicit
+          MUST NOT modify .agent.md files constraint (FR-7, AC-18).
+          Updated Anti-Drift Anchor to reflect doc-update mode and memory wording.
+          Line count: 107→117 (33 lines headroom under 150 limit).
     self_check:
-      ide_diagnostics: { errors: 37, warnings: 0 }
+      ide_diagnostics: { errors: 0, warnings: 0 }
       build_exit_code: null
       test_summary: null
       self_fix_attempts: 0
@@ -27,68 +39,40 @@ agent_output:
         phase: "baseline"
         tool: "get_errors"
         passed: true
-        output_snippet: "28 errors (all 'Unknown tool' warnings on existing agent files — expected baseline)"
-      - check_name: "line-count-check"
-        phase: "after"
-        tool: "run_in_terminal"
-        passed: true
-        output_snippet: "128 lines (budget 140, hard limit 150)"
-      - check_name: "no-sql-references"
-        phase: "after"
-        tool: "run_in_terminal"
-        passed: true
-        output_snippet: "SQL/DB references: 0"
-      - check_name: "no-section-cross-refs"
-        phase: "after"
-        tool: "run_in_terminal"
-        passed: true
-        output_snippet: "§ cross-references: 0"
-      - check_name: "post-ide-diagnostics"
+      - check_name: "post-edit-ide-diagnostics"
         phase: "after"
         tool: "get_errors"
         passed: true
-        output_snippet: "37 errors (28 baseline + 9 new 'Unknown tool' warnings for tester tools — expected)"
+      - check_name: "line-count-budget"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
     behavioral_coverage:
-      - ac_id: "AC-2"
-        test_file: null
-        test_name: null
-        status: "covered"
-        justification: "Verified via terminal: 128 lines ≤ 150 (budget 140)"
-      - ac_id: "AC-5"
+      - ac_id: "AC-4-know"
         test_file: null
         test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — YAML frontmatter contains name, description, tools fields"
-      - ac_id: "AC-7"
+        justification: "test_method='inspection' — verified all 6 tools are flat camelCase, vscode/memory removed"
+      - ac_id: "AC-7-know"
         test_file: null
         test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — frontmatter has agents: []"
-      - ac_id: "AC-16"
+        justification: "test_method='inspection' — user-invocable: false confirmed on line 4"
+      - ac_id: "AC-18"
         test_file: null
         test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — tools list includes run_in_terminal"
-      - ac_id: "FR-8.2"
+        justification: "test_method='inspection' — MUST NOT modify .agent.md constraint in Doc-Update Mode section"
+      - ac_id: "AC-D7-memory"
         test_file: null
         test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — Static Evaluation Workflow step 2 verifies TDD compliance: tests exist, tests were run, tests pass"
-      - ac_id: "FR-8.4"
+        justification: "test_method='inspection' — vscode/memory removed from frontmatter, body reworded to runtime-provided mechanism"
+      - ac_id: "AC-line-know"
         test_file: null
         test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — Constraints section states SINGLETON for dynamic mode"
-      - ac_id: "FR-8.5"
-        test_file: null
-        test_name: null
-        status: "not_applicable"
-        justification: "test_method='inspection' — Output Schema defines test_report with per-category pass/fail and overall verdict"
-      - ac_id: "AC-22"
-        test_file: null
-        test_name: null
-        status: "not_applicable"
-        justification: "test_method='inspection' — Output Schema includes completion block with status, summary, output_paths"
+        justification: "test_method='inspection' — 117 lines confirmed via PowerShell Get-Content Count (limit 150)"
     tdd_red_green:
       tests_written_first: false
       initial_run_failures: 0
@@ -98,12 +82,12 @@ agent_output:
         typecheck_clean: true
         tests_passing: true
       tdd_fallback_reason: >
-        Task creates a Markdown agent definition file (.agent.md), not production
-        source code. No test framework applies to agent instruction files.
-        Acceptance criteria verified via terminal line-count and grep checks.
+        task_type is configuration (agent definition file modification).
+        No production source files modified — only .agent.md instruction file.
+        TDD not applicable per TDD Fallback rules.
 completion:
   status: "DONE"
-  summary: "Created tester.agent.md (128 lines) with dual-mode workflow, test_report schema, singleton constraint"
+  summary: "knowledge.agent.md: fixed 7 tool names, removed vscode/memory, added user-invocable:false, added doc-update mode with .agent.md prohibition. 107→117 lines."
   severity: null
   findings_count: 0
   risk_level: null

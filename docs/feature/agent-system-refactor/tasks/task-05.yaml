@@ -1,55 +1,47 @@
 task:
   id: "task-05"
-  title: "Create planner.agent.md"
+  title: "Update planner.agent.md — Plan Summary + Approval Output"
   description: >
-    Create v2/.github/agents/planner.agent.md (~130 lines). The Planner decomposes
-    features into DAG task graphs with file ownership declarations (D-6). Uses the
-    standard 6-section body format. Workflow (~6 steps): read architecture-output.yaml,
-    decompose into tasks, assign per-task dependencies (depends_on), declare per-task
-    file ownership (files list), classify per-task risk (🟢/🟡/🔴), output plan-output.yaml.
-    YAML frontmatter: name, description, tools (read_file, list_dir, grep_search,
-    semantic_search, file_search, create_file), agents: [].
-    The Output Schema section must define the task schema with required fields:
-    id, description, depends_on, files (ownership), risk_level. This is the DAG
-    representation consumed by the orchestrator for parallel dispatch.
-    The planner MUST ensure no two tasks in the same parallel group modify the same
-    file (file ownership conflict resolution per FR-6.2).
+    Modify v2/.github/agents/planner.agent.md (currently 105 lines → estimated 116).
+    Three change areas:
+    (1) FR-2: Fix all 6 frontmatter tool names to flat camelCase.
+    (2) FR-2.4: Add user-invocable: false to YAML frontmatter.
+    (3) FR-4/D-3: Add a final workflow step that outputs plan_summary (task count,
+    wave structure, key dependencies) in plan-output.yaml. In interactive mode,
+    orchestrator reads plan_summary and presents Accept/Refine/Reject choice to user.
+    In autonomous mode, planner returns DONE immediately. Note: per DR-2, no structured
+    question tool exists — the orchestrator mediates the approval interaction.
+    The planner's changes are additive to the existing workflow.
   agent: "implementer"
   size: "Standard"
   risk: "🟢"
   depends_on: ["task-01"]
   acceptance_criteria:
-    - id: "AC-2"
-      text: "File does not exceed 150 lines (budget: 130)"
-      test_method: "test"
-    - id: "AC-5"
-      text: "YAML frontmatter contains name, description, and tools fields"
+    - id: "AC-4-plan"
+      text: "All tool names in planner YAML frontmatter use flat camelCase. Zero namespace/tool format instances"
       test_method: "inspection"
-    - id: "AC-7"
-      text: "YAML frontmatter has agents: [] (no subagent access)"
+    - id: "AC-7-plan"
+      text: "Planner has user-invocable: false in YAML frontmatter"
       test_method: "inspection"
-    - id: "AC-12"
-      text: "Output Schema defines task fields: id, description, depends_on, files (ownership), risk_level"
+    - id: "AC-10"
+      text: "Planner workflow contains a final step that outputs plan_summary (task count, waves, key deps) for orchestrator consumption"
       test_method: "inspection"
-    - id: "AC-22"
-      text: "Output Schema includes completion contract (status/summary/output_paths)"
-      test_method: "inspection"
-    - id: "FR-6.2"
-      text: "Constraints or workflow section states: no two tasks in the same parallel group may modify the same file"
+    - id: "AC-27-plan"
+      text: "Planner agent file remains under 150 lines after changes (estimated 116)"
       test_method: "inspection"
   workflow_lane: "unit-only"
   e2e_required: false
   e2e_contract_path: null
   relevant_context:
     design_sections:
-      - "design-output.yaml#payload.component_design[agent='planner']"
-      - "design-output.yaml#payload.decisions[id='D-6']"
+      - "design-output.yaml#payload.decisions[id='D-2']"
       - "design-output.yaml#payload.decisions[id='D-3']"
-      - "design-output.yaml#payload.schemas.task_schema"
+      - "design-output.yaml#payload.deviation_records[id='DR-2']"
+      - "design-output.yaml#payload.tool_name_corrections.planner"
+      - "design-output.yaml#payload.file_inventory[path='v2/.github/agents/planner.agent.md']"
     spec_requirements:
-      - "spec-output.yaml#payload.functional_requirements[id='FR-6']"
-      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
-      - "spec-output.yaml#payload.acceptance_criteria[id='AC-12']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-4']"
     files_to_modify:
       - path: "v2/.github/agents/planner.agent.md"
         risk: "🟢"

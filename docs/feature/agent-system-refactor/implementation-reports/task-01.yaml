@@ -2,20 +2,20 @@ agent_output:
   agent: "implementer"
   instance: "implementer-task-01"
   step: "step-5"
-  started_at: "2026-03-08T12:00:00Z"
-  completed_at: "2026-03-08T12:15:00Z"
+  started_at: "2026-03-09T18:00:00Z"
+  completed_at: "2026-03-09T18:05:00Z"
   schema_version: "1.0"
   payload:
     task_id: "task-01"
-    task_type: "documentation"
+    task_type: "configuration"
     baseline:
       ide_diagnostics: { errors: 0, warnings: 0 }
       build_exit_code: null
       test_summary: null
     changes:
       - path: "v2/.github/agents/global-rules.md"
-        action: "created"
-        description: "Created global-rules.md (~69 lines) — sole shared reference document for the 8-agent system. Contains completion contract schema, validation rule, retry policy, anti-hallucination rule, feedback loop limits, output path convention, and risk classification definitions."
+        action: "modified"
+        description: "Added Git Safety section (FR-5.3, AC-13): orchestrator-only git staging/commit rule with prohibited and permitted commands. Added Plan Refinement row to Feedback Loop Limits table (PV C-3, max 1 iteration). File grew from 70 to 77 lines."
     self_check:
       ide_diagnostics: { errors: 0, warnings: 0 }
       build_exit_code: null
@@ -27,46 +27,37 @@ agent_output:
         phase: "baseline"
         tool: "get_errors"
         passed: true
-      - check_name: "ac-1a-line-count"
+      - check_name: "ac-13-git-safety"
+        phase: "after"
+        tool: "inspection"
+        passed: true
+        detail: "Git Safety section present with prohibited commands (git add, git commit, git push, git reset) and permitted read-only (git diff, git status)"
+      - check_name: "ac-27-line-count"
         phase: "after"
         tool: "run_in_terminal"
         passed: true
-        detail: "69 lines ≤ 100"
-      - check_name: "ac-8-forbidden-terms"
+        detail: "77 lines ≤ 150"
+      - check_name: "pv-c-3-plan-refinement"
         phase: "after"
-        tool: "run_in_terminal"
+        tool: "inspection"
         passed: true
-        detail: "0 occurrences of sqlite, sqlite3, verification-ledger, sql-templates"
-      - check_name: "ac-18-section-refs"
-        phase: "after"
-        tool: "run_in_terminal"
-        passed: true
-        detail: "0 § cross-references"
+        detail: "Plan Refinement row present in Feedback Loop Limits table with max 1 iteration"
     behavioral_coverage:
-      - ac_id: "AC-4"
-        status: "not_applicable"
-        justification: "test_method='inspection' — single shared doc verified by file count"
-      - ac_id: "AC-8"
+      - ac_id: "AC-13"
         test_file: null
-        test_name: "ac-8-forbidden-terms"
-        status: "covered"
-        justification: "Verified via grep: 0 matches for all 4 forbidden terms"
-      - ac_id: "AC-18"
-        test_file: null
-        test_name: "ac-18-section-refs"
-        status: "covered"
-        justification: "Verified via grep: 0 § characters in file"
-      - ac_id: "AC-22a"
+        test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — completion contract defines status, summary, output_paths as required fields"
-      - ac_id: "AC-22b"
-        status: "not_applicable"
-        justification: "test_method='inspection' — validation rule explicitly states non-DONE/NEEDS_REVISION/ERROR treated as ERROR"
-      - ac_id: "AC-1a"
+        justification: "test_method='inspection' — markdown instruction file, verified by structural review"
+      - ac_id: "AC-27-partial"
         test_file: null
-        test_name: "ac-1a-line-count"
-        status: "covered"
-        justification: "Verified via line count: 69 ≤ 100"
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — line count verified: 77 ≤ 150"
+      - ac_id: "PV-C-3"
+        test_file: null
+        test_name: null
+        status: "not_applicable"
+        justification: "test_method='inspection' — Plan Refinement row present in Feedback Loop Limits table"
     tdd_red_green:
       tests_written_first: false
       initial_run_failures: 0
@@ -75,13 +66,12 @@ agent_output:
         get_errors_clean: true
         typecheck_clean: true
         tests_passing: true
-      tdd_fallback_reason: "Documentation-only task creating a shared Markdown reference file; no production source code modified. All ACs verified via inspection and terminal grep/count checks."
+      tdd_fallback_reason: "Configuration task modifying a markdown instruction file — no production source code, no test framework applicable. All ACs use test_method='inspection'."
 completion:
   status: "DONE"
-  summary: "Created v2/.github/agents/global-rules.md (69 lines) — completion contract, retry policy, anti-hallucination, feedback loops, output paths, risk classification"
+  summary: "Added Git Safety section and Plan Refinement loop limit to global-rules.md (70→77 lines)"
   severity: null
   findings_count: 0
   risk_level: null
   output_paths:
     - "docs/feature/agent-system-refactor/implementation-reports/task-01.yaml"
-    - "v2/.github/agents/global-rules.md"

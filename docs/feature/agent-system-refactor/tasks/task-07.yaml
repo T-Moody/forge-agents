@@ -1,66 +1,47 @@
 task:
   id: "task-07"
-  title: "Create implementer.agent.md"
+  title: "Update reviewer.agent.md — Audit Pattern Update + Tool Fixes"
   description: >
-    Create v2/.github/agents/implementer.agent.md (~130 lines). The Implementer is a
-    Tier 2 Standard Trust agent that follows strict TDD (RED-GREEN cycle) and produces
-    only unit tests — no integration, E2E, app start, or curl/HTTP requests.
-    Uses 6-section body: Role, Inputs, Workflow (RED-GREEN-REPORT), Output Schema,
-    Constraints, Anti-Drift Anchor.
-    YAML frontmatter: name, description, tools (read_file, create_file,
-    replace_string_in_file, multi_replace_string_in_file, list_dir, grep_search,
-    semantic_search, file_search, run_in_terminal, get_terminal_output, get_errors,
-    fetch_webpage), agents: [].
-    CRITICAL: Constraints section must include:
-    (a) Command allowlist — terminal commands scoped to build+test patterns only:
-    dotnet build/test, npm run build/test, cargo build/test, go build/test, pytest,
-    git diff. All commands logged in implementation_report.commands_executed[].
-    (b) File ownership constraint — MUST NOT modify files not declared in task.files[].
-    If more files needed, return NEEDS_REVISION with files_requested[].
-    Output schema: implementation_report with files_modified, tests_written,
-    test_results, tdd_compliance, commands_executed[].
+    Modify v2/.github/agents/reviewer.agent.md (currently 96 lines → estimated 99).
+    Three change areas:
+    (1) FR-2: Fix all 8 frontmatter tool names to flat camelCase
+    (read/readFile→readFile, search/listDirectory→listDirectory,
+    search/textSearch→textSearch, search/codebase→codebase,
+    search/fileSearch→fileSearch, read/problems→problems,
+    search/changes→changes, edit/createFile→createFile).
+    (2) FR-2.4: Add user-invocable: false to YAML frontmatter.
+    (3) FR-5/PV C-2: Update static mode command audit — remove 'git add' from
+    implementer-acceptable command patterns. Implementer-acceptable pattern changes
+    from 'git diff|add|status' to 'git diff|status'. Any 'git add' found in
+    implementer commands_executed[] MUST be flagged as Major severity
+    ('Implementer executed git add — violates selective staging rule').
+    This aligns with D-5 (selective staging by orchestrator Step 8d only).
   agent: "implementer"
   size: "Standard"
-  risk: "🟡"
-  depends_on: ["task-01"]
+  risk: "🟢"
+  depends_on: ["task-03"]
   acceptance_criteria:
-    - id: "AC-2"
-      text: "File does not exceed 150 lines (budget: 130)"
-      test_method: "test"
-    - id: "AC-5"
-      text: "YAML frontmatter contains name, description, and tools fields"
+    - id: "AC-4-rev"
+      text: "All tool names in reviewer YAML frontmatter use flat camelCase. Zero namespace/tool format instances"
       test_method: "inspection"
-    - id: "AC-7"
-      text: "YAML frontmatter has agents: [] (no subagent access)"
+    - id: "AC-7-rev"
+      text: "Reviewer has user-invocable: false in YAML frontmatter"
       test_method: "inspection"
-    - id: "AC-15"
-      text: "Tools list does NOT include tools for starting applications, running E2E tests, or curl/HTTP. Only file editing, terminal (for unit tests), and code analysis."
+    - id: "FR-5-rev-audit"
+      text: "Reviewer static mode audit pattern for implementer commands updated: git diff|status only (git add removed); git add flagged as Major finding"
       test_method: "inspection"
-    - id: "D-14a"
-      text: "Constraints section defines command allowlist: dotnet build/test, npm run build/test, cargo build/test, go build/test, pytest, git diff"
-      test_method: "inspection"
-    - id: "AG-A-3"
-      text: "Constraints section defines file ownership rule: MUST NOT modify undeclared files. Returns NEEDS_REVISION with files_requested[] if more files needed."
-      test_method: "inspection"
-    - id: "FR-7.3"
-      text: "Output Schema includes implementation_report with commands_executed[] audit trail"
-      test_method: "inspection"
-    - id: "AC-22"
-      text: "Output Schema includes completion contract (status/summary/output_paths)"
-      test_method: "inspection"
-  workflow_lane: "unit-integration"
+  workflow_lane: "unit-only"
   e2e_required: false
   e2e_contract_path: null
   relevant_context:
     design_sections:
-      - "design-output.yaml#payload.component_design[agent='implementer']"
-      - "design-output.yaml#payload.decisions[id='D-14']"
-      - "design-output.yaml#payload.trust_boundary_model.tier_2_standard_trust"
-      - "design-output.yaml#payload.schemas.implementation_report"
+      - "design-output.yaml#payload.decisions[id='D-2']"
+      - "design-output.yaml#payload.decisions[id='D-5']"
+      - "design-output.yaml#payload.tool_name_corrections.reviewer"
+      - "design-output.yaml#payload.file_inventory[path='v2/.github/agents/reviewer.agent.md']"
     spec_requirements:
-      - "spec-output.yaml#payload.functional_requirements[id='FR-7']"
-      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
-      - "spec-output.yaml#payload.acceptance_criteria[id='AC-15']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']"
     files_to_modify:
-      - path: "v2/.github/agents/implementer.agent.md"
-        risk: "🟡"
+      - path: "v2/.github/agents/reviewer.agent.md"
+        risk: "🟢"

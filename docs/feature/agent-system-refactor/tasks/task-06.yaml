@@ -1,56 +1,60 @@
 task:
   id: "task-06"
-  title: "Create reviewer.agent.md"
+  title: "Update tester.agent.md — Exploratory QA + Audit Update"
   description: >
-    Create v2/.github/agents/reviewer.agent.md (~110 lines). The Reviewer performs
-    adversarial multi-perspective code review. It is dispatched 2-3 times in parallel,
-    each assigned a distinct perspective (security, architecture, correctness) by the
-    orchestrator. Uses the standard 6-section body format (Role, Inputs, Workflow,
-    Output Schema, Constraints, Anti-Drift Anchor).
-    YAML frontmatter: name, description, tools (read_file, list_dir, grep_search,
-    semantic_search, file_search, get_errors, get_changed_files, create_file), agents: [].
-    Output schema: findings list with severity (blocker/critical/major/minor),
-    description, affected file, recommendation. Plus verdict (approve/request-changes).
-    R2 additions: audit implementer commands_executed[] against command allowlist,
-    audit fetch_webpage URL trails for unexpected web requests.
+    Modify v2/.github/agents/tester.agent.md (currently 129 lines → estimated 143).
+    Five change areas:
+    (1) FR-2: Fix all 9 frontmatter tool names to flat camelCase.
+    (2) FR-2.4: Add user-invocable: false to YAML frontmatter.
+    (3) FR-9/D-6: Add Exploratory QA phase to dynamic mode. Replaces the existing
+    'live-qa' test category (PV C-4) with a structured 4-category checklist:
+    (a) happy path verification, (b) edge case testing (empty/boundary inputs),
+    (c) error handling (invalid inputs), (d) state mutation (modify data mid-workflow).
+    Uses available testing skills when present; falls back to terminal-based interaction.
+    Exploratory findings recorded with category 'exploratory' and severity ratings.
+    Critical findings cause 'fail' verdict.
+    (4) FR-1.4: Reference discovered skill files by path rather than hardcoded category
+    names. If skill directory exists, load it; if not, skip and record as skipped.
+    (5) FR-5/PV C-2: Update static mode audit — remove 'git add' from
+    implementer-acceptable command patterns (git diff|add|status → git diff|status).
+    Flag any 'git add' in implementer commands_executed[] as Major finding.
   agent: "implementer"
   size: "Standard"
-  risk: "🟢"
-  depends_on: ["task-01"]
+  risk: "🟡"
+  depends_on: ["task-03"]
   acceptance_criteria:
-    - id: "AC-2"
-      text: "File does not exceed 150 lines (budget: 110)"
-      test_method: "test"
-    - id: "AC-5"
-      text: "YAML frontmatter contains name, description, and tools fields"
+    - id: "AC-4-test"
+      text: "All tool names in tester YAML frontmatter use flat camelCase. Zero namespace/tool format instances"
       test_method: "inspection"
-    - id: "AC-7"
-      text: "YAML frontmatter has agents: [] (no subagent access)"
+    - id: "AC-7-test"
+      text: "Tester has user-invocable: false in YAML frontmatter"
       test_method: "inspection"
-    - id: "FR-9.1"
-      text: "Workflow describes multi-perspective review dispatched by orchestrator (security, architecture, correctness)"
-      test_method: "inspection"
-    - id: "FR-9.2"
-      text: "Output Schema defines findings with severity (blocker/critical/major/minor) and verdict (approve/request-changes)"
+    - id: "AC-21"
+      text: "Tester dynamic mode contains Exploratory QA phase after automated tests covering: happy path, edge cases, error handling, state mutation"
       test_method: "inspection"
     - id: "AC-22"
-      text: "Output Schema includes completion contract (status/summary/output_paths)"
+      text: "Exploratory findings recorded in test report under category 'exploratory' with severity ratings"
       test_method: "inspection"
-    - id: "R2-audit"
-      text: "Workflow or Constraints section includes audit of implementer commands_executed[] and fetch_webpage URL trails"
+    - id: "AC-23"
+      text: "Tester agent file remains under 150 lines after changes (estimated 143, 7-line headroom)"
       test_method: "inspection"
-  workflow_lane: "unit-only"
+    - id: "FR-5-audit"
+      text: "Static mode audit pattern for implementer commands updated: git diff|status only (git add removed from acceptable patterns)"
+      test_method: "inspection"
+  workflow_lane: "unit-integration"
   e2e_required: false
   e2e_contract_path: null
   relevant_context:
     design_sections:
-      - "design-output.yaml#payload.component_design[agent='reviewer']"
-      - "design-output.yaml#payload.decisions[id='D-3']"
-      - "design-output.yaml#payload.schemas.review_verdict"
-      - "design-output.yaml#payload.trust_boundary_model.tier_3_read_only_create"
+      - "design-output.yaml#payload.decisions[id='D-2']"
+      - "design-output.yaml#payload.decisions[id='D-6']"
+      - "design-output.yaml#payload.tool_name_corrections.tester"
+      - "design-output.yaml#payload.file_inventory[path='v2/.github/agents/tester.agent.md']"
     spec_requirements:
+      - "spec-output.yaml#payload.functional_requirements[id='FR-1']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-2']"
+      - "spec-output.yaml#payload.functional_requirements[id='FR-5']"
       - "spec-output.yaml#payload.functional_requirements[id='FR-9']"
-      - "spec-output.yaml#payload.functional_requirements[id='FR-12']"
     files_to_modify:
-      - path: "v2/.github/agents/reviewer.agent.md"
-        risk: "🟢"
+      - path: "v2/.github/agents/tester.agent.md"
+        risk: "🟡"

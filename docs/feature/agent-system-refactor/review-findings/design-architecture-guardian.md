@@ -5,104 +5,105 @@
 - **Perspective:** architecture-guardian
 - **Risk Level:** 🟡
 - **Round:** 1
-- **Run ID:** 2026-03-08T12:00:00Z
-
----
+- **Run ID:** 2026-03-09T18:00:00Z
 
 ## Security Analysis
 
 **Category Verdict:** approve
 
-### Assessment
+### Finding S-1: Git safety rule is advisory-only, not deterministically enforced
 
-Through the architecture lens, the trust boundary model is sound. The hub-and-spoke pattern (D-2, FR-2.5) ensures no agent-to-agent communication bypasses the orchestrator. This creates a single chokepoint for routing validation and prevents unauthorized cross-agent data leakage.
-
-The migration from instruction-enforced tool restrictions to VS Code native `tools` YAML frontmatter (D-3, CR-4) is a clear architectural improvement — platform-enforced boundaries replace advisory ones. Two residual instruction-level constraints remain (Implementer `run_in_terminal` scope, Knowledge `create_file` scope), documented with a mitigation path via mandatory code review (Step 7). This is an acceptable residual risk given that both restrictions are defense-in-depth behind the platform-level tool restriction.
-
-The `agents: []` field on non-orchestrator agents (FR-12.3) prevents unauthorized subagent dispatch at the platform level, which is architecturally correct. The web research toggle via instruction-level parameter (D-10) is instruction-enforced only, but the secondary control layer (VS Code per-invocation approval in interactive mode) adequately compensates.
-
-No security findings.
-
----
+- **Severity:** Minor
+- **Description:** The git safety rule extracted to global-rules.md (FR-5.3, D-1) is purely instructional. VS Code does not enforce tool restrictions from body text — only YAML frontmatter `tools:` arrays constrain tool access. Since `runInTerminal` is granted to the implementer and tester, those agents can technically execute `git add` or `git commit` if the AI disregards global-rules.md. The design considered hooks (Direction B) and correctly rejected them for scope.
+- **Affected artifacts:** `v2/.github/agents/global-rules.md`, `v2/.github/agents/implementer.agent.md`, `v2/.github/agents/tester.agent.md`
+- **Recommendation:** Explicitly document this as a known limitation in the design. The defense-in-depth strategy (tester command audit + reviewer command trail) mitigates the risk. No action needed beyond documentation.
+- **Evidence:** D-1 alt-B rejected for scope. Implementer and tester `tools:` arrays include `runInTerminal` which enables arbitrary terminal commands. VS Code docs confirm: "If a given tool is not available when using the custom agent, it is ignored" — this means only frontmatter tools restrict access; body text rules are advisory.
 
 ## Architecture Analysis
 
-**Category Verdict:** needs_revision
+**Category Verdict:** approve
 
-### Finding A-1: Orchestrator 150-line budget is high-risk for DAG + routing + 8-step coordination
-
-- **Severity:** Major
-- **Description:** The orchestrator has the most responsibilities of any agent: 8-step pipeline coordination, DAG topological-sort dispatch, file ownership conflict detection, completion-contract routing, approval gates, risk classification, git operations, and feedback loop management. The line budget is 150 lines (D-8). The design itself acknowledges this is "tight" for the DAG+routing logic. The body sections include "Pipeline Steps (8 steps with routing logic)" and "DAG Dispatch Algorithm" — fitting both a non-trivial scheduling algorithm and 8-step routing tables into ~120 lines of body (after frontmatter) is a significant implementation risk.
-- **Affected artifacts:** design-output.yaml D-8 alt-1 cons, component_design orchestrator, design.md Agent Inventory table
-- **Recommendation:** Either (a) extract the DAG dispatch algorithm into a second shared reference document (budget allows: only 1 of 2 permitted shared docs is used, and ~400 lines of line budget remain), or (b) add an explicit fallback plan: if the orchestrator exceeds 150 lines, what gets extracted first? The current D-7 has an explicit fallback (split Tester into 2 agents), but D-8 lacks an analogous fallback for the orchestrator.
-- **Evidence:** D-8 alt-1 cons: "Orchestrator at 150 lines for full DAG+routing logic is tight." The component_design lists 7 distinct responsibilities + 5 body sections. The prior system's orchestrator was 539 lines (repo memory) — a 72% reduction to 150 lines for the most complex agent is ambitious.
-
-### Finding A-2: Tester dual-mode design creates a cohesion tension within a single agent
+### Finding A-1: Orchestrator Step 8 cognitive density — 6 branching sub-workflows in one step
 
 - **Severity:** Major
-- **Description:** D-7 merges two fundamentally different execution models into one agent file: (1) static evidence evaluation (read-only, parallelizable, side-effect-free) and (2) dynamic test execution (terminal access, application lifecycle management, singleton constraint). These modes have different concurrency models, different tool requirements, different failure modes, and different concerns. The Tester's body must contain two distinct workflow sections ("Static Evaluation Workflow" + "Dynamic Testing Workflow"), which is unique among all agents — every other agent has a single workflow section. The design acknowledges "Medium" confidence (the only non-High confidence decision) and already has a fallback plan (split into 9 agents), but doesn't define a triggering condition.
-- **Affected artifacts:** design-output.yaml D-7, component_design tester (body_sections has 7 sections vs the standard 6)
-- **Recommendation:** Define a crisp trigger for the D-7 fallback: "If the combined Tester file exceeds 140 lines OR the static/dynamic workflows cannot be clearly separated within the file, split into Tester (dynamic) + Verifier (static) at 9 agents total." The current "if it doesn't fit, splitting is the fallback" is insufficiently specific for an implementer to act on.
-- **Evidence:** D-7 confidence: "Medium" — the only non-High decision. Body sections: 7 (vs 6 standard). Alt-2 explicitly noted as fallback. The 140-line budget for 7 body sections averages 20 lines per section — tight for two complete workflows.
+- **Description:** Current orchestrator Step 8 has 3 actions: dispatch knowledge, pre-commit validate, `git add -A && git commit`. The design expands Step 8 to 6+ branching actions: (1) dispatch knowledge, (2) optional doc-update re-dispatch with [Apply/Review/Skip] choice, (3) pre-commit validation of knowledge paths, (4) selective pathspec staging from implementation reports, (5) interactive 3-way commit/review/unstage choice, (6) autonomous stage-only path. This makes Step 8 the most complex step in the orchestrator with multiple conditional branches. An implementer could misorder sub-workflows (e.g., staging before validation, committing before doc-update completes).
+- **Affected artifacts:** `v2/.github/agents/orchestrator.agent.md` Step 8 section
+- **Recommendation:** Decompose Step 8 into explicit numbered sub-steps in the design (e.g., 8a: Knowledge Extraction, 8b: Doc Updates, 8c: Pre-commit Validation, 8d: Selective Staging, 8e: Commit/Review Choice). This clarifies control flow sequence for the implementer without changing the architecture. The design's Implementation Checklist items 7-11 cover these but don't sequence them relative to each other.
+- **Evidence:** File inventory shows 5 of 10 orchestrator changes target Step 8: "FR-5: selective pathspec staging", "FR-6: interactive Commit/Review/Unstage", "FR-6: autonomous stage only", "FR-7: doc update choice", "D-9: pre-commit validation scoped to knowledge paths". Current Step 8 is ~8 lines; new Step 8 will be ~20+ lines with branching.
 
-### Finding A-3: Missing explicit contract between Planner file-ownership and Orchestrator DAG dispatch
-
-- **Severity:** Major
-- **Description:** The DAG execution model (D-6) requires the orchestrator to read the planner's task graph, compute topological levels, AND perform file-ownership overlap detection. The planner declares file ownership per task (FR-6.1, FR-6.2), but the design does not specify what happens when the planner's declared file ownership is incomplete or wrong — a task modifies a file it didn't declare. EC-4 acknowledges this: "Two tasks inadvertently modify the same file not declared in ownership." The mitigation is "Tester/Reviewer catches the conflict." However, this means the DAG dispatch's correctness guarantee (no parallel file conflicts) is only as strong as the planner's declarations, and violations are caught post-hoc rather than prevented.
-- **Affected artifacts:** design-output.yaml D-6, EC-4, design.md Step 5 dispatch algorithm, spec-output.yaml FR-6.2
-- **Recommendation:** Add an explicit constraint in the Implementer agent: "Implementer MUST NOT modify files not declared in the task's `files` list. If additional files need modification, return NEEDS_REVISION with the expanded file list." This converts a post-hoc detection problem into a preventive contract.
-- **Evidence:** EC-4 states the conflict is caught by "Tester/Reviewer" — this is steps 6-7, potentially after both conflicting tasks have already written to the same file, creating merge conflicts that are expensive to resolve. The current system avoids this by using planner-assigned waves, which is a weaker but more deterministic model.
-
-### Finding A-4: No versioning or schema evolution strategy for completion contracts
+### Finding A-2: Architect replaces tester as tightest line budget agent (corrected counts)
 
 - **Severity:** Minor
-- **Description:** The completion contract schema is defined once in global-rules.md and co-located in each agent's output section. If the schema evolves (e.g., adding a `confidence` field or changing `output_paths` to `outputs`), all 8 agent files plus global-rules.md must be updated simultaneously. The current system's schemas.md had this same problem at a larger scale (1,422 lines). The new design correctly reduces the surface but doesn't address the evolutionary coupling.
-- **Affected artifacts:** design-output.yaml D-9, D-12, design.md Data Models & Schemas section
-- **Recommendation:** Acknowledge this tradeoff explicitly in D-9 rationale: "Completion contract evolution requires updating global-rules.md + all consuming agents. This is acceptable because: (a) the contract is deliberately minimal (3 fields), (b) changes are rare (0 changes across 5 pipeline runs), (c) the cost of updating 9 files is acceptable for a 3-field schema." No structural change needed — just make the tradeoff explicit.
-- **Evidence:** The completion contract schema (status, summary, output_paths) appears in design.md Data Models section, design-output.yaml schemas section, and will be replicated in each agent's Output Schema body section. The agent_output wrapper adds 3 more fields (agent, started_at, completed_at) that must also be consistent.
-
-### Finding A-5: Prompt files (feature-workflow.prompt.md, quick-fix.prompt.md) lack definition
-
-- **Severity:** Minor
-- **Description:** The file inventory includes 2 prompt files (feature-workflow.prompt.md at ~30 lines, quick-fix.prompt.md at ~25 lines) but neither the design.md nor design-output.yaml defines their content, behavior, or contract. The implementation order lists them as step 7 of 8, but the implementer will have no design specification to work from. What does "quick-fix" allow vs the full pipeline? Which steps does it skip? Is it analogous to the current plan-and-implement.prompt.md (fast-track pipeline)?
-- **Affected artifacts:** design-output.yaml file_inventory (prompt files), design.md Implementation Checklist
-- **Recommendation:** Add a "Prompt Design" section or at minimum a component_design entry for each prompt file, specifying: which pipeline steps they invoke, what parameters they pass, and how quick-fix differs from feature-workflow. The current immutable minimum step set {Step 0, Step 7} from prior pipeline experience (repo memory) should be referenced if applicable.
-- **Evidence:** design-output.yaml file_inventory lists both prompts with line estimates but no description beyond "Full pipeline entry point" and "Simplified pipeline." No component_design entry exists for either prompt. The immutable minimum step set {0, 7, 9} (repo memory) established precedent that reduced pipelines must never skip code review.
-
----
+- **Description:** The design identifies the tester (143/150, 7-line headroom) as "🟡 Tightest." Based on corrected line counts (see C-1), the architect at 130 actual lines with ~15-17 lines of additions would reach ~145-147 (3-5 headroom), making it the true bottleneck. The tester at 129 actual + 13 = ~142 (8 headroom) is more comfortable than claimed. The design's D-6 fallback (SKILL.md extraction for tester) is less critical than an equivalent extraction plan for the architect.
+- **Affected artifacts:** Design line budget analysis, D-6 decision rationale
+- **Recommendation:** After correcting line counts (C-1), reassess risk classification for the architect (🔴 Tightest, not 🟡). Consider extracting the architect's web research step (FR-8) guidance or clarification step (FR-3) into a reference doc if budget becomes too tight during implementation.
+- **Evidence:** Actual architect: 130 lines. Additions: +1 (user-invocable), +0 net (tool renames), +~7 (clarification step), +~7 (web research step) = ~145-147 post-change, 3-5 headroom.
 
 ## Correctness Analysis
 
 **Category Verdict:** needs_revision
 
-### Finding C-1: Design uses "architecture-output.yaml" + "architecture.md" but spec and feature directory use "design-output.yaml" + "design.md" naming
+### Finding C-1: Design line counts are materially incorrect for 5 of 9 files
+
+- **Severity:** Critical
+- **Description:** The design's stated "current" line counts are wrong for the majority of v2 agent files. Verified actual counts (via PowerShell `(Get-Content ...).Count`) vs design claims:
+
+  | Agent        | Design Claims | Actual  | Delta   |
+  | ------------ | ------------- | ------- | ------- |
+  | orchestrator | 105           | 117     | +12     |
+  | researcher   | 78            | 83      | +5      |
+  | architect    | **108**       | **130** | **+22** |
+  | planner      | 97            | 105     | +8      |
+  | implementer  | 94            | 99      | +5      |
+  | tester       | 130           | 129     | -1      |
+  | reviewer     | **106**       | **96**  | **-10** |
+  | knowledge    | **84**        | **107** | **+23** |
+  | global-rules | 78            | 70      | -8      |
+
+  The architect is off by **22 lines** (130 actual vs 108 claimed). The knowledge agent is off by **23 lines** (107 actual vs 84 claimed). These errors propagate through the entire line budget analysis. The design misidentifies the tightest agent (claims tester at 7 headroom; actual tightest is architect at 3-5 headroom). The design's "System total: 1,004" is also wrong (actual: 966).
+
+  **Corrected line budget analysis:**
+
+  | Agent        | Actual | Est. Additions | Est. Post | Headroom | Risk            |
+  | ------------ | ------ | -------------- | --------- | -------- | --------------- |
+  | orchestrator | 117    | +25            | ~142      | 8        | 🟡              |
+  | researcher   | 83     | +1             | ~84       | 66       | 🟢              |
+  | architect    | 130    | +17            | **~147**  | **3**    | **🔴 Tightest** |
+  | planner      | 105    | +11            | ~116      | 34       | 🟢              |
+  | implementer  | 99     | +16            | ~115      | 35       | 🟢              |
+  | tester       | 129    | +13            | ~142      | 8        | 🟡              |
+  | reviewer     | 96     | +1             | ~97       | 53       | 🟢              |
+  | knowledge    | 107    | +11            | ~118      | 32       | 🟢              |
+
+- **Affected artifacts:** `design-output.yaml` line_budget section, `design.md` Line Budget table, file_inventory current_lines and estimated_post_lines fields
+- **Recommendation:** Update all line count data in both design-output.yaml and design.md using verified actual counts. Reassess risk classification for the architect (should be 🔴 Tightest). Consider whether the architect needs content reduction or extraction for FR-8 (web research step) or FR-3 (clarification step) to maintain safe headroom (>5 lines).
+- **Evidence:** Line counts verified via PowerShell `(Get-Content "v2/.github/agents/<file>").Count` on 2026-03-09. Design likely used stale counts from the original v2 system metrics ("11 files, 1,004 lines" per repo memory) which diverged after prior pipeline runs.
+
+### Finding C-2: Selective staging scope excludes non-implementation pipeline artifacts
 
 - **Severity:** Major
-- **Description:** The design introduces a new naming convention: the Architect agent produces `architecture-output.yaml` and `architecture.md` (design.md Step 3, design-output.yaml pipeline step 3). However, the existing feature directory pattern uses `design-output.yaml` and `design.md` (as seen in the current agent-system-refactor feature). The spec-output.yaml doesn't explicitly specify the output artifact names. This naming inconsistency will cause confusion: does the orchestrator look for `architecture-output.yaml` or `design-output.yaml`? The evidence check table says "Architecture: architecture-output.yaml exists" — is this the sole source of truth?
-- **Affected artifacts:** design-output.yaml pipeline step 3 outputs, design.md Step 3, design.md State Management evidence checks
-- **Recommendation:** Settle on one naming convention and apply it consistently. Since the agent is called "Architect" and the step is "Architecture," `architecture-output.yaml` is the logical choice. But the feature directory template needs to be updated to match. Document this naming migration explicitly so implementers and future pipeline users know the canonical name.
-- **Evidence:** design-output.yaml step 3 outputs: ["docs/feature/<slug>/architecture-output.yaml", "docs/feature/<slug>/architecture.md"]. Current feature directory for agent-system-refactor contains: design-output.yaml, design.md (old naming). The spec doesn't use either name explicitly.
+- **Description:** The selective pathspec staging (D-5, FR-5.4) reads file paths exclusively from "implementation reports' files_modified lists." However, several agents produce output files NOT in implementation reports:
+  - **Knowledge agent:** evidence-bundle.yaml, knowledge-output.yaml, instruction-recommendations.md
+  - **Tester:** verification-reports/test-report.yaml
+  - **Reviewer:** review-findings/_.yaml, review-verdicts/_.yaml
+  - **Planner:** plan-output.yaml, tasks/\*.yaml
+  - **Researcher:** research/\*.yaml
+  - **Architect:** architecture-output.yaml
 
-### Finding C-2: Review gate semantics differ between design.md and spec
+  The current `git add -A` stages all of these. The new selective staging would stage ONLY implementation code changes, leaving all docs/feature/ pipeline artifacts unstaged. Meanwhile, the design includes "pre-commit validation" for knowledge output paths — "pre-commit" implies these files should be committed, creating a contradiction.
 
-- **Severity:** Major
-- **Description:** The spec states (FR-9.3): "≥2 of 3 reviewers approve AND zero blocker findings. If the gate fails, the Orchestrator re-dispatches the **Implementer** with review findings (max 2 review rounds)." However, the design's Step 7 says: "Failure routes back to **Step 5** with findings." Step 5 is Implementation. This means review failure always goes back to implementation, but for design review (Step 3 embedded review for 🔴), review failure should route back to the **Architect** (Step 3), not the Implementer (Step 5). The embedded design review routing is unspecified.
-- **Affected artifacts:** design-output.yaml pipeline step 7, step 3 (🔴 embedded review), design.md Steps 3 and 7
-- **Recommendation:** Explicitly document the routing for embedded design review failure: "If embedded design review at Step 3 fails, route back to Architect with findings (max 1 round, per bounded feedback loops)." The current Step 7 failure routing is correct for code review but doesn't cover the design review case.
-- **Evidence:** design.md Step 3: "[🔴 complex: embedded design review sub-phase with 2-3 Reviewers]" — no failure routing specified. design.md Step 7: "Failure routes back to Step 5 with findings. Max 2 review rounds." — only covers code review. EC-5 only mentions "Code review fails after 2 rounds."
+- **Affected artifacts:** D-5 decision, FR-5.4 spec requirement, orchestrator Step 8 staging design
+- **Recommendation:** Specify a two-source staging strategy: (1) implementation code from reports' `files_modified`, (2) pipeline artifacts via `git add docs/feature/<slug>/`. Alternatively, define explicitly that pipeline artifacts are ephemeral and NOT committed — but then remove "pre-commit" terminology from D-9.
+- **Evidence:** FR-5.4: "staging only files declared in implementation reports' files_modified lists." Knowledge output schema: writes to `docs/feature/<slug>/` paths. These paths do not appear in any implementation report.
 
-### Finding C-3: Research gate says "≥2 researchers" but 🟡 dispatches "2-3 researchers" — edge case when exactly 2 dispatched and 1 fails
+### Finding C-3: Question-answer data flow for orchestrator-mediated clarifications not specified
 
 - **Severity:** Minor
-- **Description:** FR-4.3 requires "≥2 of dispatched researchers to complete successfully." For 🟡 risk with 2 researchers dispatched, if 1 fails, the gate fails (1 < 2). This means for 🟡 with minimum 2 researchers, there is zero tolerance for researcher failure — both must succeed. For 🔴 with 4 researchers, up to 2 can fail. The gate is asymmetric by risk level, which may be intentional but is not documented as such.
-- **Affected artifacts:** design-output.yaml pipeline step 2 gate, spec FR-4.3, design.md Risk-Based Scaling table
-- **Recommendation:** Clarify whether the gate is intentionally "≥2 absolute" or "≥N/2 proportional." If absolute, document that 🟡 has no failure tolerance at minimum dispatch. If proportional, change the gate to "≥ceil(N/2) of N researchers." Either interpretation is valid — the ambiguity should be resolved.
-- **Evidence:** Pipeline step 2 gate: "≥2 of N researchers return status: DONE." Risk scaling: 🟡 = 2-3 researchers, 🔴 = 4 researchers.
-
----
+- **Description:** D-3 specifies that the architect outputs `clarifications_needed` in YAML and the orchestrator presents them to the user. The design does not describe the return path: How are user answers passed back to the architect? Is the architect re-dispatched with answers prepended to task context? Is there a file-based handoff? The same gap applies to the planner approval flow (FR-4). Without this, different implementers could create incompatible handoff patterns.
+- **Affected artifacts:** D-3 decision rationale, architect clarification workflow, planner plan_summary workflow
+- **Recommendation:** Add a data flow statement to D-3: "After collecting user answers, the orchestrator re-dispatches the architect with original inputs plus a `clarification_responses` parameter. The architect resumes at Step 2 with clarifications resolved." Apply same pattern for planner.
+- **Evidence:** D-3 rejects NEEDS_REVISION loop because "Full re-dispatch wastes tokens" — but the orchestrator-mediated approach also requires re-dispatch. The distinction is that the architect structures the questions, but the design doesn't describe the return path.
 
 ## Summary
 
-The design is architecturally sound overall — the reduction from 6,416 to ~1,100 lines is achieved through well-justified merges, co-location of schemas, elimination of proven-unused infrastructure (SQLite evidence gates), and adoption of platform-enforced tool restrictions. The 12 architectural decisions are well-structured with clear alternatives analysis and industry traceability.
-
-Three Major findings require attention: (1) the orchestrator's 150-line budget has no explicit fallback plan despite being the most complex agent, (2) the Tester dual-mode design needs a crisp split trigger, and (3) the file-ownership contract between Planner and Implementer needs a preventive enforcement mechanism rather than post-hoc detection. Two additional Major findings address correctness: artifact naming inconsistency and missing embedded design review failure routing. None are blocking — all are addressable through design clarifications without structural changes.
+The design is architecturally sound in its choice of Direction C (hybrid inline + shared extraction), individual tool names for trust model enforcement (verified against VS Code cheat sheet 2026-03-09), and orchestrator-mediated questioning (confirmed correct by VS Code subagent isolation docs). All 9 decisions are well-reasoned with clear tradeoffs. Tool name corrections are verified correct against the official VS Code built-in tools reference. However, the line budget analysis is based on materially incorrect current line counts (architect off by 22, knowledge off by 23), misidentifying the tightest agent and understating the architect's budget risk at ~3 headroom post-change. Additionally, the selective staging scope creates a functional gap for non-implementation pipeline artifacts. These correctness issues require design revision before implementation can proceed safely.

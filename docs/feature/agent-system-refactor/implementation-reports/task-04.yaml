@@ -2,22 +2,39 @@ agent_output:
   agent: "implementer"
   instance: "implementer-task-04"
   step: "step-5"
-  started_at: "2026-03-08T19:35:00Z"
-  completed_at: "2026-03-08T19:50:00Z"
+  started_at: "2026-03-09T18:30:00Z"
+  completed_at: "2026-03-09T18:35:00Z"
   schema_version: "1.0"
   payload:
     task_id: "task-04"
-    task_type: "configuration"
+    task_type: "code"
+    lines_before: 130
+    lines_after: 139
     baseline:
       ide_diagnostics: { errors: 0, warnings: 0 }
       build_exit_code: null
       test_summary: null
     changes:
       - path: "v2/.github/agents/architect.agent.md"
-        action: "created"
-        description: "Created architect agent file (98 lines). Merges Spec+Designer into single agent with 8-step workflow. YAML frontmatter with 7 tools, agents: []. Output schema produces architecture-output.yaml. Handles missing research for green features."
+        action: "modified"
+        description: >
+          (1) Fixed all 7 YAML frontmatter tool names from namespace/tool format
+          to flat camelCase: read/readFile→readFile, search/listDirectory→listDirectory,
+          search/textSearch→textSearch, search/codebase→codebase, search/fileSearch→fileSearch,
+          web/fetch→fetch, edit/createFile→createFile.
+          (2) Added user-invocable: false to YAML frontmatter.
+          (3) Added Step 2 'Clarify Assumptions' between Read Inputs and Analyze Codebase —
+          assumptions-first flow per D-3: architect documents assumptions_made[] and
+          clarifications_needed[], orchestrator mediates user Q&A in interactive mode,
+          re-dispatches only if answers contradict assumptions.
+          (4) Added Step 4 'Web Research' between Analyze Codebase and Identify Requirements —
+          gated by web_research_enabled=true, cap 3-5 targeted lookups per FR-8/D-8.
+          (5) Renumbered all subsequent steps (old 3-8 → new 5-10), updated step count
+          from 8 to 10.
+          (6) Condensed existing step prose (Steps 3, 5, 6, 7) to recover ~4 lines of
+          budget space — no semantic loss.
     self_check:
-      ide_diagnostics: { errors: 7, warnings: 0 }
+      ide_diagnostics: { errors: 0, warnings: 0 }
       build_exit_code: null
       test_summary: null
       self_fix_attempts: 0
@@ -31,34 +48,42 @@ agent_output:
         phase: "after"
         tool: "get_errors"
         passed: true
-        notes: "7 'Unknown tool' warnings are expected VS Code IDE artifacts for .agent.md tool declarations — tools resolve at runtime, not edit time. Same warnings appear on all agent files."
+      - check_name: "line-budget"
+        phase: "after"
+        tool: "run_in_terminal"
+        passed: true
+        note: "139 lines ≤ 150 limit (11 headroom)"
     behavioral_coverage:
-      - ac_id: "AC-2"
+      - ac_id: "AC-4-arch"
         test_file: null
         test_name: null
-        status: "covered"
-        justification: "Verified via PowerShell line count: 98 lines ≤ 150 hard limit"
-      - ac_id: "AC-5"
         status: "not_applicable"
-        justification: "test_method='inspection' — YAML frontmatter contains name, description, tools fields (lines 2-11)"
-      - ac_id: "AC-7"
+        justification: "test_method='inspection' — verified all 7 tool names are flat camelCase, zero namespace/tool format"
+      - ac_id: "AC-7-arch"
+        test_file: null
+        test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — agents: [] present on line 12"
-      - ac_id: "AC-22"
+        justification: "test_method='inspection' — user-invocable: false present at line 4"
+      - ac_id: "AC-8"
+        test_file: null
+        test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — completion contract (status/summary/output_paths) present in Output Schema section"
-      - ac_id: "FR-5.1"
+        justification: "test_method='inspection' — Step 2 'Clarify Assumptions' present between Steps 1 and 3, with interactive/autonomous handling"
+      - ac_id: "AC-19"
+        test_file: null
+        test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — Workflow steps 3-7 produce requirements with IDs, acceptance criteria, architectural direction, and decisions"
-      - ac_id: "FR-5.2a"
+        justification: "test_method='inspection' — Step 4 'Web Research' gated by web_research_enabled=true, before Step 5 'Identify Requirements'"
+      - ac_id: "AC-20"
+        test_file: null
+        test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — Inputs table lists research outputs and initial-request.md"
-      - ac_id: "PV-C-1"
+        justification: "test_method='inspection' — fetch tool name is 'fetch' (line 12), not 'web/fetch'"
+      - ac_id: "AC-27-arch"
+        test_file: null
+        test_name: null
         status: "not_applicable"
-        justification: "test_method='inspection' — Missing research handling documented in Inputs section and Workflow Step 1"
-      - ac_id: "AG-C-1"
-        status: "not_applicable"
-        justification: "test_method='inspection' — Output filename is architecture-output.yaml throughout, Constraints section enforces naming"
+        justification: "test_method='inspection' — 139 lines < 150 limit"
     tdd_red_green:
       tests_written_first: false
       initial_run_failures: 0
@@ -67,10 +92,10 @@ agent_output:
         get_errors_clean: true
         typecheck_clean: true
         tests_passing: true
-      tdd_fallback_reason: "task_type is 'configuration' — agent instruction file (.agent.md) is not production source code. No test framework applies to markdown agent definitions."
+      tdd_fallback_reason: "All 6 acceptance criteria use test_method='inspection'. No production source code — agent instruction file (.md) only. TDD not applicable."
 completion:
   status: "DONE"
-  summary: "Created architect.agent.md (98 lines, budget 140, limit 150) with 8-step workflow, architecture-output.yaml output, missing-research handling"
+  summary: "task-04: architect.agent.md updated — tool names fixed, user-invocable:false added, clarification step (Step 2) and web research step (Step 4) added. 130→139 lines (11 headroom)."
   severity: null
   findings_count: 0
   risk_level: null

@@ -1,133 +1,109 @@
 agent_output:
   agent: "planner"
-  instance: "planner"
+  instance: "planner-run3"
   step: "step-4"
-  started_at: "2026-03-08T19:00:00Z"
-  completed_at: "2026-03-08T19:45:00Z"
+  started_at: "2026-03-09T23:55:00Z"
+  completed_at: "2026-03-10T00:40:00Z"
   schema_version: "1.0"
+  run_id: "2026-03-09T18:00:00Z"
   payload:
     planning_mode: "initial"
-    overall_risk_summary: "🔴"
-    total_tasks: 10
+    overall_risk_summary: "🟡"
+    total_tasks: 9
     waves:
       - id: "wave-1"
-        tasks: ["task-01", "task-02"]
-        max_concurrent: 2
+        tasks: ["task-01"]
+        max_concurrent: 1
       - id: "wave-2"
-        tasks: ["task-03", "task-04", "task-05", "task-06"]
+        tasks: ["task-02", "task-03", "task-04", "task-05"]
         max_concurrent: 4
       - id: "wave-3"
-        tasks: ["task-07", "task-08", "task-09"]
-        max_concurrent: 3
-      - id: "wave-4"
-        tasks: ["task-10"]
-        max_concurrent: 1
+        tasks: ["task-06", "task-07", "task-08", "task-09"]
+        max_concurrent: 4
     tasks:
       - id: "task-01"
-        title: "Create global-rules.md shared reference"
+        title: "Update global-rules.md — Git Safety Rule + Plan Refinement Limit"
         size: "Standard"
         risk: "🟢"
         depends_on: []
         agent: "implementer"
       - id: "task-02"
-        title: "Create pipeline prompt files"
+        title: "Update orchestrator.agent.md — Full Orchestrator Overhaul"
         size: "Standard"
-        risk: "🟢"
-        depends_on: []
+        risk: "🟡"
+        depends_on: ["task-01"]
         agent: "implementer"
       - id: "task-03"
-        title: "Create researcher.agent.md"
+        title: "Update implementer.agent.md — Git Safety + TDD Refactor"
         size: "Standard"
-        risk: "🟢"
+        risk: "🟡"
         depends_on: ["task-01"]
         agent: "implementer"
       - id: "task-04"
-        title: "Create architect.agent.md"
+        title: "Update architect.agent.md — Clarification + Web Research Steps"
         size: "Standard"
-        risk: "🟢"
+        risk: "🟡"
         depends_on: ["task-01"]
         agent: "implementer"
       - id: "task-05"
-        title: "Create planner.agent.md"
+        title: "Update planner.agent.md — Plan Summary + Approval Output"
         size: "Standard"
         risk: "🟢"
         depends_on: ["task-01"]
         agent: "implementer"
       - id: "task-06"
-        title: "Create reviewer.agent.md"
+        title: "Update tester.agent.md — Exploratory QA + Audit Update"
         size: "Standard"
-        risk: "🟢"
-        depends_on: ["task-01"]
+        risk: "🟡"
+        depends_on: ["task-03"]
         agent: "implementer"
       - id: "task-07"
-        title: "Create implementer.agent.md"
+        title: "Update reviewer.agent.md — Audit Pattern Update + Tool Fixes"
         size: "Standard"
-        risk: "🟡"
-        depends_on: ["task-01"]
+        risk: "🟢"
+        depends_on: ["task-03"]
         agent: "implementer"
       - id: "task-08"
-        title: "Create tester.agent.md"
+        title: "Update knowledge.agent.md — Doc-Update Mode + Memory Fix"
         size: "Standard"
         risk: "🟡"
-        depends_on: ["task-01"]
+        depends_on: ["task-02"]
         agent: "implementer"
       - id: "task-09"
-        title: "Create knowledge.agent.md"
+        title: "Update researcher.agent.md — Tool Name Fix + User-Invocable"
         size: "Standard"
-        risk: "🟡"
-        depends_on: ["task-01"]
-        agent: "implementer"
-      - id: "task-10"
-        title: "Create orchestrator.agent.md"
-        size: "Large"
-        risk: "🔴"
-        depends_on: ["task-01"]
+        risk: "🟢"
+        depends_on: ["task-04"]
         agent: "implementer"
     dependency_graph:
       task-01: []
-      task-02: []
+      task-02: ["task-01"]
       task-03: ["task-01"]
       task-04: ["task-01"]
       task-05: ["task-01"]
-      task-06: ["task-01"]
-      task-07: ["task-01"]
-      task-08: ["task-01"]
-      task-09: ["task-01"]
-      task-10: ["task-01"]
+      task-06: ["task-03"]
+      task-07: ["task-03"]
+      task-08: ["task-02"]
+      task-09: ["task-04"]
 
-    # Known issues from design review to capture in implementation
+    # Design review carry-over (R2 approval, 1 Minor advisory)
     known_issues:
       - id: "KI-1"
-        source: "AG-R2-C-1, AG-R3-C-1"
-        title: "Pre-commit validation scope"
+        source: "AG-R3-R2-S-1"
+        title: "Git safety rule is advisory, not deterministic"
         instruction: >
-          design.md describes entire-git-diff validation. The CORRECT behavior is
-          per trust_boundary_model in design-output.yaml: validate only Knowledge
-          agent output paths (docs/feature/<slug>/evidence-bundle.yaml,
-          knowledge-output.yaml, instruction-recommendations.md). Implementer of
-          orchestrator task-10 MUST use trust_boundary_model as authoritative.
-      - id: "KI-2"
-        source: "PV-R3-minor"
-        title: "Pipeline-log.yaml append mechanism"
-        instruction: >
-          The orchestrator appends dispatch entries to pipeline-log.yaml after each
-          agent dispatch. Use replace_string_in_file or create_file for initial creation,
-          then append entries to the dispatches list. Implementer should specify the
-          append pattern in the orchestrator workflow.
-      - id: "KI-3"
-        source: "AG-R3-A-2"
-        title: "Orchestrator body sections may deviate from D-3 universal standard"
-        instruction: >
-          D-3 prescribes 6 standard sections. The orchestrator needs Pipeline Steps
-          and DAG Dispatch instead of Inputs/Workflow. This deviation is accepted —
-          the orchestrator's complexity justifies a non-standard section layout.
+          The git safety rule in global-rules.md is instruction-based (agents are told
+          not to run git write commands). It is NOT enforced by a PreToolUse hook.
+          Architecture Guardian noted this as a known limitation. The three-layer trust
+          model (user-invocable:false + agents:[] + tools: arrays) provides defense in
+          depth. Reviewer audit in Step 7 provides detection-after-the-fact.
 
 completion:
   status: "DONE"
-  summary: "10 tasks created, 4 waves, overall risk 🔴"
+  summary: "9 tasks created, 3 waves, overall risk 🟡"
   severity: null
   findings_count: 0
-  risk_level: "🔴"
+  risk_level: "🟡"
   output_paths:
     - "plan-output.yaml"
     - "plan.md"
@@ -140,4 +116,3 @@ completion:
     - "tasks/task-07.yaml"
     - "tasks/task-08.yaml"
     - "tasks/task-09.yaml"
-    - "tasks/task-10.yaml"
