@@ -2,13 +2,13 @@
 name: architect
 description: "Combined specification and design agent"
 tools:
-  - readFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - fetch
-  - createFile
+  - read/readFile
+  - search/listDirectory
+  - search/textSearch
+  - search/codebase
+  - search/fileSearch
+  - web/fetch
+  - edit/createFile
 agents: []
 ---
 

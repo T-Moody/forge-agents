@@ -2,14 +2,14 @@
 name: reviewer
 description: "Adversarial multi-perspective code and design reviewer"
 tools:
-  - readFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - problems
-  - changes
-  - createFile
+  - read/readFile
+  - search/listDirectory
+  - search/textSearch
+  - search/codebase
+  - search/fileSearch
+  - read/problems
+  - search/changes
+  - edit/createFile
 agents: []
 ---
 

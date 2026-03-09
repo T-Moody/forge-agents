@@ -2,13 +2,13 @@
 name: knowledge
 description: "Post-mortem analysis, evidence bundling, and instruction optimization agent"
 tools:
-  - readFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - createFile
-  - memory
+  - read/readFile
+  - search/listDirectory
+  - search/textSearch
+  - search/codebase
+  - search/fileSearch
+  - edit/createFile
+  - vscode/memory
 agents: []
 ---
 

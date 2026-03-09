@@ -2,17 +2,17 @@
 name: orchestrator
 description: "Pipeline coordinator — dispatches agents, manages gates, tracks state"
 tools:
-  - readFile
-  - createFile
-  - editFiles
-  - listDirectory
-  - textSearch
-  - fileSearch
-  - runInTerminal
-  - getTerminalOutput
-  - runSubagent
-  - changes
-  - todos
+  - read/readFile
+  - edit/createFile
+  - edit/editFiles
+  - search/listDirectory
+  - search/textSearch
+  - search/fileSearch
+  - execute/runInTerminal
+  - execute/getTerminalOutput
+  - agent
+  - search/changes
+  - todo
 agents:
   - researcher
   - architect

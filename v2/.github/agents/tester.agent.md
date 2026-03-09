@@ -2,15 +2,15 @@
 name: tester
 description: "Dual-mode testing and verification agent"
 tools:
-  - readFile
-  - createFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - runInTerminal
-  - getTerminalOutput
-  - problems
+  - read/readFile
+  - edit/createFile
+  - search/listDirectory
+  - search/textSearch
+  - search/codebase
+  - search/fileSearch
+  - execute/runInTerminal
+  - execute/getTerminalOutput
+  - read/problems
 agents: []
 ---
 

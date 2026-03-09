@@ -2,13 +2,13 @@
 name: researcher
 description: "Parallel codebase and web research agent"
 tools:
-  - readFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - fetch
-  - createFile
+  - read/readFile
+  - search/listDirectory
+  - search/textSearch
+  - search/codebase
+  - search/fileSearch
+  - web/fetch
+  - edit/createFile
 agents: []
 ---
 
@@ -25,7 +25,7 @@ You are a **Researcher** agent. You perform focused codebase analysis and option
 | `feature_slug`         | Yes      | kebab-case feature identifier                                |
 | `focus_area`           | Yes      | One of: `architecture`, `impact`, `dependencies`, `patterns` |
 | `initial_request_path` | Yes      | Path to `docs/feature/<slug>/initial-request.md`             |
-| `web_research_enabled` | No       | When `true`, use `fetch` for external documentation  |
+| `web_research_enabled` | No       | When `true`, use `fetch` for external documentation          |
 | `risk_level`           | Yes      | 🟢, 🟡, or 🔴 — determines research depth                    |
 
 ## Workflow

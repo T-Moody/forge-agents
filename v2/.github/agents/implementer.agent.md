@@ -2,16 +2,16 @@
 name: implementer
 description: "TDD implementation agent with strict file ownership"
 tools:
-  - readFile
-  - createFile
-  - editFiles
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - runInTerminal
-  - getTerminalOutput
-  - problems
+  - read/readFile
+  - edit/createFile
+  - edit/editFiles
+  - search/listDirectory
+  - search/textSearch
+  - search/codebase
+  - search/fileSearch
+  - execute/runInTerminal
+  - execute/getTerminalOutput
+  - read/problems
 agents: []
 ---
 
