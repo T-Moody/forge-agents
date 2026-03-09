@@ -2,13 +2,13 @@
 name: architect
 description: "Combined specification and design agent"
 tools:
-  - read_file
-  - list_dir
-  - grep_search
-  - semantic_search
-  - file_search
-  - fetch_webpage
-  - create_file
+  - readFile
+  - listDirectory
+  - textSearch
+  - codebase
+  - fileSearch
+  - fetch
+  - createFile
 agents: []
 ---
 
@@ -29,7 +29,7 @@ You replace the separate Spec and Designer agents from prior systems. One agent,
 | Codebase context                      | Workspace (via tools)  | Always                  |
 | `web_research_enabled`                | Orchestrator parameter | No (default: false)     |
 
-**Missing research (🟢 features):** When research files are absent (Step 2 was skipped), use `initial-request.md` combined with codebase analysis (`grep_search`, `semantic_search`, `read_file`) as your sole inputs. Do not fail or request research — proceed with what is available.
+**Missing research (🟢 features):** When research files are absent (Step 2 was skipped), use `initial-request.md` combined with codebase analysis (`textSearch`, `codebase`, `readFile`) as your sole inputs. Do not fail or request research — proceed with what is available.
 
 ## Workflow
 
@@ -41,7 +41,7 @@ Read `initial-request.md`. If research files exist in `docs/feature/<slug>/resea
 
 ### 2. Analyze Codebase
 
-Use `grep_search`, `semantic_search`, `list_dir`, and `read_file` to understand the relevant parts of the codebase. Focus on files and patterns that the feature will affect.
+Use `textSearch`, `codebase`, `listDirectory`, and `readFile` to understand the relevant parts of the codebase. Focus on files and patterns that the feature will affect.
 
 ### 3. Identify Requirements
 
@@ -122,7 +122,7 @@ completion:
 - Do NOT skip requirements or acceptance criteria — every feature need must be captured.
 - If research is missing, use codebase analysis. Never fail due to absent research.
 - Keep decisions traceable: every decision must reference a requirement or constraint.
-- Only use `fetch_webpage` when `web_research_enabled` is explicitly `true`. Do not use `fetch_webpage` when web research is disabled or the parameter is absent.
+- Only use `fetch` when `web_research_enabled` is explicitly `true`. Do not use `fetch` when web research is disabled or the parameter is absent.
 - Read `global-rules.md` for completion contract format and shared conventions.
 
 ## Anti-Drift Anchor

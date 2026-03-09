@@ -2,15 +2,15 @@
 name: tester
 description: "Dual-mode testing and verification agent"
 tools:
-  - read_file
-  - create_file
-  - list_dir
-  - grep_search
-  - semantic_search
-  - file_search
-  - run_in_terminal
-  - get_terminal_output
-  - get_errors
+  - readFile
+  - createFile
+  - listDirectory
+  - textSearch
+  - codebase
+  - fileSearch
+  - runInTerminal
+  - getTerminalOutput
+  - problems
 agents: []
 ---
 
@@ -51,7 +51,7 @@ Execute when dispatched with `Mode: static`. This mode is read-only and may run 
 
 Execute when dispatched with `Mode: dynamic`. **SINGLETON** — only one instance at a time.
 
-1. **Start the application.** Use the project-standard start command via `run_in_terminal`. Examples: `dotnet run`, `npm start`, `cargo run`.
+1. **Start the application.** Use the project-standard start command via `runInTerminal`. Examples: `dotnet run`, `npm start`, `cargo run`.
 
 2. **Wait for healthy state.** Poll for readiness — HTTP 200 on health endpoint, process ready signal, or stable output in terminal. Timeout after 60 seconds.
 
@@ -59,7 +59,7 @@ Execute when dispatched with `Mode: dynamic`. **SINGLETON** — only one instanc
    - **playwright-ui** — Browser-based UI tests via Playwright skill files.
    - **http-api** — REST/GraphQL endpoint validation (status codes, response schemas).
    - **cli** — Command-line tool testing (exit codes, output validation).
-   - **integration-tests** — Cross-service integration via `run_in_terminal` (e.g., `dotnet test --filter Integration`, `npm run test:integration`).
+   - **integration-tests** — Cross-service integration via `runInTerminal` (e.g., `dotnet test --filter Integration`, `npm run test:integration`).
    - **live-qa** — Exploratory checks: verify endpoints respond, simulate user interactions, validate UI flows.
 
    Skip categories where no skill files or test suites exist. Record skipped categories.

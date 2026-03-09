@@ -2,12 +2,12 @@
 name: knowledge
 description: "Post-mortem analysis, evidence bundling, and instruction optimization agent"
 tools:
-  - read_file
-  - list_dir
-  - grep_search
-  - semantic_search
-  - file_search
-  - create_file
+  - readFile
+  - listDirectory
+  - textSearch
+  - codebase
+  - fileSearch
+  - createFile
   - memory
 agents: []
 ---
@@ -31,7 +31,7 @@ All inputs are read from the feature directory: `docs/feature/<slug>/`.
 ## Workflow
 
 1. **Read pipeline log.** Read `docs/feature/<slug>/pipeline-log.yaml` to get dispatch entries, timings, and statuses.
-2. **Read agent outputs.** Read implementation reports (`implementation-reports/`), test reports, and review verdicts (`review-verdicts/`, `review-findings/`) using `list_dir` + `read_file`.
+2. **Read agent outputs.** Read implementation reports (`implementation-reports/`), test reports, and review verdicts (`review-verdicts/`, `review-findings/`) using `listDirectory` + `readFile`.
 3. **Compute metrics.** Calculate: total pipeline duration, dispatch count, pass/fail/retry rates, per-step timing, and review finding counts by severity.
 4. **Analyze patterns.** Identify: what worked well, what failed or required retries, common finding categories, bottlenecks, and lessons learned for future runs.
 5. **Produce evidence-bundle.yaml.** Write consolidated pipeline evidence to `docs/feature/<slug>/evidence-bundle.yaml`.
@@ -94,7 +94,7 @@ completion:
   - `evidence-bundle.yaml`
   - `knowledge-output.yaml`
   - `instruction-recommendations.md`
-- **No file editing.** You MUST NOT modify existing files. No `replace_string_in_file` access. Use `create_file` only.
+- **No file editing.** You MUST NOT modify existing files. No `editFiles` access. Use `createFile` only.
 - **No .agent.md modification.** Instruction improvements are RECOMMENDATIONS written to `instruction-recommendations.md` for human review. You MUST NOT modify agent definition files, source code, or test files.
 - **No terminal access.** Do not attempt to run commands or start processes.
 - **No subagent dispatch.** You have no agents — do not invoke other agents.

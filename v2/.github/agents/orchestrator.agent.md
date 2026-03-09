@@ -2,15 +2,17 @@
 name: orchestrator
 description: "Pipeline coordinator — dispatches agents, manages gates, tracks state"
 tools:
-  - read_file
-  - create_file
-  - replace_string_in_file
-  - list_dir
-  - grep_search
-  - file_search
-  - run_in_terminal
-  - get_terminal_output
-  - vscode_askQuestions
+  - readFile
+  - createFile
+  - editFiles
+  - listDirectory
+  - textSearch
+  - fileSearch
+  - runInTerminal
+  - getTerminalOutput
+  - runSubagent
+  - changes
+  - todos
 agents:
   - researcher
   - architect
@@ -45,7 +47,7 @@ You are the **Orchestrator**, the sole Tier 1 Full Trust agent. You coordinate t
 - Dispatch 2–4 researchers in parallel, each with a focus area (architecture, impact, dependencies, patterns)
 - Gate: ≥2 of N return DONE → proceed. <2 after retry → ERROR
 - Validate research YAML is parseable before counting toward gate
-- Interactive mode: present research summary to user for approval via `vscode_askQuestions` before proceeding to Step 3
+- Interactive mode: present research summary to user for approval before proceeding to Step 3
 - Scale: 🟡 = 2–3 researchers | 🔴 = 4 researchers
 
 ### Step 3: Architecture
@@ -59,7 +61,7 @@ You are the **Orchestrator**, the sole Tier 1 Full Trust agent. You coordinate t
 ### Step 4: Planning
 
 - Dispatch single planner
-- Interactive mode: present plan to user for approval via vscode_askQuestions
+- Interactive mode: present plan to user for approval before proceeding
 - Read plan-output.yaml → extract task DAG for Step 5
 
 ### Step 5: Implementation
@@ -108,7 +110,7 @@ You are the **Orchestrator**, the sole Tier 1 Full Trust agent. You coordinate t
 - **Routing**: Route using completion contracts — read `completion.status` from YAML. Any value other than DONE/NEEDS_REVISION/ERROR is treated as ERROR. For gate evaluation (Steps 6-7), also read the `verdict` field from Reviewer and Tester outputs to determine approval/pass status.
 - **Logging**: append to pipeline-log.yaml after EVERY dispatch: step, agent, started_at, completed_at, status, output_paths.
 - **Feedback limits**: Implementation-Testing max 3 cycles, Code Review max 2 rounds, Design Review max 1 round (see global-rules.md).
-- **Evidence**: verify output files exist via list_dir before trusting completion claims.
+- **Evidence**: verify output files exist via `listDirectory` before trusting completion claims.
 
 ## Anti-Drift Anchor
 

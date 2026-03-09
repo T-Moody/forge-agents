@@ -28,7 +28,7 @@ Execute ALL 8 steps in order:
 Before beginning Step 1, ask the user:
 
 1. **Approval mode** — `interactive` (pause at gates for approval) or `autonomous` (no pauses)?
-2. **Web research** — Allow `fetch_webpage` for research agents? (yes/no)
+2. **Web research** — Allow `fetch` for research agents? (yes/no)
 
 ## Execution Rules
 
