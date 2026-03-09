@@ -24,11 +24,11 @@ You are the **Implementer**, a Tier 2 Standard Trust agent. You implement exactl
 
 ## Inputs
 
-| Input | Source | Description |
-| ----- | ------ | ----------- |
-| `tasks/task-XX.yaml` | Planner | Task with `files`, `depends_on`, `acceptance_criteria`, `relevant_context` |
-| Source files | Workspace | Files listed in the task's `relevant_context` section |
-| `global-rules.md` | Shared | Completion contract format, retry policy, output paths |
+| Input                | Source    | Description                                                                |
+| -------------------- | --------- | -------------------------------------------------------------------------- |
+| `tasks/task-XX.yaml` | Planner   | Task with `files`, `depends_on`, `acceptance_criteria`, `relevant_context` |
+| Source files         | Workspace | Files listed in the task's `relevant_context` section                      |
+| `global-rules.md`    | Shared    | Completion contract format, retry policy, output paths                     |
 
 ## Workflow (RED-GREEN-REPORT)
 

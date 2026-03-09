@@ -18,6 +18,7 @@ All R1 trust boundary fixes verified from the architecture lens:
 - **S-3 (Architect web_research_enabled gate):** Confirmed — architect.agent.md has `web_research_enabled` in Inputs table (line 30, default: false) AND explicit constraint (line 125): "Only use `fetch_webpage` when `web_research_enabled` is explicitly `true`." Mirrors Researcher gating pattern.
 
 Tool access tiers remain correctly enforced:
+
 - Tier 1 (Orchestrator): git + dispatch + vscode_askQuestions
 - Tier 2 (Implementer, Tester): build/test terminal + file editing, command-allowlisted
 - Tier 3 (Researcher, Architect, Planner, Reviewer, Knowledge): read + create only, fetch_webpage gated

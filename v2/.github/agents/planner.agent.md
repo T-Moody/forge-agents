@@ -68,13 +68,13 @@ plan:
 
 **Required task fields:**
 
-| Field         | Type     | Description                                      |
-| ------------- | -------- | ------------------------------------------------ |
+| Field         | Type     | Description                                       |
+| ------------- | -------- | ------------------------------------------------- |
 | `id`          | string   | Unique task identifier (e.g., `task-01`)          |
 | `description` | string   | What the task implements                          |
 | `depends_on`  | string[] | Task IDs that must complete before this task runs |
 | `files`       | string[] | Files this task creates or modifies (ownership)   |
-| `risk_level`  | string   | 🟢, 🟡, or 🔴                                    |
+| `risk_level`  | string   | 🟢, 🟡, or 🔴                                     |
 
 ### Individual task files
 

@@ -27,10 +27,10 @@ Perspectives:
 
 ## Inputs
 
-| Parameter            | Source       | Description                                         |
-| -------------------- | ------------ | --------------------------------------------------- |
-| `review_perspective` | Orchestrator | One of: `security`, `architecture`, `correctness`   |
-| `review_scope`       | Orchestrator | `design` (Step 3) or `code` (Step 7)                |
+| Parameter            | Source       | Description                                          |
+| -------------------- | ------------ | ---------------------------------------------------- |
+| `review_perspective` | Orchestrator | One of: `security`, `architecture`, `correctness`    |
+| `review_scope`       | Orchestrator | `design` (Step 3) or `code` (Step 7)                 |
 | Feature artifacts    | Filesystem   | Design output, implementation reports, changed files |
 
 For **design review** (`review_scope: design`): read `architecture-output.yaml`.

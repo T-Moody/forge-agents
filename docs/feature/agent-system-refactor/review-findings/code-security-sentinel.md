@@ -44,15 +44,16 @@
 - **Severity:** Major
 - **Description:** The verification reports (tasks-01-06.yaml, tasks-07-10.yaml) report line counts that are significantly lower than the actual staged files. This undermines trust in the verification pipeline's ability to enforce line budget constraints (CR-3: ≤150 per agent, CR-2: ≤1,500 total).
 
-  | File | Verification Report | Actual (staged) | Delta |
-  |------|-------------------|-----------------|-------|
-  | global-rules.md | 45 | 70 | +25 |
-  | researcher.agent.md | 69 | 82 | +13 |
-  | planner.agent.md | 79 | 105 | +26 |
-  | reviewer.agent.md | 75 | 95 | +20 |
-  | architect.agent.md | 98 | 129 | +31 |
+  | File                | Verification Report | Actual (staged) | Delta |
+  | ------------------- | ------------------- | --------------- | ----- |
+  | global-rules.md     | 45                  | 70              | +25   |
+  | researcher.agent.md | 69                  | 82              | +13   |
+  | planner.agent.md    | 79                  | 105             | +26   |
+  | reviewer.agent.md   | 75                  | 95              | +20   |
+  | architect.agent.md  | 98                  | 129             | +31   |
 
   All actual counts still fall within the 150-line hard limit, and total system size (998 lines) is within the 1,500-line budget. But the verification evidence is unreliable — the "passed" verdicts were based on incorrect data.
+
 - **Affected artifacts:** [docs/feature/agent-system-refactor/verification-reports/tasks-01-06.yaml](docs/feature/agent-system-refactor/verification-reports/tasks-01-06.yaml), [docs/feature/agent-system-refactor/verification-reports/tasks-07-10.yaml](docs/feature/agent-system-refactor/verification-reports/tasks-07-10.yaml)
 - **Recommendation:** Investigate why verification line counts don't match actual files. Likely causes: (1) files were modified after verification ran, or (2) verification used a different counting method. Re-run verification with actual staged file sizes. The correct total is ~998 lines across 11 files.
 - **Evidence:** Terminal `Get-ChildItem | Measure-Object -Line` returns: global-rules 70, researcher 82, planner 105, reviewer 95, architect 129. Verification YAML reports different values (see table above).

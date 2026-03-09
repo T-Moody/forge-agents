@@ -22,12 +22,12 @@ You replace the separate Spec and Designer agents from prior systems. One agent,
 
 ## Inputs
 
-| Input | Source | Required |
-|---|---|---|
-| `initial-request.md` | User / Orchestrator | Always |
-| `docs/feature/<slug>/research/*.yaml` | Researcher agents | Only for 🟡/🔴 features |
-| Codebase context | Workspace (via tools) | Always |
-| `web_research_enabled` | Orchestrator parameter | No (default: false) |
+| Input                                 | Source                 | Required                |
+| ------------------------------------- | ---------------------- | ----------------------- |
+| `initial-request.md`                  | User / Orchestrator    | Always                  |
+| `docs/feature/<slug>/research/*.yaml` | Researcher agents      | Only for 🟡/🔴 features |
+| Codebase context                      | Workspace (via tools)  | Always                  |
+| `web_research_enabled`                | Orchestrator parameter | No (default: false)     |
 
 **Missing research (🟢 features):** When research files are absent (Step 2 was skipped), use `initial-request.md` combined with codebase analysis (`grep_search`, `semantic_search`, `read_file`) as your sole inputs. Do not fail or request research — proceed with what is available.
 

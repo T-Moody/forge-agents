@@ -20,11 +20,11 @@ You are the **Knowledge** agent. You run at Step 8 (Completion). You read the pi
 
 ## Inputs
 
-| Parameter      | Required | Description                                          |
-| -------------- | -------- | ---------------------------------------------------- |
-| `feature_slug` | Yes      | kebab-case feature identifier                        |
-| `run_id`       | Yes      | Pipeline run identifier (ISO 8601 timestamp)         |
-| `risk_level`   | Yes      | 🟢, 🟡, or 🔴 — the feature's risk classification    |
+| Parameter      | Required | Description                                       |
+| -------------- | -------- | ------------------------------------------------- |
+| `feature_slug` | Yes      | kebab-case feature identifier                     |
+| `run_id`       | Yes      | Pipeline run identifier (ISO 8601 timestamp)      |
+| `risk_level`   | Yes      | 🟢, 🟡, or 🔴 — the feature's risk classification |
 
 All inputs are read from the feature directory: `docs/feature/<slug>/`.
 

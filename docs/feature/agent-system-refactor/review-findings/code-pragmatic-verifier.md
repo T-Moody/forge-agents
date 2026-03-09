@@ -62,6 +62,7 @@
   - Tester says: "For each task with `task_type: code`" — Implementer schema has no `task_type` field
 
   An LLM Tester dispatched with these instructions would look for fields that don't exist, likely producing incorrect verification verdicts or hallucinated results. The field names appear to be carried over from the old system's verification schema (the current NewAgents verifier used these exact field names).
+
 - **Affected artifacts:** [tester.agent.md](v2/.github/agents/tester.agent.md#L37-L46), [implementer.agent.md](v2/.github/agents/implementer.agent.md#L53-L67)
 - **Recommendation:** Update Tester static workflow to use the Implementer's actual field names: (1) "Extract: `files_modified`, `commands_executed`, `tdd_compliance`, `test_results`" (2) "`tdd_compliance` is `true`" (3) "`test_results.failed` is 0" (4) "Cross-reference `files_modified` against task's `files[]`" (5) Remove `task_type` filter — all implementation tasks in this system are code tasks.
 - **Evidence:** Tester lines 37-46 use `tdd_red_green`, `self_check`, `changes[]`, `task_type`. Implementer lines 53-67 define `files_modified`, `test_results`, `tdd_compliance`, `commands_executed` — no `task_type`, no `tdd_red_green`, no `self_check`, no `changes[]`.

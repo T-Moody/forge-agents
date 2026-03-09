@@ -11,16 +11,16 @@
 
 All 8 Major fixes from Round 1 have been verified as correctly applied:
 
-| Fix | Source | Status | Verification |
-|-----|--------|--------|-------------|
-| A-1: Quick-fix inline tasks | pragmatic-verifier | ✅ Resolved | Orchestrator Step 1 quick-fix clause creates `plan-output.yaml` + `tasks/task-01.yaml` |
-| C-1: Tester schema fields | pragmatic-verifier | ✅ Resolved | Tester static workflow now uses `files_modified`, `tdd_compliance`, `test_results` |
-| C-2: Research approval gate | pragmatic-verifier | ✅ Resolved | Orchestrator Step 2 includes interactive `vscode_askQuestions` gate |
-| S-1: Implementer fetch_webpage | security-sentinel | ✅ Resolved | `fetch_webpage` removed from implementer YAML frontmatter |
-| S-2: Tester command allowlist | security-sentinel | ✅ Resolved | Allowlist added to tester Constraints with specific patterns |
-| S-3: Architect web_research_enabled | security-sentinel | ✅ Resolved | Gate + Inputs table updated in architect.agent.md |
-| A-1: Verdict/completion routing | architecture-guardian | ✅ Resolved | Orchestrator routing constraint now acknowledges verdict field |
-| A-3: global-rules.md references | pragmatic-verifier | ✅ Resolved | Researcher, reviewer, knowledge all reference global-rules.md |
+| Fix                                 | Source                | Status      | Verification                                                                           |
+| ----------------------------------- | --------------------- | ----------- | -------------------------------------------------------------------------------------- |
+| A-1: Quick-fix inline tasks         | pragmatic-verifier    | ✅ Resolved | Orchestrator Step 1 quick-fix clause creates `plan-output.yaml` + `tasks/task-01.yaml` |
+| C-1: Tester schema fields           | pragmatic-verifier    | ✅ Resolved | Tester static workflow now uses `files_modified`, `tdd_compliance`, `test_results`     |
+| C-2: Research approval gate         | pragmatic-verifier    | ✅ Resolved | Orchestrator Step 2 includes interactive `vscode_askQuestions` gate                    |
+| S-1: Implementer fetch_webpage      | security-sentinel     | ✅ Resolved | `fetch_webpage` removed from implementer YAML frontmatter                              |
+| S-2: Tester command allowlist       | security-sentinel     | ✅ Resolved | Allowlist added to tester Constraints with specific patterns                           |
+| S-3: Architect web_research_enabled | security-sentinel     | ✅ Resolved | Gate + Inputs table updated in architect.agent.md                                      |
+| A-1: Verdict/completion routing     | architecture-guardian | ✅ Resolved | Orchestrator routing constraint now acknowledges verdict field                         |
+| A-3: global-rules.md references     | pragmatic-verifier    | ✅ Resolved | Researcher, reviewer, knowledge all reference global-rules.md                          |
 
 Additionally confirmed: Minor S-1 (fetch_webpage gating inconsistency) resolved — architect now has explicit `web_research_enabled` gate, implementer lost the tool entirely.
 

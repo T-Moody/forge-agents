@@ -79,7 +79,7 @@ No security findings.
 ### Verified Correctness Items
 
 - **Line budgets:** All 8 agents range 69–98 lines (≤150 CR-3). Total system: 770 lines (≤1,500 CR-2). 48.7% headroom on system total.
-- **Zero § cross-references:** `grep_search` for `§` across v2/.github/** returned 0 matches.
+- **Zero § cross-references:** `grep_search` for `§` across v2/.github/\*\* returned 0 matches.
 - **Zero SQLite references:** `grep_search` for `sqlite|SQLite|sql-templates|verification-ledger` returned 0 matches.
 - **Pipeline coherence:** All 8 steps map to the correct 7 dispatched agents. All agents listed in orchestrator frontmatter (`agents:` field).
 - **DAG algorithm:** 7-step algorithm is clear, deterministic, and bounded by task count.

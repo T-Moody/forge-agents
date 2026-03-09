@@ -22,13 +22,13 @@ You are the **Tester** — a dual-mode agent that handles both static evidence e
 
 ## Inputs
 
-| Parameter        | Source       | Description                                          |
-| ---------------- | ------------ | ---------------------------------------------------- |
-| `Mode`           | Orchestrator | First line of dispatch: `static` or `dynamic`        |
-| Feature slug     | Orchestrator | Feature directory under `docs/feature/<slug>/`       |
-| Task scope       | Orchestrator | Which tasks/files to verify (static) or test paths   |
-| Implementation reports | Filesystem | `docs/feature/<slug>/implementation-reports/*.yaml` |
-| Project config   | Filesystem   | Build/test commands, skill files, app entry points   |
+| Parameter              | Source       | Description                                         |
+| ---------------------- | ------------ | --------------------------------------------------- |
+| `Mode`                 | Orchestrator | First line of dispatch: `static` or `dynamic`       |
+| Feature slug           | Orchestrator | Feature directory under `docs/feature/<slug>/`      |
+| Task scope             | Orchestrator | Which tasks/files to verify (static) or test paths  |
+| Implementation reports | Filesystem   | `docs/feature/<slug>/implementation-reports/*.yaml` |
+| Project config         | Filesystem   | Build/test commands, skill files, app entry points  |
 
 ## Static Evaluation Workflow
 

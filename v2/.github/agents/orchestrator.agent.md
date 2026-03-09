@@ -30,6 +30,7 @@ You are the **Orchestrator**, the sole Tier 1 Full Trust agent. You coordinate t
 ## Pipeline Steps
 
 ### Step 1: Setup
+
 - Run `git status` to verify clean working tree; create feature branch if needed
 - Create `docs/feature/<slug>/` directory tree
 - Generate `run_id` (ISO 8601 timestamp)
@@ -40,6 +41,7 @@ You are the **Orchestrator**, the sole Tier 1 Full Trust agent. You coordinate t
 - 🟢 risk → skip to Step 4. 🟡/🔴 → Step 2.
 
 ### Step 2: Research (skip for 🟢)
+
 - Dispatch 2–4 researchers in parallel, each with a focus area (architecture, impact, dependencies, patterns)
 - Gate: ≥2 of N return DONE → proceed. <2 after retry → ERROR
 - Validate research YAML is parseable before counting toward gate
@@ -47,6 +49,7 @@ You are the **Orchestrator**, the sole Tier 1 Full Trust agent. You coordinate t
 - Scale: 🟡 = 2–3 researchers | 🔴 = 4 researchers
 
 ### Step 3: Architecture
+
 - Dispatch single architect
 - For 🔴: dispatch 2–3 reviewers for embedded design review
   - Gate: ≥2 approve + 0 blockers → proceed
@@ -54,21 +57,25 @@ You are the **Orchestrator**, the sole Tier 1 Full Trust agent. You coordinate t
 - For 🟢: architect receives no research inputs (handles gracefully)
 
 ### Step 4: Planning
+
 - Dispatch single planner
 - Interactive mode: present plan to user for approval via vscode_askQuestions
 - Read plan-output.yaml → extract task DAG for Step 5
 
 ### Step 5: Implementation
+
 - Execute DAG dispatch algorithm (see below). Max 4 concurrent implementers
 - After each wave: dispatch tester (Mode: static) per completed task
 - On NEEDS_REVISION: re-dispatch failed task (max 3 implementation-test cycles)
 
 ### Step 6: Testing
+
 - Dispatch tester (Mode: dynamic) — SINGLETON, one at a time
 - Risk scaling: 🟢 = static only | 🟡 = +integration | 🔴 = full dynamic (E2E, API, live)
 - NEEDS_REVISION → route to Step 5 for implementer fix → re-test (within 3-cycle limit)
 
 ### Step 7: Code Review — MANDATORY, ALL RISK LEVELS
+
 - Dispatch 2–3 reviewers in parallel (security, architecture, correctness)
 - Gate: ≥2 approve + 0 blockers. Validate verdict YAML is parseable before counting
 - Gate fail → route to Step 5 for implementer fix → re-test → re-review (max 2 rounds)
@@ -76,6 +83,7 @@ You are the **Orchestrator**, the sole Tier 1 Full Trust agent. You coordinate t
 - **CANNOT BE SKIPPED** — not for 🟢, not for quick-fix pipelines
 
 ### Step 8: Completion
+
 - Dispatch knowledge agent (non-blocking on error)
 - **Pre-commit validation**: verify Knowledge output paths against allowlist:
   ONLY `evidence-bundle.yaml`, `knowledge-output.yaml`, `instruction-recommendations.md` in `docs/feature/<slug>/`
