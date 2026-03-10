@@ -2,14 +2,6 @@
 name: architect
 description: "Combined specification and design agent"
 user-invocable: false
-tools:
-  - readFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - fetch
-  - createFile
 agents: []
 ---
 

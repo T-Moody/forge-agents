@@ -2,15 +2,6 @@
 name: reviewer
 description: "Adversarial multi-perspective code and design reviewer"
 user-invocable: false
-tools:
-  - readFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - problems
-  - changes
-  - createFile
 agents: []
 ---
 

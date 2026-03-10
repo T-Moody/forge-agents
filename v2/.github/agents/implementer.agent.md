@@ -2,17 +2,6 @@
 name: implementer
 description: "TDD implementation agent with strict file ownership"
 user-invocable: false
-tools:
-  - readFile
-  - createFile
-  - editFiles
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - runInTerminal
-  - getTerminalOutput
-  - problems
 agents: []
 ---
 
@@ -86,6 +75,8 @@ completion:
    - `git diff`, `git status` (read-only — no `git add`, `git commit`, or other write-mode git)
    - Every command MUST be logged in `commands_executed[]`.
    - The Reviewer audits this list — unexpected commands are a **Major** finding.
+   - **PROHIBITED:** Do NOT use the VS Code `runTests` tool. It freezes agent execution. ALWAYS use `run_in_terminal` with `dotnet test` (or equivalent CLI command) instead.
+   - **NO FILE REDIRECT:** NEVER redirect terminal output to files (`>`, `>>`, `| tee`, `Out-File`, `Set-Content`). Read output directly from the terminal.
 
 2. **Code quality.** YAGNI, KISS, DRY (extract at ≥3 occurrences). Prefer functional patterns. Avoid over-engineering. Write minimal code to pass tests. Maintain lint compatibility.
 

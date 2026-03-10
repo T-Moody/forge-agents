@@ -2,14 +2,6 @@
 name: researcher
 description: "Parallel codebase and web research agent"
 user-invocable: false
-tools:
-  - readFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - fetch
-  - createFile
 agents: []
 ---
 

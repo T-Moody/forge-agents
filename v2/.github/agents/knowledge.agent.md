@@ -2,13 +2,6 @@
 name: knowledge
 description: "Post-mortem analysis, evidence bundling, and instruction optimization agent"
 user-invocable: false
-tools:
-  - readFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - createFile
 agents: []
 ---
 

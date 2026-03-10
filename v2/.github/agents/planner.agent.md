@@ -2,13 +2,6 @@
 name: planner
 description: "DAG task decomposition and wave planning agent"
 user-invocable: false
-tools:
-  - readFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - createFile
 agents: []
 ---
 

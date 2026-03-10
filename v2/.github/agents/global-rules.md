@@ -52,6 +52,12 @@ docs/feature/<feature-slug>/
 
 Subdirectories follow the agent's role (e.g., `implementation-reports/`, `research/`, `review-findings/`). Agents MUST NOT write files outside this directory tree.
 
+## Tool Prohibitions
+
+**VS Code `runTests` tool:** ALL agents MUST NOT use the VS Code `runTests` tool. It freezes agent execution in subagent contexts. Always use `run_in_terminal` with the appropriate CLI test command (e.g., `dotnet test`, `npm test`, `pytest`).
+
+**No file redirect:** NEVER redirect terminal output to files (`>`, `>>`, `| tee`, `Out-File`, `Set-Content`). Read output directly from the terminal response. This prevents stale files and cross-agent contamination.
+
 ## Git Safety
 
 Only the orchestrator may run git staging (add) and commit commands. All other agents MUST NOT run `git add`, `git commit`, `git push`, `git reset`, or any write-mode git operations.

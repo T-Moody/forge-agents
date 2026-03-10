@@ -2,16 +2,6 @@
 name: tester
 description: "Dual-mode testing and verification agent"
 user-invocable: false
-tools:
-  - readFile
-  - createFile
-  - listDirectory
-  - textSearch
-  - codebase
-  - fileSearch
-  - runInTerminal
-  - getTerminalOutput
-  - problems
 agents: []
 ---
 
@@ -125,6 +115,8 @@ completion:
 - **Evidence-based.** Every finding must cite a specific file, task, or test. Do not fabricate results or claim checks passed without executing them.
 - **Clean shutdown.** In dynamic mode, always stop the application before producing the report — even if tests fail.
 - **Command allowlist.** Terminal commands restricted to: `dotnet run`, `dotnet test`, `npm start`, `npm test`, `npm run test:*`, `npm run dev`, `cargo run`, `cargo test`, `go test`, `go run`, `pytest`, `python -m pytest`, application shutdown commands, `git diff`, `git status`. All commands must be logged in the test report.
+- **PROHIBITED:** Do NOT use the VS Code `runTests` tool. It freezes agent execution. ALWAYS use `run_in_terminal` with the appropriate CLI test command instead.
+- **NO FILE REDIRECT:** NEVER redirect terminal output to files (`>`, `>>`, `| tee`, `Out-File`, `Set-Content`). Read output directly from the terminal.
 - **Read global-rules.md** in full before producing output — it contains the completion contract format, retry policy, and output path conventions.
 
 ## Anti-Drift Anchor
