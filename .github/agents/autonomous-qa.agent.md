@@ -102,7 +102,7 @@ Use terminal tools to launch the application.
 
 The QA environment must:
 
-- start the web host or app server
+- start the Blazor app
 - ensure database is available
 - ensure Playwright can access localhost
 
@@ -255,9 +255,9 @@ Use Playwright viewport changes.
 
 Test:
 
-- iPhone viewport
-- Tablet viewport
-- Desktop viewport
+iPhone viewport  
+Tablet viewport  
+Desktop viewport
 
 Verify:
 
@@ -452,3 +452,5 @@ Only generate:
 - screenshots
 
 The goal is maximum bug discovery and UX insight.
+
+Act like a developer intentionally trying to break the application.

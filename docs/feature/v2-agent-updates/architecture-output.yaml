@@ -1,0 +1,419 @@
+agent_output:
+  agent: "architect"
+  schema_version: "1.0"
+  payload:
+    feature_name: "V2 Agent System Updates"
+    risk_level: "🟡"
+
+    assumptions_made:
+      - id: "A-1"
+        text: "vscodeAskQuestions is the correct camelCase tool name for the user-questioning tool. It exists in the runtime but is NOT in the official VS Code built-in tools documentation (March 9, 2026). If the name is wrong in a tools: array, VS Code silently ignores it — the tool becomes unavailable to the agent."
+      - id: "A-2"
+        text: "The tourneypal-qa.agent.md (autonomous-qa) is out of scope for this feature. It is a standalone QA agent outside the pipeline's 8-step workflow."
+      - id: "A-3"
+        text: "Quick-fix mode will dispatch the planner in quick-fix mode rather than generating plan artifacts inline. This adds one dispatch but respects subagent-only enforcement."
+      - id: "A-4"
+        text: "Tool sets (edit, search, runCommands, browser) can be used in tools: arrays alongside individual tool names. We prefer individual tool names for fine-grained control."
+      - id: "A-5"
+        text: "The 150-line-per-agent budget applies to agent body content. YAML frontmatter additions (tools: arrays) do add lines but are metadata, not instruction prose."
+
+    clarifications_needed:
+      - id: "CL-1"
+        text: "Confirm that vscodeAskQuestions is the correct YAML frontmatter tool name. The implementer should verify by checking runtime tool availability. If wrong, the orchestrator's tools: array must omit it (relying on instruction-level enforcement only) or the correct name must be discovered."
+      - id: "CL-2"
+        text: "Should the quick-fix prompt (quick-fix.prompt.md) add Planning (Step 4) as a lightweight step, or should the orchestrator handle quick-fix plan generation as a 'routing template' exception to subagent-only?"
+
+    functional_requirements:
+      - id: "FR-1"
+        text: "When web_research_enabled=true, agents with fetch access (researcher, architect) MUST perform web research. Not optional — mandatory."
+        sub_requirements:
+          - id: "FR-1.1"
+            text: "Researcher Step 4 language changes from permissive ('If... use fetch') to mandatory ('When web_research_enabled is true, you MUST perform web research using fetch')"
+          - id: "FR-1.2"
+            text: "Architect Step 4 language changes from permissive to mandatory with same pattern"
+          - id: "FR-1.3"
+            text: "global-rules.md adds a cross-cutting 'Web Research Mandate' section"
+
+      - id: "FR-2"
+        text: "All E2E screenshots, images, and test artifacts MUST be stored in docs/feature/<slug>/e2e-artifacts/ subdirectory"
+        sub_requirements:
+          - id: "FR-2.1"
+            text: "Tester dynamic workflow adds explicit artifact storage path directive"
+          - id: "FR-2.2"
+            text: "global-rules.md Output Path Convention expanded to include e2e-artifacts/"
+
+      - id: "FR-3"
+        text: "The orchestrator must NEVER analyze code, create source/test files, or read source code directly. ALL analytical and creative work delegated via runSubagent."
+        sub_requirements:
+          - id: "FR-3.1"
+            text: "Orchestrator YAML frontmatter adds tools: array restricting to routing tools only"
+          - id: "FR-3.2"
+            text: "Quick-fix inline plan generation removed — planner always dispatched"
+          - id: "FR-3.3"
+            text: "Anti-drift anchor updated to include 'never read source code directly'"
+
+      - id: "FR-4"
+        text: "Orchestrator context management rules limit what the orchestrator reads to completion contracts and pipeline-log.yaml only"
+        sub_requirements:
+          - id: "FR-4.1"
+            text: "Orchestrator reads only completion.status, summary, output_paths, and routing fields (clarifications_needed, plan_summary) from subagent outputs"
+          - id: "FR-4.2"
+            text: "Full artifact analysis (research content, architecture details, code diffs) always delegated to subagents"
+
+      - id: "FR-5"
+        text: "Implementer GREEN phase uses batch-oriented build approach — write all production code first, then build and test once"
+        sub_requirements:
+          - id: "FR-5.1"
+            text: "Step 4 GREEN changes from 'Run problems after every file edit' to 'After all production code edits are complete, run problems once then run tests once'"
+          - id: "FR-5.2"
+            text: "RED phase preserved unchanged (write tests, run once, confirm fail)"
+          - id: "FR-5.3"
+            text: "REFACTOR phase preserved unchanged (re-run tests after refactoring)"
+
+      - id: "FR-6"
+        text: "No agent may create, checkout, or delete git branches. Users manage their own branches."
+        sub_requirements:
+          - id: "FR-6.1"
+            text: "Remove 'create feature branch if needed' from orchestrator Step 1"
+          - id: "FR-6.2"
+            text: "Remove 'branch' from orchestrator Constraints git operations allowlist"
+          - id: "FR-6.3"
+            text: "global-rules.md Git Safety section adds branch prohibition"
+
+      - id: "FR-7"
+        text: "All agents requiring user input MUST use vscodeAskQuestions with multiple-choice options. Agents must NEVER stop processing to ask free-form text questions."
+        sub_requirements:
+          - id: "FR-7.1"
+            text: "Orchestrator references updated from ask_questions to vscodeAskQuestions"
+          - id: "FR-7.2"
+            text: "global-rules.md adds 'User Interaction' section enforcing vscodeAskQuestions with multiple-choice"
+          - id: "FR-7.3"
+            text: "Subagents that need clarification return NEEDS_REVISION with details in completion contract"
+
+      - id: "FR-8"
+        text: "All agent YAML frontmatter includes tools: arrays enforcing per-agent tool restrictions based on trust tier"
+        sub_requirements:
+          - id: "FR-8.1"
+            text: "Orchestrator (T1): vscodeAskQuestions, runSubagent, runInTerminal, getTerminalOutput, listDirectory, readFile, createFile, createDirectory"
+          - id: "FR-8.2"
+            text: "Researcher (T3): codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch"
+          - id: "FR-8.3"
+            text: "Architect (T3): codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch"
+          - id: "FR-8.4"
+            text: "Planner: readFile, listDirectory, createFile, fileSearch, textSearch"
+          - id: "FR-8.5"
+            text: "Implementer (T2): readFile, editFiles, createFile, listDirectory, textSearch, fileSearch, runInTerminal, getTerminalOutput, problems, changes"
+          - id: "FR-8.6"
+            text: "Tester (T2): readFile, createFile, listDirectory, runInTerminal, getTerminalOutput, problems, textSearch, fileSearch, openSimpleBrowser"
+          - id: "FR-8.7"
+            text: "Reviewer: readFile, listDirectory, textSearch, fileSearch, createFile, changes, problems, codebase"
+          - id: "FR-8.8"
+            text: "Knowledge: readFile, listDirectory, createFile, textSearch, fileSearch"
+
+      - id: "FR-9"
+        text: "global-rules.md has YAML frontmatter with user-invocable: false and tools: [] to prevent VS Code from detecting it as a custom agent"
+
+    acceptance_criteria:
+      - id: "AC-1"
+        requirement_id: "FR-1"
+        text: "researcher.agent.md Step 4 contains 'MUST perform web research using fetch' (not 'If... use fetch')"
+        test_method: "inspection"
+      - id: "AC-2"
+        requirement_id: "FR-1"
+        text: "architect.agent.md Step 4 contains mandatory fetch language matching researcher pattern"
+        test_method: "inspection"
+      - id: "AC-3"
+        requirement_id: "FR-1"
+        text: "global-rules.md contains a 'Web Research Mandate' section stating mandatory fetch usage when web_research_enabled=true"
+        test_method: "inspection"
+      - id: "AC-4"
+        requirement_id: "FR-2"
+        text: "tester.agent.md dynamic workflow Step 5 references 'docs/feature/<slug>/e2e-artifacts/' for all screenshots, traces, and logs"
+        test_method: "inspection"
+      - id: "AC-5"
+        requirement_id: "FR-2"
+        text: "global-rules.md Output Path Convention includes e2e-artifacts/ as a recognized subdirectory"
+        test_method: "inspection"
+      - id: "AC-6"
+        requirement_id: "FR-3"
+        text: "orchestrator.agent.md YAML frontmatter contains tools: array with ONLY routing tools (no textSearch, codebase, editFiles, fileSearch)"
+        test_method: "inspection"
+      - id: "AC-7"
+        requirement_id: "FR-3"
+        text: "orchestrator.agent.md Step 1 does not contain inline plan-output.yaml or task-01.yaml generation"
+        test_method: "inspection"
+      - id: "AC-8"
+        requirement_id: "FR-3"
+        text: "orchestrator.agent.md anti-drift anchor includes 'never read source code directly'"
+        test_method: "inspection"
+      - id: "AC-9"
+        requirement_id: "FR-4"
+        text: "orchestrator.agent.md contains context management rule: 'Read ONLY completion contracts from subagent outputs'"
+        test_method: "inspection"
+      - id: "AC-10"
+        requirement_id: "FR-4"
+        text: "orchestrator.agent.md Step 2-4 references changed from 'Read X output' to 'Read completion contract from X'"
+        test_method: "inspection"
+      - id: "AC-11"
+        requirement_id: "FR-5"
+        text: "implementer.agent.md Step 4 (GREEN) says 'After all production code edits are complete, run problems once and then run the test suite' instead of 'Run problems after every file edit'"
+        test_method: "inspection"
+      - id: "AC-12"
+        requirement_id: "FR-5"
+        text: "implementer.agent.md Steps 3 (RED) and 5 (REFACTOR) are unchanged"
+        test_method: "inspection"
+      - id: "AC-13"
+        requirement_id: "FR-6"
+        text: "orchestrator.agent.md Step 1 does not contain 'create feature branch' or branch creation language"
+        test_method: "inspection"
+      - id: "AC-14"
+        requirement_id: "FR-6"
+        text: "orchestrator.agent.md Constraints git allowlist is 'status, add, commit, tag, diff' (no 'branch')"
+        test_method: "inspection"
+      - id: "AC-15"
+        requirement_id: "FR-6"
+        text: "global-rules.md Git Safety includes 'No agent may create, checkout, or delete git branches'"
+        test_method: "inspection"
+      - id: "AC-16"
+        requirement_id: "FR-7"
+        text: "All occurrences of 'ask_questions' in orchestrator.agent.md replaced with 'vscodeAskQuestions'"
+        test_method: "inspection"
+      - id: "AC-17"
+        requirement_id: "FR-7"
+        text: "global-rules.md contains 'User Interaction' section: 'ALL user interaction MUST use vscodeAskQuestions with multiple-choice options. Agents MUST NEVER output free-form questions.'"
+        test_method: "inspection"
+      - id: "AC-18"
+        requirement_id: "FR-8"
+        text: "All 8 pipeline agent files (orchestrator, researcher, architect, planner, implementer, tester, reviewer, knowledge) have tools: arrays in YAML frontmatter"
+        test_method: "inspection"
+      - id: "AC-19"
+        requirement_id: "FR-8"
+        text: "No T3 agent (researcher, architect) has editFiles, runInTerminal, or runSubagent in tools: array"
+        test_method: "inspection"
+      - id: "AC-20"
+        requirement_id: "FR-8"
+        text: "Reviewer does not have runInTerminal or editFiles in tools: array"
+        test_method: "inspection"
+      - id: "AC-21"
+        requirement_id: "FR-8"
+        text: "Knowledge agent does not have editFiles or runInTerminal in tools: array"
+        test_method: "inspection"
+      - id: "AC-22"
+        requirement_id: "FR-8"
+        text: "Orchestrator does not have editFiles, textSearch, codebase, or fileSearch in tools: array"
+        test_method: "inspection"
+      - id: "AC-23"
+        requirement_id: "FR-9"
+        text: "global-rules.md starts with YAML frontmatter containing user-invocable: false and tools: []"
+        test_method: "inspection"
+      - id: "AC-24"
+        requirement_id: "FR-3"
+        text: "quick-fix.prompt.md includes Planning (Step 4) as a pipeline step — planner always dispatched"
+        test_method: "inspection"
+      - id: "AC-25"
+        requirement_id: "FR-8"
+        text: "All tools: arrays use correct camelCase built-in tool names per VS Code documentation"
+        test_method: "inspection"
+
+    directions:
+      - id: "A"
+        name: "Minimal surgical line edits"
+        summary: "Change only the specific lines affected by each requirement. Add tools: arrays. No new sections in global-rules.md — rely on per-agent instruction changes only."
+        pros:
+          - "Lowest line count impact"
+          - "Least risk of unintended changes"
+          - "Fast to implement"
+        cons:
+          - "Cross-cutting rules (web research, branch prohibition, tool naming) duplicated across agent files"
+          - "No single source of truth for shared enforcement rules"
+          - "Future agents must replicate the same rules individually"
+
+      - id: "B"
+        name: "Cross-cutting rules in global-rules.md + surgical agent edits"
+        summary: "Add new cross-cutting sections to global-rules.md for shared enforcement rules (web research mandate, branch prohibition, user interaction, E2E artifacts). Make surgical per-agent edits for agent-specific changes (tools: arrays, build batching, context delegation). This centralizes shared rules while keeping agent-specific changes minimal."
+        pros:
+          - "Single source of truth for cross-cutting rules"
+          - "New agents automatically inherit rules by reading global-rules.md"
+          - "Agent-specific changes remain minimal and focused"
+          - "Consistent with existing global-rules.md pattern (completion contract, retry policy, git safety)"
+        cons:
+          - "global-rules.md grows by ~25 lines (from ~92 to ~120)"
+          - "Two files to read for any given rule (global + agent-specific)"
+
+      - id: "C"
+        name: "Full section restructure of affected agents"
+        summary: "Restructure agent files to consolidate constraints, add new sections, and reorganize workflows. Touch every section of affected agents."
+        pros:
+          - "Cleanest final result"
+          - "Opportunity to fix other minor issues"
+        cons:
+          - "High line count impact — risk exceeding 150-line budget"
+          - "Large diff makes code review harder"
+          - "High risk of unintended behavioral changes"
+          - "Overkill for the scope of these changes"
+
+    selected_direction: "B"
+    direction_rationale: "Direction B matches the existing v2 pattern: global-rules.md holds cross-cutting enforcement rules, agent files hold role-specific instructions. The 7 requirements split naturally — 4 are cross-cutting (web research, branch prohibition, user interaction, E2E artifacts) and 4 are agent-specific (tools: arrays, build batching, context delegation, quick-fix refactor). Centralizing in global-rules.md avoids duplication and ensures future agents inherit the rules automatically. The ~25-line growth in global-rules.md is acceptable (staying well under 150 lines)."
+
+    decisions:
+      - id: "D-1"
+        title: "Use vscodeAskQuestions as tool name"
+        context: "The orchestrator references ask_questions extensively. Research found ask_questions is NOT in the official VS Code built-in tools list. The runtime provides this tool under a different name."
+        selected: "Use vscodeAskQuestions (camelCase) in all agent body text and tools: arrays. This follows the camelCase convention of all VS Code built-in tools. Per docs, unknown tool names in tools: arrays are silently ignored."
+        rationale: "The runtime tool matches vscodeAskQuestions naming pattern. If wrong, VS Code ignores it in tools: array (graceful degradation). The implementer should verify at implementation time."
+        confidence: "Medium"
+
+      - id: "D-2"
+        title: "Individual tool names over tool sets in frontmatter"
+        context: "VS Code supports tool sets (edit, search, runCommands) that group multiple tools. Using tool sets is simpler but less granular."
+        selected: "Use individual camelCase tool names in tools: arrays for fine-grained per-agent restriction"
+        rationale: "Tool sets grant broad permissions (e.g., 'edit' gives editFiles + createFile + createDirectory). Individual names allow restricting the orchestrator to createFile without editFiles, and the reviewer to changes without runInTerminal. Precision matches the trust tier model."
+        confidence: "High"
+
+      - id: "D-3"
+        title: "Cross-cutting rules centralized in global-rules.md"
+        context: "Four requirements (web research mandate, branch prohibition, user interaction, E2E artifacts) affect multiple agents or apply to all agents."
+        selected: "Add four new sections to global-rules.md: Web Research Mandate, User Interaction, E2E Artifact Storage, and expanded Git Safety. Agent files reference global-rules.md (already required) and add agent-specific overrides only."
+        rationale: "Single source of truth. All agents already 'Read global-rules.md in full' per their constraints. New rules automatically apply."
+        confidence: "High"
+
+      - id: "D-4"
+        title: "Remove quick-fix inline plan generation — always dispatch planner"
+        context: "Orchestrator Step 1 generates plan-output.yaml and task-01.yaml inline for quick-fix mode. This violates subagent-only (FR-3) — creating acceptance criteria and file lists is creative work."
+        selected: "Remove inline generation. Quick-fix pipeline dispatches planner with mode: quick-fix. Planner generates the minimal single-task plan. quick-fix.prompt.md updated to include Planning step."
+        rationale: "Respects subagent-only enforcement. Adds one dispatch (~seconds) but eliminates an FR-3 violation. The planner already has the capability to generate minimal plans."
+        confidence: "High"
+
+      - id: "D-5"
+        title: "Batch builds in implementer GREEN phase"
+        context: "Implementer Step 4 says 'Run problems after every file edit' which causes N builds for N files."
+        selected: "Change to 'After all production code edits are complete, run problems once and then run the test suite once.' RED and REFACTOR phases unchanged."
+        rationale: "Reduces worst-case build count from N+6 to 4 (RED + GREEN + REFACTOR + 1 fix). Preserves TDD validation at phase boundaries. Build batching is standard practice."
+        confidence: "High"
+
+      - id: "D-6"
+        title: "Orchestrator tools: array excludes analysis tools"
+        context: "FR-3 requires the orchestrator to never analyze code. Without tools: restriction, it has access to textSearch, codebase, fileSearch, editFiles."
+        selected: "Orchestrator tools: [vscodeAskQuestions, runSubagent, runInTerminal, getTerminalOutput, listDirectory, readFile, createFile, createDirectory]. Excludes: textSearch, codebase, fileSearch, editFiles, problems, changes, fetch."
+        rationale: "Enforces subagent-only at the platform level. runInTerminal restricted to git-only via instruction. readFile needed for completion contracts. createFile needed for pipeline-log.yaml. createDirectory needed for feature directory setup."
+        confidence: "High"
+
+      - id: "D-7"
+        title: "Branch prohibition in global-rules.md Git Safety"
+        context: "Only the orchestrator references branch creation (Step 1 + Constraints). No other agent mentions branches."
+        selected: "Add to Git Safety section: 'No agent may create, checkout, or delete git branches. Users manage their own branches.' Remove 'branch' from orchestrator git allowlist. Remove 'create feature branch if needed' from Step 1."
+        rationale: "Two-point enforcement: global rule + orchestrator-specific removal. Minimal change (3 lines across 2 files)."
+        confidence: "High"
+
+      - id: "D-8"
+        title: "E2E artifacts stored in docs/feature/<slug>/e2e-artifacts/"
+        context: "Tester mentions capturing screenshots but specifies no storage path. Artifacts could end up anywhere."
+        selected: "Define docs/feature/<slug>/e2e-artifacts/ as the standard path for all E2E screenshots, traces, and logs. Add to tester.agent.md dynamic workflow and global-rules.md Output Path Convention."
+        rationale: "Consistent with existing feature directory convention. Keeps E2E artifacts co-located with other feature artifacts. Clear path for both tester and reviewer to reference."
+        confidence: "High"
+
+      - id: "D-9"
+        title: "global-rules.md gets YAML frontmatter to suppress agent detection"
+        context: "VS Code detects all .md files in .github/agents/ as agents. global-rules.md has no frontmatter and appears as unintended 'global-rules' agent."
+        selected: "Add minimal YAML frontmatter: user-invocable: false, tools: []. This suppresses the agent from appearing in the dropdown and prevents it from being dispatched as a subagent."
+        rationale: "Previously identified in agent-system-refactor (repo memory Finding A-1). Simple 4-line addition fixes a known issue."
+        confidence: "High"
+
+      - id: "D-10"
+        title: "Context management via completion-contract-only reads"
+        context: "Orchestrator currently reads full YAML files from subagent outputs (research, architecture, plan), loading substantial content into its context window."
+        selected: "Add Context Management section to orchestrator. Rule: 'Read ONLY completion contracts from subagent outputs. Completion contracts include status, summary, output_paths, and agent-specific routing fields (clarifications_needed, plan_summary, verdict). Do NOT read full artifact files.' Mediation steps (2, 3, 4) reference completion contract fields, not full file reads."
+        rationale: "Completion contracts are ~10 lines each. Full artifacts can be 50-200+ lines. For a 🔴 pipeline with 10+ dispatches, this prevents 500+ lines of unnecessary context accumulation."
+        confidence: "High"
+
+      - id: "D-11"
+        title: "Mandatory web research language pattern"
+        context: "Researcher and architect use permissive 'If...use fetch' language. Need mandatory language when enabled."
+        selected: "Two-part language: (1) 'When web_research_enabled is true, you MUST perform at least 2 targeted web lookups using fetch.' (2) 'Do NOT use fetch when web_research_enabled is absent or false.' This makes fetch mandatory when enabled and prohibited when disabled."
+        rationale: "Clear binary: when enabled → must use; when disabled → must not use. The minimum lookup count (2) prevents trivial compliance (single irrelevant fetch)."
+        confidence: "High"
+
+    file_inventory:
+      - path: "v2/.github/agents/global-rules.md"
+        action: "modify"
+        description: |
+          Add YAML frontmatter (user-invocable: false, tools: []).
+          Add 4 new sections: Web Research Mandate, User Interaction (vscodeAskQuestions enforcement),
+          E2E Artifact Storage path convention, and expanded Git Safety (branch prohibition).
+
+      - path: "v2/.github/agents/orchestrator.agent.md"
+        action: "modify"
+        description: |
+          Add tools: array to YAML frontmatter (routing tools only: vscodeAskQuestions, runSubagent,
+          runInTerminal, getTerminalOutput, listDirectory, readFile, createFile, createDirectory).
+          Replace all 'ask_questions' references with 'vscodeAskQuestions'.
+          Step 1: Remove 'create feature branch if needed'. Remove quick-fix inline plan generation
+          — replace with planner dispatch. Add context management rules.
+          Steps 2-4: Change from 'Read X output' to 'Read completion contract from X'.
+          Constraints: Remove 'branch' from git allowlist. Add context delegation rule.
+          Anti-drift anchor: Add 'never read source code directly' and 'never read full subagent artifacts'.
+
+      - path: "v2/.github/agents/researcher.agent.md"
+        action: "modify"
+        description: |
+          Add tools: array to YAML frontmatter (codebase, textSearch, fileSearch, listDirectory,
+          readFile, createFile, fetch).
+          Step 4: Change 'If web_research_enabled is true, use fetch' to 'When web_research_enabled
+          is true, you MUST perform at least 2 targeted web lookups using fetch'.
+
+      - path: "v2/.github/agents/architect.agent.md"
+        action: "modify"
+        description: |
+          Add tools: array to YAML frontmatter (codebase, textSearch, fileSearch, listDirectory,
+          readFile, createFile, fetch).
+          Step 4: Change 'IF web_research_enabled is true: use fetch' to mandatory language
+          matching researcher pattern.
+
+      - path: "v2/.github/agents/implementer.agent.md"
+        action: "modify"
+        description: |
+          Add tools: array to YAML frontmatter (readFile, editFiles, createFile, listDirectory,
+          textSearch, fileSearch, runInTerminal, getTerminalOutput, problems, changes).
+          Step 4 (GREEN): Change 'Run problems after every file edit. Run tests via terminal.'
+          to 'After all production code edits are complete, run problems once and then run the
+          test suite via terminal.'
+
+      - path: "v2/.github/agents/tester.agent.md"
+        action: "modify"
+        description: |
+          Add tools: array to YAML frontmatter (readFile, createFile, listDirectory, runInTerminal,
+          getTerminalOutput, problems, textSearch, fileSearch, openSimpleBrowser).
+          Dynamic Workflow Step 5: Add 'Store all E2E artifacts (screenshots, traces, logs) in
+          docs/feature/<slug>/e2e-artifacts/'.
+
+      - path: "v2/.github/agents/reviewer.agent.md"
+        action: "modify"
+        description: |
+          Add tools: array to YAML frontmatter (readFile, listDirectory, textSearch, fileSearch,
+          createFile, changes, problems, codebase).
+
+      - path: "v2/.github/agents/planner.agent.md"
+        action: "modify"
+        description: |
+          Add tools: array to YAML frontmatter (readFile, listDirectory, createFile, fileSearch,
+          textSearch).
+
+      - path: "v2/.github/agents/knowledge.agent.md"
+        action: "modify"
+        description: |
+          Add tools: array to YAML frontmatter (readFile, listDirectory, createFile, textSearch,
+          fileSearch).
+
+      - path: "v2/.github/prompts/quick-fix.prompt.md"
+        action: "modify"
+        description: |
+          Add Planning (Step 4) as a pipeline step between Setup and Implementation.
+          Update step count from 5 to 6. Update 'Steps skipped' to: Research (Step 2),
+          Architecture (Step 3). Remove Planning from skipped list.
+
+completion:
+  status: "DONE"
+  summary: "Architecture for 9 requirements: 10 files modified, 11 decisions, 25 acceptance criteria. Direction B selected."
+  output_paths:
+    - "docs/feature/v2-agent-updates/architecture-output.yaml"
+    - "docs/feature/v2-agent-updates/architecture.md"

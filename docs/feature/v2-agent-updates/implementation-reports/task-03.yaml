@@ -1,0 +1,33 @@
+task_id: "task-03"
+files_modified:
+  - "v2/.github/agents/researcher.agent.md"
+  - "v2/.github/agents/architect.agent.md"
+files_requested: []
+tests_written: []
+test_results:
+  passed: 0
+  failed: 0
+tdd_compliance: false
+tdd_compliance_reason: "Markdown instruction files — no testable code"
+commands_executed: []
+acceptance_criteria_verification:
+  - id: "AC-1"
+    status: "PASS"
+    evidence: "researcher.agent.md Step 4 now reads: '**When `web_research_enabled` is `true`, web research is MANDATORY (see global-rules.md § Web Research).**' — old 'If... use fetch' pattern replaced"
+  - id: "AC-2"
+    status: "PASS"
+    evidence: "architect.agent.md Step 4 now reads: '**When `web_research_enabled` is true, web research is MANDATORY (see global-rules.md § Web Research).**' — matches researcher mandatory pattern"
+  - id: "AC-19"
+    status: "PASS"
+    evidence: "grep for editFiles|runInTerminal|runSubagent in both files returned zero matches"
+  - id: "AC-25-R"
+    status: "PASS"
+    evidence: "researcher.agent.md tools: array is exactly [codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch]"
+  - id: "AC-25-A"
+    status: "PASS"
+    evidence: "architect.agent.md tools: array is exactly [codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch]"
+completion:
+  status: "DONE"
+  summary: "Added tools: arrays and mandatory web research language to researcher and architect agent files (6 edits, all 5 ACs pass)"
+  output_paths:
+    - "docs/feature/v2-agent-updates/implementation-reports/task-03.yaml"

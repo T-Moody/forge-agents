@@ -1,0 +1,53 @@
+id: "task-02"
+description: "Orchestrator overhaul: tools: array, subagent-only enforcement, context management, vscodeAskQuestions rename, branch removal, quick-fix inline plan removal"
+depends_on: ["task-01"]
+files:
+  - "v2/.github/agents/orchestrator.agent.md"
+risk_level: "🟡"
+
+acceptance_criteria:
+  - id: "AC-6"
+    text: "orchestrator.agent.md YAML frontmatter contains tools: array with ONLY routing tools (no textSearch, codebase, editFiles, fileSearch)"
+    test_method: "inspection"
+  - id: "AC-22"
+    text: "Orchestrator tools: array is exactly: vscodeAskQuestions, runSubagent, runInTerminal, getTerminalOutput, listDirectory, readFile, createFile, createDirectory"
+    test_method: "inspection"
+  - id: "AC-16"
+    text: "All occurrences of 'ask_questions' in orchestrator.agent.md replaced with 'vscodeAskQuestions'"
+    test_method: "inspection"
+  - id: "AC-13"
+    text: "orchestrator.agent.md Step 1 does not contain 'create feature branch' or branch creation language"
+    test_method: "inspection"
+  - id: "AC-14"
+    text: "orchestrator.agent.md Constraints git allowlist is 'status, add, commit, tag, diff' (no 'branch')"
+    test_method: "inspection"
+  - id: "AC-7"
+    text: "orchestrator.agent.md Step 1 does not contain inline plan-output.yaml or task-01.yaml generation"
+    test_method: "inspection"
+  - id: "AC-8"
+    text: "orchestrator.agent.md anti-drift anchor includes 'never read source code directly'"
+    test_method: "inspection"
+  - id: "AC-9"
+    text: "orchestrator.agent.md contains context management rule: 'Read ONLY completion contracts from subagent outputs'"
+    test_method: "inspection"
+  - id: "AC-10"
+    text: "orchestrator.agent.md mediation steps reference 'completion contract' instead of full file reads"
+    test_method: "inspection"
+
+relevant_context:
+  architecture_decisions:
+    - "D-1: Use vscodeAskQuestions as tool name"
+    - "D-4: Remove quick-fix inline plan generation — always dispatch planner"
+    - "D-6: Orchestrator tools: array excludes analysis tools"
+    - "D-7: Branch prohibition — remove from orchestrator git allowlist and Step 1"
+    - "D-10: Completion-contract-only reads"
+  functional_requirements:
+    - "FR-3: Orchestrator subagent-only enforcement (tools: array + anti-drift)"
+    - "FR-4: Context management — completion-contract-only reads"
+    - "FR-6.1: Remove 'create feature branch if needed' from Step 1"
+    - "FR-6.2: Remove 'branch' from git allowlist"
+    - "FR-7.1: Replace ask_questions with vscodeAskQuestions"
+    - "FR-8.1: Orchestrator tools: array"
+  files_to_read:
+    - "v2/.github/agents/orchestrator.agent.md"
+    - "docs/feature/v2-agent-updates/architecture-output.yaml"

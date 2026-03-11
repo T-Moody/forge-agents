@@ -1,0 +1,38 @@
+id: "task-06"
+description: "Minimal agents: add tools: arrays to reviewer, planner, and knowledge agent frontmatter"
+depends_on: ["task-01"]
+files:
+  - "v2/.github/agents/reviewer.agent.md"
+  - "v2/.github/agents/planner.agent.md"
+  - "v2/.github/agents/knowledge.agent.md"
+risk_level: "🟢"
+
+acceptance_criteria:
+  - id: "AC-20"
+    text: "Reviewer does not have runInTerminal or editFiles in tools: array"
+    test_method: "inspection"
+  - id: "AC-21"
+    text: "Knowledge agent does not have editFiles or runInTerminal in tools: array"
+    test_method: "inspection"
+  - id: "AC-25-Rev"
+    text: "reviewer.agent.md tools: array is exactly: readFile, listDirectory, textSearch, fileSearch, createFile, changes, problems, codebase"
+    test_method: "inspection"
+  - id: "AC-25-Pln"
+    text: "planner.agent.md tools: array is exactly: readFile, listDirectory, createFile, fileSearch, textSearch"
+    test_method: "inspection"
+  - id: "AC-25-Kn"
+    text: "knowledge.agent.md tools: array is exactly: readFile, listDirectory, createFile, textSearch, fileSearch"
+    test_method: "inspection"
+
+relevant_context:
+  architecture_decisions:
+    - "D-2: Individual tool names over tool sets in frontmatter"
+  functional_requirements:
+    - "FR-8.4: Planner tools: array"
+    - "FR-8.7: Reviewer tools: array"
+    - "FR-8.8: Knowledge tools: array"
+  files_to_read:
+    - "v2/.github/agents/reviewer.agent.md"
+    - "v2/.github/agents/planner.agent.md"
+    - "v2/.github/agents/knowledge.agent.md"
+    - "docs/feature/v2-agent-updates/architecture-output.yaml"

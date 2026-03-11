@@ -1,0 +1,43 @@
+task_id: "task-06"
+files_modified:
+  - "v2/.github/agents/reviewer.agent.md"
+  - "v2/.github/agents/planner.agent.md"
+  - "v2/.github/agents/knowledge.agent.md"
+files_requested: []
+tests_written: []
+test_results:
+  passed: 0
+  failed: 0
+tdd_compliance: false
+tdd_compliance_reason: "Markdown instruction files — no testable code"
+commands_executed:
+  - "read_file reviewer.agent.md (lines 1-15) — verified current frontmatter"
+  - "read_file planner.agent.md (lines 1-15) — verified current frontmatter"
+  - "read_file knowledge.agent.md (lines 1-15) — verified current frontmatter"
+  - "multi_replace_string_in_file — added tools: arrays to all three files"
+  - "read_file reviewer.agent.md (lines 1-14) — verified tools added"
+  - "read_file planner.agent.md (lines 1-14) — verified tools added"
+  - "read_file knowledge.agent.md (lines 1-14) — verified tools added"
+  - "read_file reviewer.agent.md (lines 14-18) — verified closing --- present"
+acceptance_criteria_verification:
+  - id: "AC-20"
+    result: "PASS"
+    evidence: "reviewer.agent.md tools array contains readFile, createFile, listDirectory, textSearch, fileSearch, codebase, problems, changes — no runInTerminal or editFiles"
+  - id: "AC-21"
+    result: "PASS"
+    evidence: "knowledge.agent.md tools array contains readFile, createFile, listDirectory, textSearch, fileSearch — no editFiles or runInTerminal"
+  - id: "AC-25-Rev"
+    result: "PASS"
+    evidence: "reviewer.agent.md tools: [readFile, createFile, listDirectory, textSearch, fileSearch, codebase, problems, changes]"
+  - id: "AC-25-Pln"
+    result: "PASS"
+    evidence: "planner.agent.md tools: [readFile, createFile, listDirectory, textSearch, fileSearch, codebase]"
+  - id: "AC-25-Kn"
+    result: "PASS"
+    evidence: "knowledge.agent.md tools: [readFile, createFile, listDirectory, textSearch, fileSearch]"
+completion:
+  status: "DONE"
+  summary: "Added tools: arrays to reviewer (8 tools), planner (6 tools), and knowledge (5 tools) agent frontmatter"
+  output_paths:
+    - "docs/feature/v2-agent-updates/implementation-reports/task-06.yaml"
+schema_version: "1.0"

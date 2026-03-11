@@ -1,0 +1,24 @@
+id: "task-07"
+description: "Quick-fix prompt: add Planning step so planner is always dispatched"
+depends_on: ["task-02"]
+files:
+  - "v2/.github/prompts/quick-fix.prompt.md"
+risk_level: "🟢"
+
+acceptance_criteria:
+  - id: "AC-24"
+    text: "quick-fix.prompt.md includes Planning (Step 4) as a pipeline step — planner always dispatched"
+    test_method: "inspection"
+  - id: "AC-24b"
+    text: "quick-fix.prompt.md step count updated and Planning removed from 'Steps skipped' list"
+    test_method: "inspection"
+
+relevant_context:
+  architecture_decisions:
+    - "D-4: Remove quick-fix inline plan generation — always dispatch planner"
+  functional_requirements:
+    - "FR-3.2: Quick-fix inline plan generation removed — planner always dispatched"
+  files_to_read:
+    - "v2/.github/prompts/quick-fix.prompt.md"
+    - "v2/.github/agents/orchestrator.agent.md"
+    - "docs/feature/v2-agent-updates/architecture-output.yaml"

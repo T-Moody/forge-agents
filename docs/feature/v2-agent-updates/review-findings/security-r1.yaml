@@ -1,0 +1,126 @@
+agent_output:
+  agent: "reviewer"
+  instance: "reviewer-security"
+  step: "7"
+  started_at: "2026-03-10T12:00:00Z"
+  completed_at: "2026-03-10T12:15:00Z"
+  schema_version: "1.0"
+  payload:
+    perspective: "security"
+    review_scope: "code"
+    round: 1
+    findings:
+      - severity: "major"
+        description: >
+          tourneypal-qa.agent.md (name: autonomous-qa) has NO security boundaries. Missing: tools: array
+          (unrestricted access to ALL tools including runInTerminal, editFiles, fetch, runSubagent),
+          agents: [] (can dispatch any pipeline agent as subagent, inverting the trust tier model),
+          user-invocable: false (appears in user dropdown). Additionally, the YAML frontmatter lacks a
+          closing --- delimiter before the markdown body — lines 4+ contain markdown text inside the
+          frontmatter block, which may cause the parser to fail entirely, leaving even name/description
+          unparsed. While this agent was NOT modified in this feature and serves a distinct QA purpose,
+          it resides in v2/.github/agents/ alongside trust-tiered pipeline agents and operates completely
+          outside the 3-tier trust model.
+        file: "v2/.github/agents/tourneypal-qa.agent.md"
+        recommendation: >
+          Add proper YAML frontmatter with security boundaries: tools: array scoped to its actual needs
+          (runInTerminal, openSimpleBrowser, readFile, createFile, listDirectory, textSearch, fileSearch,
+          runSubagent), agents: [] or explicit agent list, user-invocable: true (intentional). Fix the
+          frontmatter by adding a closing --- after the description field. Consider moving this agent
+          outside v2/.github/agents/ if it is not part of the pipeline trust model.
+
+      - severity: "minor"
+        description: >
+          task-06 implementation report lists IDE tool calls (read_file, multi_replace_string_in_file)
+          in commands_executed[] instead of terminal commands. The commands_executed[] field is designed
+          for terminal command audit trails that reviewers check against the command allowlist. Including
+          tool calls pollutes the audit trail and may cause reviewers to miss actual terminal violations
+          or produce false positives.
+        file: "docs/feature/v2-agent-updates/implementation-reports/task-06.yaml"
+        recommendation: >
+          Implementer should log only actual terminal commands (run_in_terminal invocations) in
+          commands_executed[]. IDE tool calls are implicit from files_modified and do not need audit
+          trail logging. If no terminal commands were run, commands_executed should be an empty array [].
+
+    verdict: "approve"
+
+    # ── Security Audit Summary ──────────────────────────────────────────────
+    # Trust Tier Verification (all modified files):
+    #
+    # Tier 1 — orchestrator.agent.md
+    #   tools: [vscodeAskQuestions, runSubagent, runInTerminal, getTerminalOutput,
+    #           listDirectory, readFile, createFile, createDirectory]
+    #   agents: [researcher, architect, planner, implementer, tester, reviewer, knowledge]
+    #   Assessment: COMPLIANT. No editFiles, no fetch. Git-only terminal use documented.
+    #
+    # Tier 2 — implementer.agent.md
+    #   tools: [readFile, createFile, editFiles, listDirectory, textSearch, fileSearch,
+    #           runInTerminal, getTerminalOutput, problems, changes]
+    #   agents: []
+    #   Assessment: COMPLIANT. Command allowlist enforced in constraints. No fetch, no runSubagent.
+    #
+    # Tier 2 — tester.agent.md
+    #   tools: [readFile, createFile, listDirectory, runInTerminal, getTerminalOutput,
+    #           problems, textSearch, fileSearch, openSimpleBrowser]
+    #   agents: []
+    #   Assessment: COMPLIANT. openSimpleBrowser is a verified VS Code tool name (confirmed in
+    #   tool-names-deep-dive.yaml). No fetch, no runSubagent, no editFiles.
+    #
+    # Tier 3 — researcher.agent.md
+    #   tools: [codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch]
+    #   agents: []
+    #   Assessment: COMPLIANT. fetch gated by web_research_enabled. No runInTerminal, no editFiles.
+    #
+    # Tier 3 — architect.agent.md
+    #   tools: [codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch]
+    #   agents: []
+    #   Assessment: COMPLIANT. fetch gated by web_research_enabled. No runInTerminal, no editFiles.
+    #
+    # Reviewer — reviewer.agent.md
+    #   tools: [readFile, createFile, listDirectory, textSearch, fileSearch, codebase, problems, changes]
+    #   agents: []
+    #   Assessment: COMPLIANT. No runInTerminal, no editFiles, no fetch.
+    #
+    # Planner — planner.agent.md
+    #   tools: [readFile, createFile, listDirectory, textSearch, fileSearch, codebase]
+    #   agents: []
+    #   Assessment: COMPLIANT. No runInTerminal, no editFiles, no fetch.
+    #
+    # Knowledge — knowledge.agent.md
+    #   tools: [readFile, createFile, listDirectory, textSearch, fileSearch]
+    #   agents: []
+    #   Assessment: COMPLIANT. No editFiles, no runInTerminal, no fetch. Minimal surface.
+    #
+    # Shared — global-rules.md
+    #   tools: [], user-invocable: false
+    #   Assessment: COMPLIANT. Suppressed from agent dropdown. Zero tool access.
+    #
+    # ── fetch Access Audit ──────────────────────────────────────────────────
+    # Only researcher and architect have fetch. All other pipeline agents verified clean.
+    #
+    # ── Git Safety Audit ────────────────────────────────────────────────────
+    # Only orchestrator has git write ops (add, commit, tag) in its constraints.
+    # global-rules.md § Git Safety explicitly restricts all other agents to git diff/status.
+    # global-rules.md § Branch Management prohibits branch create/switch/delete for all agents.
+    #
+    # ── disable-model-invocation Check ──────────────────────────────────────
+    # No agent has disable-model-invocation: true. Pipeline dispatch is unblocked.
+    #
+    # ── Command Audit (implementation reports) ──────────────────────────────
+    # task-01: git diff --stat — CLEAN
+    # task-02: git diff, git diff --stat — CLEAN
+    # task-03: (empty) — CLEAN
+    # task-04: git diff — CLEAN
+    # task-05: git diff — CLEAN
+    # task-06: IDE tool calls logged (not terminal) — see Minor finding
+    # task-07: (empty) — CLEAN
+    # No git add, git commit, or prohibited commands found in any report.
+    #
+    # ── URL Trail Audit ─────────────────────────────────────────────────────
+    # No fetch URLs found in any implementation report. No unauthorized web requests.
+
+completion:
+  status: "DONE"
+  summary: "security review: 2 findings (1 major, 1 minor), verdict: approve"
+  output_paths:
+    - "docs/feature/v2-agent-updates/review-findings/security-r1.yaml"

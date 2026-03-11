@@ -1,0 +1,144 @@
+agent_output:
+  agent: "knowledge"
+  schema_version: "1.0"
+  payload:
+    metrics:
+      run_id: "2026-03-10T12:00:00Z"
+      feature_slug: "v2-agent-updates"
+      risk_level: "🟡"
+      approval_mode: "autonomous"
+      total_tasks: 7
+      waves: 3
+      files_modified: 10
+      dispatches: 10
+      retries: 0
+      fix_cycles: 1
+      findings:
+        static_testing:
+          major: 1
+          minor: 2
+          major_fixed: 1
+          minor_accepted: 2
+        code_review:
+          security: { major: 1, minor: 1 }
+          architecture: { major: 1, minor: 1 }
+          correctness: { major: 1, minor: 2 }
+          total_major: 3
+          total_minor: 4
+          blockers: 0
+          verdict: "3/3 approve"
+      acceptance_criteria:
+        total: 25
+        passed: 23
+        failed: 1
+        pass_with_note: 1
+      pass_rate: "92%"
+      line_budget_compliance:
+        global-rules.md: "118 / no hard limit"
+        orchestrator.agent.md: "148 / 550"
+        researcher.agent.md: "84 / 150"
+        architect.agent.md: "139 / 150"
+        implementer.agent.md: "108 / 150"
+        tester.agent.md: "137 / 150"
+        reviewer.agent.md: "97 / 150"
+        planner.agent.md: "112 / 150"
+        knowledge.agent.md: "117 / 150"
+        verdict: "all within budget"
+
+    pipeline_execution:
+      wave_1:
+        tasks: ["task-01"]
+        description: "global-rules.md foundation (YAML frontmatter + 4 cross-cutting sections)"
+        status: "DONE"
+      wave_2:
+        tasks: ["task-02", "task-03", "task-04", "task-05", "task-06"]
+        description: "Parallel per-agent updates (orchestrator overhaul, tools arrays, web research, batch builds, E2E artifacts)"
+        status: "DONE"
+      wave_3:
+        tasks: ["task-07"]
+        description: "Quick-fix prompt planning step (depends on orchestrator changes)"
+        status: "DONE"
+      static_testing:
+        verdict: "fail → fixed → pass"
+        major_finding: "E2E artifact path mismatch between global-rules.md (verification-reports/) and tester.agent.md (e2e-artifacts/) — fixed"
+        minor_findings:
+          - "Planner tools: array has extra codebase tool beyond AC spec — accepted"
+          - "Implementer RED phase modified despite AC-12 specifying 'unchanged' — accepted (beneficial)"
+      code_review:
+        gate: "3/3 approve, 0 blockers"
+        all_major_findings_non_blocking: true
+        major_findings_detail:
+          - agent: "security"
+            description: "tourneypal-qa.agent.md has no security boundaries (pre-existing, out of scope)"
+          - agent: "architecture"
+            description: "Vestigial git tag in allowlist and prompts (cross-file reference issue, pre-existing)"
+          - agent: "correctness"
+            description: "Planner codebase tool deviates from AC (accepted as beneficial)"
+
+    patterns:
+      - category: "success"
+        description: "Wave-based parallelization effective: 5 tasks in wave 2 ran in parallel with no conflicts, all DONE on first attempt"
+      - category: "success"
+        description: "Research phase caught critical gap: no tools: arrays in ANY agent frontmatter meant entire trust model was unenforced. This justified the feature scope."
+      - category: "success"
+        description: "Cross-cutting architecture (Direction B): centralizing 4 new rules in global-rules.md + surgical per-agent edits kept changes focused and cross-refs minimal"
+      - category: "success"
+        description: "Tool name validation: researcher identified ask_questions→vscodeAskQuestions rename need before implementation, preventing silent tool unavailability"
+      - category: "success"
+        description: "All 10 files modified in scope, 0 out-of-scope modifications, 100% file ownership compliance across all 7 tasks"
+      - category: "failure"
+        description: "Static testing caught E2E artifact path mismatch (global-rules.md said verification-reports/ while tester.agent.md said e2e-artifacts/). Cross-file reference inconsistency remains the #1 finding source across pipeline runs."
+      - category: "failure"
+        description: "Implementer self-reported AC-25-Pln as PASS despite planner having 6 tools when AC specified 5. Self-verification missed the deviation — caught by tester and correctness reviewer."
+      - category: "bottleneck"
+        description: "task-02 (orchestrator overhaul) was the most complex: 15 surgical edits, +42/-13 lines, 9 ACs. It gates task-07, creating the wave 2→3 dependency."
+      - category: "bottleneck"
+        description: "tourneypal-qa.agent.md flagged by 2 of 3 reviewers as lacking security boundaries, but it was correctly excluded from scope. Recurring review noise for pre-existing issues."
+
+    lessons_learned:
+      - id: "L-1"
+        lesson: "Cross-file reference consistency remains the most critical verification focus for agent instruction files. The E2E path mismatch (global-rules vs tester) is the same pattern as orchestrator §11→§1.1 and EG-10 threshold mismatches from prior pipelines."
+        evidence: "Static testing F-1 (major, fixed); architecture review vestigial git tag finding"
+        recommendation: "Add explicit cross-file path concordance check to tester static analysis checklist: for every path referenced in global-rules.md, verify matching path in each agent that references it."
+
+      - id: "L-2"
+        lesson: "Implementer self-verification of AC compliance is unreliable for exact-match criteria. Task-06 reported AC-25-Pln as PASS with evidence showing 6 tools when AC required 5."
+        evidence: "Static testing F-2 (minor); correctness review major finding on planner codebase tool"
+        recommendation: "Tester should always independently verify implementer AC claims rather than trusting self-report. Consider adding a cross-check step where tester compares implementer-reported evidence against actual file state."
+
+      - id: "L-3"
+        lesson: "tools: arrays are the most impactful single change for multi-agent security. Without them, the entire 3-tier trust model was unenforced — every agent had access to every tool."
+        evidence: "Research F-1; security review trust tier audit (all 9 agents verified compliant post-change)"
+        recommendation: "Any future agent file must include tools: array in YAML frontmatter at creation time. Never ship an agent file without explicit tool restrictions."
+
+      - id: "L-4"
+        lesson: "Tool name correctness is critical and VS Code gives zero feedback on incorrect names. ask_questions→vscodeAskQuestions rename was necessary because the old name would have been silently ignored in tools: arrays."
+        evidence: "Research F-2; architecture decision D-1; 0 stale ask_questions references after implementation"
+        recommendation: "Maintain a verified tool name reference list. Before any tools: array modification, cross-check all tool names against the official VS Code built-in tools documentation."
+
+      - id: "L-5"
+        lesson: "Pre-existing issues in out-of-scope files generate recurring review noise. tourneypal-qa.agent.md was flagged by 2 of 3 reviewers despite being explicitly out of scope."
+        evidence: "Security review major finding + architecture review minor finding, both on tourneypal-qa"
+        recommendation: "Future features targeting v2/.github/agents/ should either scope in all files in the directory or add an explicit exclusion note in the architecture output to reduce reviewer overhead."
+
+      - id: "L-6"
+        lesson: "Batch build approach for implementer GREEN phase is a clear efficiency win. Changing from per-edit builds to batch builds reduces worst-case from N+6 to ~4 builds without sacrificing correctness."
+        evidence: "Architecture decision D-5; implementer task-04 DONE; tester AC-11 PASS"
+        recommendation: "Extend batch approach to other build-heavy phases if similar patterns emerge."
+
+      - id: "L-7"
+        lesson: "Quick-fix always dispatching planner (instead of inline plan generation) enforces subagent-only discipline at the cost of one additional dispatch (~seconds). The tradeoff is clearly worth it for architecture consistency."
+        evidence: "Architecture decision D-4; task-07 AC-24 and AC-24b both PASS"
+        recommendation: "No change needed — this is now the standard quick-fix behavior."
+
+      - id: "L-8"
+        lesson: "Completion-contract-only reads (D-10) are a practical context management strategy. The orchestrator no longer needs to read full research reports or architecture analysis — it routes based on status, summary, and output_paths."
+        evidence: "Task-02 AC-9 and AC-10 PASS; orchestrator Context Management section verified"
+        recommendation: "Monitor whether orchestrator routing degrades due to insufficient information from completion contracts. If so, add specific routing fields rather than reverting to full file reads."
+
+completion:
+  status: "DONE"
+  summary: "7 tasks, 3 waves, 10 files, 0 retries, 3/3 approve, 1 major fixed, cross-file consistency remains top risk"
+  output_paths:
+    - "docs/feature/v2-agent-updates/knowledge-output.yaml"
+    - "docs/feature/v2-agent-updates/evidence-bundle.md"

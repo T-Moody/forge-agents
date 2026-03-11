@@ -1,0 +1,171 @@
+agent_output:
+  agent: "reviewer"
+  instance: "reviewer-correctness"
+  step: "7"
+  started_at: "2026-03-10T12:00:00Z"
+  completed_at: "2026-03-10T12:30:00Z"
+  schema_version: "1.0"
+  payload:
+    perspective: "correctness"
+    review_scope: "code"
+    round: 1
+    findings:
+      - severity: "major"
+        description: >
+          Planner tools: array includes `codebase` (6 tools total) but AC-25-Pln specifies
+          exactly 5 tools: readFile, listDirectory, createFile, fileSearch, textSearch — no
+          codebase. The implementation report task-06.yaml claims AC-25-Pln PASS with evidence
+          that contradicts the AC: 'planner.agent.md tools: [readFile, createFile, listDirectory,
+          textSearch, fileSearch, codebase]' shows 6 tools while the AC requires exactly 5.
+          Architecture output FR-8.4 also specifies 5 tools without codebase.
+        file: "v2/.github/agents/planner.agent.md"
+        recommendation: >
+          Remove `codebase` from planner.agent.md YAML frontmatter tools: array to match
+          AC-25-Pln exactly. If codebase is actually needed for planner functionality, update
+          the AC and FR-8.4 first — do not silently add tools beyond spec.
+
+      - severity: "minor"
+        description: >
+          AC-12 requires implementer Steps 3 (RED) and 5 (REFACTOR) to be unchanged, but
+          Step 3 (RED) now includes the sentence 'Do NOT build after writing each individual
+          test file.' The implementation report task-04 summary confirms this: 'batched
+          RED/GREEN phases' — acknowledging both phases were modified. This is a spec deviation
+          even though the change is directionally correct and reinforces build batching.
+        file: "v2/.github/agents/implementer.agent.md"
+        recommendation: >
+          If the RED phase addition is intentional and beneficial, update AC-12 to reflect that
+          RED also receives build-batching guidance. Otherwise revert Step 3 to its pre-change
+          wording.
+
+      - severity: "minor"
+        description: >
+          AC-5 states 'global-rules.md Output Path Convention includes e2e-artifacts/ as a
+          recognized subdirectory' but e2e-artifacts/ is not listed in the Output Path Convention
+          section (which only lists implementation-reports/, research/, review-findings/ as
+          examples). Instead, a separate '## E2E Artifacts' section was added at lines 103-111.
+          Functionally equivalent but structurally different from AC-5 specification.
+        file: "v2/.github/agents/global-rules.md"
+        recommendation: >
+          Either add e2e-artifacts/ to the Output Path Convention example list (e.g.,
+          'implementation-reports/, research/, review-findings/, e2e-artifacts/') or accept the
+          current structure as satisfying AC-5 intent. The separate section provides stronger
+          enforcement than a subdirectory example.
+
+    verdict: "approve"
+
+    verification_summary:
+      total_acceptance_criteria: 25
+      criteria_verified:
+        - id: "AC-1"
+          status: "PASS"
+          evidence: "researcher.agent.md Step 4 contains 'web research is MANDATORY' with mandatory language"
+        - id: "AC-2"
+          status: "PASS"
+          evidence: "architect.agent.md Step 4 contains matching mandatory language"
+        - id: "AC-3"
+          status: "PASS"
+          evidence: "global-rules.md '## Web Research' section with mandatory fetch language present"
+        - id: "AC-4"
+          status: "PASS"
+          evidence: "tester.agent.md line 70 references docs/feature/<slug>/e2e-artifacts/ for all artifacts"
+        - id: "AC-5"
+          status: "PASS-WITH-NOTE"
+          evidence: "E2E path exists in separate section, not in Output Path Convention examples — see minor finding"
+        - id: "AC-6"
+          status: "PASS"
+          evidence: "orchestrator tools: array has no textSearch, codebase, editFiles, fileSearch"
+        - id: "AC-7"
+          status: "PASS"
+          evidence: "Step 1 quick-fix dispatches planner, no inline plan-output.yaml generation"
+        - id: "AC-8"
+          status: "PASS"
+          evidence: "Anti-drift anchor at line 148 includes 'never read source code directly'"
+        - id: "AC-9"
+          status: "PASS"
+          evidence: "Context Management section contains 'Read ONLY completion contracts from subagent outputs'"
+        - id: "AC-10"
+          status: "PASS"
+          evidence: "Step 3 says 'Read architect completion contract', Step 4 says 'planner completion contract'"
+        - id: "AC-11"
+          status: "PASS"
+          evidence: "Step 4 GREEN says 'Write ALL production code changes first, then run problems once and run tests once'"
+        - id: "AC-12"
+          status: "FAIL"
+          evidence: "RED phase (Step 3) modified with build-batch guidance — see minor finding"
+        - id: "AC-13"
+          status: "PASS"
+          evidence: "grep for 'create feature branch|create.*branch|checkout.*branch' returns 0 matches in orchestrator body"
+        - id: "AC-14"
+          status: "PASS"
+          evidence: "Constraints git allowlist at line 140 is 'status, add, commit, tag, diff' — no branch"
+        - id: "AC-15"
+          status: "PASS"
+          evidence: "global-rules.md Branch Management section: 'NO agent may create, checkout, switch, or delete git branches'"
+        - id: "AC-16"
+          status: "PASS"
+          evidence: "grep for ask_questions across v2/.github/ returns 0 matches"
+        - id: "AC-17"
+          status: "PASS"
+          evidence: "global-rules.md User Interaction section has exact required language"
+        - id: "AC-18"
+          status: "PASS"
+          evidence: "All 8 pipeline agents have tools: arrays in YAML frontmatter verified"
+        - id: "AC-19"
+          status: "PASS"
+          evidence: "researcher and architect tools: arrays contain no editFiles, runInTerminal, or runSubagent"
+        - id: "AC-20"
+          status: "PASS"
+          evidence: "reviewer tools: array has no runInTerminal or editFiles"
+        - id: "AC-21"
+          status: "PASS"
+          evidence: "knowledge tools: array has no editFiles or runInTerminal"
+        - id: "AC-22"
+          status: "PASS"
+          evidence: "orchestrator tools: array has no editFiles, textSearch, codebase, or fileSearch"
+        - id: "AC-23"
+          status: "PASS"
+          evidence: "global-rules.md starts with YAML frontmatter: user-invocable: false, tools: []"
+        - id: "AC-24"
+          status: "PASS"
+          evidence: "quick-fix.prompt.md Step 2 is 'Planning (Step 4)' — planner always dispatched"
+        - id: "AC-24b"
+          status: "PASS"
+          evidence: "Step count is 6, Planning removed from skipped list, 'Steps skipped: Research (Step 2), Architecture (Step 3)'"
+        - id: "AC-25-Pln"
+          status: "FAIL"
+          evidence: "planner has 6 tools including codebase; AC specifies exactly 5 without codebase — see major finding"
+        - id: "AC-25-R"
+          status: "PASS"
+          evidence: "researcher tools match AC exactly: 7 tools"
+        - id: "AC-25-A"
+          status: "PASS"
+          evidence: "architect tools match AC exactly: 7 tools"
+        - id: "AC-25-I"
+          status: "PASS"
+          evidence: "implementer tools match AC exactly: 10 tools"
+        - id: "AC-25-T"
+          status: "PASS"
+          evidence: "tester tools match AC exactly: 9 tools"
+        - id: "AC-25-Rev"
+          status: "PASS"
+          evidence: "reviewer tools match AC exactly: 8 tools"
+        - id: "AC-25-Kn"
+          status: "PASS"
+          evidence: "knowledge tools match AC exactly: 5 tools"
+
+    focus_area_results:
+      web_research_enforcement: "PASS — mandatory language in researcher, architect, and global-rules.md"
+      orchestrator_subagent_only: "PASS — no direct code analysis, Subagent-Only Enforcement section, anti-drift anchor"
+      build_batching: "PASS — GREEN phase batched, constraint 8 added. Minor: RED phase also modified"
+      e2e_artifact_paths: "PASS — consistent between global-rules.md and tester.agent.md"
+      branch_removal: "PASS — no branch creation language in orchestrator, branch prohibited in global-rules.md"
+      vscodeAskQuestions_rename: "PASS — zero ask_questions references remain across all v2 files"
+      quick_fix_planning: "PASS — Planning step added, step count 6, planner not skipped"
+      tools_arrays: "PASS-WITH-NOTE — all 8 agents have tools: arrays, 1 deviation (planner has extra codebase)"
+      prompt_files: "PASS — both prompts have agent: orchestrator in frontmatter"
+
+completion:
+  status: "DONE"
+  summary: "correctness review: 3 findings (1 major, 2 minor), verdict: approve"
+  output_paths:
+    - "docs/feature/v2-agent-updates/review-findings/correctness-r1.yaml"

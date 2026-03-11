@@ -1,0 +1,38 @@
+id: "task-03"
+description: "Research-capable agents: add tools: arrays and mandatory web research language to researcher and architect"
+depends_on: ["task-01"]
+files:
+  - "v2/.github/agents/researcher.agent.md"
+  - "v2/.github/agents/architect.agent.md"
+risk_level: "🟢"
+
+acceptance_criteria:
+  - id: "AC-1"
+    text: "researcher.agent.md Step 4 contains 'MUST perform web research using fetch' (not 'If... use fetch')"
+    test_method: "inspection"
+  - id: "AC-2"
+    text: "architect.agent.md Step 4 contains mandatory fetch language matching researcher pattern"
+    test_method: "inspection"
+  - id: "AC-19"
+    text: "No T3 agent (researcher, architect) has editFiles, runInTerminal, or runSubagent in tools: array"
+    test_method: "inspection"
+  - id: "AC-25-R"
+    text: "researcher.agent.md tools: array is exactly: codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch"
+    test_method: "inspection"
+  - id: "AC-25-A"
+    text: "architect.agent.md tools: array is exactly: codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch"
+    test_method: "inspection"
+
+relevant_context:
+  architecture_decisions:
+    - "D-2: Individual tool names over tool sets in frontmatter"
+    - "D-11: Mandatory web research language pattern — 'When web_research_enabled is true, you MUST perform at least 2 targeted web lookups using fetch'"
+  functional_requirements:
+    - "FR-1.1: Researcher Step 4 mandatory fetch language"
+    - "FR-1.2: Architect Step 4 mandatory fetch language"
+    - "FR-8.2: Researcher tools: array"
+    - "FR-8.3: Architect tools: array"
+  files_to_read:
+    - "v2/.github/agents/researcher.agent.md"
+    - "v2/.github/agents/architect.agent.md"
+    - "docs/feature/v2-agent-updates/architecture-output.yaml"

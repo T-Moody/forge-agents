@@ -1,0 +1,30 @@
+id: "task-04"
+description: "Implementer: add tools: array and batch build/test at GREEN phase boundaries"
+depends_on: ["task-01"]
+files:
+  - "v2/.github/agents/implementer.agent.md"
+risk_level: "🟢"
+
+acceptance_criteria:
+  - id: "AC-11"
+    text: "implementer.agent.md Step 4 (GREEN) says 'After all production code edits are complete, run problems once and then run the test suite' instead of 'Run problems after every file edit'"
+    test_method: "inspection"
+  - id: "AC-12"
+    text: "implementer.agent.md Steps 3 (RED) and 5 (REFACTOR) are unchanged"
+    test_method: "inspection"
+  - id: "AC-25-I"
+    text: "implementer.agent.md tools: array is exactly: readFile, editFiles, createFile, listDirectory, textSearch, fileSearch, runInTerminal, getTerminalOutput, problems, changes"
+    test_method: "inspection"
+
+relevant_context:
+  architecture_decisions:
+    - "D-2: Individual tool names over tool sets in frontmatter"
+    - "D-5: Batch builds in implementer GREEN phase — reduces worst-case builds from N+6 to ~4"
+  functional_requirements:
+    - "FR-5.1: GREEN phase batch build change"
+    - "FR-5.2: RED phase preserved unchanged"
+    - "FR-5.3: REFACTOR phase preserved unchanged"
+    - "FR-8.5: Implementer tools: array"
+  files_to_read:
+    - "v2/.github/agents/implementer.agent.md"
+    - "docs/feature/v2-agent-updates/architecture-output.yaml"

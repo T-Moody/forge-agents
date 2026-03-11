@@ -1,0 +1,79 @@
+agent_output:
+  agent: "planner"
+  schema_version: "1.0"
+  payload:
+    plan:
+      feature_slug: "v2-agent-updates"
+      total_tasks: 7
+      tasks:
+        - id: "task-01"
+          description: "Add YAML frontmatter and 4 new cross-cutting sections to global-rules.md"
+          depends_on: []
+          files:
+            - "v2/.github/agents/global-rules.md"
+          risk_level: "🟡"
+
+        - id: "task-02"
+          description: "Orchestrator overhaul: tools: array, subagent-only enforcement, context management, vscodeAskQuestions rename, branch removal, quick-fix inline plan removal"
+          depends_on: ["task-01"]
+          files:
+            - "v2/.github/agents/orchestrator.agent.md"
+          risk_level: "🟡"
+
+        - id: "task-03"
+          description: "Research-capable agents: add tools: arrays and mandatory web research language to researcher and architect"
+          depends_on: ["task-01"]
+          files:
+            - "v2/.github/agents/researcher.agent.md"
+            - "v2/.github/agents/architect.agent.md"
+          risk_level: "🟢"
+
+        - id: "task-04"
+          description: "Implementer: add tools: array and batch build/test at GREEN phase boundaries"
+          depends_on: ["task-01"]
+          files:
+            - "v2/.github/agents/implementer.agent.md"
+          risk_level: "🟢"
+
+        - id: "task-05"
+          description: "Tester: add tools: array and E2E artifact storage path directive"
+          depends_on: ["task-01"]
+          files:
+            - "v2/.github/agents/tester.agent.md"
+          risk_level: "🟢"
+
+        - id: "task-06"
+          description: "Minimal agents: add tools: arrays to reviewer, planner, and knowledge agent frontmatter"
+          depends_on: ["task-01"]
+          files:
+            - "v2/.github/agents/reviewer.agent.md"
+            - "v2/.github/agents/planner.agent.md"
+            - "v2/.github/agents/knowledge.agent.md"
+          risk_level: "🟢"
+
+        - id: "task-07"
+          description: "Quick-fix prompt: add Planning step so planner is always dispatched"
+          depends_on: ["task-02"]
+          files:
+            - "v2/.github/prompts/quick-fix.prompt.md"
+          risk_level: "🟢"
+
+completion:
+  status: "DONE"
+  summary: "Decomposed feature into 7 tasks across DAG"
+  plan_summary:
+    total_tasks: 7
+    waves: 3
+    key_dependencies:
+      - "task-01 (global-rules) is root — all other tasks depend on it"
+      - "tasks 02-06 form wave 2 (parallel) after global-rules"
+      - "task-07 (quick-fix prompt) depends on task-02 (orchestrator) forming wave 3"
+  output_paths:
+    - "docs/feature/v2-agent-updates/plan-output.yaml"
+    - "docs/feature/v2-agent-updates/tasks/task-01.yaml"
+    - "docs/feature/v2-agent-updates/tasks/task-02.yaml"
+    - "docs/feature/v2-agent-updates/tasks/task-03.yaml"
+    - "docs/feature/v2-agent-updates/tasks/task-04.yaml"
+    - "docs/feature/v2-agent-updates/tasks/task-05.yaml"
+    - "docs/feature/v2-agent-updates/tasks/task-06.yaml"
+    - "docs/feature/v2-agent-updates/tasks/task-07.yaml"

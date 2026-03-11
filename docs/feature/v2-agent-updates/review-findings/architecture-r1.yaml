@@ -1,0 +1,117 @@
+agent_output:
+  agent: "reviewer"
+  instance: "reviewer-architecture"
+  step: "7"
+  started_at: "2026-03-10T00:00:00Z"
+  completed_at: "2026-03-10T00:30:00Z"
+  schema_version: "1.0"
+  payload:
+    perspective: "architecture"
+    review_scope: "code"
+    round: 1
+    findings:
+      - severity: "major"
+        description: >
+          Cross-file reference mismatch: both prompt files describe Step 1 as including
+          ''git baseline tag'' but the orchestrator''s Step 1 has no tag creation — it only
+          runs ''git status'' and creates the feature directory. Additionally, ''git tag''
+          remains in the orchestrator''s Constraints git allowlist (line 140:
+          ''status, add, commit, tag, diff'') but no pipeline step ever creates a tag.
+          The prompts promise baseline-tag behavior the orchestrator does not implement,
+          and the allowlist entry is vestigial.
+        file: "v2/.github/prompts/feature-workflow.prompt.md (line 17), v2/.github/prompts/quick-fix.prompt.md (line 17), v2/.github/agents/orchestrator.agent.md (line 140)"
+        recommendation: >
+          Either (a) remove ''git baseline tag'' from both prompt Step 1 descriptions
+          AND remove ''tag'' from the orchestrator Constraints git allowlist, OR
+          (b) add baseline tag creation (e.g. ''git tag baseline-<slug>'') to orchestrator
+          Step 1 and keep the allowlist entry. Option (a) is simpler; option (b) preserves
+          rollback capability.
+
+      - severity: "minor"
+        description: >
+          tourneypal-qa.agent.md exists in v2/.github/agents/ but was not updated with a
+          tools: array. All 8 pipeline agents and global-rules.md received tools: arrays
+          for tool restriction enforcement, but this standalone agent retains unrestricted
+          tool access. It is not part of the pipeline (not in the orchestrator''s agents:
+          array) so impact is low, but it breaks the directory-wide consistency of
+          explicit tool scoping.
+        file: "v2/.github/agents/tourneypal-qa.agent.md"
+        recommendation: >
+          Add a tools: array scoped to its QA role (e.g. runInTerminal, getTerminalOutput,
+          openSimpleBrowser, readFile, listDirectory, problems, createFile). Also add
+          user-invocable and agents fields for frontmatter consistency with other agents
+          in the directory.
+
+    verdict: "approve"
+
+    # --- Architecture audit summary ---
+    line_budget_compliance:
+      global-rules.md: "118 / no per-file limit (shared doc)"
+      orchestrator.agent.md: "148 / 550 budget"
+      researcher.agent.md: "84 / 150 budget"
+      architect.agent.md: "139 / 150 budget"
+      implementer.agent.md: "108 / 150 budget"
+      tester.agent.md: "137 / 150 budget"
+      reviewer.agent.md: "97 / 150 budget"
+      planner.agent.md: "112 / 150 budget"
+      knowledge.agent.md: "117 / 150 budget"
+      verdict: "all within budget"
+
+    tool_array_audit:
+      total_agents_with_tools_array: 9
+      all_names_valid_camelCase: true
+      invalid_tool_names: []
+      notes: "All tool names verified against official VS Code built-in tools list"
+
+    cross_reference_audit:
+      global_rules_web_research: "referenced by researcher (lines 41, 76) and architect (lines 53, 134) — matches section heading at global-rules.md line 90"
+      global_rules_e2e_artifacts: "referenced by tester (line 70) — matches section heading at global-rules.md line 102"
+      global_rules_git_safety: "referenced by implementer (line 49) — matches section heading at global-rules.md line 66"
+      stale_ask_questions: "0 occurrences — fully replaced by vscodeAskQuestions"
+      vscodeAskQuestions_consistency: "13 total references (11 in orchestrator, 2 in global-rules) — no worker agent has it in tools array"
+      branch_prohibition: "orchestrator anti-drift + global-rules §Branch Management — consistent"
+
+    requirement_coverage:
+      - id: 1
+        requirement: "Enforce web research when enabled"
+        status: "complete"
+        evidence: "global-rules.md §Web Research + mandatory language in researcher and architect"
+      - id: 2
+        requirement: "E2E artifacts in feature slug folder"
+        status: "complete"
+        evidence: "global-rules.md §E2E Artifacts + tester directive and constraint"
+      - id: 3
+        requirement: "Orchestrator subagent-only"
+        status: "complete"
+        evidence: "Subagent-Only Enforcement section + tools array excludes analytical tools"
+      - id: 4
+        requirement: "Prevent orchestrator context overload"
+        status: "complete"
+        evidence: "Context Management section with completion-contract-only reading"
+      - id: 5
+        requirement: "Reduce implementer builds"
+        status: "complete"
+        evidence: "Constraint 8 Build batching + RED/GREEN phase batching instructions"
+      - id: 6
+        requirement: "No branch creation by agents"
+        status: "complete with caveat"
+        evidence: "global-rules.md §Branch Management + orchestrator anti-drift. Caveat: prompts still reference git baseline tag (see Major finding)"
+      - id: 7
+        requirement: "Enforce vscodeAskQuestions tool"
+        status: "complete"
+        evidence: "global-rules.md §User Interaction + 0 stale ask_questions refs + worker agents excluded"
+
+    command_audit:
+      tasks_audited: 7
+      violations: []
+      notes: "All commands_executed entries are git diff/status (read-only). No git add, git commit, or prohibited commands found."
+
+    url_trail_audit:
+      fetch_references_found: 0
+      violations: []
+
+completion:
+  status: "DONE"
+  summary: "architecture review: 2 findings (1 major, 1 minor), verdict: approve"
+  output_paths:
+    - "docs/feature/v2-agent-updates/review-findings/architecture-r1.yaml"

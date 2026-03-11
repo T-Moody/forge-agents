@@ -1,0 +1,40 @@
+id: "task-01"
+description: "Add YAML frontmatter and 4 new cross-cutting sections to global-rules.md"
+depends_on: []
+files:
+  - "v2/.github/agents/global-rules.md"
+risk_level: "🟡"
+
+acceptance_criteria:
+  - id: "AC-23"
+    text: "global-rules.md starts with YAML frontmatter containing user-invocable: false and tools: []"
+    test_method: "inspection"
+  - id: "AC-3"
+    text: "global-rules.md contains a 'Web Research Mandate' section stating: when web_research_enabled is true, agents with fetch access MUST perform web research using fetch"
+    test_method: "inspection"
+  - id: "AC-17"
+    text: "global-rules.md contains 'User Interaction' section: 'ALL user interaction MUST use vscodeAskQuestions with multiple-choice options. Agents MUST NEVER output free-form questions.'"
+    test_method: "inspection"
+  - id: "AC-5"
+    text: "global-rules.md Output Path Convention includes e2e-artifacts/ as a recognized subdirectory"
+    test_method: "inspection"
+  - id: "AC-15"
+    text: "global-rules.md Git Safety includes 'No agent may create, checkout, or delete git branches'"
+    test_method: "inspection"
+
+relevant_context:
+  architecture_decisions:
+    - "D-3: Cross-cutting rules centralized in global-rules.md"
+    - "D-7: Branch prohibition in global-rules.md Git Safety"
+    - "D-8: E2E artifacts stored in docs/feature/<slug>/e2e-artifacts/"
+    - "D-9: global-rules.md gets YAML frontmatter to suppress agent detection"
+    - "D-11: Mandatory web research language pattern"
+  functional_requirements:
+    - "FR-1.3: global-rules.md adds a cross-cutting Web Research Mandate section"
+    - "FR-2.2: global-rules.md Output Path Convention expanded to include e2e-artifacts/"
+    - "FR-6.3: global-rules.md Git Safety section adds branch prohibition"
+    - "FR-7.2: global-rules.md adds User Interaction section enforcing vscodeAskQuestions"
+    - "FR-9: global-rules.md has YAML frontmatter with user-invocable: false and tools: []"
+  files_to_read:
+    - "v2/.github/agents/global-rules.md"
+    - "docs/feature/v2-agent-updates/architecture-output.yaml"

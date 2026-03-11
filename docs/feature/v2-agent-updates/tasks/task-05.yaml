@@ -1,0 +1,25 @@
+id: "task-05"
+description: "Tester: add tools: array and E2E artifact storage path directive"
+depends_on: ["task-01"]
+files:
+  - "v2/.github/agents/tester.agent.md"
+risk_level: "🟢"
+
+acceptance_criteria:
+  - id: "AC-4"
+    text: "tester.agent.md dynamic workflow references 'docs/feature/<slug>/e2e-artifacts/' for all screenshots, traces, and logs"
+    test_method: "inspection"
+  - id: "AC-25-T"
+    text: "tester.agent.md tools: array is exactly: readFile, createFile, listDirectory, runInTerminal, getTerminalOutput, problems, textSearch, fileSearch, openSimpleBrowser"
+    test_method: "inspection"
+
+relevant_context:
+  architecture_decisions:
+    - "D-2: Individual tool names over tool sets in frontmatter"
+    - "D-8: E2E artifacts stored in docs/feature/<slug>/e2e-artifacts/"
+  functional_requirements:
+    - "FR-2.1: Tester dynamic workflow adds explicit artifact storage path directive"
+    - "FR-8.6: Tester tools: array"
+  files_to_read:
+    - "v2/.github/agents/tester.agent.md"
+    - "docs/feature/v2-agent-updates/architecture-output.yaml"

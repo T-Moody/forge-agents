@@ -1,0 +1,209 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-impact"
+  started_at: "2026-03-10T00:00:00Z"
+  completed_at: "2026-03-10T00:00:00Z"
+  schema_version: "1.0"
+  payload:
+    focus_area: "impact"
+    risk_level: "🟡"
+    findings:
+      - id: "F-1"
+        title: "Web research is optional, not enforced, in researcher and architect"
+        source: "v2/.github/agents/researcher.agent.md, v2/.github/agents/architect.agent.md"
+        relevance: "high"
+        detail: |
+          Both researcher and architect use permissive language for web research.
+          Researcher (line 33): "If web_research_enabled is true, use fetch... Do NOT use fetch when absent or false."
+          Architect (line 45): "IF web_research_enabled is true: use fetch... Skip when disabled or absent."
+          Neither agent says "MUST perform web research when enabled." The current language treats it as a
+          gate (don't use when false) but not a mandate (must use when true). Change 1 requires adding
+          mandatory language: "When web_research_enabled is true, you MUST perform web research using fetch."
+          Affected files: researcher.agent.md (workflow step 4, constraints), architect.agent.md (workflow step 4, constraints).
+          The reviewer.agent.md audits fetch URL trails but has no enforcement of missing fetch usage when enabled.
+
+      - id: "F-2"
+        title: "Only researcher and architect reference web_research_enabled — no other agents need changes"
+        source: "v2/.github/agents/"
+        relevance: "high"
+        detail: |
+          Grep across all v2/.github/ files shows web_research_enabled or fetch references in exactly 4 files:
+          - orchestrator.agent.md: asks user about web_research_enabled (Step 1, line 38) — no change needed
+          - researcher.agent.md: receives parameter, gates fetch usage (lines 21, 33, 68) — needs enforcement language
+          - architect.agent.md: receives parameter, gates fetch usage (lines 23, 45, 126) — needs enforcement language
+          - reviewer.agent.md: audits fetch URL trails (lines 36, 81) — no change needed
+          - feature-workflow.prompt.md: mentions fetch for research agents (line 31) — no change needed
+          Only researcher and architect need the "optional → mandatory when enabled" language change.
+
+      - id: "F-3"
+        title: "Tester has no explicit E2E artifact storage path for screenshots"
+        source: "v2/.github/agents/tester.agent.md"
+        relevance: "high"
+        detail: |
+          The tester agent mentions "Capture failure details (assertion messages, screenshots, logs)" (line 58)
+          but specifies no storage path for screenshots or other binary artifacts. The only output path defined
+          is the test report YAML at docs/feature/<slug>/verification-reports/test-report.yaml (line 66).
+          Without an explicit artifact path directive, screenshots could be saved to project root, the current
+          working directory, or wherever the Playwright skill defaults to. Change 2 requires adding an explicit
+          directive like: "Store all E2E artifacts (screenshots, logs, traces) in docs/feature/<slug>/verification-reports/artifacts/".
+          Affected file: tester.agent.md (dynamic workflow step 5, output schema section, constraints section).
+
+      - id: "F-4"
+        title: "Orchestrator creates plan artifacts directly in quick-fix mode — violates subagent-only rule"
+        source: "v2/.github/agents/orchestrator.agent.md"
+        relevance: "high"
+        detail: |
+          Orchestrator Step 1 (line 42) contains quick-fix mode: "generate a minimal plan-output.yaml with a
+          single task and create tasks/task-01.yaml containing: id, description, files, and acceptance_criteria.
+          This replaces the Planner's output for simple fixes."
+          This means the orchestrator directly creates YAML files with implementation content (file lists,
+          acceptance criteria) rather than delegating to the planner. Change 3 requires either:
+          (a) Remove quick-fix mode from orchestrator and always dispatch planner, or
+          (b) Dispatch planner with a simplified prompt for quick-fix tasks.
+          The anti-drift anchor says "Never implement" but creating plan-output.yaml with file lists
+          and acceptance criteria is arguably a design/planning activity, not pure routing.
+
+      - id: "F-5"
+        title: "Orchestrator reads multiple YAML files directly for validation, mediation, and staging"
+        source: "v2/.github/agents/orchestrator.agent.md"
+        relevance: "high"
+        detail: |
+          The orchestrator reads files directly in at least 7 places:
+          1. Step 2 (line 49): "Validate research YAML is parseable before counting toward gate"
+          2. Step 3 (line 56): "Read architect output. If clarifications_needed present..."
+          3. Step 4 (line 65): "Read plan_summary from planner output"
+          4. Step 4 (line 66): "Read plan-output.yaml → extract task DAG for Step 5"
+          5. Step 7 (line 84): "Validate verdict YAML is parseable before counting"
+          6. Step 8c (line 93): "validate knowledge output_paths against allowlist"
+          7. Step 8d (line 94): "git add <paths> from implementation reports files_modified"
+          8. Routing (line 112): "read completion.status from YAML"
+          Each file read adds content to the orchestrator's context window. For a 🔴 pipeline with 4 researchers,
+          3 reviewers, multiple implementation reports, and test reports, the orchestrator could ingest
+          8-15+ YAML files. Change 4 should add a constraint: "Read ONLY completion.status and output_paths
+          from agent outputs. For detailed content analysis (clarifications, plan summaries, validation),
+          dispatch a subagent."
+
+      - id: "F-6"
+        title: "Orchestrator has no tools: restriction in YAML frontmatter — has access to ALL tools"
+        source: "v2/.github/agents/orchestrator.agent.md"
+        relevance: "high"
+        detail: |
+          The orchestrator YAML frontmatter (lines 1-11) contains name, description, and agents but NO tools:
+          property. Per VS Code docs, when tools is omitted, the agent has access to ALL available tools
+          including readFile, editFiles, textSearch, codebase, etc. The Tool Usage table (lines 22-28) lists
+          only ask_questions, runSubagent, runInTerminal, listDirectory as intended tools, but without a
+          tools: restriction in frontmatter, nothing prevents the orchestrator from using readFile, editFiles,
+          textSearch, or any other tool. This undermines both Change 3 (subagent-only) and Change 4 (context
+          overload prevention). Adding tools: [ask_questions, runSubagent, runInTerminal, listDirectory] to
+          the orchestrator frontmatter would enforce the intended restrictions at the VS Code runtime level.
+
+      - id: "F-7"
+        title: "Implementer runs builds/tests at 4 explicit workflow points — batching opportunity exists"
+        source: "v2/.github/agents/implementer.agent.md"
+        relevance: "high"
+        detail: |
+          The implementer TDD workflow mandates terminal execution at 4 distinct points:
+          1. Step 3 RED (line 28): "Run the test suite via terminal. Confirm tests fail."
+          2. Step 4 GREEN (line 30): "Run problems after every file edit. Run tests via terminal."
+             — "after every file edit" could mean N builds for N files
+          3. Step 5 REFACTOR (line 32): "Re-run tests after refactoring."
+          4. Step 6 FIX (line 34): "fix and re-run. Maximum 3 iterations."
+          The compound effect: for a task touching 3 files, Step 4 alone could trigger 3+ builds (one per
+          file edit) plus a final test run. Total worst-case: 1 (RED) + N+1 (GREEN: N edits + 1 test) +
+          1 (REFACTOR) + 3 (FIX iterations) = N+6 builds. Change 5 should modify Step 4 to: "After all
+          production code edits are complete, run problems and then run the test suite. Do not run builds
+          after every individual file edit." This preserves TDD validation while reducing build count to
+          approximately 4 (RED + GREEN + REFACTOR + 1 fix).
+
+      - id: "F-8"
+        title: "Branch creation exists only in orchestrator Step 1 — single removal point"
+        source: "v2/.github/agents/orchestrator.agent.md"
+        relevance: "medium"
+        detail: |
+          Grep found exactly 2 branch references in all v2/.github/ files, both in orchestrator.agent.md:
+          1. Step 1 (line 35): "create feature branch if needed"
+          2. Constraints (line 111): "git operations ONLY (status, add, commit, tag, diff, branch)"
+          No other agent file mentions branch, git checkout -b, git switch, or any branch creation command.
+          Change 6 requires:
+          (a) Remove "create feature branch if needed" from Step 1
+          (b) Remove "branch" from the git operations allowlist in Constraints
+          Impact is minimal — only orchestrator.agent.md needs changes, two lines affected.
+
+      - id: "F-9"
+        title: "ask_questions is used only by orchestrator — no other agent references it or has restrictions"
+        source: "v2/.github/agents/"
+        relevance: "high"
+        detail: |
+          The ask_questions tool appears 10+ times in orchestrator.agent.md for interactive gates.
+          No other agent file mentions ask_questions. The architect mentions "clarifications_needed" output
+          field (line 37) but expects the orchestrator to mediate user Q&A — it never calls ask_questions
+          directly. Change 7 requires adding a global rule (global-rules.md or per-agent) stating:
+          "Agents MUST NEVER output free-form questions to the user. All user interaction MUST go through
+          the orchestrator's ask_questions tool with multiple-choice options. Subagents that need user
+          clarification MUST return NEEDS_REVISION with clarification details in their completion contract."
+          Affected files: global-rules.md (add new section), and potentially every agent file's constraints
+          section to reinforce the prohibition.
+
+      - id: "F-10"
+        title: "No agent frontmatter has tools: restrictions — trust model is documented but not enforced"
+        source: "v2/.github/agents/"
+        relevance: "high"
+        detail: |
+          None of the 9 agent files in v2/.github/agents/ have a tools: property in their YAML frontmatter.
+          The v2 system documents a 3-tier trust model with per-agent tool restrictions, but without tools:
+          arrays in frontmatter, VS Code grants ALL tools to every agent. This means:
+          - Researcher could use editFiles (should be read-only + createFile)
+          - Implementer could use fetch (T2 should not have web access)
+          - Reviewer could use runInTerminal (should be read-only)
+          - Knowledge agent could use editFiles (should be createFile only)
+          All agents need tools: arrays added to enforce the documented trust boundaries.
+          This finding overlaps with Change 3 (orchestrator subagent-only) and Change 4 (context prevention)
+          but affects ALL agents, not just the orchestrator.
+
+      - id: "F-11"
+        title: "VS Code subagent docs confirm context isolation is the primary benefit of delegation"
+        source: "https://code.visualstudio.com/docs/copilot/agents/subagents"
+        relevance: "medium"
+        detail: |
+          VS Code subagent documentation (fetched 2026-03-10) confirms key design principles relevant to
+          Changes 3 and 4:
+          - "Keep main agent context focused: By offloading research, analysis, or implementation tasks to
+            subagents, you prevent context bloat and help the main agent stay focused on orchestrating."
+          - "Reduce token usage and costs: subagents have their own context windows, they don't add their
+            full conversation history to the main agent's context. Only the final result is returned."
+          - "Subagents are synchronous: the main agent waits for subagent results before continuing."
+          - "VS Code can spawn multiple subagents in parallel."
+          This validates the orchestrator delegation approach. The orchestrator reading full YAML files
+          (Finding F-5) directly contradicts VS Code's recommended pattern. The fix should introduce a
+          "validator" subagent pattern or have the orchestrator rely solely on completion contract fields
+          rather than reading full file contents.
+
+      - id: "F-12"
+        title: "Prompt files reference web research and startup questions but need no structural changes"
+        source: "v2/.github/prompts/feature-workflow.prompt.md, v2/.github/prompts/quick-fix.prompt.md"
+        relevance: "low"
+        detail: |
+          feature-workflow.prompt.md mentions "Allow fetch for research agents?" in Startup Questions (line 31)
+          and references all 8 pipeline steps. quick-fix.prompt.md skips Research/Architecture/Planning and
+          has 5 steps. Neither prompt file needs structural changes for the 7 proposed updates — they delegate
+          to the orchestrator agent which handles the actual logic. The prompt files may need minor wording
+          updates if the orchestrator's step descriptions change (e.g., removing branch creation from Step 1).
+
+      - id: "F-13"
+        title: "tourneypal-qa.agent.md is outside the v2 trust model and has its own subagent patterns"
+        source: "v2/.github/agents/tourneypal-qa.agent.md"
+        relevance: "low"
+        detail: |
+          The tourneypal-qa.agent.md file defines an autonomous QA crawler with its own subagent delegation
+          model ("Maintain four parallel subagents"), context rotation strategy (stop after ~20 workflows),
+          and artifact paths (docs/qa/, docs/backlog/). It is a standalone agent outside the pipeline's
+          8-step workflow. Changes 1-7 do not directly affect this agent, but Change 7 (ask_questions
+          enforcement) could apply if this agent ever needs user interaction. It also lacks tools: in
+          frontmatter (same as Finding F-10) and has no user-invocable: false setting.
+
+    web_research_used: true
+completion:
+  status: "DONE"
+  summary: "Impact analysis: 13 findings across 7 changes. All 10 agent files + 2 prompts analyzed. Key gap: no tools: frontmatter enforcement."
+  output_paths:
+    - "docs/feature/v2-agent-updates/research/impact.yaml"

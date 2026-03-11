@@ -1,0 +1,237 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-patterns"
+  started_at: "2026-03-10T00:00:00Z"
+  completed_at: "2026-03-10T00:30:00Z"
+  schema_version: "1.0"
+  payload:
+    focus_area: "patterns"
+    risk_level: "🟡"
+    findings:
+      - id: "F-1"
+        title: "web_research_enabled is instruction-gated only, not enforced via YAML tools"
+        source: "v2/.github/agents/researcher.agent.md, v2/.github/agents/architect.agent.md"
+        relevance: "high"
+        detail: |
+          Both researcher and architect agents handle web_research_enabled identically:
+          it is an optional input parameter with instruction-level gating. Researcher
+          Step 4 says "If web_research_enabled is true, use fetch... Do NOT use fetch
+          when web_research_enabled is absent or false." Architect Step 4 mirrors this.
+          However, neither agent has a tools: array in YAML frontmatter, so fetch is
+          not restricted at the platform level — enforcement relies entirely on the
+          model following instructions. The language is permissive ("optional web
+          research"), not mandatory. The initial request demands that when enabled,
+          web research MUST be performed, not merely allowed.
+
+      - id: "F-2"
+        title: "Only the orchestrator can ask questions — all others rely on orchestrator mediation"
+        source: "v2/.github/agents/orchestrator.agent.md"
+        relevance: "high"
+        detail: |
+          The orchestrator references ask_questions extensively in its Tool Usage table
+          and anti-drift anchor: "ALWAYS use ask_questions for user choices. Never output
+          choices as plain text — that ends the conversation turn." It uses ask_questions
+          at: Step 1 (approval_mode, web_research_enabled), Step 2 (research summary),
+          Step 3 (architect clarifications), Step 4 (plan Accept/Refine/Reject), Step 8b
+          (doc updates), Step 8e (commit choice). No other agent references ask_questions
+          or any questioning mechanism. The architect has clarifications_needed output
+          which the orchestrator mediates. Pattern: orchestrator-mediated questioning is
+          the design, but no enforcement prevents other agents from outputting free-form
+          text questions that halt the conversation.
+
+      - id: "F-3"
+        title: "ask_questions is NOT in the official VS Code built-in tools list"
+        source: "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features"
+        relevance: "high"
+        detail: |
+          The VS Code cheat sheet (updated 3/9/2026) lists all built-in tools. The
+          complete list includes: changes, codebase, createAndRunTask, createDirectory,
+          createFile, editFiles, editNotebook, extensions, fetch, fileSearch,
+          getNotebookSummary, getProjectSetupInfo, getTaskOutput, getTerminalOutput,
+          githubRepo, installExtension, listDirectory, new, newJupyterNotebook,
+          newWorkspace, openSimpleBrowser, problems, readFile, readNotebookCellOutput,
+          runCell, runInTerminal, runSubagent, runTask, runTests, runVscodeCommand,
+          searchResults, selection, terminalLastCommand, terminalSelection, testFailure,
+          textSearch, todos, usages, VSCodeAPI. Tool sets: edit, browser, runCommands,
+          runNotebooks, runTasks, search. There is NO askQuestions, ask_questions, or
+          vscodeAskQuestions in the official list. The tool exists in the runtime
+          (confirmed via current session), but its canonical YAML frontmatter name is
+          unknown. The v2 orchestrator references it as ask_questions which uses
+          snake_case — inconsistent with the camelCase convention of all other built-in
+          tools. The correct name needs verification (likely vscodeAskQuestions based on
+          runtime observation, but this is not documented).
+
+      - id: "F-4"
+        title: "No agent has a tools: array in YAML frontmatter — zero platform-level tool restriction"
+        source: "v2/.github/agents/orchestrator.agent.md, v2/.github/agents/implementer.agent.md, v2/.github/agents/researcher.agent.md"
+        relevance: "high"
+        detail: |
+          All 9 agent files (orchestrator, researcher, architect, implementer, tester,
+          reviewer, planner, knowledge, autonomous-qa) lack a tools: property in their
+          YAML frontmatter. The orchestrator has only agents: [...], worker agents have
+          user-invocable: false and agents: []. Tool restrictions are expressed ONLY in
+          markdown instruction text (e.g., implementer's "Command allowlist", researcher's
+          "fetch gated", reviewer's "Read-only analysis"). The VS Code custom agents doc
+          states that tools: is a YAML frontmatter field that restricts which tools are
+          available. Without it, any agent can invoke any tool — the trust model is
+          purely instruction-based and not enforced by the platform. This was identified
+          as a known issue in the agent-system-refactor feature (repo memory confirms
+          tool names were corrected but tools: arrays may still be missing).
+
+      - id: "F-5"
+        title: "Orchestrator performs extensive direct work in Step 1 and quick-fix mode"
+        source: "v2/.github/agents/orchestrator.agent.md"
+        relevance: "high"
+        detail: |
+          The orchestrator's Step 1 (Setup) performs significant direct work: run git
+          status, create feature branch, create directory tree, generate run_id, classify
+          risk, initialize pipeline-log.yaml, scan for E2E skills, and in quick-fix mode
+          "generate a minimal plan-output.yaml with a single task and create
+          tasks/task-01.yaml." The Tool Usage table restricts terminal to git-only, but
+          listDirectory is used for output verification. The orchestrator also reads
+          plan-output.yaml to extract the task DAG (Step 4), reads architect output for
+          mediation (Step 3), and validates YAML parsability at gates. The initial
+          request demands: "The orchestrator MUST use the subagent tool for ALL work.
+          It should NEVER analyze or create code on its own" and "delegate file reading
+          and analysis to subagents to keep its context window focused." Current pattern
+          loads substantial content into the orchestrator's context.
+
+      - id: "F-6"
+        title: "Implementer runs tests and problems after every single edit — no batching"
+        source: "v2/.github/agents/implementer.agent.md"
+        relevance: "high"
+        detail: |
+          The implementer workflow enforces: "RED — Write failing tests, run tests,
+          confirm fail. GREEN — Write minimal code, run problems after every file edit,
+          run tests, confirm pass. REFACTOR — Re-run tests after refactoring." This
+          creates a pattern of: write test → build/test → write code → problems → test
+          → refactor → test. For a task touching 3 files, this could mean 6+ terminal
+          invocations minimum. The TDD cycle is valuable but the instruction "run
+          problems after every file edit" drives excessive build cycles. The initial
+          request says: "Implementers should not constantly build the project, slowing
+          things down. Batch changes before building."
+
+      - id: "F-7"
+        title: "No defined artifact storage path for E2E screenshots or test outputs"
+        source: "v2/.github/agents/tester.agent.md, v2/.github/agents/global-rules.md"
+        relevance: "medium"
+        detail: |
+          Global-rules.md establishes the output path convention: "All agent outputs
+          MUST be written to docs/feature/<feature-slug>/". The tester's dynamic mode
+          says "Capture failure details (assertion messages, screenshots, logs)" but
+          does not specify WHERE screenshots go. The autonomous-qa agent
+          (tourneypal-qa.agent.md) stores artifacts in docs/qa/ paths, outside the
+          feature directory. There is no explicit subdirectory convention for E2E
+          artifacts (e.g., docs/feature/<slug>/e2e-artifacts/ or similar). The initial
+          request demands: "Screenshots, images, and other E2E artifacts must be stored
+          in docs/feature/<slug>/, not project root."
+
+      - id: "F-8"
+        title: "Orchestrator explicitly creates git branches in Step 1"
+        source: "v2/.github/agents/orchestrator.agent.md, v2/.github/agents/global-rules.md"
+        relevance: "high"
+        detail: |
+          Orchestrator Step 1 says "create feature branch if needed." The Tool Usage
+          table allows runInTerminal for "git operations — no builds, no tests." The
+          git operations listed in constraints include: "git status, add, commit, tag,
+          diff, branch." Global-rules.md Git Safety says "Only the orchestrator may run
+          git staging (add) and commit commands" and permits other agents "git diff,
+          git status" only. The initial request demands: "Agents should never create
+          git branches on their own." This requires removing branch creation from the
+          orchestrator's allowed operations, or redefining this as user-initiated only.
+
+      - id: "F-9"
+        title: "YAML frontmatter tools: property uses camelCase — v2 agents reference tools with inconsistent names"
+        source: "https://code.visualstudio.com/docs/copilot/customization/custom-agents"
+        relevance: "high"
+        detail: |
+          The VS Code custom agents docs define tools: as "A list of tool or tool set
+          names that are available for this custom agent. Can include built-in tools,
+          tool sets, MCP tools, or tools contributed by extensions." Examples show
+          tools: ['search', 'fetch']. The official built-in tool names are camelCase:
+          readFile, createFile, editFiles, runInTerminal, listDirectory, textSearch,
+          fileSearch, codebase, problems, changes, fetch, runSubagent, etc. The v2 agent
+          instruction text references tools with inconsistent naming: ask_questions
+          (snake_case), runSubagent (camelCase), runInTerminal (camelCase), listDirectory
+          (camelCase), createFile (camelCase). The ask_questions reference is the only
+          snake_case outlier. When adding tools: arrays to frontmatter, all names must
+          use the official camelCase format. Repo memory confirms this was a critical
+          finding in the agent-system-refactor — "namespace/tool format is silently
+          ignored by VS Code."
+
+      - id: "F-10"
+        title: "VS Code supports tool sets for grouping tools — can simplify agent tool restrictions"
+        source: "https://code.visualstudio.com/docs/copilot/agents/agent-tools"
+        relevance: "medium"
+        detail: |
+          VS Code supports tool sets defined in .jsonc files. Built-in tool sets
+          include: edit (modifications), search (file searching), runCommands (terminal),
+          browser (integrated browser), runNotebooks, runTasks. Custom tool sets can be
+          created via Chat: Configure Tool Sets command. Tool sets can be referenced in
+          agent YAML tools: arrays alongside individual tool names. For example, a
+          read-only agent could use tools: ['search', 'codebase', 'readFile', 'fetch']
+          while an implementation agent would add 'edit' and 'runCommands'. This provides
+          a cleaner way to enforce the v2 trust tiers: T1 (orchestrator) gets
+          runSubagent + runCommands, T2 (implementer/tester) gets edit + runCommands,
+          T3 (researcher/architect) gets search + readFile + fetch.
+
+      - id: "F-11"
+        title: "Prompt files use agent: field to delegate — prompts don't restrict tools independently"
+        source: "v2/.github/prompts/feature-workflow.prompt.md, v2/.github/prompts/quick-fix.prompt.md"
+        relevance: "medium"
+        detail: |
+          Both prompt files (feature-workflow.prompt.md, quick-fix.prompt.md) use
+          agent: orchestrator in their YAML frontmatter, delegating to the orchestrator
+          agent. They contain high-level step descriptions and execution rules but no
+          tools: property. The VS Code docs confirm that "When you use tools in both a
+          custom agent and a prompt file, the prompt file's tools take precedence."
+          Currently prompts inherit the orchestrator's tools (which is unrestricted
+          since it has no tools: array). The prompts could optionally add their own
+          tools: restriction but this is not needed if the orchestrator's tools are
+          properly restricted.
+
+      - id: "F-12"
+        title: "disable-model-invocation vs user-invocable usage pattern is correct"
+        source: "v2/.github/agents/researcher.agent.md, v2/.github/agents/implementer.agent.md"
+        relevance: "medium"
+        detail: |
+          All 8 worker agents use user-invocable: false and agents: [] in YAML
+          frontmatter. None use disable-model-invocation: true. This is the correct
+          pattern per VS Code docs and repo memory: "disable-model-invocation: true
+          BREAKS pipeline (prevents subagent dispatch) — use user-invocable: false
+          instead." The orchestrator omits user-invocable (defaults to true, correct for
+          the entry-point agent). The tourneypal-qa.agent.md (autonomous-qa) also omits
+          these fields, making it user-invocable and subagent-dispatchable — this is
+          intentional as it's a standalone QA agent, not part of the pipeline.
+
+      - id: "F-13"
+        title: "Completion contract pattern is consistent across all agents"
+        source: "v2/.github/agents/global-rules.md"
+        relevance: "low"
+        detail: |
+          All agent output schemas include the completion contract with status
+          (DONE/NEEDS_REVISION/ERROR), summary (≤200 chars), and output_paths. The
+          orchestrator routes using these contracts: "read completion.status from YAML.
+          Any value other than DONE/NEEDS_REVISION/ERROR is treated as ERROR." This
+          pattern is well-established and consistent. No changes needed for this pattern.
+
+      - id: "F-14"
+        title: "global-rules.md has no YAML frontmatter — detected as unintended agent"
+        source: "v2/.github/agents/global-rules.md"
+        relevance: "medium"
+        detail: |
+          global-rules.md in .github/agents/ has no YAML frontmatter. VS Code docs
+          state: "VS Code detects any .md files in the .github/agents folder of your
+          workspace as custom agents." Without frontmatter with user-invocable: false
+          and tools: [], global-rules.md appears as an unintended 'global-rules' agent
+          in the agents dropdown. This was identified as Minor finding AG A-1 in the
+          agent-system-refactor code review (confirmed in repo memory) but has not
+          been fixed yet.
+
+    web_research_used: true
+
+completion:
+  status: "DONE"
+  summary: "Identified 14 patterns across tool enforcement, web research gating, questioning, delegation, build cycles, artifacts, git, and YAML conventions"
+  output_paths:
+    - "docs/feature/v2-agent-updates/research/patterns.yaml"

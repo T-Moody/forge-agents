@@ -1,0 +1,268 @@
+agent_output:
+  agent: "tester"
+  instance: "tester-static"
+  step: "6"
+  started_at: "2026-03-10T00:00:00Z"
+  completed_at: "2026-03-10T00:15:00Z"
+  schema_version: "1.0"
+  payload:
+    mode: "static"
+    test_categories:
+      unit_tests: { passed: 0, failed: 0 }
+      integration_tests: { passed: 0, failed: 0, skipped: 0 }
+      e2e_tests: { passed: 0, failed: 0, skipped: 0 }
+    tdd_verification:
+      tests_exist: false
+      tests_ran: false
+      tests_pass: false
+      compliant_tasks: 7
+      non_compliant_tasks: 0
+      note: "All 7 tasks modify markdown instruction files only — no testable code. tdd_compliance: false with documented reasons is expected and correct."
+    command_allowlist_audit:
+      compliant: true
+      violations: []
+      details:
+        - task_id: "task-01"
+          commands: ["git diff --stat v2/.github/agents/global-rules.md"]
+          status: "clean — git diff is allowed"
+        - task_id: "task-02"
+          commands:
+            [
+              "git diff v2/.github/agents/orchestrator.agent.md",
+              "git diff --stat v2/.github/agents/orchestrator.agent.md",
+            ]
+          status: "clean — git diff is allowed"
+        - task_id: "task-03"
+          commands: []
+          status: "clean — no terminal commands"
+        - task_id: "task-04"
+          commands: ["git diff v2/.github/agents/implementer.agent.md"]
+          status: "clean — git diff is allowed"
+        - task_id: "task-05"
+          commands: ["git diff v2/.github/agents/tester.agent.md"]
+          status: "clean — git diff is allowed"
+        - task_id: "task-06"
+          commands: []
+          status: "clean — commands_executed lists tool invocations (read_file, multi_replace_string_in_file) not terminal commands; no prohibited commands"
+        - task_id: "task-07"
+          commands: []
+          status: "clean — no terminal commands"
+    file_ownership_audit:
+      compliant: true
+      violations: []
+      details:
+        - task_id: "task-01"
+          declared: ["v2/.github/agents/global-rules.md"]
+          modified: ["v2/.github/agents/global-rules.md"]
+          status: "match"
+        - task_id: "task-02"
+          declared: ["v2/.github/agents/orchestrator.agent.md"]
+          modified: ["v2/.github/agents/orchestrator.agent.md"]
+          status: "match"
+        - task_id: "task-03"
+          declared:
+            [
+              "v2/.github/agents/researcher.agent.md",
+              "v2/.github/agents/architect.agent.md",
+            ]
+          modified:
+            [
+              "v2/.github/agents/researcher.agent.md",
+              "v2/.github/agents/architect.agent.md",
+            ]
+          status: "match"
+        - task_id: "task-04"
+          declared: ["v2/.github/agents/implementer.agent.md"]
+          modified: ["v2/.github/agents/implementer.agent.md"]
+          status: "match"
+        - task_id: "task-05"
+          declared: ["v2/.github/agents/tester.agent.md"]
+          modified: ["v2/.github/agents/tester.agent.md"]
+          status: "match"
+        - task_id: "task-06"
+          declared:
+            [
+              "v2/.github/agents/reviewer.agent.md",
+              "v2/.github/agents/planner.agent.md",
+              "v2/.github/agents/knowledge.agent.md",
+            ]
+          modified:
+            [
+              "v2/.github/agents/reviewer.agent.md",
+              "v2/.github/agents/planner.agent.md",
+              "v2/.github/agents/knowledge.agent.md",
+            ]
+          status: "match"
+        - task_id: "task-07"
+          declared: ["v2/.github/prompts/quick-fix.prompt.md"]
+          modified: ["v2/.github/prompts/quick-fix.prompt.md"]
+          status: "match"
+    acceptance_criteria_audit:
+      task-01:
+        AC-23:
+          status: "PASS"
+          evidence: "global-rules.md lines 1-4: YAML frontmatter with user-invocable: false and tools: []"
+        AC-3:
+          status: "PASS"
+          evidence: "Section ''Web Research'' present with mandatory language: ''web research is mandatory, not optional. Agents with fetch access MUST perform web research''"
+        AC-17:
+          status: "PASS"
+          evidence: "Section ''User Interaction'' present: ''All user interaction MUST use the vscodeAskQuestions tool'' and ''Agents MUST NEVER stop processing to ask free-form text questions''"
+        AC-5:
+          status: "FAIL"
+          evidence: "Output Path Convention section lists implementation-reports/, research/, review-findings/ — does NOT include e2e-artifacts/. The separate E2E Artifacts section references ''verification-reports/'' instead of ''e2e-artifacts/''. Architecture decision D-8 specified e2e-artifacts/."
+          severity: "major"
+        AC-15:
+          status: "PASS"
+          evidence: "Branch Management section: ''NO agent may create, checkout, switch, or delete git branches''"
+      task-02:
+        AC-6:
+          status: "PASS"
+          evidence: "tools: array contains only routing tools — no textSearch, codebase, editFiles, fileSearch"
+        AC-22:
+          status: "PASS"
+          evidence: "tools: [vscodeAskQuestions, runSubagent, runInTerminal, getTerminalOutput, listDirectory, readFile, createFile, createDirectory] — exact match"
+        AC-16:
+          status: "PASS"
+          evidence: "grep for ''ask_questions'' across all v2/.github/** files returned 0 matches"
+        AC-13:
+          status: "PASS"
+          evidence: "grep for ''create feature branch'' returned 0 matches; Step 1 says ''Run git status to verify clean working tree''"
+        AC-14:
+          status: "PASS"
+          evidence: "Constraints git allowlist: ''status, add, commit, tag, diff'' — no ''branch''"
+        AC-7:
+          status: "PASS"
+          evidence: "Quick-fix mode: ''dispatch the planner with a minimal scope. Do NOT generate plans inline — always dispatch.''"
+        AC-8:
+          status: "PASS"
+          evidence: "Anti-drift anchor includes ''never read source code directly, never analyze source code''"
+        AC-9:
+          status: "PASS"
+          evidence: "Context Management section: ''Read ONLY completion contracts from subagent outputs, not full reports''"
+        AC-10:
+          status: "PASS"
+          evidence: "Step 3: ''Read architect completion contract''; Step 4: ''Read plan_summary from planner completion contract''"
+      task-03:
+        AC-1:
+          status: "PASS"
+          evidence: "researcher.agent.md Step 4: ''When web_research_enabled is true, web research is MANDATORY'' — old ''If... use fetch'' pattern replaced"
+        AC-2:
+          status: "PASS"
+          evidence: "architect.agent.md Step 4: ''When web_research_enabled is true, web research is MANDATORY'' — matches researcher mandatory pattern"
+        AC-19:
+          status: "PASS"
+          evidence: "researcher tools: [codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch] — no editFiles, runInTerminal, runSubagent. architect tools: same list — no violations"
+        AC-25-R:
+          status: "PASS"
+          evidence: "researcher.agent.md tools: [codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch] — exact match"
+        AC-25-A:
+          status: "PASS"
+          evidence: "architect.agent.md tools: [codebase, textSearch, fileSearch, listDirectory, readFile, createFile, fetch] — exact match"
+      task-04:
+        AC-11:
+          status: "PASS"
+          evidence: "Step 4 GREEN: ''Write ALL production code changes first, then run problems once and run tests once via terminal. Do NOT run builds or problems after every individual file edit  — batch all edits in the GREEN phase''"
+        AC-12:
+          status: "FAIL"
+          evidence: "Step 3 (RED) was modified — added ''Do NOT build after writing each individual test file'' which is new batch build language. The implementation report confirms ''batched RED/GREEN phases'' were both changed. AC-12 specifies Steps 3 and 5 should be unchanged."
+          severity: "minor"
+          note: "The RED phase change is beneficial (consistent batch guidance across phases) but deviates from AC wording. Step 5 (REFACTOR) appears unchanged."
+        AC-25-I:
+          status: "PASS"
+          evidence: "tools: [readFile, createFile, editFiles, listDirectory, textSearch, fileSearch, runInTerminal, getTerminalOutput, problems, changes] — 10 tools, same set as AC (order differs, which is irrelevant for YAML arrays)"
+      task-05:
+        AC-4:
+          status: "PASS"
+          evidence: "Dynamic workflow Step 5: ''ALL screenshots, images, logs, recordings, and other test artifacts MUST be saved to docs/feature/<slug>/e2e-artifacts/''. Constraint: ''All test artifacts MUST be written to docs/feature/<slug>/e2e-artifacts/ subdirectories.''"
+        AC-25-T:
+          status: "PASS"
+          evidence: "tools: [readFile, createFile, listDirectory, runInTerminal, getTerminalOutput, problems, textSearch, fileSearch, openSimpleBrowser] — exact match"
+      task-06:
+        AC-20:
+          status: "PASS"
+          evidence: "reviewer tools: [readFile, createFile, listDirectory, textSearch, fileSearch, codebase, problems, changes] — no runInTerminal or editFiles"
+        AC-21:
+          status: "PASS"
+          evidence: "knowledge tools: [readFile, createFile, listDirectory, textSearch, fileSearch] — no editFiles or runInTerminal"
+        AC-25-Rev:
+          status: "PASS"
+          evidence: "reviewer tools: 8 tools matching AC set (order differs, irrelevant)"
+        AC-25-Pln:
+          status: "FAIL"
+          evidence: "AC specifies exactly 5 tools: readFile, listDirectory, createFile, fileSearch, textSearch. Actual file has 6 tools: readFile, createFile, listDirectory, textSearch, fileSearch, codebase. The extra ''codebase'' tool was not in the AC. Implementer report claims PASS despite the deviation."
+          severity: "minor"
+          note: "Adding codebase to planner is arguably reasonable (planner needs to understand codebase for task decomposition), but deviates from the exact AC specification."
+        AC-25-Kn:
+          status: "PASS"
+          evidence: "knowledge tools: [readFile, createFile, listDirectory, textSearch, fileSearch] — exact match"
+      task-07:
+        AC-24:
+          status: "PASS"
+          evidence: "Step 2: ''Planning (Step 4) — Single planner produces minimal task DAG'' — planner always dispatched"
+        AC-24b:
+          status: "PASS"
+          evidence: "''Execute ONLY these 6 steps in order'' — step count is 6. ''Steps skipped: Research (Step 2), Architecture (Step 3)'' — Planning not in skipped list"
+    cross_cutting_checks:
+      no_ask_questions:
+        status: "PASS"
+        evidence: "grep for ''ask_questions'' across v2/.github/** returned 0 matches — all instances use vscodeAskQuestions"
+      no_create_feature_branch:
+        status: "PASS"
+        evidence: "grep for ''create feature branch'' in orchestrator.agent.md returned 0 matches"
+      all_agents_have_tools_array:
+        status: "PASS"
+        evidence: "Verified YAML frontmatter tools: array present in all 8 agent files plus global-rules.md (tools: [])"
+      global_rules_frontmatter:
+        status: "PASS"
+        evidence: "global-rules.md has user-invocable: false and tools: [] in YAML frontmatter"
+      orchestrator_subagent_enforcement:
+        status: "PASS"
+        evidence: "''Subagent-Only Enforcement'' section present with 4 MUST NOT rules and pipeline artifact allowlist"
+      orchestrator_context_management:
+        status: "PASS"
+        evidence: "''Context Management'' section present with 5 guidelines for minimizing context window usage"
+      researcher_mandatory_web_research:
+        status: "PASS"
+        evidence: "Step 4 and constraint both use MANDATORY language for web research when enabled"
+      architect_mandatory_web_research:
+        status: "PASS"
+        evidence: "Step 4 and constraint both use MANDATORY language for web research when enabled"
+      implementer_batch_build:
+        status: "PASS"
+        evidence: "Step 4 GREEN has batch language; Constraint 8 ''Build batching'' section added"
+      tester_e2e_artifacts:
+        status: "PASS"
+        evidence: "Dynamic workflow and constraints reference docs/feature/<slug>/e2e-artifacts/"
+      quickfix_planning_step:
+        status: "PASS"
+        evidence: "Planning (Step 4) is step 2 in 6-step pipeline; removed from skipped list"
+    findings:
+      - id: "F-1"
+        severity: "major"
+        task_id: "task-01"
+        ac_id: "AC-5"
+        description: "E2E artifact path cross-reference mismatch. global-rules.md E2E Artifacts section references ''docs/feature/<feature-slug>/verification-reports/'' but tester.agent.md references ''docs/feature/<slug>/e2e-artifacts/''. Architecture decision D-8 specified e2e-artifacts/. The Output Path Convention section also does not list e2e-artifacts/ as a recognized subdirectory. This is the exact cross-file reference inconsistency pattern identified as the most common Critical finding source in prior pipelines."
+        file: "v2/.github/agents/global-rules.md"
+        recommendation: "Change E2E Artifacts section path from ''verification-reports/'' to ''e2e-artifacts/'' and add e2e-artifacts/ to Output Path Convention examples list"
+      - id: "F-2"
+        severity: "minor"
+        task_id: "task-06"
+        ac_id: "AC-25-Pln"
+        description: "Planner tools: array contains 6 tools (includes ''codebase'') but AC-25-Pln specifies exactly 5 tools without ''codebase''. Implementation report marks AC-25-Pln as PASS despite the deviation."
+        file: "v2/.github/agents/planner.agent.md"
+        recommendation: "Either remove ''codebase'' from planner tools: array to match AC, or update AC-25-Pln to include codebase if the addition was intentional"
+      - id: "F-3"
+        severity: "minor"
+        task_id: "task-04"
+        ac_id: "AC-12"
+        description: "Step 3 (RED) was modified — added ''Do NOT build after writing each individual test file''. AC-12 specifies Steps 3 and 5 should be unchanged. The implementation report explicitly states ''batched RED/GREEN phases'' confirming both were changed. The change is beneficial but deviates from AC wording."
+        file: "v2/.github/agents/implementer.agent.md"
+        recommendation: "No code change needed — the RED phase batch guidance is correct and consistent. AC-12 was overly restrictive. Document the intentional deviation."
+    verdict: "fail"
+    verdict_rationale: "1 Major finding (F-1): cross-reference mismatch between global-rules.md and tester.agent.md on E2E artifact paths — would cause runtime confusion about artifact storage location. 2 Minor findings (F-2, F-3): planner extra tool and RED phase modification are deviations from ACs but lower impact. The Major finding requires a fix before the feature can be considered verified."
+completion:
+  status: "DONE"
+  summary: "static testing: verdict fail, 7 tasks checked, 3 findings (1 Major, 2 Minor), 30/33 ACs pass"
+  output_paths:
+    - "docs/feature/v2-agent-updates/verification-reports/test-report.yaml"

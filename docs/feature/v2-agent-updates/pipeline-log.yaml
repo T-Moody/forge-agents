@@ -1,0 +1,40 @@
+run_id: "2026-03-10T12:00:00Z"
+feature_slug: "v2-agent-updates"
+risk: "🟡"
+approval_mode: "autonomous"
+web_research_enabled: true
+e2e_available: false
+started_at: "2026-03-10T12:00:00Z"
+dispatches:
+  - step: 2
+    agent: researcher
+    count: 3
+    status: DONE
+    perspectives: [tools-research, context-engineering, multi-agent-patterns]
+  - step: 3
+    agent: architect
+    status: DONE
+    output_paths: [docs/feature/v2-agent-updates/architecture-output.yaml]
+  - step: 4
+    agent: planner
+    status: DONE
+    output_paths: [docs/feature/v2-agent-updates/plan-output.yaml]
+  - step: 5
+    agent: implementer
+    waves: 3
+    tasks: 7
+    status: DONE
+    output_paths: [docs/feature/v2-agent-updates/implementation-reports/]
+  - step: 6
+    agent: tester
+    mode: static
+    status: DONE
+    findings: { major: 1_fixed, minor: 2_accepted }
+    output_paths: [docs/feature/v2-agent-updates/verification-reports/]
+  - step: 7
+    agent: reviewer
+    count: 3
+    perspectives: [security, architecture, correctness]
+    status: DONE
+    gate: "3/3 approve, 0 blockers"
+    output_paths: [docs/feature/v2-agent-updates/review-findings/]

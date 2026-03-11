@@ -1,0 +1,237 @@
+agent_output:
+  agent: "researcher"
+  instance: "researcher-dependencies"
+  started_at: "2026-03-10T12:00:00Z"
+  completed_at: "2026-03-10T12:15:00Z"
+  schema_version: "1.0"
+  payload:
+    focus_area: "dependencies"
+    risk_level: "🟡"
+    findings:
+      - id: "F-1"
+        title: "No tools: property in ANY agent frontmatter — trust model unenforced"
+        source: "v2/.github/agents/*.agent.md, https://code.visualstudio.com/docs/copilot/customization/custom-agents"
+        relevance: "high"
+        detail: |
+          All 9 agent files (orchestrator, implementer, reviewer, researcher,
+          architect, planner, tester, knowledge, tourneypal-qa) lack the `tools:`
+          property in their YAML frontmatter. Per VS Code docs, when `tools:` is
+          omitted, the agent inherits ALL available tools from the session. This
+          means the entire 3-tier trust model (T1/T2/T3) described in the v2
+          design is completely unenforced:
+          - T3 agents (researcher, architect) get editFiles, runInTerminal, etc.
+          - T2 agents (implementer, tester) get fetch, runSubagent, etc.
+          - T1 orchestrator gets editFiles, createFile — violating "never implement"
+          - Reviewer gets runInTerminal — violating "read-only analysis"
+          - Knowledge agent body says "No editFiles access" but nothing enforces it.
+          Each agent MUST add a `tools:` array to its frontmatter restricting to
+          only the tools it legitimately needs.
+
+      - id: "F-2"
+        title: "ask_questions is not a documented built-in tool name"
+        source: "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features"
+        relevance: "high"
+        detail: |
+          The orchestrator.agent.md heavily references `ask_questions` as a tool
+          (in the Tool Usage table and throughout Steps 1-8). However, the official
+          VS Code built-in tools reference does NOT list `ask_questions` as a tool.
+          The runtime-injected equivalent appears to be `vscodeAskQuestions` (seen
+          in agent runtime contexts). The complete built-in tools list from VS Code
+          docs (March 9, 2026) includes: changes, codebase, createAndRunTask,
+          createDirectory, createFile, editFiles, editNotebook, extensions, fetch,
+          fileSearch, getNotebookSummary, getProjectSetupInfo, getTaskOutput,
+          getTerminalOutput, githubRepo, installExtension, listDirectory, new,
+          newJupyterNotebook, newWorkspace, openSimpleBrowser, problems, readFile,
+          readNotebookCellOutput, runCell, runInTerminal, runSubagent, runTask,
+          runTests, runVscodeCommand, searchResults, selection, terminalLastCommand,
+          terminalSelection, testFailure, textSearch, todos, usages, VSCodeAPI.
+          Tool sets: edit, search, runCommands, browser, runNotebooks, runTasks.
+          The orchestrator instructions should reference the correct tool name
+          or acknowledge it as a runtime-provided tool that may have a different
+          camelCase name (vscodeAskQuestions).
+
+      - id: "F-3"
+        title: "runSubagent confirmed as correct built-in tool name"
+        source: "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features"
+        relevance: "high"
+        detail: |
+          The official built-in tools list confirms `runSubagent` as a built-in
+          tool: "#runSubagent — Run a task in an isolated subagent context." The
+          orchestrator correctly references this tool. Additionally, for subagent
+          invocation to work in prompt files, the docs state: "ensure that the
+          `runSubagent` or `agent` tool is included in the `tools` frontmatter
+          property." Currently neither the orchestrator frontmatter nor the prompt
+          files include `tools:` at all, so this works only because all tools are
+          inherited by default.
+
+      - id: "F-4"
+        title: "agents: property confirmed — restricts subagent access correctly"
+        source: "https://code.visualstudio.com/docs/copilot/agents/subagents"
+        relevance: "high"
+        detail: |
+          The VS Code subagents docs confirm the `agents:` property works as the
+          v2 system uses it:
+          - A list of agent names allows only those agents as subagents.
+          - `*` allows all (default behavior).
+          - `[]` prevents any subagent use.
+          - "Explicitly listing an agent in the `agents` array overrides
+            `disable-model-invocation: true`."
+          The orchestrator correctly lists its allowed subagents. Worker agents
+          correctly use `agents: []` to prevent them from dispatching subagents.
+
+      - id: "F-5"
+        title: "global-rules.md lacks YAML frontmatter — detected as unintended agent"
+        source: "v2/.github/agents/global-rules.md"
+        relevance: "high"
+        detail: |
+          global-rules.md has no YAML frontmatter (starts directly with
+          "# Global Rules"). Per VS Code docs: "VS Code detects any .md files in
+          the .github/agents folder of your workspace as custom agents." This means
+          global-rules.md appears as a 'global-rules' agent in the agents dropdown.
+          Fix: add minimal YAML frontmatter with `user-invocable: false` and
+          `tools: []` to suppress detection. This is a previously known issue
+          (documented in repo memory as Finding A-1 from agent-system-refactor).
+
+      - id: "F-6"
+        title: "orchestrator agents: list missing tourneypal-qa (autonomous-qa)"
+        source: "v2/.github/agents/orchestrator.agent.md, v2/.github/agents/tourneypal-qa.agent.md"
+        relevance: "medium"
+        detail: |
+          The orchestrator's `agents:` array lists 7 agents: researcher, architect,
+          planner, implementer, tester, reviewer, knowledge. It does NOT include
+          `autonomous-qa` (the name from tourneypal-qa.agent.md's frontmatter).
+          This means the orchestrator cannot dispatch the QA agent as a subagent.
+          If this is intentional (QA is user-invoked separately), document it.
+          If not, add `autonomous-qa` to the orchestrator's agents list.
+
+      - id: "F-7"
+        title: "tourneypal-qa lacks user-invocable, agents, and tools restrictions"
+        source: "v2/.github/agents/tourneypal-qa.agent.md"
+        relevance: "medium"
+        detail: |
+          tourneypal-qa.agent.md (name: autonomous-qa) has three missing
+          frontmatter properties:
+          1. No `user-invocable:` — defaults to true (user sees it in dropdown).
+             This may be correct if it's meant to be invoked directly.
+          2. No `agents:` — defaults to `*`, allows dispatching ANY agent as
+             subagent. Its body says "Use the subAgent tool aggressively" which
+             implies it should have subagent access, but unrestricted `*` means
+             it could invoke orchestrator, reviewer, etc.
+          3. No `tools:` — gets ALL tools unrestricted.
+          Also, the body references "subAgent tool" (wrong casing; correct name
+          is `runSubagent`).
+
+      - id: "F-8"
+        title: "No agents use deprecated infer: property — confirmed clean"
+        source: "v2/.github/agents/*.agent.md"
+        relevance: "low"
+        detail: |
+          Verified all 9 agent frontmatter blocks. None use the deprecated `infer:`
+          property. All worker agents correctly use `user-invocable: false`. The
+          VS Code docs confirm: "The `infer` property is deprecated. Use
+          `user-invocable` and `disable-model-invocation` instead."
+
+      - id: "F-9"
+        title: "Agent dependency chain is well-structured but entirely instruction-based"
+        source: "v2/.github/agents/*.agent.md"
+        relevance: "medium"
+        detail: |
+          The inter-agent dependency chain flows correctly through agent body
+          instructions:
+          - orchestrator → dispatches all workers via runSubagent
+          - researcher → reads initial-request.md, writes research/*.yaml
+          - architect → reads research/*.yaml + initial-request.md, writes
+            architecture-output.yaml
+          - planner → reads architecture-output.yaml, writes plan-output.yaml +
+            tasks/task-XX.yaml
+          - implementer → reads tasks/task-XX.yaml, writes
+            implementation-reports/task-XX.yaml
+          - tester → reads implementation-reports/*.yaml, writes
+            verification-reports/test-report.yaml
+          - reviewer → reads implementation-reports + uses changes tool, writes
+            review-findings/<perspective>.yaml
+          - knowledge → reads pipeline-log.yaml + all outputs, writes
+            evidence-bundle.yaml + knowledge-output.yaml
+          However, this entire chain is enforced ONLY via prose instructions in
+          agent bodies. No frontmatter `tools:` restrictions prevent an agent from
+          accessing tools outside its role. The dependency chain is correct in
+          design but lacks technical enforcement.
+
+      - id: "F-10"
+        title: "Prompt files lack tools: property — inherit all tools unrestricted"
+        source: "v2/.github/prompts/feature-workflow.prompt.md, v2/.github/prompts/quick-fix.prompt.md"
+        relevance: "medium"
+        detail: |
+          Both prompt files (feature-workflow.prompt.md and quick-fix.prompt.md)
+          correctly specify `agent: orchestrator` in frontmatter, designating the
+          orchestrator as the running agent. However, neither specifies `tools:`.
+          Per VS Code docs, "When you use tools in both a custom agent and a prompt
+          file, the prompt file's tools take precedence." Since neither the prompt
+          files nor the orchestrator agent specify tools, ALL tools are available.
+          The prompt files should ideally specify the tools needed for the pipeline
+          (e.g., `tools: ['runSubagent', 'agent', 'runInTerminal', 'listDirectory',
+          'readFile', 'search']`) or at minimum document why restriction is omitted.
+
+      - id: "F-11"
+        title: "Tool name references in agent bodies are correct camelCase"
+        source: "v2/.github/agents/*.agent.md"
+        relevance: "medium"
+        detail: |
+          Verified tool names referenced in agent body instructions against the
+          official built-in tools list. All are correct camelCase:
+          - runSubagent ✓ (orchestrator)
+          - runInTerminal ✓ (orchestrator, implementer, tester)
+          - listDirectory ✓ (orchestrator, knowledge, researcher)
+          - readFile ✓ (all agents)
+          - createFile ✓ (researcher, architect, planner, knowledge, tester)
+          - editFiles ✓ (knowledge mentions "No editFiles access")
+          - textSearch ✓ (researcher, architect)
+          - fileSearch ✓ (researcher)
+          - codebase ✓ (researcher, architect)
+          - problems ✓ (implementer, reviewer)
+          - changes ✓ (reviewer)
+          - fetch ✓ (researcher, architect)
+          Exception: `ask_questions` (see F-2) and tourneypal-qa's "subAgent tool"
+          (see F-7).
+
+      - id: "F-12"
+        title: "Recommended tools: arrays for each agent based on trust tier"
+        source: "https://code.visualstudio.com/docs/copilot/customization/custom-agents"
+        relevance: "high"
+        detail: |
+          Based on each agent's documented responsibilities and the 3-tier trust
+          model, recommended `tools:` arrays for frontmatter:
+
+          orchestrator (T1): ['runSubagent', 'agent', 'runInTerminal',
+            'listDirectory', 'readFile', 'textSearch', 'fileSearch']
+            Note: ask_questions/vscodeAskQuestions needs verification
+
+          researcher (T3 read-only + gated fetch): ['codebase', 'textSearch',
+            'fileSearch', 'listDirectory', 'readFile', 'createFile', 'fetch']
+
+          architect (T3 read-only + gated fetch): ['codebase', 'textSearch',
+            'listDirectory', 'readFile', 'createFile', 'fetch']
+
+          planner (T2 limited): ['readFile', 'listDirectory', 'createFile',
+            'fileSearch', 'textSearch']
+
+          implementer (T2 build+test): ['readFile', 'editFiles', 'createFile',
+            'listDirectory', 'textSearch', 'fileSearch', 'runInTerminal',
+            'getTerminalOutput', 'problems', 'changes']
+
+          tester (T2 build+test): ['readFile', 'createFile', 'listDirectory',
+            'runInTerminal', 'getTerminalOutput', 'problems', 'textSearch',
+            'fileSearch', 'openSimpleBrowser']
+
+          reviewer (T1 read-only): ['readFile', 'listDirectory', 'textSearch',
+            'fileSearch', 'createFile', 'changes', 'problems', 'codebase']
+
+          knowledge (T1 read-only + create): ['readFile', 'listDirectory',
+            'createFile', 'textSearch', 'fileSearch']
+
+    web_research_used: true
+completion:
+  status: "DONE"
+  summary: "Mapped all agent dependencies; found tools: arrays missing from ALL agents — trust model unenforced"
+  output_paths:
+    - "docs/feature/v2-agent-updates/research/dependencies.yaml"
