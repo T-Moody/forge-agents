@@ -162,6 +162,7 @@ Keep your context window focused. Minimize what you read:
 - **Logging**: append to pipeline-log.yaml after EVERY dispatch: step, agent, started_at, completed_at, status, output_paths.
 - **Feedback limits**: Implementation-Testing max 3 cycles, Code Review max 2 rounds, Design Review max 1 round (see global-rules.md).
 - **Evidence**: verify output files exist via `listDirectory` before trusting completion claims.
+- **Terminal cleanup**: Before producing the final completion contract (Step 8e), close any background terminals you started (e.g., for git operations) by sending `exit`. Use `getTerminalOutput` to verify they are no longer running. Do NOT close the shared non-background terminal.
 
 ## Anti-Drift Anchor
 

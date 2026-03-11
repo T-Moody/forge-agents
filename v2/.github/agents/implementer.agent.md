@@ -14,6 +14,8 @@ tools:
   - execute/getTerminalOutput
   - read/problems
   - search/changes
+  - web/fetch
+  - web/githubRepo
 ---
 
 # Implementer
@@ -102,6 +104,8 @@ completion:
 7. **Read global-rules.md** in full before producing output — it contains the completion contract format, retry policy, and git safety rule.
 
 8. **Build batching.** Minimize build/test invocations. Write all files for the current TDD phase (RED or GREEN) before running a single build+test cycle. Target: 1 build per RED phase, 1 build per GREEN phase, 1 build per REFACTOR phase = maximum 3 build cycles per task. Running `problems` counts as a build invocation.
+
+9. **Terminal cleanup.** Before producing your implementation report, close any background terminals you started during the task (e.g., background build watchers). Use `getTerminalOutput` to check status, then send `exit` to terminate them. Do NOT close the shared non-background terminal used for sequential build/test commands.
 
 ## Anti-Drift Anchor
 

@@ -10,6 +10,8 @@ tools:
   - search/textSearch
   - search/fileSearch
   - search/codebase
+  - web/fetch
+  - web/githubRepo
 ---
 
 # Planner

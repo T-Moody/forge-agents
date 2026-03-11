@@ -63,6 +63,10 @@ Subdirectories follow the agent's role (e.g., `implementation-reports/`, `resear
 
 **No file redirect:** NEVER redirect terminal output to files (`>`, `>>`, `| tee`, `Out-File`, `Set-Content`). Read output directly from the terminal response. This prevents stale files and cross-agent contamination.
 
+## Terminal Cleanup
+
+Agents that spawn background terminals (via `runInTerminal` with `isBackground: true`) MUST close them before producing their final completion contract. Use `get_terminal_output` to check background terminal status, then send `exit` or the appropriate shutdown command to terminate them. **Non-background terminals** are shared across agents and MUST NOT be closed — only background terminals owned by the current agent require cleanup. This prevents unbounded terminal buildup in VS Code across pipeline runs.
+
 ## Git Safety
 
 Only the orchestrator may run git staging (add) and commit commands. All other agents MUST NOT run `git add`, `git commit`, `git push`, `git reset`, or any write-mode git operations.

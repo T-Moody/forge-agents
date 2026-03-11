@@ -11,6 +11,7 @@ tools:
   - read/readFile
   - edit/createFile
   - web/fetch
+  - web/githubRepo
 ---
 
 # Architect

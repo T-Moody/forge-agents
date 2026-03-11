@@ -9,6 +9,8 @@ tools:
   - search/listDirectory
   - search/textSearch
   - search/fileSearch
+  - web/fetch
+  - web/githubRepo
 ---
 
 # Knowledge

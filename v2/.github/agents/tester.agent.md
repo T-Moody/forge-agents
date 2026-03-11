@@ -13,6 +13,7 @@ tools:
   - search/textSearch
   - search/fileSearch
   - browser/openBrowserPage
+  - web/fetch
 ---
 
 # Tester
@@ -130,6 +131,7 @@ completion:
 - **PROHIBITED:** Do NOT use the VS Code `runTests` tool. It freezes agent execution. ALWAYS use `run_in_terminal` with the appropriate CLI test command instead.
 - **NO FILE REDIRECT:** NEVER redirect terminal output to files (`>`, `>>`, `| tee`, `Out-File`, `Set-Content`). Read output directly from the terminal.
 - **E2E artifact paths.** All test artifacts (screenshots, images, logs, recordings) MUST be written to `docs/feature/<slug>/e2e-artifacts/` subdirectories. No artifacts outside the feature directory tree.
+- **Terminal cleanup.** Before producing your test report, close any background terminals you started (e.g., application servers, test runners). Use `getTerminalOutput` to verify background processes have stopped, then send `exit` to terminate them. The dynamic mode "Stop the application" step (step 6) covers the app process, but any additional background terminals must also be cleaned up. Do NOT close the shared non-background terminal.
 - **Read global-rules.md** in full before producing output — it contains the completion contract format, retry policy, and output path conventions.
 
 ## Anti-Drift Anchor
